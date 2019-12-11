@@ -30,11 +30,11 @@ class OffMeshConnectionTool : public SampleTool
 	bool m_hitPosSet;
 	bool m_bidir;
 	unsigned char m_oldFlags;
-	
+
 public:
 	OffMeshConnectionTool();
 	~OffMeshConnectionTool();
-	
+
 	virtual int type() { return TOOL_OFFMESH_CONNECTION; }
 	virtual void init(Sample* sample);
 	virtual void reset();

@@ -30,16 +30,16 @@ class ConvexVolumeTool : public SampleTool
 	float m_polyOffset;
 	float m_boxHeight;
 	float m_boxDescent;
-	
-	static const int MAX_PTS = 12;
-	float m_pts[MAX_PTS*3];
+
+	static constexpr int MAX_PTS = 12;
+	float m_pts[MAX_PTS * 3];
 	int m_npts;
 	int m_hull[MAX_PTS];
 	int m_nhull;
-	
+
 public:
 	ConvexVolumeTool();
-	
+
 	virtual int type() { return TOOL_CONVEX_VOLUME; }
 	virtual void init(Sample* sample);
 	virtual void reset();

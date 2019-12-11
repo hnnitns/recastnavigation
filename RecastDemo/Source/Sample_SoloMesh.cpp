@@ -42,7 +42,6 @@
 #	define snprintf _snprintf
 #endif
 
-
 Sample_SoloMesh::Sample_SoloMesh() :
 	m_keepInterResults(true),
 	m_totalBuildTimeMs(0),
@@ -56,50 +55,57 @@ Sample_SoloMesh::Sample_SoloMesh() :
 {
 	setTool(new NavMeshTesterTool);
 }
-		
+
 Sample_SoloMesh::~Sample_SoloMesh()
 {
 	cleanup();
 }
-	
+
 void Sample_SoloMesh::cleanup()
 {
-	delete [] m_triareas;
-	m_triareas = 0;
+	delete[] m_triareas;
+
+	m_triareas = nullptr;
+
 	rcFreeHeightField(m_solid);
-	m_solid = 0;
+	m_solid = nullptr;
+
 	rcFreeCompactHeightfield(m_chf);
-	m_chf = 0;
+	m_chf = nullptr;
+
 	rcFreeContourSet(m_cset);
-	m_cset = 0;
+	m_cset = nullptr;
+
 	rcFreePolyMesh(m_pmesh);
-	m_pmesh = 0;
+	m_pmesh = nullptr;
+
 	rcFreePolyMeshDetail(m_dmesh);
-	m_dmesh = 0;
+	m_dmesh = nullptr;
+
 	dtFreeNavMesh(m_navMesh);
-	m_navMesh = 0;
+	m_navMesh = nullptr;
 }
-			
+
 void Sample_SoloMesh::handleSettings()
 {
 	Sample::handleCommonSettings();
-	
+
 	if (imguiCheck("Keep Itermediate Results", m_keepInterResults))
 		m_keepInterResults = !m_keepInterResults;
 
 	imguiSeparator();
-	
+
 	char msg[64];
 	snprintf(msg, 64, "Build Time: %.1fms", m_totalBuildTimeMs);
 	imguiLabel(msg);
-	
+
 	imguiSeparator();
 }
 
 void Sample_SoloMesh::handleTools()
 {
 	int type = !m_tool ? TOOL_NONE : m_tool->type();
-	
+
 	if (imguiCheck("Test Navmesh", type == TOOL_NAVMESH_TESTER))
 	{
 		setTool(new NavMeshTesterTool);
@@ -120,7 +126,7 @@ void Sample_SoloMesh::handleTools()
 	{
 		setTool(new CrowdTool);
 	}
-	
+
 	imguiSeparatorLine();
 
 	imguiIndent();
@@ -129,7 +135,6 @@ void Sample_SoloMesh::handleTools()
 		m_tool->handleMenu();
 
 	imguiUnindent();
-
 }
 
 void Sample_SoloMesh::handleDebugMode()
@@ -159,7 +164,7 @@ void Sample_SoloMesh::handleDebugMode()
 		valid[DRAWMODE_POLYMESH] = m_pmesh != 0;
 		valid[DRAWMODE_POLYMESH_DETAIL] = m_dmesh != 0;
 	}
-	
+
 	int unavail = 0;
 	for (int i = 0; i < MAX_DRAWMODE; ++i)
 		if (!valid[i]) unavail++;
@@ -202,7 +207,7 @@ void Sample_SoloMesh::handleDebugMode()
 		m_drawMode = DRAWMODE_POLYMESH;
 	if (imguiCheck("Poly Mesh Detail", m_drawMode == DRAWMODE_POLYMESH_DETAIL, valid[DRAWMODE_POLYMESH_DETAIL]))
 		m_drawMode = DRAWMODE_POLYMESH_DETAIL;
-		
+
 	if (unavail)
 	{
 		imguiValue("Tick 'Keep Itermediate Results'");
@@ -214,38 +219,38 @@ void Sample_SoloMesh::handleRender()
 {
 	if (!m_geom || !m_geom->getMesh())
 		return;
-	
+
 	glEnable(GL_FOG);
 	glDepthMask(GL_TRUE);
 
 	const float texScale = 1.0f / (m_cellSize * 10.0f);
-	
+
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
 		// Draw mesh
 		duDebugDrawTriMeshSlope(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
-								m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(),
-								m_agentMaxSlope, texScale);
+			m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(),
+			m_agentMaxSlope, texScale);
 		m_geom->drawOffMeshConnections(&m_dd);
 	}
-	
+
 	glDisable(GL_FOG);
 	glDepthMask(GL_FALSE);
 
 	// Draw bounds
 	const float* bmin = m_geom->getNavMeshBoundsMin();
 	const float* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0],bmin[1],bmin[2], bmax[0],bmax[1],bmax[2], duRGBA(255,255,255,128), 1.0f);
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.0f);
 	m_dd.begin(DU_DRAW_POINTS, 5.0f);
-	m_dd.vertex(bmin[0],bmin[1],bmin[2],duRGBA(255,255,255,128));
+	m_dd.vertex(bmin[0], bmin[1], bmin[2], duRGBA(255, 255, 255, 128));
 	m_dd.end();
-	
+
 	if (m_navMesh && m_navQuery &&
 		(m_drawMode == DRAWMODE_NAVMESH ||
-		m_drawMode == DRAWMODE_NAVMESH_TRANS ||
-		m_drawMode == DRAWMODE_NAVMESH_BVTREE ||
-		 m_drawMode == DRAWMODE_NAVMESH_NODES ||
-		m_drawMode == DRAWMODE_NAVMESH_INVIS))
+			m_drawMode == DRAWMODE_NAVMESH_TRANS ||
+			m_drawMode == DRAWMODE_NAVMESH_BVTREE ||
+			m_drawMode == DRAWMODE_NAVMESH_NODES ||
+			m_drawMode == DRAWMODE_NAVMESH_INVIS))
 	{
 		if (m_drawMode != DRAWMODE_NAVMESH_INVIS)
 			duDebugDrawNavMeshWithClosedList(&m_dd, *m_navMesh, *m_navQuery, m_navMeshDrawFlags);
@@ -253,11 +258,11 @@ void Sample_SoloMesh::handleRender()
 			duDebugDrawNavMeshBVTree(&m_dd, *m_navMesh);
 		if (m_drawMode == DRAWMODE_NAVMESH_NODES)
 			duDebugDrawNavMeshNodes(&m_dd, *m_navQuery);
-		duDebugDrawNavMeshPolysWithFlags(&m_dd, *m_navMesh, SAMPLE_POLYFLAGS_DISABLED, duRGBA(0,0,0,128));
+		duDebugDrawNavMeshPolysWithFlags(&m_dd, *m_navMesh, SAMPLE_POLYFLAGS_DISABLED, duRGBA(0, 0, 0, 128));
 	}
-		
+
 	glDepthMask(GL_TRUE);
-	
+
 	if (m_chf && m_drawMode == DRAWMODE_COMPACT)
 		duDebugDrawCompactHeightfieldSolid(&m_dd, *m_chf);
 
@@ -299,7 +304,7 @@ void Sample_SoloMesh::handleRender()
 	if (m_chf && m_cset && m_drawMode == DRAWMODE_REGION_CONNECTIONS)
 	{
 		duDebugDrawCompactHeightfieldRegions(&m_dd, *m_chf);
-			
+
 		glDepthMask(GL_FALSE);
 		duDebugDrawRegionConnections(&m_dd, *m_cset);
 		glDepthMask(GL_TRUE);
@@ -316,7 +321,7 @@ void Sample_SoloMesh::handleRender()
 		duDebugDrawPolyMeshDetail(&m_dd, *m_dmesh);
 		glDepthMask(GL_TRUE);
 	}
-	
+
 	m_geom->drawConvexVolumes(&m_dd);
 
 	if (m_tool)
@@ -349,7 +354,6 @@ void Sample_SoloMesh::handleMeshChanged(class InputGeom* geom)
 	initToolStates(this);
 }
 
-
 bool Sample_SoloMesh::handleBuild()
 {
 	if (!m_geom || !m_geom->getMesh())
@@ -357,21 +361,22 @@ bool Sample_SoloMesh::handleBuild()
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified.");
 		return false;
 	}
-	
+
 	cleanup();
-	
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
-	const float* verts = m_geom->getMesh()->getVerts();
-	const int nverts = m_geom->getMesh()->getVertCount();
-	const int* tris = m_geom->getMesh()->getTris();
-	const int ntris = m_geom->getMesh()->getTriCount();
-	
+
+	const float* bmin{ m_geom->getNavMeshBoundsMin() };
+	const float* bmax{ m_geom->getNavMeshBoundsMax() };
+	const float* verts{ m_geom->getMesh()->getVerts() };
+	const int nverts{ m_geom->getMesh()->getVertCount() };
+	const int* tris{ m_geom->getMesh()->getTris() };
+	const int ntris{ m_geom->getMesh()->getTriCount() };
+
 	//
-	// Step 1. Initialize build config.
+	// Step 1. Initialize build config. ビルド構成を初期化します。
 	//
-	
+
 	// Init build configuration from GUI
+	// GUIからのInitビルド構成
 	memset(&m_cfg, 0, sizeof(m_cfg));
 	m_cfg.cs = m_cellSize;
 	m_cfg.ch = m_cellHeight;
@@ -386,29 +391,36 @@ bool Sample_SoloMesh::handleBuild()
 	m_cfg.maxVertsPerPoly = (int)m_vertsPerPoly;
 	m_cfg.detailSampleDist = m_detailSampleDist < 0.9f ? 0 : m_cellSize * m_detailSampleDist;
 	m_cfg.detailSampleMaxError = m_cellHeight * m_detailSampleMaxError;
-	
+
 	// Set the area where the navigation will be build.
 	// Here the bounds of the input mesh are used, but the
 	// area could be specified by an user defined box, etc.
-	rcVcopy(m_cfg.bmin, bmin);
-	rcVcopy(m_cfg.bmax, bmax);
+	// ナビゲーションを構築するエリアを設定します。
+	// ここでは、入力メッシュの境界が使用されますが、領域はユーザー定義のボックスなどで指定できます。
+	rcVcopy(m_cfg.bmin, bmin); // コピー
+	rcVcopy(m_cfg.bmax, bmax); // コピー
+
+	// グリットサイズの計算
 	rcCalcGridSize(m_cfg.bmin, m_cfg.bmax, m_cfg.cs, &m_cfg.width, &m_cfg.height);
 
 	// Reset build times gathering.
+	// ビルド時間の収集をリセットします。
 	m_ctx->resetTimers();
 
-	// Start the build process.	
+	// Start the build process.
+	// ビルドプロセスを開始します。
 	m_ctx->startTimer(RC_TIMER_TOTAL);
-	
+
 	m_ctx->log(RC_LOG_PROGRESS, "Building navigation:");
 	m_ctx->log(RC_LOG_PROGRESS, " - %d x %d cells", m_cfg.width, m_cfg.height);
-	m_ctx->log(RC_LOG_PROGRESS, " - %.1fK verts, %.1fK tris", nverts/1000.0f, ntris/1000.0f);
-	
+	m_ctx->log(RC_LOG_PROGRESS, " - %.1fK verts, %.1fK tris", nverts / 1000.0f, ntris / 1000.0f);
+
 	//
-	// Step 2. Rasterize input polygon soup.
+	// Step 2. Rasterize input polygon soup. 入力ポリゴンスープをラスタライズします。
 	//
-	
+
 	// Allocate voxel heightfield where we rasterize our input data to.
+	// 入力データをラスタライズするボクセルハイトフィールドを割り当てます。
 	m_solid = rcAllocHeightfield();
 	if (!m_solid)
 	{
@@ -420,21 +432,25 @@ bool Sample_SoloMesh::handleBuild()
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield.");
 		return false;
 	}
-	
+
 	// Allocate array that can hold triangle area types.
 	// If you have multiple meshes you need to process, allocate
 	// and array which can hold the max number of triangles you need to process.
+	// 三角形領域タイプを保持できる配列を割り当てます。
+	// 複数のメッシュを処理する必要がある場合、処理する必要のある三角形の最大数を保持できる配列、割り当て、および配列。
 	m_triareas = new unsigned char[ntris];
 	if (!m_triareas)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", ntris);
 		return false;
 	}
-	
+
 	// Find triangles which are walkable based on their slope and rasterize them.
 	// If your input data is multiple meshes, you can transform them here, calculate
 	// the are type for each of the meshes and rasterize them.
-	memset(m_triareas, 0, ntris*sizeof(unsigned char));
+	// 傾斜に基づいて歩行可能な三角形を見つけ、ラスタライズします。
+	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュの面積タイプを計算して、それらをラスタライズできます。
+	memset(m_triareas, 0, ntris * sizeof(unsigned char));
 	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts, nverts, tris, ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
 	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, m_triareas, ntris, *m_solid, m_cfg.walkableClimb))
 	{
@@ -444,24 +460,25 @@ bool Sample_SoloMesh::handleBuild()
 
 	if (!m_keepInterResults)
 	{
-		delete [] m_triareas;
+		delete[] m_triareas;
 		m_triareas = 0;
 	}
-	
+
 	//
-	// Step 3. Filter walkables surfaces.
+	// Step 3. Filter walkables surfaces. 歩行可能な面をフィルターします。
 	//
-	
+
 	// Once all geoemtry is rasterized, we do initial pass of filtering to
 	// remove unwanted overhangs caused by the conservative rasterization
 	// as well as filter spans where the character cannot possibly stand.
+	// すべてのジオメトリがラスタライズされると、フィルタリングの初期パスを実行して、
+	// 保守的なラスタライズによって引き起こされる不要なオーバーハングと、文字が立つことができないフィルタスパンを削除します。
 	if (m_filterLowHangingObstacles)
 		rcFilterLowHangingWalkableObstacles(m_ctx, m_cfg.walkableClimb, *m_solid);
 	if (m_filterLedgeSpans)
 		rcFilterLedgeSpans(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid);
 	if (m_filterWalkableLowHeightSpans)
 		rcFilterWalkableLowHeightSpans(m_ctx, m_cfg.walkableHeight, *m_solid);
-
 
 	//
 	// Step 4. Partition walkable surface to simple regions.
@@ -481,14 +498,15 @@ bool Sample_SoloMesh::handleBuild()
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data.");
 		return false;
 	}
-	
+
 	if (!m_keepInterResults)
 	{
 		rcFreeHeightField(m_solid);
 		m_solid = 0;
 	}
-		
+
 	// Erode the walkable area by agent radius.
+	// エージェント半径ごとに歩行可能エリアを侵食します。
 	if (!rcErodeWalkableArea(m_ctx, m_cfg.walkableRadius, *m_chf))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode.");
@@ -496,13 +514,16 @@ bool Sample_SoloMesh::handleBuild()
 	}
 
 	// (Optional) Mark areas.
+	// （オプション）エリアをマークします。
 	const ConvexVolume* vols = m_geom->getConvexVolumes();
-	for (int i  = 0; i < m_geom->getConvexVolumeCount(); ++i)
+	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 		rcMarkConvexPolyArea(m_ctx, vols[i].verts, vols[i].nverts, vols[i].hmin, vols[i].hmax, vols[i].areaMod, *m_chf);
 
-	
 	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
 	// There are 3 martitioning methods, each with some pros and cons:
+	// ハイトフィールドを分割して、後で簡単なアルゴリズムを使用して歩行可能エリアを三角測量できるようにします。
+	// パーティション分割には3つの方法があり、それぞれ長所と短所があります。
+
 	// 1) Watershed partitioning
 	//   - the classic Recast partitioning
 	//   - creates the nicest tessellation
@@ -511,32 +532,58 @@ bool Sample_SoloMesh::handleBuild()
 	//   - the are some corner cases where this method creates produces holes and overlaps
 	//      - holes may appear when a small obstacles is close to large open area (triangulation can handle this)
 	//      - overlaps may occur if you have narrow spiral corridors (i.e stairs), this make triangulation to fail
-	//   * generally the best choice if you precompute the nacmesh, use this if you have large open areas
+	//   * generally the best choice if you precompute the navmesh, use this if you have large open areas
+	// 1）分水界分割
+	//   -クラシックなリキャストパーティション
+	//   -最も良いテッセレーションを作成します
+	//   -通常最も遅い
+	//   -地形を穴などがなく、綺麗に分割できます
+	//   -この方法が作成するいくつかのコーナーケースは、穴とオーバーラップを生成します
+	//      -小さな障害物が大きなオープンエリアに近い場合、穴が表示される場合があります（三角測量でこれを処理できます）
+	//      -狭い螺旋状の廊下（階段など）がある場合、重複が発生する可能性があり、これにより三角測量が失敗します
+	// * navmeshを事前計算する場合は一般的に最良の選択です。大きな空き領域がある場合はこれを使用します
+
 	// 2) Monotone partioning
 	//   - fastest
 	//   - partitions the heightfield into regions without holes and overlaps (guaranteed)
 	//   - creates long thin polygons, which sometimes causes paths with detours
 	//   * use this if you want fast navmesh generation
+	// 2）モノトーン分割
+	//   -最速
+	//   -地形を穴や重複のない領域に分割します（保証）
+	//   -迂回のあるパスを引き起こすことがある、細長いポリゴンを作成します
+	//   *高速navmesh生成が必要な場合はこれを使用します
+
 	// 3) Layer partitoining
 	//   - quite fast
-	//   - partitions the heighfield into non-overlapping regions
+	//   - partitions the heightfield into non-overlapping regions
 	//   - relies on the triangulation code to cope with holes (thus slower than monotone partitioning)
 	//   - produces better triangles than monotone partitioning
 	//   - does not have the corner cases of watershed partitioning
 	//   - can be slow and create a bit ugly tessellation (still better than monotone)
 	//     if you have large open areas with small obstacles (not a problem if you use tiles)
 	//   * good choice to use for tiled navmesh with medium and small sized tiles
-	
+	// 3）レイヤー分割
+	//   - かなり速い
+	//   -地形を重複しない領域に分割します
+	//   -穴に対処するために三角測量コードに依存しています（したがって、単調な分割よりも遅い）
+	//   -モノトーン分割よりも優れた三角形を生成します
+	//   -流域分割のコーナーケースはありません
+	//   -小さな障害物のある大きなオープンエリアがある場合、遅いことがあり、少しいテッセレーションを作成できます（モノトーンよりも優れています）（タイルを使用する場合は問題ありません）
+	//   *中型および小型のタイルでタイル張りされたnavmeshに使用するのに適した選択肢
+
 	if (m_partitionType == SAMPLE_PARTITION_WATERSHED)
 	{
 		// Prepare for region partitioning, by calculating distance field along the walkable surface.
+		// 歩行可能な表面に沿って距離フィールドを計算して、領域分割の準備をします。
 		if (!rcBuildDistanceField(m_ctx, *m_chf))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field.");
 			return false;
 		}
-		
+
 		// Partition the walkable surface into simple regions without holes.
+		// 歩行可能な表面を、穴のない単純な領域に分割します。
 		if (!rcBuildRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions.");
@@ -547,6 +594,8 @@ bool Sample_SoloMesh::handleBuild()
 	{
 		// Partition the walkable surface into simple regions without holes.
 		// Monotone partitioning does not need distancefield.
+		//歩行可能なサーフェスを、穴のない単純な領域に分割します。
+		//単調な分割は距離フィールドを必要としません。
 		if (!rcBuildRegionsMonotone(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions.");
@@ -556,18 +605,20 @@ bool Sample_SoloMesh::handleBuild()
 	else // SAMPLE_PARTITION_LAYERS
 	{
 		// Partition the walkable surface into simple regions without holes.
+		// 歩行可能なサーフェスを、穴のない単純な領域に分割します。
 		if (!rcBuildLayerRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions.");
 			return false;
 		}
 	}
-	
+
 	//
-	// Step 5. Trace and simplify region contours.
+	// Step 5. Trace and simplify region contours. 領域の輪郭をトレースして簡素化します。
 	//
-	
+
 	// Create contours.
+	// 輪郭を作成します。
 	m_cset = rcAllocContourSet();
 	if (!m_cset)
 	{
@@ -579,12 +630,13 @@ bool Sample_SoloMesh::handleBuild()
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours.");
 		return false;
 	}
-	
+
 	//
-	// Step 6. Build polygons mesh from contours.
+	// Step 6. Build polygons mesh from contours. 輪郭からポリゴンメッシュを作成します。
 	//
-	
+
 	// Build polygon navmesh from the contours.
+	// 等高線からポリゴンナブメッシュを作成します。
 	m_pmesh = rcAllocPolyMesh();
 	if (!m_pmesh)
 	{
@@ -596,11 +648,12 @@ bool Sample_SoloMesh::handleBuild()
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not triangulate contours.");
 		return false;
 	}
-	
+
 	//
 	// Step 7. Create detail mesh which allows to access approximate height on each polygon.
+	//         各ポリゴンのおよその高さにアクセスできる詳細メッシュを作成します。
 	//
-	
+
 	m_dmesh = rcAllocPolyMeshDetail();
 	if (!m_dmesh)
 	{
@@ -624,13 +677,18 @@ bool Sample_SoloMesh::handleBuild()
 
 	// At this point the navigation mesh data is ready, you can access it from m_pmesh.
 	// See duDebugDrawPolyMesh or dtCreateNavMeshData as examples how to access the data.
-	
+	// この時点で、ナビゲーションメッシュデータの準備ができました。m_pmeshからアクセスできます。
+	// データにアクセスする方法の例として、duDebugDrawPolyMeshまたはdtCreateNavMeshDataを参照してください。
+
 	//
-	// (Optional) Step 8. Create Detour data from Recast poly mesh.
+	// (Optional) Step 8. Create Detour data from Recast poly mesh. ステップ8. Recast poly meshから迂回データを作成します。
 	//
-	
+
 	// The GUI may allow more max points per polygon than Detour can handle.
 	// Only build the detour navmesh if we do not exceed the limit.
+	// GUIでは、Detourで処理できるよりも多くのポリゴンあたりの最大ポイントが許可される場合があります。
+	// 制限を超えない場合にのみ、迂回navmeshを構築します。
+
 	if (m_cfg.maxVertsPerPoly <= DT_VERTS_PER_POLYGON)
 	{
 		unsigned char* navData = 0;
@@ -641,7 +699,6 @@ bool Sample_SoloMesh::handleBuild()
 		{
 			m_pmesh->flags[i] = sampleAreaToFlags(m_pmesh->areas[i]);
 		}
-
 
 		dtNavMeshCreateParams params;
 		memset(&params, 0, sizeof(params));
@@ -672,13 +729,13 @@ bool Sample_SoloMesh::handleBuild()
 		params.cs = m_cfg.cs;
 		params.ch = m_cfg.ch;
 		params.buildBvTree = true;
-		
+
 		if (!dtCreateNavMeshData(&params, &navData, &navDataSize))
 		{
 			m_ctx->log(RC_LOG_ERROR, "Could not build Detour navmesh.");
 			return false;
 		}
-		
+
 		m_navMesh = dtAllocNavMesh();
 		if (!m_navMesh)
 		{
@@ -686,9 +743,9 @@ bool Sample_SoloMesh::handleBuild()
 			m_ctx->log(RC_LOG_ERROR, "Could not create Detour navmesh");
 			return false;
 		}
-		
+
 		dtStatus status;
-		
+
 		status = m_navMesh->init(navData, navDataSize, DT_TILE_FREE_DATA);
 		if (dtStatusFailed(status))
 		{
@@ -696,7 +753,7 @@ bool Sample_SoloMesh::handleBuild()
 			m_ctx->log(RC_LOG_ERROR, "Could not init Detour navmesh");
 			return false;
 		}
-		
+
 		status = m_navQuery->init(m_navMesh, 2048);
 		if (dtStatusFailed(status))
 		{
@@ -704,15 +761,16 @@ bool Sample_SoloMesh::handleBuild()
 			return false;
 		}
 	}
-	
+
 	m_ctx->stopTimer(RC_TIMER_TOTAL);
 
 	// Show performance stats.
+	// パフォーマンス統計を表示します。
 	duLogBuildTimes(*m_ctx, m_ctx->getAccumulatedTime(RC_TIMER_TOTAL));
 	m_ctx->log(RC_LOG_PROGRESS, ">> Polymesh: %d vertices  %d polygons", m_pmesh->nverts, m_pmesh->npolys);
-	
-	m_totalBuildTimeMs = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL)/1000.0f;
-	
+
+	m_totalBuildTimeMs = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
+
 	if (m_tool)
 		m_tool->init(this);
 	initToolStates(this);

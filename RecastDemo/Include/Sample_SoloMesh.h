@@ -34,9 +34,9 @@ protected:
 	rcCompactHeightfield* m_chf;
 	rcContourSet* m_cset;
 	rcPolyMesh* m_pmesh;
-	rcConfig m_cfg;	
+	rcConfig m_cfg;
 	rcPolyMeshDetail* m_dmesh;
-	
+
 	enum DrawMode
 	{
 		DRAWMODE_NAVMESH,
@@ -58,19 +58,19 @@ protected:
 		DRAWMODE_POLYMESH_DETAIL,
 		MAX_DRAWMODE
 	};
-	
+
 	DrawMode m_drawMode;
-	
+
 	void cleanup();
-		
+
 public:
 	Sample_SoloMesh();
 	virtual ~Sample_SoloMesh();
-	
+
 	virtual void handleSettings();
 	virtual void handleTools();
 	virtual void handleDebugMode();
-	
+
 	virtual void handleRender();
 	virtual void handleRenderOverlay(double* proj, double* model, int* view);
 	virtual void handleMeshChanged(class InputGeom* geom);
@@ -81,6 +81,5 @@ private:
 	Sample_SoloMesh(const Sample_SoloMesh&);
 	Sample_SoloMesh& operator=(const Sample_SoloMesh&);
 };
-
 
 #endif // RECASTSAMPLESOLOMESHSIMPLE_H

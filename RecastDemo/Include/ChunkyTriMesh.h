@@ -30,7 +30,7 @@ struct rcChunkyTriMeshNode
 struct rcChunkyTriMesh
 {
 	inline rcChunkyTriMesh() : nodes(0), nnodes(0), tris(0), ntris(0), maxTrisPerChunk(0) {};
-	inline ~rcChunkyTriMesh() { delete [] nodes; delete [] tris; }
+	inline ~rcChunkyTriMesh() { delete[] nodes; delete[] tris; }
 
 	rcChunkyTriMeshNode* nodes;
 	int nnodes;
@@ -44,16 +44,18 @@ private:
 	rcChunkyTriMesh& operator=(const rcChunkyTriMesh&);
 };
 
-/// Creates partitioned triangle mesh (AABB tree),
-/// where each node contains at max trisPerChunk triangles.
+// Creates partitioned triangle mesh (AABB tree),
+// where each node contains at max trisPerChunk triangles.
+// 分割された三角形メッシュ（AABBツリー）を作成します。各ノードには最大でtrisPerChunkの三角形が含まれます。
 bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris,
-						   int trisPerChunk, rcChunkyTriMesh* cm);
+	int trisPerChunk, rcChunkyTriMesh* cm);
 
-/// Returns the chunk indices which overlap the input rectable.
+// Returns the chunk indices which overlap the input rectable.
+// 入力rectableと重複するチャンクインデックスを返します。
 int rcGetChunksOverlappingRect(const rcChunkyTriMesh* cm, float bmin[2], float bmax[2], int* ids, const int maxIds);
 
-/// Returns the chunk indices which overlap the input segment.
+// Returns the chunk indices which overlap the input segment.
+// 入力セグメントと重複するチャンクインデックスを返します。
 int rcGetChunksOverlappingSegment(const rcChunkyTriMesh* cm, float p[2], float q[2], int* ids, const int maxIds);
-
 
 #endif // CHUNKYTRIMESH_H

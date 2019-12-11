@@ -39,43 +39,42 @@ unsigned short sampleAreaToFlags(unsigned char area)
 {
 	unsigned char areaType = (area & SAMPLE_POLYAREA_TYPE_MASK);
 	unsigned short flags = (unsigned short)((areaType == SAMPLE_POLYAREA_TYPE_WATER) ? SAMPLE_POLYFLAGS_SWIM : SAMPLE_POLYFLAGS_WALK);
-	if((areaType & SAMPLE_POLYAREA_FLAG_DOOR) != 0)
+	if ((areaType & SAMPLE_POLYAREA_FLAG_DOOR) != 0)
 	{
 		flags |= SAMPLE_POLYFLAGS_DOOR;
 	}
-	if((areaType & SAMPLE_POLYAREA_FLAG_JUMP) != 0)
+	if ((areaType & SAMPLE_POLYAREA_FLAG_JUMP) != 0)
 	{
 		flags |= SAMPLE_POLYFLAGS_JUMP;
 	}
 	return flags;
 }
 
-
 unsigned int SampleDebugDraw::areaToCol(unsigned int area)
 {
 	unsigned int col;
 
 	unsigned char ceil = (area & SAMPLE_POLYAREA_TYPE_MASK);
-	switch(ceil)
+	switch (ceil)
 	{
-	// Ground : light blue
+		// Ground : light blue
 	case SAMPLE_POLYAREA_TYPE_GROUND: col = duRGBA(0, 192, 255, 255); break;
-	// Water : blue
+		// Water : blue
 	case SAMPLE_POLYAREA_TYPE_WATER: col = duRGBA(0, 0, 255, 255); break;
-	// Road : brown
+		// Road : brown
 	case SAMPLE_POLYAREA_TYPE_ROAD: col = duRGBA(50, 20, 12, 255); break;
-	// Grass : green
+		// Grass : green
 	case SAMPLE_POLYAREA_TYPE_GRASS: col = duRGBA(0, 255, 0, 255); break;
-	// Unexpected ceil : red
+		// Unexpected ceil : red
 	default: col = duRGBA(255, 0, 0, 255); break;
 	}
 
-	if(area & SAMPLE_POLYAREA_FLAG_DOOR)
+	if (area & SAMPLE_POLYAREA_FLAG_DOOR)
 	{
 		// Door : cyan
 		col = duLerpCol(col, duRGBA(0, 255, 255, 255), 127);
 	}
-	if(area & SAMPLE_POLYAREA_FLAG_JUMP)
+	if (area & SAMPLE_POLYAREA_FLAG_JUMP)
 	{
 		// Jump : yellow
 		col = duLerpCol(col, duRGBA(255, 255, 0, 255), 127);
@@ -89,7 +88,7 @@ Sample::Sample() :
 	m_navMesh(0),
 	m_navQuery(0),
 	m_crowd(0),
-	m_navMeshDrawFlags(DU_DRAWNAVMESH_OFFMESHCONS|DU_DRAWNAVMESH_CLOSEDLIST),
+	m_navMeshDrawFlags(DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST),
 	m_filterLowHangingObstacles(true),
 	m_filterLedgeSpans(true),
 	m_filterWalkableLowHeightSpans(true),
@@ -138,14 +137,14 @@ void Sample::handleRender()
 {
 	if (!m_geom)
 		return;
-	
+
 	// Draw mesh
 	duDebugDrawTriMesh(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
-					   m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.0f);
+		m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.0f);
 	// Draw bounds
 	const float* bmin = m_geom->getMeshBoundsMin();
 	const float* bmax = m_geom->getMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0],bmin[1],bmin[2], bmax[0],bmax[1],bmax[2], duRGBA(255,255,255,128), 1.0f);
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.0f);
 }
 
 void Sample::handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/)
@@ -194,7 +193,6 @@ void Sample::collectSettings(BuildSettings& settings)
 	settings.partitionType = m_partitionType;
 }
 
-
 void Sample::resetCommonSettings()
 {
 	m_cellSize = 0.3f;
@@ -218,7 +216,7 @@ void Sample::handleCommonSettings()
 	imguiLabel("Rasterization");
 	imguiSlider("Cell Size", &m_cellSize, 0.1f, 1.0f, 0.01f);
 	imguiSlider("Cell Height", &m_cellHeight, 0.1f, 1.0f, 0.01f);
-	
+
 	if (m_geom)
 	{
 		const float* bmin = m_geom->getNavMeshBoundsMin();
@@ -229,14 +227,14 @@ void Sample::handleCommonSettings()
 		snprintf(text, 64, "Voxels  %d x %d", gw, gh);
 		imguiValue(text);
 	}
-	
+
 	imguiSeparator();
 	imguiLabel("Agent");
 	imguiSlider("Height", &m_agentHeight, 0.1f, 5.0f, 0.1f);
 	imguiSlider("Radius", &m_agentRadius, 0.0f, 5.0f, 0.1f);
 	imguiSlider("Max Climb", &m_agentMaxClimb, 0.1f, 5.0f, 0.1f);
 	imguiSlider("Max Slope", &m_agentMaxSlope, 0.0f, 90.0f, 1.0f);
-	
+
 	imguiSeparator();
 	imguiLabel("Region");
 	imguiSlider("Min Region Size", &m_regionMinSize, 0.0f, 150.0f, 1.0f);
@@ -250,13 +248,13 @@ void Sample::handleCommonSettings()
 		m_partitionType = SAMPLE_PARTITION_MONOTONE;
 	if (imguiCheck("Layers", m_partitionType == SAMPLE_PARTITION_LAYERS))
 		m_partitionType = SAMPLE_PARTITION_LAYERS;
-	
+
 	imguiSeparator();
 	imguiLabel("Filtering");
 	if (imguiCheck("Low Hanging Obstacles", m_filterLowHangingObstacles))
 		m_filterLowHangingObstacles = !m_filterLowHangingObstacles;
 	if (imguiCheck("Ledge Spans", m_filterLedgeSpans))
-		m_filterLedgeSpans= !m_filterLedgeSpans;
+		m_filterLedgeSpans = !m_filterLedgeSpans;
 	if (imguiCheck("Walkable Low Height Spans", m_filterWalkableLowHeightSpans))
 		m_filterWalkableLowHeightSpans = !m_filterWalkableLowHeightSpans;
 
@@ -264,13 +262,13 @@ void Sample::handleCommonSettings()
 	imguiLabel("Polygonization");
 	imguiSlider("Max Edge Length", &m_edgeMaxLen, 0.0f, 50.0f, 1.0f);
 	imguiSlider("Max Edge Error", &m_edgeMaxError, 0.1f, 3.0f, 0.1f);
-	imguiSlider("Verts Per Poly", &m_vertsPerPoly, 3.0f, 12.0f, 1.0f);		
+	imguiSlider("Verts Per Poly", &m_vertsPerPoly, 3.0f, 12.0f, 1.0f);
 
 	imguiSeparator();
 	imguiLabel("Detail Mesh");
 	imguiSlider("Sample Distance", &m_detailSampleDist, 0.0f, 16.0f, 1.0f);
 	imguiSlider("Max Sample Error", &m_detailSampleMaxError, 0.0f, 16.0f, 1.0f);
-	
+
 	imguiSeparator();
 }
 
@@ -303,7 +301,6 @@ void Sample::handleUpdate(const float dt)
 		m_tool->handleUpdate(dt);
 	updateToolStates(dt);
 }
-
 
 void Sample::updateToolStates(const float dt)
 {
@@ -349,4 +346,3 @@ void Sample::renderOverlayToolStates(double* proj, double* model, int* view)
 			m_toolStates[i]->handleRenderOverlay(proj, model, view);
 	}
 }
-

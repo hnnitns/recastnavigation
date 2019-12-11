@@ -29,7 +29,7 @@ class TestCase
 		TEST_PATHFIND,
 		TEST_RAYCAST,
 	};
-	
+
 	struct Test
 	{
 		Test() :
@@ -51,10 +51,10 @@ class TestCase
 
 		~Test()
 		{
-			delete [] straight;
-			delete [] polys;
+			delete[] straight;
+			delete[] polys;
 		}
-		
+
 		TestType type;
 		float spos[3];
 		float epos[3];
@@ -64,16 +64,16 @@ class TestCase
 		unsigned short includeFlags;
 		unsigned short excludeFlags;
 		bool expand;
-		
+
 		float* straight;
 		int nstraight;
 		dtPolyRef* polys;
 		int npolys;
-		
+
 		int findNearestPolyTime;
 		int findPathTime;
 		int findStraightPathTime;
-		
+
 		Test* next;
 	private:
 		// Explicitly disabled copy constructor and copy assignment operator.
@@ -84,20 +84,20 @@ class TestCase
 	std::string m_sampleName;
 	std::string m_geomFileName;
 	Test* m_tests;
-	
+
 	void resetTimes();
-	
+
 public:
 	TestCase();
 	~TestCase();
 
 	bool load(const std::string& filePath);
-	
+
 	const std::string& getSampleName() const { return m_sampleName; }
 	const std::string& getGeomFileName() const { return m_geomFileName; }
-	
+
 	void doTests(class dtNavMesh* navmesh, class dtNavMeshQuery* navquery);
-	
+
 	void handleRender();
 	bool handleRenderOverlay(double* proj, double* model, int* view);
 

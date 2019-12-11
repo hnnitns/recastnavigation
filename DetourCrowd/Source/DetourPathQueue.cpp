@@ -23,7 +23,6 @@
 #include "DetourAlloc.h"
 #include "DetourCommon.h"
 
-
 dtPathQueue::dtPathQueue() :
 	m_nextHandle(1),
 	m_maxPathSize(0),
@@ -59,18 +58,18 @@ bool dtPathQueue::init(const int maxPathSize, const int maxSearchNodeCount, dtNa
 		return false;
 	if (dtStatusFailed(m_navquery->init(nav, maxSearchNodeCount)))
 		return false;
-	
+
 	m_maxPathSize = maxPathSize;
 	for (int i = 0; i < MAX_QUEUE; ++i)
 	{
 		m_queue[i].ref = DT_PATHQ_INVALID;
-		m_queue[i].path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef)*m_maxPathSize, DT_ALLOC_PERM);
+		m_queue[i].path = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPathSize, DT_ALLOC_PERM);
 		if (!m_queue[i].path)
 			return false;
 	}
-	
+
 	m_queueHead = 0;
-	
+
 	return true;
 }
 
@@ -81,18 +80,18 @@ void dtPathQueue::update(const int maxIters)
 	// Update path request until there is nothing to update
 	// or upto maxIters pathfinder iterations has been consumed.
 	int iterCount = maxIters;
-	
+
 	for (int i = 0; i < MAX_QUEUE; ++i)
 	{
 		PathQuery& q = m_queue[m_queueHead % MAX_QUEUE];
-		
+
 		// Skip inactive requests.
 		if (q.ref == DT_PATHQ_INVALID)
 		{
 			m_queueHead++;
 			continue;
 		}
-		
+
 		// Handle completed request.
 		if (dtStatusSucceed(q.status) || dtStatusFailed(q.status))
 		{
@@ -103,16 +102,16 @@ void dtPathQueue::update(const int maxIters)
 				q.ref = DT_PATHQ_INVALID;
 				q.status = 0;
 			}
-			
+
 			m_queueHead++;
 			continue;
 		}
-		
+
 		// Handle query start.
 		if (q.status == 0)
 		{
 			q.status = m_navquery->initSlicedFindPath(q.startRef, q.endRef, q.startPos, q.endPos, q.filter);
-		}		
+		}
 		// Handle query in progress.
 		if (dtStatusInProgress(q.status))
 		{
@@ -133,8 +132,8 @@ void dtPathQueue::update(const int maxIters)
 }
 
 dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
-									const float* startPos, const float* endPos,
-									const dtQueryFilter* filter)
+	const float* startPos, const float* endPos,
+	const dtQueryFilter* filter)
 {
 	// Find empty slot
 	int slot = -1;
@@ -149,22 +148,22 @@ dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
 	// Could not find slot.
 	if (slot == -1)
 		return DT_PATHQ_INVALID;
-	
+
 	dtPathQueueRef ref = m_nextHandle++;
 	if (m_nextHandle == DT_PATHQ_INVALID) m_nextHandle++;
-	
+
 	PathQuery& q = m_queue[slot];
 	q.ref = ref;
 	dtVcopy(q.startPos, startPos);
 	q.startRef = startRef;
 	dtVcopy(q.endPos, endPos);
 	q.endRef = endRef;
-	
+
 	q.status = 0;
 	q.npath = 0;
 	q.filter = filter;
 	q.keepAlive = 0;
-	
+
 	return ref;
 }
 
@@ -191,7 +190,7 @@ dtStatus dtPathQueue::getPathResult(dtPathQueueRef ref, dtPolyRef* path, int* pa
 			q.status = 0;
 			// Copy path
 			int n = dtMin(q.npath, maxPath);
-			memcpy(path, q.path, sizeof(dtPolyRef)*n);
+			memcpy(path, q.path, sizeof(dtPolyRef) * n);
 			*pathSize = n;
 			return details | DT_SUCCESS;
 		}

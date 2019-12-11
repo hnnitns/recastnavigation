@@ -46,7 +46,7 @@ class NavmeshFlags
 		int nflags;
 		dtPolyRef base;
 	};
-	
+
 	const dtNavMesh* m_nav;
 	TileFlags* m_tiles;
 	int m_ntiles;
@@ -56,26 +56,26 @@ public:
 		m_nav(0), m_tiles(0), m_ntiles(0)
 	{
 	}
-	
+
 	~NavmeshFlags()
 	{
 		for (int i = 0; i < m_ntiles; ++i)
 			m_tiles[i].purge();
 		dtFree(m_tiles);
 	}
-	
+
 	bool init(const dtNavMesh* nav)
 	{
 		m_ntiles = nav->getMaxTiles();
 		if (!m_ntiles)
 			return true;
-		m_tiles = (TileFlags*)dtAlloc(sizeof(TileFlags)*m_ntiles, DT_ALLOC_TEMP);
+		m_tiles = (TileFlags*)dtAlloc(sizeof(TileFlags) * m_ntiles, DT_ALLOC_TEMP);
 		if (!m_tiles)
 		{
 			return false;
 		}
-		memset(m_tiles, 0, sizeof(TileFlags)*m_ntiles);
-		
+		memset(m_tiles, 0, sizeof(TileFlags) * m_ntiles);
+
 		// Alloc flags for each tile.
 		for (int i = 0; i < nav->getMaxTiles(); ++i)
 		{
@@ -92,12 +92,12 @@ public:
 				memset(tf->flags, 0, tf->nflags);
 			}
 		}
-		
+
 		m_nav = nav;
-		
+
 		return false;
 	}
-	
+
 	inline void clearAllFlags()
 	{
 		for (int i = 0; i < m_ntiles; ++i)
@@ -107,12 +107,13 @@ public:
 				memset(tf->flags, 0, tf->nflags);
 		}
 	}
-	
+
 	inline unsigned char getFlags(dtPolyRef ref)
 	{
 		dtAssert(m_nav);
 		dtAssert(m_ntiles);
 		// Assume the ref is valid, no bounds checks.
+		// 参照が有効であり、境界チェックがないと仮定します。
 		unsigned int salt, it, ip;
 		m_nav->decodePolyId(ref, salt, it, ip);
 		return m_tiles[it].flags[ip];
@@ -123,21 +124,22 @@ public:
 		dtAssert(m_nav);
 		dtAssert(m_ntiles);
 		// Assume the ref is valid, no bounds checks.
+		// 参照が有効であり、境界チェックがないと仮定します。
 		unsigned int salt, it, ip;
 		m_nav->decodePolyId(ref, salt, it, ip);
 		m_tiles[it].flags[ip] = flags;
 	}
-	
 };
 
 static void floodNavmesh(dtNavMesh* nav, NavmeshFlags* flags, dtPolyRef start, unsigned char flag)
 {
 	// If already visited, skip.
+	// 既にアクセスしている場合はスキップします。
 	if (flags->getFlags(start))
 		return;
 
 	flags->setFlags(start, flag);
-		
+
 	std::vector<dtPolyRef> openList;
 	openList.push_back(start);
 
@@ -148,20 +150,29 @@ static void floodNavmesh(dtNavMesh* nav, NavmeshFlags* flags, dtPolyRef start, u
 
 		// Get current poly and tile.
 		// The API input has been cheked already, skip checking internal data.
+		// 現在のポリゴンとタイルを取得します。
+		// API入力は既にチェックされており、内部データのチェックをスキップします。
 		const dtMeshTile* tile = 0;
 		const dtPoly* poly = 0;
 		nav->getTileAndPolyByRefUnsafe(ref, &tile, &poly);
 
 		// Visit linked polygons.
+		// リンクされたポリゴンにアクセスします。
 		for (unsigned int i = poly->firstLink; i != DT_NULL_LINK; i = tile->links[i].next)
 		{
 			const dtPolyRef neiRef = tile->links[i].ref;
+
 			// Skip invalid and already visited.
+			// 無効で既にアクセスしたものをスキップします。
 			if (!neiRef || flags->getFlags(neiRef))
 				continue;
+
 			// Mark as visited
+			// 訪問済みとしてマーク
 			flags->setFlags(neiRef, flag);
+
 			// Visit neighbours
+			// 隣人を訪問
 			openList.push_back(neiRef);
 		}
 	}
@@ -221,7 +232,7 @@ void NavMeshPruneTool::handleMenu()
 	{
 		m_flags->clearAllFlags();
 	}
-	
+
 	if (imguiButton("Prune Unselected"))
 	{
 		disableUnvisitedPolys(nav, m_flags);
@@ -242,17 +253,17 @@ void NavMeshPruneTool::handleClick(const float* s, const float* p, bool shift)
 	if (!nav) return;
 	dtNavMeshQuery* query = m_sample->getNavMeshQuery();
 	if (!query) return;
-	
+
 	dtVcopy(m_hitPos, p);
 	m_hitPosSet = true;
-	
+
 	if (!m_flags)
 	{
 		m_flags = new NavmeshFlags;
 		m_flags->init(nav);
 	}
-	
-	const float ext[3] = {2,4,2};
+
+	const float ext[3] = { 2,4,2 };
 	dtQueryFilter filter;
 	dtPolyRef ref = 0;
 	query->findNearestPoly(p, ext, &filter, &ref, 0);
@@ -279,14 +290,14 @@ void NavMeshPruneTool::handleRender()
 	if (m_hitPosSet)
 	{
 		const float s = m_sample->getAgentRadius();
-		const unsigned int col = duRGBA(255,255,255,255);
+		const unsigned int col = duRGBA(255, 255, 255, 255);
 		dd.begin(DU_DRAW_LINES);
-		dd.vertex(m_hitPos[0]-s,m_hitPos[1],m_hitPos[2], col);
-		dd.vertex(m_hitPos[0]+s,m_hitPos[1],m_hitPos[2], col);
-		dd.vertex(m_hitPos[0],m_hitPos[1]-s,m_hitPos[2], col);
-		dd.vertex(m_hitPos[0],m_hitPos[1]+s,m_hitPos[2], col);
-		dd.vertex(m_hitPos[0],m_hitPos[1],m_hitPos[2]-s, col);
-		dd.vertex(m_hitPos[0],m_hitPos[1],m_hitPos[2]+s, col);
+		dd.vertex(m_hitPos[0] - s, m_hitPos[1], m_hitPos[2], col);
+		dd.vertex(m_hitPos[0] + s, m_hitPos[1], m_hitPos[2], col);
+		dd.vertex(m_hitPos[0], m_hitPos[1] - s, m_hitPos[2], col);
+		dd.vertex(m_hitPos[0], m_hitPos[1] + s, m_hitPos[2], col);
+		dd.vertex(m_hitPos[0], m_hitPos[1], m_hitPos[2] - s, col);
+		dd.vertex(m_hitPos[0], m_hitPos[1], m_hitPos[2] + s, col);
 		dd.end();
 	}
 
@@ -303,12 +314,11 @@ void NavMeshPruneTool::handleRender()
 				const dtPolyRef ref = base | (unsigned int)j;
 				if (m_flags->getFlags(ref))
 				{
-					duDebugDrawNavMeshPoly(&dd, *nav, ref, duRGBA(255,255,255,128));
+					duDebugDrawNavMeshPoly(&dd, *nav, ref, duRGBA(255, 255, 255, 128));
 				}
 			}
 		}
 	}
-
 }
 
 void NavMeshPruneTool::handleRenderOverlay(double* proj, double* model, int* view)
@@ -319,5 +329,5 @@ void NavMeshPruneTool::handleRenderOverlay(double* proj, double* model, int* vie
 	// Tool help
 	const int h = view[3];
 
-	imguiDrawText(280, h-40, IMGUI_ALIGN_LEFT, "LMB: Click fill area.", imguiRGBA(255,255,255,192));
+	imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Click fill area.", imguiRGBA(255, 255, 255, 192));
 }

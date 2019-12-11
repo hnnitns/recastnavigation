@@ -35,11 +35,11 @@ protected:
 	float m_center[3];
 	float m_bmin[3], m_bmax[3];
 	dtPolyRef m_ref;
-	
+
 public:
 	Sample_Debug();
 	virtual ~Sample_Debug();
-	
+
 	virtual void handleSettings();
 	virtual void handleTools();
 	virtual void handleDebugMode();
@@ -58,6 +58,5 @@ private:
 	Sample_Debug(const Sample_Debug&);
 	Sample_Debug& operator=(const Sample_Debug&);
 };
-
 
 #endif // RECASTSAMPLE_H

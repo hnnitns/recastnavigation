@@ -26,16 +26,16 @@
 class NavMeshPruneTool : public SampleTool
 {
 	Sample* m_sample;
-	
+
 	class NavmeshFlags* m_flags;
 
 	float m_hitPos[3];
 	bool m_hitPosSet;
-	
+
 public:
 	NavMeshPruneTool();
 	virtual ~NavMeshPruneTool();
-	
+
 	virtual int type() { return TOOL_NAVMESH_PRUNE; }
 	virtual void init(Sample* sample);
 	virtual void reset();

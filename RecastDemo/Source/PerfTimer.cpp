@@ -35,7 +35,7 @@ int getPerfTimeUsec(const TimeVal duration)
 	static __int64 freq = 0;
 	if (freq == 0)
 		QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
-	return (int)(duration*1000000 / freq);
+	return (int)(duration * 1000000 / freq);
 }
 
 #else
@@ -48,7 +48,7 @@ TimeVal getPerfTime()
 {
 	timeval now;
 	gettimeofday(&now, 0);
-	return (TimeVal)now.tv_sec*1000000L + (TimeVal)now.tv_usec;
+	return (TimeVal)now.tv_sec * 1000000L + (TimeVal)now.tv_usec;
 }
 
 int getPerfTimeUsec(const TimeVal duration)

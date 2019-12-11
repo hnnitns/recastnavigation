@@ -26,25 +26,25 @@ enum dtNodeFlags
 {
 	DT_NODE_OPEN = 0x01,
 	DT_NODE_CLOSED = 0x02,
-	DT_NODE_PARENT_DETACHED = 0x04, // parent of the node is not adjacent. Found using raycast.
+	DT_NODE_PARENT_DETACHED = 0x04, // parent of the node is not adjacent. Found using raycast. ノードの親が隣接していません。 raycastを使用して検出されました。
 };
 
-static const dtNodeIndex DT_NULL_IDX = (dtNodeIndex)~0;
+constexpr dtNodeIndex DT_NULL_IDX = (dtNodeIndex)~0;
 
-static const int DT_NODE_PARENT_BITS = 24;
-static const int DT_NODE_STATE_BITS = 2;
+constexpr int DT_NODE_PARENT_BITS = 24;
+constexpr int DT_NODE_STATE_BITS = 2;
 struct dtNode
 {
-	float pos[3];								///< Position of the node.
-	float cost;									///< Cost from previous node to current node.
-	float total;								///< Cost up to the node.
-	unsigned int pidx : DT_NODE_PARENT_BITS;	///< Index to parent node.
-	unsigned int state : DT_NODE_STATE_BITS;	///< extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
-	unsigned int flags : 3;						///< Node flags. A combination of dtNodeFlags.
-	dtPolyRef id;								///< Polygon ref the node corresponds to.
+	float pos[3];								//< Position of the node. ノードの位置。
+	float cost;									//< Cost from previous node to current node. 前のノードから現在のノードまでのコスト。
+	float total;								//< Cost up to the node. ノードまでのコスト。
+	unsigned int pidx : DT_NODE_PARENT_BITS;	//< Index to parent node. 親ノードへのインデックス。
+	unsigned int state : DT_NODE_STATE_BITS;	//< extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE 追加の状態情報。 polyRefは、異なる追加情報を持つ複数のノードを持つことができます。 DT_MAX_STATES_PER_NODEを参照
+	unsigned int flags : 3;						//< Node flags. A combination of dtNodeFlags. ノードフラグ。 dtNodeFlagsの組み合わせ。
+	dtPolyRef id;								//< Polygon ref the node corresponds to. ノードが対応するポリゴン参照。
 };
 
-static const int DT_MAX_STATES_PER_NODE = 1 << DT_NODE_STATE_BITS;	// number of extra states per node. See dtNode::state
+constexpr int DT_MAX_STATES_PER_NODE = 1 << DT_NODE_STATE_BITS;	// number of extra states per node. See dtNode::state ノードごとの追加状態の数。 dtNode :: stateを参照してください
 
 class dtNodePool
 {
@@ -55,7 +55,9 @@ public:
 
 	// Get a dtNode by ref and extra state information. If there is none then - allocate
 	// There can be more than one node for the same polyRef but with different extra state information
-	dtNode* getNode(dtPolyRef id, unsigned char state=0);	
+	// refおよび追加の状態情報によってdtNodeを取得します。 何もない場合-割り当てます。
+	// 同じpolyRefに対して複数のノードが存在する可能性がありますが、追加の状態情報が異なります。
+	dtNode* getNode(dtPolyRef id, unsigned char state = 0);
 	dtNode* findNode(dtPolyRef id, unsigned char state);
 	unsigned int findNodes(dtPolyRef id, dtNode** nodes, const int maxNodes);
 
@@ -76,27 +78,27 @@ public:
 		if (!idx) return 0;
 		return &m_nodes[idx - 1];
 	}
-	
+
 	inline int getMemUsed() const
 	{
 		return sizeof(*this) +
-			sizeof(dtNode)*m_maxNodes +
-			sizeof(dtNodeIndex)*m_maxNodes +
-			sizeof(dtNodeIndex)*m_hashSize;
+			sizeof(dtNode) * m_maxNodes +
+			sizeof(dtNodeIndex) * m_maxNodes +
+			sizeof(dtNodeIndex) * m_hashSize;
 	}
-	
+
 	inline int getMaxNodes() const { return m_maxNodes; }
-	
+
 	inline int getHashSize() const { return m_hashSize; }
 	inline dtNodeIndex getFirst(int bucket) const { return m_first[bucket]; }
 	inline dtNodeIndex getNext(int i) const { return m_next[i]; }
 	inline int getNodeCount() const { return m_nodeCount; }
-	
+
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	dtNodePool(const dtNodePool&);
 	dtNodePool& operator=(const dtNodePool&);
-	
+
 	dtNode* m_nodes;
 	dtNodeIndex* m_first;
 	dtNodeIndex* m_next;
@@ -110,11 +112,11 @@ class dtNodeQueue
 public:
 	dtNodeQueue(int n);
 	~dtNodeQueue();
-	
+
 	inline void clear() { m_size = 0; }
-	
+
 	inline dtNode* top() { return m_heap[0]; }
-	
+
 	inline dtNode* pop()
 	{
 		dtNode* result = m_heap[0];
@@ -122,13 +124,13 @@ public:
 		trickleDown(0, m_heap[m_size]);
 		return result;
 	}
-	
+
 	inline void push(dtNode* node)
 	{
 		m_size++;
-		bubbleUp(m_size-1, node);
+		bubbleUp(m_size - 1, node);
 	}
-	
+
 	inline void modify(dtNode* node)
 	{
 		for (int i = 0; i < m_size; ++i)
@@ -140,17 +142,17 @@ public:
 			}
 		}
 	}
-	
+
 	inline bool empty() const { return m_size == 0; }
-	
+
 	inline int getMemUsed() const
 	{
 		return sizeof(*this) +
-		sizeof(dtNode*) * (m_capacity + 1);
+			sizeof(dtNode*) * (m_capacity + 1);
 	}
-	
+
 	inline int getCapacity() const { return m_capacity; }
-	
+
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	dtNodeQueue(const dtNodeQueue&);
@@ -158,11 +160,10 @@ private:
 
 	void bubbleUp(int i, dtNode* node);
 	void trickleDown(int i, dtNode* node);
-	
+
 	dtNode** m_heap;
 	const int m_capacity;
 	int m_size;
-};		
-
+};
 
 #endif // DETOURNODE_H

@@ -11,20 +11,20 @@ public:
 
 	inline void addSample(const float val)
 	{
-		m_hsamples = (m_hsamples+MAX_HISTORY-1) % MAX_HISTORY;
+		m_hsamples = (m_hsamples + MAX_HISTORY - 1) % MAX_HISTORY;
 		m_samples[m_hsamples] = val;
 	}
-	
+
 	inline int getSampleCount() const
 	{
 		return MAX_HISTORY;
 	}
-	
+
 	inline float getSample(const int i) const
 	{
-		return m_samples[(m_hsamples+i) % MAX_HISTORY];
+		return m_samples[(m_hsamples + i) % MAX_HISTORY];
 	}
-	
+
 	float getSampleMin() const;
 	float getSampleMax() const;
 	float getAverage() const;
@@ -34,7 +34,7 @@ struct GraphParams
 {
 	void setRect(int ix, int iy, int iw, int ih, int ipad);
 	void setValueRange(float ivmin, float ivmax, int indiv, const char* iunits);
-	
+
 	int x, y, w, h, pad;
 	float vmin, vmax;
 	int ndiv;
@@ -44,7 +44,6 @@ struct GraphParams
 void drawGraphBackground(const GraphParams* p);
 
 void drawGraph(const GraphParams* p, const ValueHistory* graph,
-			   int idx, const char* label, const unsigned int col);
-
+	int idx, const char* label, const unsigned int col);
 
 #endif // VALUEHISTORY_H

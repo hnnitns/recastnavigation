@@ -37,8 +37,8 @@ protected:
 	rcContourSet* m_cset;
 	rcPolyMesh* m_pmesh;
 	rcPolyMeshDetail* m_dmesh;
-	rcConfig m_cfg;	
-	
+	rcConfig m_cfg;
+
 	enum DrawMode
 	{
 		DRAWMODE_NAVMESH,
@@ -58,16 +58,16 @@ protected:
 		DRAWMODE_BOTH_CONTOURS,
 		DRAWMODE_CONTOURS,
 		DRAWMODE_POLYMESH,
-		DRAWMODE_POLYMESH_DETAIL,		
+		DRAWMODE_POLYMESH_DETAIL,
 		MAX_DRAWMODE
 	};
-		
+
 	DrawMode m_drawMode;
-	
+
 	int m_maxTiles;
 	int m_maxPolysPerTile;
 	float m_tileSize;
-	
+
 	unsigned int m_tileCol;
 	float m_lastBuiltTileBmin[3];
 	float m_lastBuiltTileBmax[3];
@@ -76,16 +76,16 @@ protected:
 	int m_tileTriCount;
 
 	unsigned char* buildTileMesh(const int tx, const int ty, const float* bmin, const float* bmax, int& dataSize);
-	
+
 	void cleanup();
-	
+
 	void saveAll(const char* path, const dtNavMesh* mesh);
 	dtNavMesh* loadAll(const char* path);
-	
+
 public:
 	Sample_TileMesh();
 	virtual ~Sample_TileMesh();
-	
+
 	virtual void handleSettings();
 	virtual void handleTools();
 	virtual void handleDebugMode();
@@ -94,9 +94,9 @@ public:
 	virtual void handleMeshChanged(class InputGeom* geom);
 	virtual bool handleBuild();
 	virtual void collectSettings(struct BuildSettings& settings);
-	
+
 	void getTilePos(const float* pos, int& tx, int& ty);
-	
+
 	void buildTile(const float* pos);
 	void removeTile(const float* pos);
 	void buildAllTiles();
@@ -107,6 +107,5 @@ private:
 	Sample_TileMesh(const Sample_TileMesh&);
 	Sample_TileMesh& operator=(const Sample_TileMesh&);
 };
-
 
 #endif // RECASTSAMPLETILEMESH_H

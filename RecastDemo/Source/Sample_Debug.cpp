@@ -46,7 +46,7 @@ static int loadBin(const char* path, unsigned char** data)
 	fread(*data, size, 1, fp);
 	fclose(fp);
 	return size;
-} 
+}
 */
 
 Sample_Debug::Sample_Debug() :
@@ -72,66 +72,64 @@ Sample_Debug::Sample_Debug() :
 			m_chf = 0;
 		}
 	}*/
-	
-/*	if (m_chf)
-	{
-		unsigned short ymin = 0xffff;
-		unsigned short ymax = 0;
-		for (int i = 0; i < m_chf->spanCount; ++i)
+
+	/*	if (m_chf)
 		{
-			const rcCompactSpan& s = m_chf->spans[i];
-			if (s.y < ymin) ymin = s.y;
-			if (s.y > ymax) ymax = s.y;
-		}
-		printf("ymin=%d ymax=%d\n", (int)ymin, (int)ymax);
-		
-		int maxSpans = 0;
-		for (int i = 0; i < m_chf->width*m_chf->height; ++i)
-		{
-			maxSpans = rcMax(maxSpans, (int)m_chf->cells[i].count);
-		}
-		printf("maxSpans = %d\n", maxSpans);
-	}*/
-	
+			unsigned short ymin = 0xffff;
+			unsigned short ymax = 0;
+			for (int i = 0; i < m_chf->spanCount; ++i)
+			{
+				const rcCompactSpan& s = m_chf->spans[i];
+				if (s.y < ymin) ymin = s.y;
+				if (s.y > ymax) ymax = s.y;
+			}
+			printf("ymin=%d ymax=%d\n", (int)ymin, (int)ymax);
 
-/*	const float orig[3] = {0,0,0};
-	m_navMesh = new dtNavMesh;
-	m_navMesh->init(orig, 133.333f,133.333f, 2048, 4096, 4096);
+			int maxSpans = 0;
+			for (int i = 0; i < m_chf->width*m_chf->height; ++i)
+			{
+				maxSpans = rcMax(maxSpans, (int)m_chf->cells[i].count);
+			}
+			printf("maxSpans = %d\n", maxSpans);
+		}*/
 
-	unsigned char* data = 0;
-	int dataSize = 0;
-	
-	// Tile_-13_-14.bin is basically just the bytes that was output by Detour. It should be loaded at X: -13 and Y: -14.
-	
-	dataSize = loadBin("Tile_-13_-13.bin", &data);
-	if (dataSize > 0)
-	{
-		m_navMesh->addTileAt(-13,-13, data, dataSize, true);
-		dtMeshHeader* header = (dtMeshHeader*)data;
-		vcopy(m_bmin, header->bmin);
-		vcopy(m_bmax, header->bmax);
-	}
+		/*	const float orig[3] = {0,0,0};
+			m_navMesh = new dtNavMesh;
+			m_navMesh->init(orig, 133.333f,133.333f, 2048, 4096, 4096);
 
-	dataSize = loadBin("Tile_-13_-14.bin", &data);
-	if (dataSize > 0)
-	{
-		m_navMesh->addTileAt(-13,-14, data, dataSize, true);
-	}
+			unsigned char* data = 0;
+			int dataSize = 0;
 
-	dataSize = loadBin("Tile_-14_-14.bin", &data);
-	if (dataSize > 0)
-	{
-		m_navMesh->addTileAt(-14,-14, data, dataSize, true);
-	}
-	
-	const float ext[3] = {40,100,40};
-	const float center[3] = { -1667.9491f, 135.52649f, -1680.6149f };
-	dtQueryFilter filter;
-	m_ref = m_navMesh->findNearestPoly(center, ext, &filter, 0);
+			// Tile_-13_-14.bin is basically just the bytes that was output by Detour. It should be loaded at X: -13 and Y: -14.
 
-	vcopy(m_ext, ext);
-	vcopy(m_center, center);*/
-	
+			dataSize = loadBin("Tile_-13_-13.bin", &data);
+			if (dataSize > 0)
+			{
+				m_navMesh->addTileAt(-13,-13, data, dataSize, true);
+				dtMeshHeader* header = (dtMeshHeader*)data;
+				vcopy(m_bmin, header->bmin);
+				vcopy(m_bmax, header->bmax);
+			}
+
+			dataSize = loadBin("Tile_-13_-14.bin", &data);
+			if (dataSize > 0)
+			{
+				m_navMesh->addTileAt(-13,-14, data, dataSize, true);
+			}
+
+			dataSize = loadBin("Tile_-14_-14.bin", &data);
+			if (dataSize > 0)
+			{
+				m_navMesh->addTileAt(-14,-14, data, dataSize, true);
+			}
+
+			const float ext[3] = {40,100,40};
+			const float center[3] = { -1667.9491f, 135.52649f, -1680.6149f };
+			dtQueryFilter filter;
+			m_ref = m_navMesh->findNearestPoly(center, ext, &filter, 0);
+
+			vcopy(m_ext, ext);
+			vcopy(m_center, center);*/
 
 	{
 		m_cset = rcAllocContourSet();
@@ -141,10 +139,10 @@ Sample_Debug::Sample_Debug() :
 			if (io.openForRead("PathSet_TMP_NA_PathingTestAReg1_1_2_CS.rc"))
 			{
 				duReadContourSet(*m_cset, &io);
-				
+
 				printf("bmin=(%f,%f,%f) bmax=(%f,%f,%f)\n",
-					   m_cset->bmin[0], m_cset->bmin[1], m_cset->bmin[2],
-					   m_cset->bmax[0], m_cset->bmax[1], m_cset->bmax[2]);
+					m_cset->bmin[0], m_cset->bmin[1], m_cset->bmin[2],
+					m_cset->bmax[0], m_cset->bmax[1], m_cset->bmax[2]);
 				printf("cs=%f ch=%f\n", m_cset->cs, m_cset->ch);
 			}
 			else
@@ -157,17 +155,15 @@ Sample_Debug::Sample_Debug() :
 			printf("Could not alloc cset\n");
 		}
 
-
-/*		if (m_cset)
-		{
-			m_pmesh = rcAllocPolyMesh();
-			if (m_pmesh)
-			{
-				rcBuildPolyMesh(m_ctx, *m_cset, 6, *m_pmesh);
-			}
-		}*/
+		/*		if (m_cset)
+				{
+					m_pmesh = rcAllocPolyMesh();
+					if (m_pmesh)
+					{
+						rcBuildPolyMesh(m_ctx, *m_cset, 6, *m_pmesh);
+					}
+				}*/
 	}
-	
 }
 
 Sample_Debug::~Sample_Debug()
@@ -194,32 +190,32 @@ void Sample_Debug::handleRender()
 	if (m_chf)
 	{
 		duDebugDrawCompactHeightfieldRegions(&m_dd, *m_chf);
-//		duDebugDrawCompactHeightfieldSolid(&dd, *m_chf);
+		//		duDebugDrawCompactHeightfieldSolid(&dd, *m_chf);
 	}
-		
+
 	if (m_navMesh)
 		duDebugDrawNavMesh(&m_dd, *m_navMesh, DU_DRAWNAVMESH_OFFMESHCONS);
 
 	if (m_ref && m_navMesh)
-		duDebugDrawNavMeshPoly(&m_dd, *m_navMesh, m_ref, duRGBA(255,0,0,128));
+		duDebugDrawNavMeshPoly(&m_dd, *m_navMesh, m_ref, duRGBA(255, 0, 0, 128));
 
-/*	float bmin[3], bmax[3];
-	rcVsub(bmin, m_center, m_ext);
-	rcVadd(bmax, m_center, m_ext);
-	duDebugDrawBoxWire(&dd, bmin[0],bmin[1],bmin[2], bmax[0],bmax[1],bmax[2], duRGBA(255,255,255,128), 1.0f);
-	duDebugDrawCross(&dd, m_center[0], m_center[1], m_center[2], 1.0f, duRGBA(255,255,255,128), 2.0f);*/
+	/*	float bmin[3], bmax[3];
+		rcVsub(bmin, m_center, m_ext);
+		rcVadd(bmax, m_center, m_ext);
+		duDebugDrawBoxWire(&dd, bmin[0],bmin[1],bmin[2], bmax[0],bmax[1],bmax[2], duRGBA(255,255,255,128), 1.0f);
+		duDebugDrawCross(&dd, m_center[0], m_center[1], m_center[2], 1.0f, duRGBA(255,255,255,128), 2.0f);*/
 
 	if (m_cset)
 	{
 		duDebugDrawRawContours(&m_dd, *m_cset, 0.25f);
 		duDebugDrawContours(&m_dd, *m_cset);
 	}
-	
+
 	if (m_pmesh)
 	{
 		duDebugDrawPolyMesh(&m_dd, *m_pmesh);
 	}
-	
+
 	/*
 	dd.depthMask(false);
 	{
@@ -297,14 +293,14 @@ void Sample_Debug::handleRender()
 		static int tris[nverts*3];
 		for (int j = 0; j < nverts; ++j)
 			indices[j] = j;
-			
+
 		static int ntris = 0;
 		if (!ntris)
 		{
 			ntris = triangulate(nverts, verts, &indices[0], &tris[0]);
 			if (ntris < 0) ntris = -ntris;
 		}
-				
+
 		const unsigned int coltri = duRGBA(255,255,255,64);
 		dd.begin(DU_DRAW_TRIS);
 		for (int i = 0; i < ntris*3; ++i)
@@ -313,7 +309,6 @@ void Sample_Debug::handleRender()
 			dd.vertex(bmin[0]+va[0]*cs, bmin[1]+va[1]*ch, bmin[2]+va[2]*cs, coltri);
 		}
 		dd.end();
-		
 	}
 	dd.depthMask(true);*/
 }
@@ -363,12 +358,11 @@ void Sample_Debug::handleToggle()
 
 bool Sample_Debug::handleBuild()
 {
-
 	if (m_chf)
 	{
 		rcFreeContourSet(m_cset);
 		m_cset = 0;
-		
+
 		// Create contours.
 		m_cset = rcAllocContourSet();
 		if (!m_cset)
@@ -382,6 +376,6 @@ bool Sample_Debug::handleBuild()
 			return false;
 		}
 	}
-		
+
 	return true;
 }

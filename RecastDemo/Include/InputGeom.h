@@ -23,11 +23,11 @@
 #include "MeshLoaderObj.h"
 #include "Recast.h"
 
-static const int MAX_CONVEXVOL_PTS = 12;
+constexpr int MAX_CONVEXVOL_PTS = 12;
 struct ConvexVolume
 {
-	ConvexVolume(): areaMod(RC_AREA_FLAGS_MASK) {}
-	float verts[MAX_CONVEXVOL_PTS*3];
+	ConvexVolume() : areaMod(RC_AREA_FLAGS_MASK) {}
+	float verts[MAX_CONVEXVOL_PTS * 3];
 	float hmin, hmax;
 	int nverts;
 	rcAreaModification areaMod;
@@ -75,14 +75,14 @@ class InputGeom
 {
 	rcChunkyTriMesh* m_chunkyMesh;
 	rcMeshLoaderObj* m_mesh;
-	float m_meshBMin[3], m_meshBMax[3];
+	float m_meshBMin[3], m_meshBMax[3]; // メッシュデータの位置的な最大値、最小値
 	BuildSettings m_buildSettings;
 	bool m_hasBuildSettings;
-	
+
 	/// @name Off-Mesh connections.
 	///@{
-	static const int MAX_OFFMESH_CONNECTIONS = 256;
-	float m_offMeshConVerts[MAX_OFFMESH_CONNECTIONS*3*2];
+	static constexpr int MAX_OFFMESH_CONNECTIONS = 256;
+	float m_offMeshConVerts[MAX_OFFMESH_CONNECTIONS * 3 * 2];
 	float m_offMeshConRads[MAX_OFFMESH_CONNECTIONS];
 	unsigned char m_offMeshConDirs[MAX_OFFMESH_CONNECTIONS];
 	unsigned char m_offMeshConAreas[MAX_OFFMESH_CONNECTIONS];
@@ -93,21 +93,20 @@ class InputGeom
 
 	/// @name Convex Volumes.
 	///@{
-	static const int MAX_VOLUMES = 256;
+	static constexpr int MAX_VOLUMES = 256;
 	ConvexVolume m_volumes[MAX_VOLUMES];
 	int m_volumeCount;
 	///@}
-	
+
 	bool loadMesh(class rcContext* ctx, const std::string& filepath);
 	bool loadGeomSet(class rcContext* ctx, const std::string& filepath);
 public:
 	InputGeom();
 	~InputGeom();
-	
-	
+
 	bool load(class rcContext* ctx, const std::string& filepath);
 	bool saveGeomSet(const BuildSettings* settings);
-	
+
 	/// Method to return static mesh data.
 	const rcMeshLoaderObj* getMesh() const { return m_mesh; }
 	const float* getMeshBoundsMin() const { return m_meshBMin; }
@@ -116,6 +115,9 @@ public:
 	const float* getNavMeshBoundsMax() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMax : m_meshBMax; }
 	const rcChunkyTriMesh* getChunkyMesh() const { return m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_hasBuildSettings ? &m_buildSettings : 0; }
+
+	// メッシュデータとマウスのレイとの判定
+	// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
 	bool raycastMesh(float* src, float* dst, float& tmin);
 
 	/// @name Off-Mesh connections.
@@ -128,7 +130,7 @@ public:
 	const unsigned short* getOffMeshConnectionFlags() const { return m_offMeshConFlags; }
 	const unsigned int* getOffMeshConnectionId() const { return m_offMeshConId; }
 	void addOffMeshConnection(const float* spos, const float* epos, const float rad,
-							  unsigned char bidir, unsigned char area, unsigned short flags);
+		unsigned char bidir, unsigned char area, unsigned short flags);
 	void deleteOffMeshConnection(int i);
 	void drawOffMeshConnections(struct duDebugDraw* dd, bool hilight = false);
 	///@}
@@ -138,11 +140,11 @@ public:
 	int getConvexVolumeCount() const { return m_volumeCount; }
 	const ConvexVolume* getConvexVolumes() const { return m_volumes; }
 	void addConvexVolume(const float* verts, const int nverts,
-						 const float minh, const float maxh, rcAreaModification areaMod);
+		const float minh, const float maxh, rcAreaModification areaMod);
 	void deleteConvexVolume(int i);
 	void drawConvexVolumes(struct duDebugDraw* dd, bool hilight = false);
 	///@}
-	
+
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	InputGeom(const InputGeom&);

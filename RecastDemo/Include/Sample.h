@@ -22,7 +22,6 @@
 #include "Recast.h"
 #include "SampleInterfaces.h"
 
-
 /// Tool types.
 enum SampleToolType
 {
@@ -40,30 +39,30 @@ enum SampleToolType
 
 /// Mask of the ceil part of the area id (3 lower bits)
 /// the 0 value (RC_NULL_AREA) is left unused
-static const unsigned char SAMPLE_POLYAREA_TYPE_MASK = 0x07;
+constexpr unsigned char SAMPLE_POLYAREA_TYPE_MASK = 0x07;
 /// Value for the kind of ceil "ground"
-static const unsigned char SAMPLE_POLYAREA_TYPE_GROUND = 0x1;
+constexpr unsigned char SAMPLE_POLYAREA_TYPE_GROUND = 0x1;
 /// Value for the kind of ceil "water"
-static const unsigned char SAMPLE_POLYAREA_TYPE_WATER = 0x2;
+constexpr unsigned char SAMPLE_POLYAREA_TYPE_WATER = 0x2;
 /// Value for the kind of ceil "road"
-static const unsigned char SAMPLE_POLYAREA_TYPE_ROAD = 0x3;
+constexpr unsigned char SAMPLE_POLYAREA_TYPE_ROAD = 0x3;
 /// Value for the kind of ceil "grass"
-static const unsigned char SAMPLE_POLYAREA_TYPE_GRASS = 0x4;
+constexpr unsigned char SAMPLE_POLYAREA_TYPE_GRASS = 0x4;
 /// Flag for door area. Can be combined with area types and jump flag.
-static const unsigned char SAMPLE_POLYAREA_FLAG_DOOR = 0x08;
+constexpr unsigned char SAMPLE_POLYAREA_FLAG_DOOR = 0x08;
 /// Flag for jump area. Can be combined with area types and door flag.
-static const unsigned char SAMPLE_POLYAREA_FLAG_JUMP = 0x10;
+constexpr unsigned char SAMPLE_POLYAREA_FLAG_JUMP = 0x10;
 
 extern rcAreaModification const SAMPLE_AREAMOD_GROUND;
 
 enum SamplePolyFlags
 {
-	SAMPLE_POLYFLAGS_WALK		= 0x01,		// Ability to walk (ground, grass, road)
-	SAMPLE_POLYFLAGS_SWIM		= 0x02,		// Ability to swim (water).
-	SAMPLE_POLYFLAGS_DOOR		= 0x04,		// Ability to move through doors.
-	SAMPLE_POLYFLAGS_JUMP		= 0x08,		// Ability to jump.
-	SAMPLE_POLYFLAGS_DISABLED	= 0x10,		// Disabled polygon
-	SAMPLE_POLYFLAGS_ALL		= 0xffff	// All abilities.
+	SAMPLE_POLYFLAGS_WALK = 0x01,		// Ability to walk (ground, grass, road)
+	SAMPLE_POLYFLAGS_SWIM = 0x02,		// Ability to swim (water).
+	SAMPLE_POLYFLAGS_DOOR = 0x04,		// Ability to move through doors.
+	SAMPLE_POLYFLAGS_JUMP = 0x08,		// Ability to jump.
+	SAMPLE_POLYFLAGS_DISABLED = 0x10,		// Disabled polygon
+	SAMPLE_POLYFLAGS_ALL = 0xffff	// All abilities.
 };
 
 unsigned short sampleAreaToFlags(unsigned char area);
@@ -76,9 +75,9 @@ public:
 
 enum SamplePartitionType
 {
-	SAMPLE_PARTITION_WATERSHED,
-	SAMPLE_PARTITION_MONOTONE,
-	SAMPLE_PARTITION_LAYERS,
+	SAMPLE_PARTITION_WATERSHED, // 分水界分割
+	SAMPLE_PARTITION_MONOTONE,  // モノトーン分割
+	SAMPLE_PARTITION_LAYERS,    // レイヤー分割
 };
 
 struct SampleTool
@@ -133,20 +132,20 @@ protected:
 	bool m_filterLowHangingObstacles;
 	bool m_filterLedgeSpans;
 	bool m_filterWalkableLowHeightSpans;
-	
+
 	SampleTool* m_tool;
 	SampleToolState* m_toolStates[MAX_TOOLS];
-	
+
 	BuildContext* m_ctx;
 
 	SampleDebugDraw m_dd;
-	
+
 public:
 	Sample();
 	virtual ~Sample();
-	
+
 	void setContext(BuildContext* ctx) { m_ctx = ctx; }
-	
+
 	void setTool(SampleTool* tool);
 	SampleToolState* getToolState(int type) { return m_toolStates[type]; }
 	void setToolState(int type, SampleToolState* s) { m_toolStates[type] = s; }
@@ -173,7 +172,7 @@ public:
 	virtual float getAgentRadius() { return m_agentRadius; }
 	virtual float getAgentHeight() { return m_agentHeight; }
 	virtual float getAgentClimb() { return m_agentMaxClimb; }
-	
+
 	unsigned char getNavMeshDrawFlags() const { return m_navMeshDrawFlags; }
 	void setNavMeshDrawFlags(unsigned char flags) { m_navMeshDrawFlags = flags; }
 
@@ -191,6 +190,5 @@ private:
 	Sample(const Sample&);
 	Sample& operator=(const Sample&);
 };
-
 
 #endif // RECASTSAMPLE_H

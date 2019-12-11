@@ -64,11 +64,14 @@ void rcMeshLoaderObj::addTriangle(int a, int b, int c, int& cap)
 	{
 		cap = !cap ? 8 : cap * 2;
 		int* nv = new int[cap * 3];
+
 		if (m_triCount)
 			memcpy(nv, m_tris, m_triCount * 3 * sizeof(int));
+
 		delete[] m_tris;
 		m_tris = nv;
 	}
+
 	int* dst = &m_tris[m_triCount * 3];
 	*dst++ = a;
 	*dst++ = b;
@@ -117,19 +120,26 @@ static int parseFace(char* row, int* data, int n, int vcnt)
 	while (*row != '\0')
 	{
 		// Skip initial white space
+		// 最初の空白をスキップします
 		while (*row != '\0' && (*row == ' ' || *row == '\t'))
 			row++;
+
 		char* s = row;
+
 		// Find vertex delimiter and terminated the string there for conversion.
+		// 頂点区切り文字を見つけ、変換のためにそこで文字列を終了しました。
 		while (*row != '\0' && *row != ' ' && *row != '\t')
 		{
 			if (*row == '/') *row = '\0';
 			row++;
 		}
+
 		if (*s == '\0')
 			continue;
+
 		int vi = atoi(s);
 		data[j++] = vi < 0 ? vi + vcnt : vi - 1;
+
 		if (j >= n) return j;
 	}
 	return j;
@@ -137,32 +147,41 @@ static int parseFace(char* row, int* data, int n, int vcnt)
 
 bool rcMeshLoaderObj::load(const std::string& filename)
 {
-	char* buf = 0;
-	FILE* fp = fopen(filename.c_str(), "rb");
-	if (!fp)
-		return false;
+	char* buf{ nullptr };
+	FILE* fp{ nullptr };
+
+	// 開けない
+	if (fopen_s(&fp, filename.c_str(), "rb") != 0) return false;
+
+	// nullの可能性を排除
+	if (!fp)	return false;
+
 	if (fseek(fp, 0, SEEK_END) != 0)
 	{
 		fclose(fp);
 		return false;
 	}
+
 	long bufSize = ftell(fp);
 	if (bufSize < 0)
 	{
 		fclose(fp);
 		return false;
 	}
+
 	if (fseek(fp, 0, SEEK_SET) != 0)
 	{
 		fclose(fp);
 		return false;
 	}
+
 	buf = new char[bufSize];
 	if (!buf)
 	{
 		fclose(fp);
 		return false;
 	}
+
 	size_t readLen = fread(buf, bufSize, 1, fp);
 	fclose(fp);
 
@@ -174,37 +193,47 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 
 	char* src = buf;
 	char* srcEnd = buf + bufSize;
-	char row[512];
-	int face[32];
-	float x, y, z;
-	int nv;
-	int vcap = 0;
-	int tcap = 0;
+	char row[512]{};
+	int face[32]{};
+	float x{}, y{}, z{};
+	int nv{};
+	int vcap{};
+	int tcap{};
 
 	while (src < srcEnd)
 	{
 		// Parse one row
+		// 1行を解析します
 		row[0] = '\0';
 		src = parseRow(src, srcEnd, row, sizeof(row) / sizeof(char));
+
 		// Skip comments
+		// コメントをスキップ
 		if (row[0] == '#') continue;
+
+		// 頂点の追加
 		if (row[0] == 'v' && row[1] != 'n' && row[1] != 't')
 		{
 			// Vertex pos
-			sscanf(row + 1, "%f %f %f", &x, &y, &z);
+			int temp{ sscanf_s(row + 1, "%f %f %f", &x, &y, &z) };
 			addVertex(x, y, z, vcap);
 		}
+
+		// 三角形の追加
 		if (row[0] == 'f')
 		{
-			// Faces
+			// 法線
 			nv = parseFace(row + 1, face, 32, m_vertCount);
+
 			for (int i = 2; i < nv; ++i)
 			{
 				const int a = face[0];
 				const int b = face[i - 1];
 				const int c = face[i];
-				if (a < 0 || a >= m_vertCount || b < 0 || b >= m_vertCount || c < 0 || c >= m_vertCount)
+
+				if ((a < 0 || a >= m_vertCount) || (b < 0 || b >= m_vertCount) || (c < 0 || c >= m_vertCount))
 					continue;
+
 				addTriangle(a, b, c, tcap);
 			}
 		}
@@ -213,26 +242,33 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 	delete[] buf;
 
 	// Calculate normals.
+	// 法線を計算します。
 	m_normals = new float[m_triCount * 3];
+
 	for (int i = 0; i < m_triCount * 3; i += 3)
 	{
 		const float* v0 = &m_verts[m_tris[i] * 3];
 		const float* v1 = &m_verts[m_tris[i + 1] * 3];
 		const float* v2 = &m_verts[m_tris[i + 2] * 3];
 		float e0[3], e1[3];
+
 		for (int j = 0; j < 3; ++j)
 		{
 			e0[j] = v1[j] - v0[j];
 			e1[j] = v2[j] - v0[j];
 		}
+
 		float* n = &m_normals[i];
+
 		n[0] = e0[1] * e1[2] - e0[2] * e1[1];
 		n[1] = e0[2] * e1[0] - e0[0] * e1[2];
 		n[2] = e0[0] * e1[1] - e0[1] * e1[0];
+
 		float d = sqrtf(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+
 		if (d > 0)
 		{
-			d = 1.0f / d;
+			d = 1.f / d;
 			n[0] *= d;
 			n[1] *= d;
 			n[2] *= d;

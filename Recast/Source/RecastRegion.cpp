@@ -1365,20 +1365,25 @@ struct rcSweepSpan
 // @par
 //
 // Non-null regions will consist of connected, non-overlapping walkable spans that form a single contour.
+// 非ヌル領域は、単一の輪郭を形成する、接続された重複しない歩行可能なスパンで構成されます。
 // Contours will form simple polygons.
+// 輪郭は単純なポリゴンを形成します。
 //
 // If multiple regions form an area that is smaller than @p minRegionArea, then all spans will be
 // re-assigned to the zero (null) region.
+// 複数の領域が@p minRegionAreaより小さい領域を形成する場合、すべてのスパンはゼロ（ヌル）領域に再割り当てされます。
 //
-// Partitioning can result in smaller than necessary regions. @p mergeRegionArea helps
-// reduce unecessarily small regions.
+// Partitioning can result in smaller than necessary regions. @p mergeRegionArea helps reduce unecessarily small regions.
+// パーティション化により、必要な領域よりも小さくなる場合があります。mergeRegionAreaは、不必要に小さい領域を減らすのに役立ちます。
 //
 // See the #rcConfig documentation for more information on the configuration parameters.
+// 構成パラメータの詳細については、＃rcConfigのドキュメントをご覧ください。
 //
-// The region data will be available via the rcCompactHeightfield::maxRegions
-// and rcCompactSpan::reg fields.
+// The region data will be available via the rcCompactHeightfield::maxRegions and rcCompactSpan::reg fields.
+// 領域データは、rcCompactHeightfield::maxRegionsおよびrcCompactSpan::regフィールドを介して利用できます。
 //
 // @warning The distance field must be created using #rcBuildDistanceField before attempting to build regions.
+// 領域を構築する前に、＃rcBuildDistanceFieldを使用して距離フィールドを作成する必要があります。
 //
 // @see rcCompactHeightfield, rcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, rcConfig
 bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
@@ -1409,12 +1414,16 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 	}
 
 	// Mark border regions.
+	// 境界領域をマークします。
 	if (borderSize > 0)
 	{
 		// Make sure border will not overflow.
+		// ボーダーがオーバーフローしないことを確認します。
 		const int bw = rcMin(w, borderSize);
 		const int bh = rcMin(h, borderSize);
+
 		// Paint regions
+		// 領域をペイントします
 		paintRectRegion(0, bw, 0, h, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(w - bw, w, 0, h, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(0, w, 0, bh, id | RC_BORDER_REG, chf, srcReg); id++;
@@ -1426,9 +1435,11 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 	rcIntArray prev(256);
 
 	// Sweep one line at a time.
+	// 一度に1行ずつスイープします。
 	for (int y = borderSize; y < h - borderSize; ++y)
 	{
 		// Collect spans from this row.
+		// この行からスパンを収集します。
 		prev.resize(id + 1);
 		memset(&prev[0], 0, sizeof(int) * id);
 		unsigned short rid = 1;
@@ -1488,6 +1499,7 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 		}
 
 		// Create unique ID.
+		// 一意のIDを作成します。
 		for (int i = 1; i < rid; ++i)
 		{
 			if (sweeps[i].nei != RC_NULL_NEI && sweeps[i].nei != 0 &&
@@ -1502,6 +1514,7 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 		}
 
 		// Remap IDs
+		// IDを再マップします
 		for (int x = borderSize; x < w - borderSize; ++x)
 		{
 			const rcCompactCell& c = chf.cells[x + y * w];
@@ -1518,15 +1531,18 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 		rcScopedTimer timerFilter(ctx, RC_TIMER_BUILD_REGIONS_FILTER);
 
 		// Merge regions and filter out small regions.
+		// 領域をマージし、小さな領域を除外します。
 		rcIntArray overlaps;
 		chf.maxRegions = id;
 		if (!mergeAndFilterRegions(ctx, minRegionArea, mergeRegionArea, chf.maxRegions, chf, srcReg, overlaps))
 			return false;
 
 		// Monotone partitioning does not generate overlapping regions.
+		// モノトーンパーティショニングは、オーバーラップ領域を生成しません。
 	}
 
 	// Store the result out.
+	// 結果を保存します。
 	for (int i = 0; i < chf.spanCount; ++i)
 		chf.spans[i].reg = srcReg[i];
 
@@ -1537,19 +1553,27 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 //
 // Non-null regions will consist of connected, non-overlapping walkable spans that form a single contour.
 // Contours will form simple polygons.
+// 非ヌル領域は、単一の輪郭を形成する、接続された重複しない歩行可能なスパンで構成されます。
+// 輪郭は単純なポリゴンを形成します。
 //
 // If multiple regions form an area that is smaller than @p minRegionArea, then all spans will be
 // re-assigned to the zero (null) region.
+// 複数の領域が@p minRegionAreaより小さい領域を形成する場合、すべてのスパンはゼロ（ヌル）領域に再割り当てされます。
 //
 // Watershed partitioning can result in smaller than necessary regions, especially in diagonal corridors.
 // @p mergeRegionArea helps reduce unecessarily small regions.
+// 流域分割により、特に斜めの廊下では、必要な領域よりも小さくなります。
+// mergeRegionAreaは、不必要に小さい領域を減らすのに役立ちます。
 //
 // See the #rcConfig documentation for more information on the configuration parameters.
+// 構成パラメータの詳細については、＃rcConfigのドキュメントをご覧ください。
 //
 // The region data will be available via the rcCompactHeightfield::maxRegions
 // and rcCompactSpan::reg fields.
+// 領域データは、rcCompactHeightfield::maxRegionsおよびrcCompactSpan::regフィールドを介して利用できます。
 //
 // @warning The distance field must be created using #rcBuildDistanceField before attempting to build regions.
+// 領域を構築する前に、＃rcBuildDistanceFieldを使用して距離フィールドを作成する必要があります。
 //
 // @see rcCompactHeightfield, rcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, rcConfig
 bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
@@ -1739,12 +1763,16 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 	}
 
 	// Mark border regions.
+	// 境界領域をマークします。
 	if (borderSize > 0)
 	{
 		// Make sure border will not overflow.
+		// ボーダーがオーバーフローしないことを確認します。
 		const int bw = rcMin(w, borderSize);
 		const int bh = rcMin(h, borderSize);
+
 		// Paint regions
+		// 領域をペイントします
 		paintRectRegion(0, bw, 0, h, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(w - bw, w, 0, h, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(0, w, 0, bh, id | RC_BORDER_REG, chf, srcReg); id++;
@@ -1756,9 +1784,11 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 	rcIntArray prev(256);
 
 	// Sweep one line at a time.
+	// 一度に1行ずつスイープします。
 	for (int y = borderSize; y < h - borderSize; ++y)
 	{
 		// Collect spans from this row.
+		//この行からスパンを収集します。
 		prev.resize(id + 1);
 		memset(&prev[0], 0, sizeof(int) * id);
 		unsigned short rid = 1;
@@ -1818,6 +1848,7 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 		}
 
 		// Create unique ID.
+		// 一意のIDを作成します。
 		for (int i = 1; i < rid; ++i)
 		{
 			if (sweeps[i].nei != RC_NULL_NEI && sweeps[i].nei != 0 &&
@@ -1832,6 +1863,7 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 		}
 
 		// Remap IDs
+		// IDを再マップします
 		for (int x = borderSize; x < w - borderSize; ++x)
 		{
 			const rcCompactCell& c = chf.cells[x + y * w];
@@ -1848,6 +1880,7 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 		rcScopedTimer timerFilter(ctx, RC_TIMER_BUILD_REGIONS_FILTER);
 
 		// Merge monotone regions to layers and remove small regions.
+		// モノトーン領域をレイヤーにマージし、小さな領域を削除します。
 		rcIntArray overlaps;
 		chf.maxRegions = id;
 		if (!mergeAndFilterLayerRegions(ctx, minRegionArea, chf.maxRegions, chf, srcReg, overlaps))
@@ -1855,6 +1888,7 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 	}
 
 	// Store the result out.
+	// 結果を保存します。
 	for (int i = 0; i < chf.spanCount; ++i)
 		chf.spans[i].reg = srcReg[i];
 

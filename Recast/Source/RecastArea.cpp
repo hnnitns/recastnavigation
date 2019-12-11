@@ -377,11 +377,11 @@ static int pointInPoly(int nvert, const float* verts, const float* p)
 // @par
 //
 // The value of spacial parameters are in world units.
-//空間パラメーターの値はワールド単位です。
+// 空間パラメーターの値はワールド単位です。
 //
 // The y-values of the polygon vertices are ignored. So the polygon is effectively
 // projected onto the xz-plane at @p hmin, then extruded to @p hmax.
-//ポリゴンの頂点のy値は無視されます。
+// ポリゴンの頂点のy値は無視されます。
 // したがって、ポリゴンは「hmin」でxz平面に効果的に投影され、「hmax」に押し出されます。
 //
 // @see rcCompactHeightfield, rcMedianFilterWalkableArea

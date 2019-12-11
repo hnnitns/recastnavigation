@@ -367,6 +367,7 @@ int main(int /*argc*/, char** /*argv*/)
 		t += dt;
 
 		// Hit test mesh.
+		// テストメッシュをヒットします。
 		// マウスの左ボタン・右ボタンを離した瞬間、メッシュデータが存在し、サンプルも選択している状態
 		if (processHitTest && geom && sample)
 		{
@@ -423,6 +424,7 @@ int main(int /*argc*/, char** /*argv*/)
 		const float DELTA_TIME = 1.0f / SIM_RATE;
 		timeAcc = rcClamp(timeAcc + dt, -1.0f, 1.0f);
 		int simIter = 0;
+
 		while (timeAcc > DELTA_TIME)
 		{
 			timeAcc -= DELTA_TIME;
@@ -434,6 +436,7 @@ int main(int /*argc*/, char** /*argv*/)
 		}
 
 		// Clamp the framerate so that we do not hog all the CPU.
+		// すべてのCPUを占有しないように、フレームレートをクランプします。
 		const float MIN_FRAME_TIME = 1.0f / 40.f;
 		if (dt < MIN_FRAME_TIME)
 		{
@@ -486,6 +489,7 @@ int main(int /*argc*/, char** /*argv*/)
 		ray_end[2] = (float)z;
 
 		// Handle keyboard movement.
+		// キーボードの動きを処理します。
 		const Uint8* keystate = SDL_GetKeyboardState(NULL);
 		moveFront = rcClamp(moveFront + dt * 4 * ((keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP]) ? 1 : -1), 0.f, 1.0f);
 		moveLeft = rcClamp(moveLeft + dt * 4 * ((keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT]) ? 1 : -1), 0.f, 1.0f);
@@ -516,10 +520,9 @@ int main(int /*argc*/, char** /*argv*/)
 
 		glEnable(GL_FOG);
 
-		if (sample)
-			sample->handleRender();
-		if (test)
-			test->handleRender();
+		if (sample) sample->handleRender();
+
+		if (test) test->handleRender();
 
 		glDisable(GL_FOG);
 

@@ -233,11 +233,13 @@ dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 	m_tileLutMask = m_tileLutSize - 1;
 
 	m_tiles = (dtMeshTile*)dtAlloc(sizeof(dtMeshTile) * m_maxTiles, DT_ALLOC_PERM);
-	if (!m_tiles)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+
+	if (!m_tiles) return DT_FAILURE | DT_OUT_OF_MEMORY;
+
 	m_posLookup = (dtMeshTile**)dtAlloc(sizeof(dtMeshTile*) * m_tileLutSize, DT_ALLOC_PERM);
-	if (!m_posLookup)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+
+	if (!m_posLookup) return DT_FAILURE | DT_OUT_OF_MEMORY;
+
 	memset(m_tiles, 0, sizeof(dtMeshTile) * m_maxTiles);
 	memset(m_posLookup, 0, sizeof(dtMeshTile*) * m_tileLutSize);
 	m_nextFree = 0;
@@ -253,6 +255,7 @@ dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 	m_tileBits = dtIlog2(dtNextPow2((unsigned int)params->maxTiles));
 	m_polyBits = dtIlog2(dtNextPow2((unsigned int)params->maxPolys));
 	// Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
+	// ソルトマスクは32ビットuintを使用して計算され、オーバーフローするため、31ソルトビットのみを許可します。
 	m_saltBits = dtMin((unsigned int)31, 32 - m_tileBits - m_polyBits);
 
 	if (m_saltBits < 10)

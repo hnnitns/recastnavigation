@@ -709,7 +709,7 @@ bool Sample_TileMesh::handleBuild()
 {
 	if (!m_geom || !m_geom->getMesh())
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: No vertices and triangles.");
+		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: No vertices and triangles."); // 頂点と三角形はありません。
 		return false;
 	}
 
@@ -718,7 +718,7 @@ bool Sample_TileMesh::handleBuild()
 	m_navMesh = dtAllocNavMesh();
 	if (!m_navMesh)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not allocate navmesh.");
+		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not allocate navmesh."); // navmeshを割り当てることができませんでした。
 		return false;
 	}
 
@@ -734,14 +734,14 @@ bool Sample_TileMesh::handleBuild()
 	status = m_navMesh->init(&params);
 	if (dtStatusFailed(status))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init navmesh.");
+		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init navmesh."); // navmeshを初期化できませんでした。
 		return false;
 	}
 
 	status = m_navQuery->init(m_navMesh, 2048);
 	if (dtStatusFailed(status))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init Detour navmesh query");
+		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init Detour navmesh query"); // Detour navmeshクエリを初期化できませんでした
 		return false;
 	}
 
@@ -855,6 +855,7 @@ void Sample_TileMesh::buildAllTiles()
 	const float tcs = m_tileSize * m_cellSize;
 
 	// Start the build process.
+	// ビルドプロセスを開始します。
 	m_ctx->startTimer(RC_TIMER_TEMP);
 
 	for (int y = 0; y < th; ++y)
@@ -911,7 +912,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 {
 	if (!m_geom || !m_geom->getMesh() || !m_geom->getChunkyMesh())
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified.");  // 入力メッシュが指定されていません。
 		return 0;
 	}
 
@@ -926,6 +927,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	const rcChunkyTriMesh* chunkyMesh = m_geom->getChunkyMesh();
 
 	// Init build configuration from GUI
+	// GUIからのビルド構成の初期化
 	memset(&m_cfg, 0, sizeof(m_cfg));
 	m_cfg.cs = m_cellSize;
 	m_cfg.ch = m_cellHeight;
@@ -939,33 +941,40 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	m_cfg.mergeRegionArea = (int)rcSqr(m_regionMergeSize);	// Note: area = size*size
 	m_cfg.maxVertsPerPoly = (int)m_vertsPerPoly;
 	m_cfg.tileSize = (int)m_tileSize;
-	m_cfg.borderSize = m_cfg.walkableRadius + 3; // Reserve enough padding.
+	m_cfg.borderSize = m_cfg.walkableRadius + 3; // Reserve enough padding. // 十分なパディングを予約します。
 	m_cfg.width = m_cfg.tileSize + m_cfg.borderSize * 2;
 	m_cfg.height = m_cfg.tileSize + m_cfg.borderSize * 2;
 	m_cfg.detailSampleDist = m_detailSampleDist < 0.9f ? 0 : m_cellSize * m_detailSampleDist;
 	m_cfg.detailSampleMaxError = m_cellHeight * m_detailSampleMaxError;
 
 	// Expand the heighfield bounding box by border size to find the extents of geometry we need to build this tile.
+	// このタイルを構築するために必要なジオメトリの範囲を見つけるために、境界線サイズで地形バウンディングボックスを展開します。
 	//
 	// This is done in order to make sure that the navmesh tiles connect correctly at the borders,
 	// and the obstacles close to the border work correctly with the dilation process.
+	// これは、navmeshタイルが境界で正しく接続され、境界に近い障害物が膨張プロセスで正しく機能することを確認するために行われます。
 	// No polygons (or contours) will be created on the border area.
+	// 境界領域にポリゴン（または輪郭）は作成されません。
 	//
 	// IMPORTANT!
 	//
 	//   :''''''''':
 	//   : +-----+ :
 	//   : |     | :
-	//   : |     |<--- tile to build
+	//   : |     |<--- tile to build // 構築するタイル
 	//   : |     | :
-	//   : +-----+ :<-- geometry needed
+	//   : +-----+ :<-- geometry needed // ジオメトリが必要
 	//   :.........:
 	//
 	// You should use this bounding box to query your input geometry.
+	// この境界ボックスを使用して、入力ジオメトリを照会する必要があります。
 	//
 	// For example if you build a navmesh for terrain, and want the navmesh tiles to match the terrain tile size
-	// you will need to pass in data from neighbour terrain tiles too! In a simple case, just pass in all the 8 neighbours,
+	// you will need to pass in data from neighbour terrain tiles too!
+	// たとえば、地形のnavmeshを構築し、navmeshタイルを地形タイルのサイズに一致させたい場合、隣接する地形タイルからもデータを渡す必要があります！
+	// In a simple case, just pass in all the 8 neighbours,
 	// or use the bounding box below to only pass in a sliver of each of the 8 neighbours.
+	// 単純な場合、8つの隣人すべてを渡すか、下の境界ボックスを使用して、8つの隣人それぞれのスライバーだけを渡します。
 	rcVcopy(m_cfg.bmin, bmin);
 	rcVcopy(m_cfg.bmax, bmax);
 	m_cfg.bmin[0] -= m_cfg.borderSize * m_cfg.cs;
@@ -974,9 +983,11 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	m_cfg.bmax[2] += m_cfg.borderSize * m_cfg.cs;
 
 	// Reset build times gathering.
+	// ビルド時間の収集をリセットします。
 	m_ctx->resetTimers();
 
 	// Start the build process.
+	// ビルドプロセスを開始します。
 	m_ctx->startTimer(RC_TIMER_TOTAL);
 
 	m_ctx->log(RC_LOG_PROGRESS, "Building navigation:");
@@ -984,22 +995,28 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	m_ctx->log(RC_LOG_PROGRESS, " - %.1fK verts, %.1fK tris", nverts / 1000.0f, ntris / 1000.0f);
 
 	// Allocate voxel heightfield where we rasterize our input data to.
+	// 入力データをラスタライズするボクセルハイトフィールドを割り当てます。
 	m_solid = rcAllocHeightfield();
+
 	if (!m_solid)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'.");
 		return 0;
 	}
+
 	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin, m_cfg.bmax, m_cfg.cs, m_cfg.ch))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield."); // ソリッドハイトフィールドを作成できませんでした。
 		return 0;
 	}
 
 	// Allocate array that can hold triangle flags.
 	// If you have multiple meshes you need to process, allocate
 	// and array which can hold the max number of triangles you need to process.
+	// 三角形のフラグを保持できる配列を割り当てます。
+	// 処理する必要のあるメッシュが複数ある場合、処理する必要のある三角形の最大数を保持できる配列および割り当てと配列。
 	m_triareas = new unsigned char[chunkyMesh->maxTrisPerChunk];
+
 	if (!m_triareas)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk);
@@ -1011,10 +1028,10 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	tbmin[1] = m_cfg.bmin[2];
 	tbmax[0] = m_cfg.bmax[0];
 	tbmax[1] = m_cfg.bmax[2];
-	int cid[512];// TODO: Make grow when returning too many items.
+	int cid[512]; // TODO: Make grow when returning too many items.
 	const int ncid = rcGetChunksOverlappingRect(chunkyMesh, tbmin, tbmax, cid, 512);
-	if (!ncid)
-		return 0;
+
+	if (!ncid) return 0;
 
 	m_tileTriCount = 0;
 
@@ -1043,17 +1060,25 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// Once all geometry is rasterized, we do initial pass of filtering to
 	// remove unwanted overhangs caused by the conservative rasterization
 	// as well as filter spans where the character cannot possibly stand.
+	// すべてのジオメトリがラスタライズされると、最初のフィルタリングパスを実行して、
+	// 保守的なラスタライゼーションによって引き起こされる不要なオーバーハングと、
+	// 文字が耐えられない可能性があるフィルタスパンを削除します。
 	if (m_filterLowHangingObstacles)
 		rcFilterLowHangingWalkableObstacles(m_ctx, m_cfg.walkableClimb, *m_solid);
+
 	if (m_filterLedgeSpans)
 		rcFilterLedgeSpans(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid);
+
 	if (m_filterWalkableLowHeightSpans)
 		rcFilterWalkableLowHeightSpans(m_ctx, m_cfg.walkableHeight, *m_solid);
 
 	// Compact the heightfield so that it is faster to handle from now on.
 	// This will result more cache coherent data as well as the neighbours
 	// between walkable cells will be calculated.
+	// ハイトフィールドを圧縮して、今後の処理が高速になるようにします。
+	// これにより、より多くのキャッシュコヒーレントデータが生成され、ウォーク可能セル間の隣接セルが計算されます。
 	m_chf = rcAllocCompactHeightfield();
+
 	if (!m_chf)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'.");
@@ -1061,7 +1086,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	}
 	if (!rcBuildCompactHeightfield(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid, *m_chf))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data."); // コンパクトなデータを構築できませんでした。
 		return 0;
 	}
 
@@ -1072,19 +1097,23 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	}
 
 	// Erode the walkable area by agent radius.
+	// エージェントの半径ごとに歩行可能エリアを侵食します。
 	if (!rcErodeWalkableArea(m_ctx, m_cfg.walkableRadius, *m_chf))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode.");  // 侵食できませんでした。
 		return 0;
 	}
 
 	// (Optional) Mark areas.
+	//（オプション）エリアをマークします。
 	const ConvexVolume* vols = m_geom->getConvexVolumes();
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 		rcMarkConvexPolyArea(m_ctx, vols[i].verts, vols[i].nverts, vols[i].hmin, vols[i].hmax, vols[i].areaMod, *m_chf);
 
 	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
 	// There are 3 martitioning methods, each with some pros and cons:
+	// 高さフィールドを分割して、後で簡単なアルゴリズムを使用して歩行可能エリアを三角測量できるようにします。
+	// それぞれ3つの長所と短所がある3つのマトリションメソッドがあります。
 	// 1) Watershed partitioning
 	//   - the classic Recast partitioning
 	//   - creates the nicest tessellation
@@ -1109,19 +1138,49 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	//     if you have large open areas with small obstacles (not a problem if you use tiles)
 	//   * good choice to use for tiled navmesh with medium and small sized tiles
 
+	// 高さフィールドを分割して、後で簡単なアルゴリズムを使用して歩行可能エリアを三角測量できるようにします。
+	// それぞれ3つの長所と短所がある3つのマトリションメソッドがあります。
+	//  1）分水界分割
+	//		-従来のリキャストパーティション
+	//		-最も良いテッセレーションを作成します
+	//		-通常は最も遅い
+	//		-高さフィールドを、穴や重なりのない素敵な領域に分割します
+	//		-このメソッドが作成するいくつかのコーナーケースは、穴とオーバーラップを生成します
+	//			-小さな障害物が大きな開口部に近い場合に穴が現れることがあります（三角測量でこれを処理できます）
+	//			-狭い螺旋状の通路（階段など）がある場合、重複が発生する可能性があり、これにより三角測量が失敗します
+	//		*ナクメッシュを事前計算する場合は一般的に最良の選択、大きな空き領域がある場合はこれを使用する
+
+	//  2）モノトーン分割
+	//		-最速
+	//		-高さフィールドを穴や重複のない領域に分割します（保証）
+	//		-長くて細いポリゴンを作成します
+	//			* navmeshの高速生成が必要な場合はこれを使用します
+
+	//  3）レイヤー分割
+	//		- かなり速いです
+	//		-重なった領域を重複しない領域に分割します
+	//		-穴に対処するために三角形分割コードに依存します（したがって、単調な分割よりも遅い）
+	//		-モノトーン分割よりも優れた三角形を生成します
+	//		-流域分割のコーナーケースはありません
+	//		-遅く、少しいテッセレーションを作成できます（モノトーンよりも優れています）
+	//		 小さな障害物のある大きな空き領域がある場合（タイルを使用する場合は問題ありません）
+	//		*中サイズと小サイズのタイルでタイル張りされたnavmeshに使用するのに良い選択
+
 	if (m_partitionType == SAMPLE_PARTITION_WATERSHED)
 	{
 		// Prepare for region partitioning, by calculating distance field along the walkable surface.
+		// 歩行可能な表面に沿った距離フィールドを計算して、領域分割の準備をします。
 		if (!rcBuildDistanceField(m_ctx, *m_chf))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field.");
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした。
 			return 0;
 		}
 
 		// Partition the walkable surface into simple regions without holes.
+		//　歩行可能な表面を穴のない単純な領域に分割します。
 		if (!rcBuildRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions.");
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした。
 			return 0;
 		}
 	}
@@ -1129,18 +1188,21 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	{
 		// Partition the walkable surface into simple regions without holes.
 		// Monotone partitioning does not need distancefield.
+		// 歩行可能な表面を穴のない単純な領域に分割します。
+		// モノトーン分割は距離フィールドを必要としません。
 		if (!rcBuildRegionsMonotone(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions.");
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions."); // モノトーン領域を構築できませんでした。
 			return 0;
 		}
 	}
 	else // SAMPLE_PARTITION_LAYERS
 	{
 		// Partition the walkable surface into simple regions without holes.
+		// 歩行可能な表面を穴のない単純な領域に分割します。
 		if (!rcBuildLayerRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions.");
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした。
 			return 0;
 		}
 	}
@@ -1149,12 +1211,12 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	m_cset = rcAllocContourSet();
 	if (!m_cset)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'cset'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'cset'."); // メモリー不足「cset」
 		return 0;
 	}
 	if (!rcBuildContours(m_ctx, *m_chf, m_cfg.maxSimplificationError, m_cfg.maxEdgeLen, *m_cset))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours."); // 輪郭を作成できませんでした。
 		return 0;
 	}
 
@@ -1164,6 +1226,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	}
 
 	// Build polygon navmesh from the contours.
+	// 輪郭からポリゴンナビメッシュを作成します。
 	m_pmesh = rcAllocPolyMesh();
 	if (!m_pmesh)
 	{

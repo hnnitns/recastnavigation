@@ -36,15 +36,18 @@ static bool buildMeshAdjacency(unsigned short* polys, const int npolys,
 {
 	// Based on code by Eric Lengyel from:
 	// http://www.terathon.com/code/edges.php
+	// Eric Lengyelのコードに基づきます：http://www.terathon.com/code/edges.php
 
 	int maxEdgeCount = npolys * vertsPerPoly;
 	unsigned short* firstEdge = (unsigned short*)rcAlloc(sizeof(unsigned short) * (nverts + maxEdgeCount), RC_ALLOC_TEMP);
-	if (!firstEdge)
-		return false;
+
+	if (!firstEdge) return false;
+
 	unsigned short* nextEdge = firstEdge + nverts;
 	int edgeCount = 0;
 
 	rcEdge* edges = (rcEdge*)rcAlloc(sizeof(rcEdge) * maxEdgeCount, RC_ALLOC_TEMP);
+
 	if (!edges)
 	{
 		rcFree(firstEdge);
@@ -60,8 +63,10 @@ static bool buildMeshAdjacency(unsigned short* polys, const int npolys,
 		for (int j = 0; j < vertsPerPoly; ++j)
 		{
 			if (t[j] == RC_MESH_NULL_IDX) break;
+
 			unsigned short v0 = t[j];
 			unsigned short v1 = (j + 1 >= vertsPerPoly || t[j + 1] == RC_MESH_NULL_IDX) ? t[0] : t[j + 1];
+
 			if (v0 < v1)
 			{
 				rcEdge& edge = edges[edgeCount];
@@ -72,6 +77,7 @@ static bool buildMeshAdjacency(unsigned short* polys, const int npolys,
 				edge.poly[1] = (unsigned short)i;
 				edge.polyEdge[1] = 0;
 				// Insert edge
+				// エッジを挿入
 				nextEdge[edgeCount] = firstEdge[v0];
 				firstEdge[v0] = (unsigned short)edgeCount;
 				edgeCount++;
@@ -104,6 +110,7 @@ static bool buildMeshAdjacency(unsigned short* polys, const int npolys,
 	}
 
 	// Store adjacency
+	// 隣接関係を保存します
 	for (int i = 0; i < edgeCount; ++i)
 	{
 		const rcEdge& e = edges[i];
@@ -122,7 +129,7 @@ static bool buildMeshAdjacency(unsigned short* polys, const int npolys,
 	return true;
 }
 
-static const int VERTEX_BUCKET_COUNT = (1 << 12);
+constexpr int VERTEX_BUCKET_COUNT = (1 << 12);
 
 inline int computeVertexHash(int x, int y, int z)
 {
@@ -142,12 +149,15 @@ static unsigned short addVertex(unsigned short x, unsigned short y, unsigned sho
 	while (i != -1)
 	{
 		const unsigned short* v = &verts[i * 3];
+
 		if (v[0] == x && (rcAbs(v[1] - y) <= 2) && v[2] == z)
 			return (unsigned short)i;
+
 		i = nextVert[i]; // next
 	}
 
 	// Could not find, create new.
+	// 見つかりませんでした。新規作成します。
 	i = nv; nv++;
 	unsigned short* v = &verts[i * 3];
 	v[0] = x;
@@ -160,6 +170,8 @@ static unsigned short addVertex(unsigned short x, unsigned short y, unsigned sho
 }
 
 // Last time I checked the if version got compiled using cmov, which was a lot faster than module (with idiv).
+// 前回、cmovを使用してバージョンがコンパイルされたかどうかを確認しました。
+// これは、モジュール（idivを使用）よりもはるかに高速でした。
 inline int prev(int i, int n) { return i - 1 >= 0 ? i - 1 : n - 1; }
 inline int next(int i, int n) { return i + 1 < n ? i + 1 : 0; }
 
@@ -172,6 +184,9 @@ inline int area2(const int* a, const int* b, const int* c)
 //	The arguments are negated to ensure that they are 0/1
 //	values.  Then the bitwise Xor operator may apply.
 //	(This idea is due to Michael Baldwin.)
+// 排他的または：正確に1つの引数がtrueの場合はtrue。
+// 引数は、値が0/1であることを保証するために否定されます。
+// ビット単位のXor演算子が適用される場合があります。(このアイデアはMichael Baldwinによるものです。）
 inline bool xorb(bool x, bool y)
 {
 	return !x ^ !y;
@@ -266,6 +281,7 @@ static bool diagonalie(int i, int j, int n, const int* verts, int* indices)
 
 // Returns true iff the diagonal (i,j) is strictly internal to the
 // polygon P in the neighborhood of the i endpoint.
+// 対角線（i、j）がiエンドポイントの近傍にあるポリゴンPの厳密に内部にある場合にtrueを返します。
 static bool	inCone(int i, int j, int n, const int* verts, int* indices)
 {
 	const int* pi = &verts[(indices[i] & 0x0fffffff) * 4];
@@ -274,15 +290,17 @@ static bool	inCone(int i, int j, int n, const int* verts, int* indices)
 	const int* pin1 = &verts[(indices[prev(i, n)] & 0x0fffffff) * 4];
 
 	// If P[i] is a convex vertex [ i+1 left or on (i-1,i) ].
+	// P [i]が凸頂点の場合[i + 1 leftまたはon（i-1、i）]。
 	if (leftOn(pin1, pi, pi1))
 		return left(pi, pj, pin1) && left(pj, pi, pi1);
-	// Assume (i-1,i,i+1) not collinear.
-	// else P[i] is reflex.
+
+	// Assume (i-1,i,i+1) not collinear. else P[i] is reflex.
+	//（i-1、i、i + 1）が同一直線上にないと仮定します。 それ以外の場合、P [i]は反射です。
 	return !(leftOn(pi, pj, pi1) && leftOn(pj, pi, pin1));
 }
 
-// Returns T iff (v_i, v_j) is a proper internal
-// diagonal of P.
+// Returns T iff (v_i, v_j) is a proper internal diagonal of P.
+// Tiff（v_i、v_i）がPの適切な内部対角要素であることを返します
 static bool diagonal(int i, int j, int n, const int* verts, int* indices)
 {
 	return inCone(i, j, n, verts, indices) && diagonalie(i, j, n, verts, indices);
@@ -339,10 +357,12 @@ static int triangulate(int n, const int* verts, int* indices, int* tris)
 	int* dst = tris;
 
 	// The last bit of the index is used to indicate if the vertex can be removed.
+	// インデックスの最後のビットは、頂点を削除できるかどうかを示すために使用されます。
 	for (int i = 0; i < n; i++)
 	{
 		int i1 = next(i, n);
 		int i2 = next(i1, n);
+
 		if (diagonal(i, i2, n, verts, indices))
 			indices[i1] |= 0x80000000;
 	}
@@ -374,6 +394,7 @@ static int triangulate(int n, const int* verts, int* indices, int* tris)
 		if (mini == -1)
 		{
 			// We might get here because the contour has overlapping segments, like this:
+			// 次のように、輪郭にセグメントが重複しているため、ここに到達する場合があります。
 			//
 			//  A o-o=====o---o B
 			//   /  |C   D|    \.
@@ -381,12 +402,14 @@ static int triangulate(int n, const int* verts, int* indices, int* tris)
 			//  :   :     :     :
 			// We'll try to recover by loosing up the inCone test a bit so that a diagonal
 			// like A-B or C-D can be found and we can continue.
+			//「inCome」テストを少し緩め、A-BやC-Dのような対角線を見つけて続行できるように、回復を試みます。
 			minLen = -1;
 			mini = -1;
 			for (int i = 0; i < n; i++)
 			{
 				int i1 = next(i, n);
 				int i2 = next(i1, n);
+
 				if (diagonalLoose(i, i2, n, verts, indices))
 				{
 					const int* p0 = &verts[(indices[i] & 0x0fffffff) * 4];
@@ -406,6 +429,7 @@ static int triangulate(int n, const int* verts, int* indices, int* tris)
 			{
 				// The contour is messed up. This sometimes happens
 				// if the contour simplification is too aggressive.
+				// 輪郭が乱れています。これは、輪郭の単純化が強すぎる場合に発生することがあります。
 				return -ntris;
 			}
 		}
@@ -420,13 +444,17 @@ static int triangulate(int n, const int* verts, int* indices, int* tris)
 		ntris++;
 
 		// Removes P[i1] by copying P[i+1]...P[n-1] left one index.
+		// P [i + 1] ... P [n-1]を1つのインデックスの左にコピーして、P [i1]を削除します。
 		n--;
+
 		for (int k = i1; k < n; k++)
 			indices[k] = indices[k + 1];
 
 		if (i1 >= n) i1 = 0;
 		i = prev(i1, n);
+
 		// Update diagonal flags.
+		// 対角フラグを更新します。
 		if (diagonal(prev(i, n), i1, n, verts, indices))
 			indices[i] |= 0x80000000;
 		else
@@ -439,6 +467,7 @@ static int triangulate(int n, const int* verts, int* indices, int* tris)
 	}
 
 	// Append the remaining triangle.
+	// 残りの三角形を追加します。
 	*dst++ = indices[0] & 0x0fffffff;
 	*dst++ = indices[1] & 0x0fffffff;
 	*dst++ = indices[2] & 0x0fffffff;
@@ -452,6 +481,7 @@ static int countPolyVerts(const unsigned short* p, const int nvp)
 	for (int i = 0; i < nvp; ++i)
 		if (p[i] == RC_MESH_NULL_IDX)
 			return i;
+
 	return nvp;
 }
 
@@ -469,10 +499,12 @@ static int getPolyMergeValue(unsigned short* pa, unsigned short* pb,
 	const int nb = countPolyVerts(pb, nvp);
 
 	// If the merged polygon would be too big, do not merge.
+	// 結合されたポリゴンが大きすぎる場合、結合しないでください。
 	if (na + nb - 2 > nvp)
 		return -1;
 
 	// Check if the polygons share an edge.
+	// ポリゴンがエッジを共有しているかどうかを確認します。
 	ea = -1;
 	eb = -1;
 
@@ -480,14 +512,18 @@ static int getPolyMergeValue(unsigned short* pa, unsigned short* pb,
 	{
 		unsigned short va0 = pa[i];
 		unsigned short va1 = pa[(i + 1) % na];
+
 		if (va0 > va1)
 			rcSwap(va0, va1);
+
 		for (int j = 0; j < nb; ++j)
 		{
 			unsigned short vb0 = pb[j];
 			unsigned short vb1 = pb[(j + 1) % nb];
+
 			if (vb0 > vb1)
 				rcSwap(vb0, vb1);
+
 			if (va0 == vb0 && va1 == vb1)
 			{
 				ea = i;
@@ -498,21 +534,25 @@ static int getPolyMergeValue(unsigned short* pa, unsigned short* pb,
 	}
 
 	// No common edge, cannot merge.
+	// 共通のエッジはなく、マージできません。
 	if (ea == -1 || eb == -1)
 		return -1;
 
 	// Check to see if the merged polygon would be convex.
+	// マージされたポリゴンが凸面になるかどうかを確認します。
 	unsigned short va, vb, vc;
 
 	va = pa[(ea + na - 1) % na];
 	vb = pa[ea];
 	vc = pb[(eb + 2) % nb];
+
 	if (!uleft(&verts[va * 3], &verts[vb * 3], &verts[vc * 3]))
 		return -1;
 
 	va = pb[(eb + nb - 1) % nb];
 	vb = pb[eb];
 	vc = pa[(ea + 2) % na];
+
 	if (!uleft(&verts[va * 3], &verts[vb * 3], &verts[vc * 3]))
 		return -1;
 
@@ -531,12 +571,15 @@ static void mergePolyVerts(unsigned short* pa, unsigned short* pb, int ea, int e
 	const int na = countPolyVerts(pa, nvp);
 	const int nb = countPolyVerts(pb, nvp);
 
-	// Merge polygons.
+	// Merge polygons. // ポリゴンをマージします。
 	memset(tmp, 0xff, sizeof(unsigned short) * nvp);
+
 	int n = 0;
+
 	// Add pa
 	for (int i = 0; i < na - 1; ++i)
 		tmp[n++] = pa[(ea + 1 + i) % na];
+
 	// Add pb
 	for (int i = 0; i < nb - 1; ++i)
 		tmp[n++] = pb[(eb + 1 + i) % nb];
@@ -562,15 +605,18 @@ static bool canRemoveVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned sho
 	const int nvp = mesh.nvp;
 
 	// Count number of polygons to remove.
+	// 削除するポリゴンの数をカウントします。
 	int numRemovedVerts = 0;
 	int numTouchedVerts = 0;
 	int numRemainingEdges = 0;
+
 	for (int i = 0; i < mesh.npolys; ++i)
 	{
 		unsigned short* p = &mesh.polys[i * nvp * 2];
 		const int nv = countPolyVerts(p, nvp);
 		int numRemoved = 0;
 		int numVerts = 0;
+
 		for (int j = 0; j < nv; ++j)
 		{
 			if (p[j] == rem)
@@ -578,8 +624,10 @@ static bool canRemoveVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned sho
 				numTouchedVerts++;
 				numRemoved++;
 			}
+
 			numVerts++;
 		}
+
 		if (numRemoved)
 		{
 			numRemovedVerts += numRemoved;
@@ -591,16 +639,23 @@ static bool canRemoveVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned sho
 	// This can happen for example when a tip of a triangle is marked
 	// as deletion, but there are no other polys that share the vertex.
 	// In this case, the vertex should not be removed.
+	// ポリゴンを作成するには、エッジが少なすぎます。
+	// これは、たとえば三角形の先端が削除としてマークされているが、
+	// 頂点を共有する他のポリゴンがない場合に発生する可能性があります。
+	// この場合、頂点は削除しないでください。
 	if (numRemainingEdges <= 2)
 		return false;
 
 	// Find edges which share the removed vertex.
+	// 削除された頂点を共有するエッジを見つけます。
 	const int maxEdges = numTouchedVerts * 2;
 	int nedges = 0;
+
 	rcScopedDelete<int> edges((int*)rcAlloc(sizeof(int) * maxEdges * 3, RC_ALLOC_TEMP));
+
 	if (!edges)
 	{
-		ctx->log(RC_LOG_WARNING, "canRemoveVertex: Out of memory 'edges' (%d).", maxEdges * 3);
+		ctx->log(RC_LOG_WARNING, "canRemoveVertex: Out of memory 'edges' (%d).", maxEdges * 3); // メモリー不足「edges」
 		return false;
 	}
 
@@ -610,28 +665,36 @@ static bool canRemoveVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned sho
 		const int nv = countPolyVerts(p, nvp);
 
 		// Collect edges which touches the removed vertex.
+		// 削除された頂点に接触するエッジを収集します。
 		for (int j = 0, k = nv - 1; j < nv; k = j++)
 		{
 			if (p[j] == rem || p[k] == rem)
 			{
 				// Arrange edge so that a=rem.
+				// a = remになるようにエッジを配置します。
 				int a = p[j], b = p[k];
+
 				if (b == rem)
 					rcSwap(a, b);
 
 				// Check if the edge exists
+				// エッジが存在するかどうかを確認します
 				bool exists = false;
+
 				for (int m = 0; m < nedges; ++m)
 				{
 					int* e = &edges[m * 3];
 					if (e[1] == b)
 					{
 						// Exists, increment vertex share count.
+						// 存在し、頂点共有カウントをインクリメントします。
 						e[2]++;
 						exists = true;
 					}
 				}
+
 				// Add new edge.
+				// 新しいエッジを追加します。
 				if (!exists)
 				{
 					int* e = &edges[nedges * 3];
@@ -647,12 +710,17 @@ static bool canRemoveVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned sho
 	// There should be no more than 2 open edges.
 	// This catches the case that two non-adjacent polygons
 	// share the removed vertex. In that case, do not remove the vertex.
+	// 開いているエッジは2つ以下でなければなりません。
+	// これは、2つの隣接していないポリゴンが削除された頂点を共有する場合をキャッチします。
+	// その場合、頂点を削除しないでください。
 	int numOpenEdges = 0;
+
 	for (int i = 0; i < nedges; ++i)
 	{
 		if (edges[i * 3 + 2] < 2)
 			numOpenEdges++;
 	}
+
 	if (numOpenEdges > 2)
 		return false;
 
@@ -664,46 +732,56 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 	const int nvp = mesh.nvp;
 
 	// Count number of polygons to remove.
+	// 削除するポリゴンの数をカウントします。
 	int numRemovedVerts = 0;
+
 	for (int i = 0; i < mesh.npolys; ++i)
 	{
 		unsigned short* p = &mesh.polys[i * nvp * 2];
 		const int nv = countPolyVerts(p, nvp);
+
 		for (int j = 0; j < nv; ++j)
 		{
-			if (p[j] == rem)
-				numRemovedVerts++;
+			if (p[j] == rem) numRemovedVerts++;
 		}
 	}
 
 	int nedges = 0;
 	rcScopedDelete<int> edges((int*)rcAlloc(sizeof(int) * numRemovedVerts * nvp * 4, RC_ALLOC_TEMP));
+
 	if (!edges)
 	{
+		// メモリー不足「edges」
 		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'edges' (%d).", numRemovedVerts * nvp * 4);
 		return false;
 	}
 
 	int nhole = 0;
 	rcScopedDelete<int> hole((int*)rcAlloc(sizeof(int) * numRemovedVerts * nvp, RC_ALLOC_TEMP));
+
 	if (!hole)
 	{
+		// メモリー不足「hole」
 		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'hole' (%d).", numRemovedVerts * nvp);
 		return false;
 	}
 
 	int nhreg = 0;
 	rcScopedDelete<int> hreg((int*)rcAlloc(sizeof(int) * numRemovedVerts * nvp, RC_ALLOC_TEMP));
+
 	if (!hreg)
 	{
+		// メモリー不足「hreg」
 		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'hreg' (%d).", numRemovedVerts * nvp);
 		return false;
 	}
 
 	int nharea = 0;
 	rcScopedDelete<int> harea((int*)rcAlloc(sizeof(int) * numRemovedVerts * nvp, RC_ALLOC_TEMP));
+
 	if (!harea)
 	{
+		// メモリー不足「harea」
 		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'harea' (%d).", numRemovedVerts * nvp);
 		return false;
 	}
@@ -713,11 +791,14 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 		unsigned short* p = &mesh.polys[i * nvp * 2];
 		const int nv = countPolyVerts(p, nvp);
 		bool hasRem = false;
+
 		for (int j = 0; j < nv; ++j)
 			if (p[j] == rem) hasRem = true;
+
 		if (hasRem)
 		{
 			// Collect edges which does not touch the removed vertex.
+			// 削除された頂点に接触しないエッジを収集します。
 			for (int j = 0, k = nv - 1; j < nv; k = j++)
 			{
 				if (p[j] != rem && p[k] != rem)
@@ -730,10 +811,14 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 					nedges++;
 				}
 			}
+
 			// Remove the polygon.
+			// ポリゴンを削除します。
 			unsigned short* p2 = &mesh.polys[(mesh.npolys - 1) * nvp * 2];
+
 			if (p != p2)
 				memcpy(p, p2, sizeof(unsigned short) * nvp);
+
 			memset(p + nvp, 0xff, sizeof(unsigned short) * nvp);
 			mesh.regs[i] = mesh.regs[mesh.npolys - 1];
 			mesh.areas[i] = mesh.areas[mesh.npolys - 1];
@@ -743,22 +828,27 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 	}
 
 	// Remove vertex.
+	// 頂点を削除します。
 	for (int i = (int)rem; i < mesh.nverts - 1; ++i)
 	{
 		mesh.verts[i * 3 + 0] = mesh.verts[(i + 1) * 3 + 0];
 		mesh.verts[i * 3 + 1] = mesh.verts[(i + 1) * 3 + 1];
 		mesh.verts[i * 3 + 2] = mesh.verts[(i + 1) * 3 + 2];
 	}
+
 	mesh.nverts--;
 
 	// Adjust indices to match the removed vertex layout.
+	// 削除された頂点レイアウトに一致するようにインデックスを調整します。
 	for (int i = 0; i < mesh.npolys; ++i)
 	{
 		unsigned short* p = &mesh.polys[i * nvp * 2];
 		const int nv = countPolyVerts(p, nvp);
+
 		for (int j = 0; j < nv; ++j)
 			if (p[j] > rem) p[j]--;
 	}
+
 	for (int i = 0; i < nedges; ++i)
 	{
 		if (edges[i * 4 + 0] > rem) edges[i * 4 + 0]--;
@@ -770,6 +860,7 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 
 	// Start with one vertex, keep appending connected
 	// segments to the start and end of the hole.
+	// 1つの頂点から開始し、接続されたセグメントを穴の開始点と終了点に追加し続けます。
 	pushBack(edges[0], hole, nhole);
 	pushBack(edges[2], hreg, nhreg);
 	pushBack(edges[3], harea, nharea);
@@ -785,9 +876,11 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 			const int r = edges[i * 4 + 2];
 			const int a = edges[i * 4 + 3];
 			bool add = false;
+
 			if (hole[0] == eb)
 			{
 				// The segment matches the beginning of the hole boundary.
+				// セグメントは、穴の境界の始まりと一致します。
 				pushFront(ea, hole, nhole);
 				pushFront(r, hreg, nhreg);
 				pushFront(a, harea, nharea);
@@ -796,14 +889,17 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 			else if (hole[nhole - 1] == ea)
 			{
 				// The segment matches the end of the hole boundary.
+				// セグメントは穴の境界の終わりに一致します。
 				pushBack(eb, hole, nhole);
 				pushBack(r, hreg, nhreg);
 				pushBack(a, harea, nharea);
 				add = true;
 			}
+
 			if (add)
 			{
 				// The edge segment was added, remove it.
+				// エッジセグメントが追加されました。削除します。
 				edges[i * 4 + 0] = edges[(nedges - 1) * 4 + 0];
 				edges[i * 4 + 1] = edges[(nedges - 1) * 4 + 1];
 				edges[i * 4 + 2] = edges[(nedges - 1) * 4 + 2];
@@ -814,32 +910,35 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 			}
 		}
 
-		if (!match)
-			break;
+		if (!match) break;
 	}
 
 	rcScopedDelete<int> tris((int*)rcAlloc(sizeof(int) * nhole * 3, RC_ALLOC_TEMP));
+
 	if (!tris)
 	{
-		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'tris' (%d).", nhole * 3);
+		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'tris' (%d).", nhole * 3); // メモリー不足「tris」
 		return false;
 	}
 
 	rcScopedDelete<int> tverts((int*)rcAlloc(sizeof(int) * nhole * 4, RC_ALLOC_TEMP));
+
 	if (!tverts)
 	{
-		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'tverts' (%d).", nhole * 4);
+		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'tverts' (%d).", nhole * 4); // メモリー不足「tverts」
 		return false;
 	}
 
 	rcScopedDelete<int> thole((int*)rcAlloc(sizeof(int) * nhole, RC_ALLOC_TEMP));
+
 	if (!thole)
 	{
-		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'thole' (%d).", nhole);
+		ctx->log(RC_LOG_WARNING, "removeVertex: Out of memory 'thole' (%d).", nhole); // メモリー不足「thole」
 		return false;
 	}
 
 	// Generate temp vertex array for triangulation.
+	// 三角形分割用の一時頂点配列を生成します。
 	for (int i = 0; i < nhole; ++i)
 	{
 		const int pi = hole[i];
@@ -851,38 +950,47 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 	}
 
 	// Triangulate the hole.
+	// 穴を三角形化します。
 	int ntris = triangulate(nhole, &tverts[0], &thole[0], tris);
 	if (ntris < 0)
 	{
 		ntris = -ntris;
-		ctx->log(RC_LOG_WARNING, "removeVertex: triangulate() returned bad results.");
+		ctx->log(RC_LOG_WARNING, "removeVertex: triangulate() returned bad results."); // triangulate（）は悪い結果を返しました。
 	}
 
 	// Merge the hole triangles back to polygons.
+	//穴の三角形をポリゴンにマージします。
 	rcScopedDelete<unsigned short> polys((unsigned short*)rcAlloc(sizeof(unsigned short) * (ntris + 1) * nvp, RC_ALLOC_TEMP));
+
 	if (!polys)
 	{
-		ctx->log(RC_LOG_ERROR, "removeVertex: Out of memory 'polys' (%d).", (ntris + 1) * nvp);
+		ctx->log(RC_LOG_ERROR, "removeVertex: Out of memory 'polys' (%d).", (ntris + 1) * nvp); // メモリー不足「polys」
 		return false;
 	}
+
 	rcScopedDelete<unsigned short> pregs((unsigned short*)rcAlloc(sizeof(unsigned short) * ntris, RC_ALLOC_TEMP));
+
 	if (!pregs)
 	{
-		ctx->log(RC_LOG_ERROR, "removeVertex: Out of memory 'pregs' (%d).", ntris);
+		ctx->log(RC_LOG_ERROR, "removeVertex: Out of memory 'pregs' (%d).", ntris); // メモリー不足「pregs」
 		return false;
 	}
+
 	rcScopedDelete<unsigned char> pareas((unsigned char*)rcAlloc(sizeof(unsigned char) * ntris, RC_ALLOC_TEMP));
+
 	if (!pareas)
 	{
-		ctx->log(RC_LOG_ERROR, "removeVertex: Out of memory 'pareas' (%d).", ntris);
+		ctx->log(RC_LOG_ERROR, "removeVertex: Out of memory 'pareas' (%d).", ntris); // メモリー不足「pareas」
 		return false;
 	}
 
 	unsigned short* tmpPoly = &polys[ntris * nvp];
 
 	// Build initial polygons.
+	// 初期ポリゴンを作成します。
 	int npolys = 0;
 	memset(polys, 0xff, ntris * nvp * sizeof(unsigned short));
+
 	for (int j = 0; j < ntris; ++j)
 	{
 		int* t = &tris[j * 3];
@@ -892,8 +1000,8 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 			polys[npolys * nvp + 1] = (unsigned short)hole[t[1]];
 			polys[npolys * nvp + 2] = (unsigned short)hole[t[2]];
 
-			// If this polygon covers multiple region types then
-			// mark it as such
+			// If this polygon covers multiple region types then mark it as such
+			// このポリゴンが複数の領域タイプをカバーする場合、そのようにマークします
 			if (hreg[t[0]] != hreg[t[1]] || hreg[t[1]] != hreg[t[2]])
 				pregs[npolys] = RC_MULTIPLE_REGS;
 			else
@@ -903,15 +1011,17 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 			npolys++;
 		}
 	}
-	if (!npolys)
-		return true;
+
+	if (!npolys) return true;
 
 	// Merge polygons.
+	// ポリゴンをマージします。
 	if (nvp > 3)
 	{
 		for (;;)
 		{
 			// Find best polygons to merge.
+			// マージするのに最適なポリゴンを見つけます。
 			int bestMergeVal = 0;
 			int bestPa = 0, bestPb = 0, bestEa = 0, bestEb = 0;
 
@@ -923,6 +1033,7 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 					unsigned short* pk = &polys[k * nvp];
 					int ea, eb;
 					int v = getPolyMergeValue(pj, pk, mesh.verts, ea, eb, nvp);
+
 					if (v > bestMergeVal)
 					{
 						bestMergeVal = v;
@@ -937,15 +1048,20 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 			if (bestMergeVal > 0)
 			{
 				// Found best, merge.
+				// 最適な組み合わせを見つけます。
 				unsigned short* pa = &polys[bestPa * nvp];
 				unsigned short* pb = &polys[bestPb * nvp];
+
 				mergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, nvp);
+
 				if (pregs[bestPa] != pregs[bestPb])
 					pregs[bestPa] = RC_MULTIPLE_REGS;
 
 				unsigned short* last = &polys[(npolys - 1) * nvp];
+
 				if (pb != last)
 					memcpy(pb, last, sizeof(unsigned short) * nvp);
+
 				pregs[bestPb] = pregs[npolys - 1];
 				pareas[bestPb] = pareas[npolys - 1];
 				npolys--;
@@ -953,24 +1069,32 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 			else
 			{
 				// Could not merge any polygons, stop.
+				// ポリゴンをマージできませんでした。
 				break;
 			}
 		}
 	}
 
 	// Store polygons.
+	// ポリゴンを保存します。
 	for (int i = 0; i < npolys; ++i)
 	{
 		if (mesh.npolys >= maxTris) break;
+
 		unsigned short* p = &mesh.polys[mesh.npolys * nvp * 2];
+
 		memset(p, 0xff, sizeof(unsigned short) * nvp * 2);
+
 		for (int j = 0; j < nvp; ++j)
 			p[j] = polys[i * nvp + j];
+
 		mesh.regs[mesh.npolys] = pregs[i];
 		mesh.areas[mesh.npolys] = pareas[i];
 		mesh.npolys++;
+
 		if (mesh.npolys > maxTris)
 		{
+			// ポリゴンが多すぎます。
 			ctx->log(RC_LOG_ERROR, "removeVertex: Too many polygons %d (max:%d).", mesh.npolys, maxTris);
 			return false;
 		}
@@ -983,6 +1107,8 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 ///
 /// @note If the mesh data is to be used to construct a Detour navigation mesh, then the upper
 /// limit must be retricted to <= #DT_VERTS_PER_POLYGON.
+/// メッシュデータを使用してDetourナビゲーションメッシュを構築する場合、
+/// 上限は <= #DT_VERTS_PER_POLYGONに制限する必要があります。
 ///
 /// @see rcAllocPolyMesh, rcContourSet, rcPolyMesh, rcConfig
 bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMesh& mesh)
@@ -991,8 +1117,8 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 
 	rcScopedTimer timer(ctx, RC_TIMER_BUILD_POLYMESH);
 
-	rcVcopy(mesh.bmin, cset.bmin);
-	rcVcopy(mesh.bmax, cset.bmax);
+	rcVcopy(mesh.bmin, cset.bmin); // コピー
+	rcVcopy(mesh.bmax, cset.bmax); // コピー
 	mesh.cs = cset.cs;
 	mesh.ch = cset.ch;
 	mesh.borderSize = cset.borderSize;
@@ -1001,10 +1127,13 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 	int maxVertices = 0;
 	int maxTris = 0;
 	int maxVertsPerCont = 0;
+
 	for (int i = 0; i < cset.nconts; ++i)
 	{
 		// Skip null contours.
+		// ヌルの輪郭をスキップします。
 		if (cset.conts[i].nverts < 3) continue;
+
 		maxVertices += cset.conts[i].nverts;
 		maxTris += cset.conts[i].nverts - 2;
 		maxVertsPerCont = rcMax(maxVertsPerCont, cset.conts[i].nverts);
@@ -1012,40 +1141,49 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 
 	if (maxVertices >= 0xfffe)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Too many vertices %d.", maxVertices);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Too many vertices %d.", maxVertices); // 頂点が多すぎる
 		return false;
 	}
 
 	rcScopedDelete<unsigned char> vflags((unsigned char*)rcAlloc(sizeof(unsigned char) * maxVertices, RC_ALLOC_TEMP));
+
 	if (!vflags)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'vflags' (%d).", maxVertices);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'vflags' (%d).", maxVertices); // メモリー不足「vflags」
 		return false;
 	}
+
 	memset(vflags, 0, maxVertices);
 
 	mesh.verts = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxVertices * 3, RC_ALLOC_PERM);
+
 	if (!mesh.verts)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.verts' (%d).", maxVertices);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.verts' (%d).", maxVertices); // メモリー不足「mesh.verts」
 		return false;
 	}
+
 	mesh.polys = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxTris * nvp * 2, RC_ALLOC_PERM);
+
 	if (!mesh.polys)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.polys' (%d).", maxTris * nvp * 2);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.polys' (%d).", maxTris * nvp * 2); // メモリー不足「mesh.polys」
 		return false;
 	}
+
 	mesh.regs = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxTris, RC_ALLOC_PERM);
+
 	if (!mesh.regs)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.regs' (%d).", maxTris);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.regs' (%d).", maxTris); // メモリー不足「mesh.regs」
 		return false;
 	}
+
 	mesh.areas = (unsigned char*)rcAlloc(sizeof(unsigned char) * maxTris, RC_ALLOC_PERM);
+
 	if (!mesh.areas)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.areas' (%d).", maxTris);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.areas' (%d).", maxTris); // メモリー不足「mesh.areas」
 		return false;
 	}
 
@@ -1060,40 +1198,51 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 	memset(mesh.areas, 0, sizeof(unsigned char) * maxTris);
 
 	rcScopedDelete<int> nextVert((int*)rcAlloc(sizeof(int) * maxVertices, RC_ALLOC_TEMP));
+
 	if (!nextVert)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'nextVert' (%d).", maxVertices);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'nextVert' (%d).", maxVertices); // メモリー不足「mesh.areas」
 		return false;
 	}
+
 	memset(nextVert, 0, sizeof(int) * maxVertices);
 
 	rcScopedDelete<int> firstVert((int*)rcAlloc(sizeof(int) * VERTEX_BUCKET_COUNT, RC_ALLOC_TEMP));
+
 	if (!firstVert)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'firstVert' (%d).", VERTEX_BUCKET_COUNT);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'firstVert' (%d).", VERTEX_BUCKET_COUNT); // メモリー不足「firstVert」
 		return false;
 	}
+
 	for (int i = 0; i < VERTEX_BUCKET_COUNT; ++i)
 		firstVert[i] = -1;
 
 	rcScopedDelete<int> indices((int*)rcAlloc(sizeof(int) * maxVertsPerCont, RC_ALLOC_TEMP));
+
 	if (!indices)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'indices' (%d).", maxVertsPerCont);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'indices' (%d).", maxVertsPerCont); // メモリー不足「indices」
 		return false;
 	}
+
 	rcScopedDelete<int> tris((int*)rcAlloc(sizeof(int) * maxVertsPerCont * 3, RC_ALLOC_TEMP));
+
 	if (!tris)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'tris' (%d).", maxVertsPerCont * 3);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'tris' (%d).", maxVertsPerCont * 3); // メモリー不足「tris」
 		return false;
 	}
-	rcScopedDelete<unsigned short> polys((unsigned short*)rcAlloc(sizeof(unsigned short) * (maxVertsPerCont + 1) * nvp, RC_ALLOC_TEMP));
+
+	rcScopedDelete<unsigned short> polys
+	((unsigned short*)rcAlloc(sizeof(unsigned short) * (maxVertsPerCont + 1) * nvp, RC_ALLOC_TEMP));
+
 	if (!polys)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'polys' (%d).", maxVertsPerCont * nvp);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'polys' (%d).", maxVertsPerCont * nvp); // メモリー不足「polys」
 		return false;
 	}
+
 	unsigned short* tmpPoly = &polys[maxVertsPerCont * nvp];
 
 	for (int i = 0; i < cset.nconts; ++i)
@@ -1101,10 +1250,12 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 		rcContour& cont = cset.conts[i];
 
 		// Skip null contours.
+		// ヌルの輪郭をスキップします。
 		if (cont.nverts < 3)
 			continue;
 
 		// Triangulate contour
+		// 輪郭の三角形化
 		for (int j = 0; j < cont.nverts; ++j)
 			indices[j] = j;
 
@@ -1112,6 +1263,7 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 		if (ntris <= 0)
 		{
 			// Bad triangulation, should not happen.
+			// 悪い三角測量、起こらないはずです。
 /*			printf("\tconst float bmin[3] = {%ff,%ff,%ff};\n", cset.bmin[0], cset.bmin[1], cset.bmin[2]);
 			printf("\tconst float cs = %ff;\n", cset.cs);
 			printf("\tconst float ch = %ff;\n", cset.ch);
@@ -1122,29 +1274,34 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 				printf("\t\t%d,%d,%d,%d,\n", v[0], v[1], v[2], v[3]);
 			}
 			printf("\t};\n\tconst int nverts = sizeof(verts)/(sizeof(int)*4);\n");*/
-			ctx->log(RC_LOG_WARNING, "rcBuildPolyMesh: Bad triangulation Contour %d.", i);
+			ctx->log(RC_LOG_WARNING, "rcBuildPolyMesh: Bad triangulation Contour %d.", i); // 不正な三角形分割の輪郭
 			ntris = -ntris;
 		}
 
 		// Add and merge vertices.
+		// 頂点を追加およびマージします。
 		for (int j = 0; j < cont.nverts; ++j)
 		{
 			const int* v = &cont.verts[j * 4];
 			indices[j] = addVertex((unsigned short)v[0], (unsigned short)v[1], (unsigned short)v[2],
 				mesh.verts, firstVert, nextVert, mesh.nverts);
+
 			if (v[3] & RC_BORDER_VERTEX)
 			{
 				// This vertex should be removed.
+				// この頂点は削除する必要があります。
 				vflags[indices[j]] = 1;
 			}
 		}
 
 		// Build initial polygons.
+		// 初期ポリゴンを作成します。
 		int npolys = 0;
 		memset(polys, 0xff, maxVertsPerCont * nvp * sizeof(unsigned short));
 		for (int j = 0; j < ntris; ++j)
 		{
 			int* t = &tris[j * 3];
+
 			if (t[0] != t[1] && t[0] != t[2] && t[1] != t[2])
 			{
 				polys[npolys * nvp + 0] = (unsigned short)indices[t[0]];
@@ -1157,22 +1314,26 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 			continue;
 
 		// Merge polygons.
+		// ポリゴンをマージします。
 		if (nvp > 3)
 		{
 			for (;;)
 			{
 				// Find best polygons to merge.
+				// マージするのに最適なポリゴンを見つけます。
 				int bestMergeVal = 0;
 				int bestPa = 0, bestPb = 0, bestEa = 0, bestEb = 0;
 
 				for (int j = 0; j < npolys - 1; ++j)
 				{
 					unsigned short* pj = &polys[j * nvp];
+
 					for (int k = j + 1; k < npolys; ++k)
 					{
 						unsigned short* pk = &polys[k * nvp];
 						int ea, eb;
 						int v = getPolyMergeValue(pj, pk, mesh.verts, ea, eb, nvp);
+
 						if (v > bestMergeVal)
 						{
 							bestMergeVal = v;
@@ -1187,70 +1348,89 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 				if (bestMergeVal > 0)
 				{
 					// Found best, merge.
+					// 最適な組み合わせを見つけます。
 					unsigned short* pa = &polys[bestPa * nvp];
 					unsigned short* pb = &polys[bestPb * nvp];
+
 					mergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, nvp);
+
 					unsigned short* lastPoly = &polys[(npolys - 1) * nvp];
+
 					if (pb != lastPoly)
 						memcpy(pb, lastPoly, sizeof(unsigned short) * nvp);
+
 					npolys--;
 				}
 				else
 				{
 					// Could not merge any polygons, stop.
+					// ポリゴンをマージできませんでした。
 					break;
 				}
 			}
 		}
 
 		// Store polygons.
+		// ポリゴンを保存します。
 		for (int j = 0; j < npolys; ++j)
 		{
 			unsigned short* p = &mesh.polys[mesh.npolys * nvp * 2];
 			unsigned short* q = &polys[j * nvp];
+
 			for (int k = 0; k < nvp; ++k)
 				p[k] = q[k];
+
 			mesh.regs[mesh.npolys] = cont.reg;
 			mesh.areas[mesh.npolys] = cont.area;
 			mesh.npolys++;
+
 			if (mesh.npolys > maxTris)
 			{
-				ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Too many polygons %d (max:%d).", mesh.npolys, maxTris);
+				ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Too many polygons %d (max:%d).", mesh.npolys, maxTris); // ポリゴンが多すぎます
 				return false;
 			}
 		}
 	}
 
 	// Remove edge vertices.
+	// エッジの頂点を削除します。
 	for (int i = 0; i < mesh.nverts; ++i)
 	{
 		if (vflags[i])
 		{
-			if (!canRemoveVertex(ctx, mesh, (unsigned short)i))
-				continue;
+			if (!canRemoveVertex(ctx, mesh, (unsigned short)i)) continue;
+
 			if (!removeVertex(ctx, mesh, (unsigned short)i, maxTris))
 			{
 				// Failed to remove vertex
-				ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Failed to remove edge vertex %d.", i);
+				// 頂点を削除できませんでした
+				ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Failed to remove edge vertex %d.", i); // エッジ頂点を削除できませんでした
 				return false;
 			}
+
 			// Remove vertex
+			// 頂点を削除します
 			// Note: mesh.nverts is already decremented inside removeVertex()!
+			// 注：mesh.nvertsはremoveVertex（）内で既にデクリメントされています！
 			// Fixup vertex flags
+			// 頂点フラグを修正
 			for (int j = i; j < mesh.nverts; ++j)
 				vflags[j] = vflags[j + 1];
+
 			--i;
 		}
 	}
 
 	// Calculate adjacency.
+	// 隣接関係を計算します。
 	if (!buildMeshAdjacency(mesh.polys, mesh.npolys, mesh.nverts, nvp))
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Adjacency failed.");
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Adjacency failed."); // 隣接が失敗しました。
 		return false;
 	}
 
 	// Find portal edges
+	// ポータルエッジを見つける
 	if (mesh.borderSize > 0)
 	{
 		const int w = cset.width;
@@ -1261,11 +1441,15 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 			for (int j = 0; j < nvp; ++j)
 			{
 				if (p[j] == RC_MESH_NULL_IDX) break;
+
 				// Skip connected edges.
-				if (p[nvp + j] != RC_MESH_NULL_IDX)
-					continue;
+				// 接続されたエッジをスキップします。
+				if (p[nvp + j] != RC_MESH_NULL_IDX) continue;
+
 				int nj = j + 1;
+
 				if (nj >= nvp || p[nj] == RC_MESH_NULL_IDX) nj = 0;
+
 				const unsigned short* va = &mesh.verts[p[j] * 3];
 				const unsigned short* vb = &mesh.verts[p[nj] * 3];
 
@@ -1282,20 +1466,26 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 	}
 
 	// Just allocate the mesh flags array. The user is resposible to fill it.
+	// メッシュフラグ配列を割り当てます。ユーザーはそれを埋めることができます。
 	mesh.flags = (unsigned short*)rcAlloc(sizeof(unsigned short) * mesh.npolys, RC_ALLOC_PERM);
+
 	if (!mesh.flags)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.flags' (%d).", mesh.npolys);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: Out of memory 'mesh.flags' (%d).", mesh.npolys); // メモリー不足「mesh.flags」
 		return false;
 	}
+
 	memset(mesh.flags, 0, sizeof(unsigned short) * mesh.npolys);
 
 	if (mesh.nverts > 0xffff)
 	{
+		// 結果のメッシュの頂点が多すぎます。データが破損する可能性があります。
 		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: The resulting mesh has too many vertices %d (max %d). Data can be corrupted.", mesh.nverts, 0xffff);
 	}
+
 	if (mesh.npolys > 0xffff)
 	{
+		// 結果のメッシュのポリゴンが多すぎます。データが破損する可能性があります。
 		ctx->log(RC_LOG_ERROR, "rcBuildPolyMesh: The resulting mesh has too many polygons %d (max %d). Data can be corrupted.", mesh.npolys, 0xffff);
 	}
 

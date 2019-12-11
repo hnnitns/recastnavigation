@@ -243,7 +243,7 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 				float* v = &m_offMeshConVerts[m_offMeshConCount * 3 * 2];
 				int bidir, area = 0, flags = 0;
 				float rad;
-				sscanf(row + 1, "%f %f %f  %f %f %f %f %d %d %d",
+				sscanf_s(row + 1, "%f %f %f  %f %f %f %f %d %d %d",
 					&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags);
 				m_offMeshConRads[m_offMeshConCount] = rad;
 				m_offMeshConDirs[m_offMeshConCount] = (unsigned char)bidir;
@@ -258,12 +258,12 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 			if (m_volumeCount < MAX_VOLUMES)
 			{
 				ConvexVolume* vol = &m_volumes[m_volumeCount++];
-				sscanf(row + 1, "%d %c %c %f %f", &vol->nverts, &vol->areaMod.m_value, &vol->areaMod.m_mask, &vol->hmin, &vol->hmax);
+				sscanf_s(row + 1, "%d %c %c %f %f", &vol->nverts, &vol->areaMod.m_value, sizeof(vol->areaMod.m_value), &vol->areaMod.m_mask, sizeof(vol->areaMod.m_mask), &vol->hmin, &vol->hmax);
 				for (int i = 0; i < vol->nverts; ++i)
 				{
 					row[0] = '\0';
 					src = parseRow(src, srcEnd, row, sizeof(row) / sizeof(char));
-					sscanf(row, "%f %f %f", &vol->verts[i * 3 + 0], &vol->verts[i * 3 + 1], &vol->verts[i * 3 + 2]);
+					sscanf_s(row, "%f %f %f", &vol->verts[i * 3 + 0], &vol->verts[i * 3 + 1], &vol->verts[i * 3 + 2]);
 				}
 			}
 		}
@@ -271,7 +271,7 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 		{
 			// Settings
 			m_hasBuildSettings = true;
-			sscanf(row + 1, "%f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
+			sscanf_s(row + 1, "%f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
 				&m_buildSettings.cellSize,
 				&m_buildSettings.cellHeight,
 				&m_buildSettings.agentHeight,

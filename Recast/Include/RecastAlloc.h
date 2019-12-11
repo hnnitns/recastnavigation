@@ -25,8 +25,8 @@
 // memory is expected to be used.
 enum rcAllocHint
 {
-	RC_ALLOC_PERM,		//< Memory will persist after a function call.
-	RC_ALLOC_TEMP		//< Memory used temporarily within a function.
+	RC_ALLOC_PERM,		// Memory will persist after a function call. // メモリは関数呼び出し後も持続します。
+	RC_ALLOC_TEMP		// Memory used temporarily within a function. // 関数内で一時的に使用されるメモリ。
 };
 
 // A memory allocation function.
@@ -47,6 +47,7 @@ typedef void (rcFreeFunc)(void* ptr);
 void rcAllocSetCustom(rcAllocFunc* allocFunc, rcFreeFunc* freeFunc);
 
 // Allocates a memory block.
+// メモリブロックを割り当てます。
 //  @param[in]		size	The size, in bytes of memory, to allocate.
 //  @param[in]		hint	A hint to the allocator on how long the memory is expected to be in use.
 //  @return A pointer to the beginning of the allocated memory block, or null if the allocation failed.
@@ -59,6 +60,7 @@ void* rcAlloc(size_t size, rcAllocHint hint);
 void rcFree(void* ptr);
 
 // A simple dynamic array of integers.
+// 整数の単純な動的配列。
 class rcIntArray
 {
 	int* m_data;
@@ -75,12 +77,16 @@ public:
 	rcIntArray() : m_data(0), m_size(0), m_cap(0) {}
 
 	// Constructs an instance initialized to the specified size.
+	// 指定されたサイズに初期化されたインスタンスを構築します。
 	//  @param[in]		n	The initial size of the integer array.
+	// 整数配列の初期サイズ。
 	rcIntArray(int n) : m_data(0), m_size(0), m_cap(0) { resize(n); }
 	~rcIntArray() { rcFree(m_data); }
 
 	// Specifies the new size of the integer array.
+	// 整数配列の新しいサイズを指定します。
 	//  @param[in]		n	The new size of the integer array.
+	// 整数配列の新しいサイズ。
 	void resize(int n)
 	{
 		if (n > m_cap)
@@ -90,11 +96,13 @@ public:
 	}
 
 	// Push the specified integer onto the end of the array and increases the size by one.
-	//  @param[in]		item	The new value.
+	// 指定された整数を配列の最後にプッシュし、サイズを1つ増やします。
+	//  @param[in]		item	The new value. //新しい値。
 	void push(int item) { resize(m_size + 1); m_data[m_size - 1] = item; }
 
 	// Returns the value at the end of the array and reduces the size by one.
-	//  @return The value at the end of the array.
+	// 配列の最後に値を返し、サイズを1つ減らします。
+	//  @return The value at the end of the array. // 配列の最後の値。
 	int pop()
 	{
 		if (m_size > 0)

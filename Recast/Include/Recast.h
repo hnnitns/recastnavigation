@@ -734,6 +734,7 @@ constexpr int RC_NOT_CONNECTED = 0x3f;
 // @{
 // Used to ignore a function parameter.  VS complains about unused parameters
 // and this silences the warning.
+// 関数パラメーターを無視するために使用されます。 VSは未使用のパラメーターについて不平を言っており、これは警告を黙らせます。
 //  @param [in] _ Unused parameter
 template<class T> void rcIgnoreUnused(const T&) { }
 
@@ -924,17 +925,26 @@ void rcCalcBounds(const float* verts, int nv, float* bmin, float* bmax);
 //  @param[out] h : The height along the z-axis. [Limit: >= 0] [Units: vx]
 void rcCalcGridSize(const float* bmin, const float* bmax, float cs, int* w, int* h);
 
-// Initializes a new heightfield.
+// Initializes a new heightfield. // 新しい地形を初期化します。
 //  @ingroup recast
-//  @param[in,out]	ctx		The build context to use during the operation.
-//  @param[in,out]	hf		The allocated heightfield to initialize.
-//  @param[in]		width	The width of the field along the x-axis. [Limit: >= 0] [Units: vx]
-//  @param[in]		height	The height of the field along the z-axis. [Limit: >= 0] [Units: vx]
-//  @param[in]		bmin	The minimum bounds of the field's AABB. [(x, y, z)] [Units: wu]
-//  @param[in]		bmax	The maximum bounds of the field's AABB. [(x, y, z)] [Units: wu]
-//  @param[in]		cs		The xz-plane cell size to use for the field. [Limit: > 0] [Units: wu]
-//  @param[in]		ch		The y-axis cell size to use for field. [Limit: > 0] [Units: wu]
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in,out] hf : The allocated heightfield to initialize.
+//	初期化するために割り当てられた高さフィールド。
+//  @param[in] width : The width of the field along the x-axis. [Limit: >= 0] [Units: vx]
+//	x軸に沿ったフィールドの幅。 [制限：> = 0] [単位：vx]
+//  @param[in] height : The height of the field along the z-axis. [Limit: >= 0] [Units: vx]
+//	z軸に沿ったフィールドの高さ。 [制限：> = 0] [単位：vx]
+//  @param[in] bmin : The minimum bounds of the field's AABB. [(x, y, z)] [Units: wu]
+//	フィールドのAABBの最小境界。 [（x、y、z）] [単位：wu]
+//  @param[in] bmax : The maximum bounds of the field's AABB. [(x, y, z)] [Units: wu]
+//	フィールドのAABBの最大境界。 [（x、y、z）] [単位：wu]
+//  @param[in] cs : The xz-plane cell size to use for the field. [Limit: > 0] [Units: wu]
+//	フィールドに使用するxz平面のセルサイズ。 [制限：> 0] [単位：wu]
+//  @param[in] ch : The y-axis cell size to use for field. [Limit: > 0] [Units: wu]
+//	フィールドに使用するy軸のセルサイズ。 [制限：> 0] [単位：wu]
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcCreateHeightfield(rcContext* ctx, rcHeightfield& hf, int width, int height,
 	const float* bmin, const float* bmax,
 	float cs, float ch);
@@ -1203,28 +1213,36 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 	const int borderSize, const int minRegionArea, const int mergeRegionArea);
 
 // Builds region data for the heightfield by partitioning the heightfield in non-overlapping layers.
+// 重なり合わないレイヤーで地形を分割することにより、地形の領域データを構築します。
 //  @ingroup recast
-//  @param[in,out]	ctx				The build context to use during the operation.
-//  @param[in,out]	chf				A populated compact heightfield.
-//  @param[in]		borderSize		The size of the non-navigable border around the heightfield.
-//  								[Limit: >=0] [Units: vx]
-//  @param[in]		minRegionArea	The minimum number of cells allowed to form isolated island areas.
-//  								[Limit: >=0] [Units: vx].
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in,out] chf : A populated compact heightfield.
+//	読み込まれたコンパクトな地形。
+//  @param[in] borderSize : The size of the non-navigable border around the heightfield. [Limit: >=0] [Units: vx]
+//	地形の周りのナビゲーション不可能な境界線のサイズ。 [制限：> = 0] [単位：vx]
+//  @param[in] minRegionArea : The minimum number of cells allowed to form isolated island areas. [Limit: >=0] [Units: vx].
+//	孤立した島の領域を形成できるセルの最小数。 [制限：> = 0] [単位：vx]。
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 	const int borderSize, const int minRegionArea);
 
 // Builds region data for the heightfield using simple monotone partitioning.
+// 単純なモノトーン分割を使用して、地形の領域データを構築します。
 //  @ingroup recast
-//  @param[in,out]	ctx				The build context to use during the operation.
-//  @param[in,out]	chf				A populated compact heightfield.
-//  @param[in]		borderSize		The size of the non-navigable border around the heightfield.
-//  								[Limit: >=0] [Units: vx]
-//  @param[in]		minRegionArea	The minimum number of cells allowed to form isolated island areas.
-//  								[Limit: >=0] [Units: vx].
-//  @param[in]		mergeRegionArea	Any regions with a span count smaller than this value will, if possible,
-//  								be merged with larger regions. [Limit: >=0] [Units: vx]
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in,out] chf : A populated compact heightfield.
+//	読み込まれたコンパクトな高さフィールド。
+//  @param[in] borderSize : The size of the non-navigable border around the heightfield. [Limit: >=0] [Units: vx]
+//	heightfieldの周りのナビゲーション不可能な境界線のサイズ。 [制限：> = 0] [単位：vx]
+//  @param[in] minRegionArea : The minimum number of cells allowed to form isolated island areas. [Limit: >=0] [Units: vx].
+//	孤立した島の領域を形成できるセルの最小数。 [制限：> = 0] [単位：vx]。
+//  @param[in] mergeRegionArea : Any regions with a span count smaller than this value will, if possible, be merged with larger regions. [Limit: >=0] [Units: vx]
+//	可能な場合、スパンカウントがこの値よりも小さい領域は、より大きな領域とマージされます。 [制限：> = 0] [単位：vx]
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 	const int borderSize, const int minRegionArea, const int mergeRegionArea);
 
@@ -1325,13 +1343,18 @@ bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
 	rcContourSet& cset, const int buildFlags = RC_CONTOUR_TESS_WALL_EDGES);
 
 // Builds a polygon mesh from the provided contours.
+//	指定された輪郭からポリゴンメッシュを構築します。
 //  @ingroup recast
-//  @param[in,out]	ctx		The build context to use during the operation.
-//  @param[in]		cset	A fully built contour set.
-//  @param[in]		nvp		The maximum number of vertices allowed for polygons generated during the
-//  						contour to polygon conversion process. [Limit: >= 3]
-//  @param[out]	mesh	The resulting polygon mesh. (Must be re-allocated.)
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in] cset : A fully built contour set.
+//	完全に構築された輪郭セット。
+//  @param[in] nvp : The maximum number of vertices allowed for polygons generated during the contour to polygon conversion process. [Limit: >= 3]
+//	輪郭からポリゴンへの変換プロセス中に生成されるポリゴンに許可される頂点の最大数。 [制限：> = 3]
+//  @param[out] mesh : The resulting polygon mesh. (Must be re-allocated.)
+//	結果のポリゴンメッシュ。 （再割り当てする必要があります。）
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMesh& mesh);
 
 // Merges multiple polygon meshes into a single mesh.

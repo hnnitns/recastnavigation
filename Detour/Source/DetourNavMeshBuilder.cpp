@@ -19,7 +19,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <float.h>
+#include <limits>  // std::numeric_limitsのため
+#include <cstdint> // uint16_tのため
 #include "DetourNavMesh.h"
 #include "DetourCommon.h"
 #include "DetourMath.h"
@@ -27,12 +28,12 @@
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
 
-static unsigned short MESH_NULL_IDX = 0xffff;
+constexpr uint16_t MESH_NULL_IDX = (std::numeric_limits<uint16_t>::max)();
 
 struct BVItem
 {
-	unsigned short bmin[3];
-	unsigned short bmax[3];
+	uint16_t bmin[3];
+	uint16_t bmax[3];
 	int i;
 };
 
@@ -70,7 +71,7 @@ static int compareItemZ(const void* va, const void* vb)
 }
 
 static void calcExtends(BVItem* items, const int /*nitems*/, const int imin, const int imax,
-	unsigned short* bmin, unsigned short* bmax)
+	uint16_t* bmin, uint16_t* bmax)
 {
 	bmin[0] = items[imin].bmin[0];
 	bmin[1] = items[imin].bmin[1];
@@ -93,10 +94,10 @@ static void calcExtends(BVItem* items, const int /*nitems*/, const int imin, con
 	}
 }
 
-inline int longestAxis(unsigned short x, unsigned short y, unsigned short z)
+inline int longestAxis(uint16_t x, uint16_t y, uint16_t z)
 {
 	int	axis = 0;
-	unsigned short maxVal = x;
+	uint16_t maxVal = x;
 	if (y > maxVal)
 	{
 		axis = 1;
@@ -195,17 +196,17 @@ static int createBVTree(dtNavMeshCreateParams* params, dtBVNode* nodes, int /*nn
 			}
 
 			// BV-tree uses cs for all dimensions
-			it.bmin[0] = (unsigned short)dtClamp((int)((bmin[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
-			it.bmin[1] = (unsigned short)dtClamp((int)((bmin[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
-			it.bmin[2] = (unsigned short)dtClamp((int)((bmin[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
+			it.bmin[0] = (uint16_t)dtClamp((int)((bmin[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
+			it.bmin[1] = (uint16_t)dtClamp((int)((bmin[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
+			it.bmin[2] = (uint16_t)dtClamp((int)((bmin[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
 
-			it.bmax[0] = (unsigned short)dtClamp((int)((bmax[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
-			it.bmax[1] = (unsigned short)dtClamp((int)((bmax[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
-			it.bmax[2] = (unsigned short)dtClamp((int)((bmax[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
+			it.bmax[0] = (uint16_t)dtClamp((int)((bmax[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
+			it.bmax[1] = (uint16_t)dtClamp((int)((bmax[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
+			it.bmax[2] = (uint16_t)dtClamp((int)((bmax[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
 		}
 		else
 		{
-			const unsigned short* p = &params->polys[i * params->nvp * 2];
+			const uint16_t* p = &params->polys[i * params->nvp * 2];
 			it.bmin[0] = it.bmax[0] = params->verts[p[0] * 3 + 0];
 			it.bmin[1] = it.bmax[1] = params->verts[p[0] * 3 + 1];
 			it.bmin[2] = it.bmax[2] = params->verts[p[0] * 3 + 2];
@@ -213,9 +214,9 @@ static int createBVTree(dtNavMeshCreateParams* params, dtBVNode* nodes, int /*nn
 			for (int j = 1; j < params->nvp; ++j)
 			{
 				if (p[j] == MESH_NULL_IDX) break;
-				unsigned short x = params->verts[p[j] * 3 + 0];
-				unsigned short y = params->verts[p[j] * 3 + 1];
-				unsigned short z = params->verts[p[j] * 3 + 2];
+				uint16_t x = params->verts[p[j] * 3 + 0];
+				uint16_t y = params->verts[p[j] * 3 + 1];
+				uint16_t z = params->verts[p[j] * 3 + 2];
 
 				if (x < it.bmin[0]) it.bmin[0] = x;
 				if (y < it.bmin[1]) it.bmin[1] = y;
@@ -226,8 +227,8 @@ static int createBVTree(dtNavMeshCreateParams* params, dtBVNode* nodes, int /*nn
 				if (z > it.bmax[2]) it.bmax[2] = z;
 			}
 			// Remap y
-			it.bmin[1] = (unsigned short)dtMathFloorf((float)it.bmin[1] * params->ch / params->cs);
-			it.bmax[1] = (unsigned short)dtMathCeilf((float)it.bmax[1] * params->ch / params->cs);
+			it.bmin[1] = (uint16_t)dtMathFloorf((float)it.bmin[1] * params->ch / params->cs);
+			it.bmax[1] = (uint16_t)dtMathCeilf((float)it.bmax[1] * params->ch / params->cs);
 		}
 	}
 
@@ -254,56 +255,65 @@ static unsigned char classifyOffMeshPoint(const float* pt, const float* bmin, co
 
 	switch (outcode)
 	{
-	case XP: return 0;
-	case XP | ZP: return 1;
-	case ZP: return 2;
-	case XM | ZP: return 3;
-	case XM: return 4;
-	case XM | ZM: return 5;
-	case ZM: return 6;
-	case XP | ZM: return 7;
+		case XP: return 0;
+		case XP | ZP: return 1;
+		case ZP: return 2;
+		case XM | ZP: return 3;
+		case XM: return 4;
+		case XM | ZM: return 5;
+		case ZM: return 6;
+		case XP | ZM: return 7;
 	};
 
 	return 0xff;
 }
 
-// TODO: Better error handling.
+// TODO: Better error handling. // エラー処理の改善。
 
-/// @par
-///
-/// The output data array is allocated using the detour allocator (dtAlloc()).  The method
-/// used to free the memory will be determined by how the tile is added to the navigation
-/// mesh.
-///
-/// @see dtNavMesh, dtNavMesh::addTile()
+// @par
+//
+// The output data array is allocated using the detour allocator (dtAlloc()).  The method
+// used to free the memory will be determined by how the tile is added to the navigation
+// mesh.
+// 出力データ配列は、迂回アロケーター（dtAlloc（））を使用して割り当てられます。
+// メモリを解放するために使用されるメソッドは、タイルがナビゲーションメッシュに追加される方法によって決まります。
+//
+// @see dtNavMesh, dtNavMesh::addTile()
 bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize)
 {
-	if (params->nvp > DT_VERTS_PER_POLYGON)
-		return false;
-	if (params->vertCount >= 0xffff)
-		return false;
-	if (!params->vertCount || !params->verts)
-		return false;
-	if (!params->polyCount || !params->polys)
-		return false;
+	//ポリゴンごとの頂点の最大値を超えている
+	if (params->nvp > DT_VERTS_PER_POLYGON) return false;
+
+	// ポリゴンメッシュの最大値を超えている（「0xffff」は気持ちが悪いのでこうした。uint16_t は自分がunsigned系使う場合に使っている）
+	if (params->vertCount >= (std::numeric_limits<uint16_t>::max)()) return false;
+
+	// ポリゴンメッシュが存在しない or ポリゴンメッシュの頂点が０
+	if (!params->vertCount || !params->verts) return false;
+
+	// ポリゴンが存在しない or ポリゴン数が０
+	if (!params->polyCount || !params->polys) return false;
 
 	const int nvp = params->nvp;
 
-	// Classify off-mesh connection points. We store only the connections
-	// whose start point is inside the tile.
-	unsigned char* offMeshConClass = 0;
-	int storedOffMeshConCount = 0;
-	int offMeshConLinkCount = 0;
+	// Classify off-mesh connection points.
+	// オフメッシュ接続ポイントを分類します。
+	// We store only the connections whose start point is inside the tile.
+	// 開始点がタイル内にある接続のみを保存します。
+	unsigned char* offMeshConClass{};
+	int storedOffMeshConCount{};
+	int offMeshConLinkCount{};
 
 	if (params->offMeshConCount > 0)
 	{
 		offMeshConClass = (unsigned char*)dtAlloc(sizeof(unsigned char) * params->offMeshConCount * 2, DT_ALLOC_TEMP);
-		if (!offMeshConClass)
-			return false;
+
+		// ポインタが死んでいる
+		if (!offMeshConClass) return false;
 
 		// Find tight heigh bounds, used for culling out off-mesh start locations.
-		float hmin = FLT_MAX;
-		float hmax = -FLT_MAX;
+		// メッシュ外の開始位置を選別するために使用される、タイトな高さの境界を見つけます。
+		float hmin = (std::numeric_limits<float>::max)();
+		float hmax = -(std::numeric_limits<float>::max)();
 
 		if (params->detailVerts && params->detailVertsCount)
 		{
@@ -318,15 +328,18 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 		{
 			for (int i = 0; i < params->vertCount; ++i)
 			{
-				const unsigned short* iv = &params->verts[i * 3];
+				const uint16_t* iv = &params->verts[i * 3];
 				const float h = params->bmin[1] + iv[1] * params->ch;
 				hmin = dtMin(hmin, h);
 				hmax = dtMax(hmax, h);
 			}
 		}
+
 		hmin -= params->walkableClimb;
 		hmax += params->walkableClimb;
-		float bmin[3], bmax[3];
+
+		float bmin[3]{}, bmax[3]{};
+
 		dtVcopy(bmin, params->bmin);
 		dtVcopy(bmax, params->bmax);
 		bmin[1] = hmin;
@@ -334,49 +347,58 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 
 		for (int i = 0; i < params->offMeshConCount; ++i)
 		{
+			constexpr int UCharMax{ (std::numeric_limits<uint8_t>::max)() };
 			const float* p0 = &params->offMeshConVerts[(i * 2 + 0) * 3];
 			const float* p1 = &params->offMeshConVerts[(i * 2 + 1) * 3];
+
 			offMeshConClass[i * 2 + 0] = classifyOffMeshPoint(p0, bmin, bmax);
 			offMeshConClass[i * 2 + 1] = classifyOffMeshPoint(p1, bmin, bmax);
 
 			// Zero out off-mesh start positions which are not even potentially touching the mesh.
-			if (offMeshConClass[i * 2 + 0] == 0xff)
+			// メッシュに触れていない可能性があるメッシュ以外の開始位置をゼロにします。
+			if (offMeshConClass[i * 2 + 0] == UCharMax)
 			{
 				if (p0[1] < bmin[1] || p0[1] > bmax[1])
 					offMeshConClass[i * 2 + 0] = 0;
 			}
 
 			// Cound how many links should be allocated for off-mesh connections.
-			if (offMeshConClass[i * 2 + 0] == 0xff)
-				offMeshConLinkCount++;
-			if (offMeshConClass[i * 2 + 1] == 0xff)
+			// オフメッシュ接続に割り当てられるリンクの数を数えます。
+			if (offMeshConClass[i * 2 + 0] == UCharMax)
 				offMeshConLinkCount++;
 
-			if (offMeshConClass[i * 2 + 0] == 0xff)
+			if (offMeshConClass[i * 2 + 1] == UCharMax)
+				offMeshConLinkCount++;
+
+			if (offMeshConClass[i * 2 + 0] == UCharMax)
 				storedOffMeshConCount++;
 		}
 	}
 
 	// Off-mesh connectionss are stored as polygons, adjust values.
+	// オフメッシュ接続はポリゴンとして保存され、値を調整します。
 	const int totPolyCount = params->polyCount + storedOffMeshConCount;
 	const int totVertCount = params->vertCount + storedOffMeshConCount * 2;
 
 	// Find portal edges which are at tile borders.
+	// タイルの境界にあるポータルエッジを見つけます。
 	int edgeCount = 0;
 	int portalCount = 0;
 	for (int i = 0; i < params->polyCount; ++i)
 	{
-		const unsigned short* p = &params->polys[i * 2 * nvp];
+		const uint16_t* p = &params->polys[i * 2 * nvp];
+
 		for (int j = 0; j < nvp; ++j)
 		{
 			if (p[j] == MESH_NULL_IDX) break;
+
 			edgeCount++;
 
 			if (p[nvp + j] & 0x8000)
 			{
-				unsigned short dir = p[nvp + j] & 0xf;
-				if (dir != 0xf)
-					portalCount++;
+				uint16_t dir = p[nvp + j] & 0xf;
+
+				if (dir != 0xf) portalCount++;
 			}
 		}
 	}
@@ -384,22 +406,30 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	const int maxLinkCount = edgeCount + portalCount * 2 + offMeshConLinkCount * 2;
 
 	// Find unique detail vertices.
-	int uniqueDetailVertCount = 0;
-	int detailTriCount = 0;
+	// 一意の詳細頂点を見つけます。
+	int uniqueDetailVertCount{};
+	int detailTriCount{};
+
 	if (params->detailMeshes)
 	{
 		// Has detail mesh, count unique detail vertex count and use input detail tri count.
+		// 詳細メッシュを持ち、一意の詳細頂点カウントをカウントし、入力詳細トライカウントを使用します。
+
 		detailTriCount = params->detailTriCount;
+
 		for (int i = 0; i < params->polyCount; ++i)
 		{
-			const unsigned short* p = &params->polys[i * nvp * 2];
+			const uint16_t* p = &params->polys[i * nvp * 2];
 			int ndv = params->detailMeshes[i * 4 + 1];
-			int nv = 0;
+			int nv{};
+
 			for (int j = 0; j < nvp; ++j)
 			{
 				if (p[j] == MESH_NULL_IDX) break;
+
 				nv++;
 			}
+
 			ndv -= nv;
 			uniqueDetailVertCount += ndv;
 		}
@@ -407,23 +437,30 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	else
 	{
 		// No input detail mesh, build detail mesh from nav polys.
-		uniqueDetailVertCount = 0; // No extra detail verts.
+		// 入力詳細メッシュなし、nav polysから詳細メッシュを構築します。
+
+		uniqueDetailVertCount = 0; // No extra detail verts. // 追加の詳細頂点はありません。
 		detailTriCount = 0;
+
 		for (int i = 0; i < params->polyCount; ++i)
 		{
-			const unsigned short* p = &params->polys[i * nvp * 2];
-			int nv = 0;
+			const uint16_t* p = &params->polys[i * nvp * 2];
+			int nv{};
+
 			for (int j = 0; j < nvp; ++j)
 			{
 				if (p[j] == MESH_NULL_IDX) break;
+
 				nv++;
 			}
+
 			detailTriCount += nv - 2;
 		}
 	}
 
 	// Calculate data size
-	const int headerSize = dtAlign4(sizeof(dtMeshHeader));
+	// データサイズを計算します
+	constexpr int headerSize = dtAlign4(sizeof(dtMeshHeader));
 	const int vertsSize = dtAlign4(sizeof(float) * 3 * totVertCount);
 	const int polysSize = dtAlign4(sizeof(dtPoly) * totPolyCount);
 	const int linksSize = dtAlign4(sizeof(dtLink) * maxLinkCount);
@@ -433,16 +470,20 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	const int bvTreeSize = params->buildBvTree ? dtAlign4(sizeof(dtBVNode) * params->polyCount * 2) : 0;
 	const int offMeshConsSize = dtAlign4(sizeof(dtOffMeshConnection) * storedOffMeshConCount);
 
-	const int dataSize = headerSize + vertsSize + polysSize + linksSize +
+	const int dataSize =
+		headerSize + vertsSize + polysSize + linksSize +
 		detailMeshesSize + detailVertsSize + detailTrisSize +
 		bvTreeSize + offMeshConsSize;
 
 	unsigned char* data = (unsigned char*)dtAlloc(sizeof(unsigned char) * dataSize, DT_ALLOC_PERM);
+
+	// メモリー割り当てが失敗
 	if (!data)
 	{
 		dtFree(offMeshConClass);
 		return false;
 	}
+
 	memset(data, 0, dataSize);
 
 	unsigned char* d = data;
@@ -450,14 +491,18 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	dtMeshHeader* header = dtGetThenAdvanceBufferPointer<dtMeshHeader>(d, headerSize);
 	float* navVerts = dtGetThenAdvanceBufferPointer<float>(d, vertsSize);
 	dtPoly* navPolys = dtGetThenAdvanceBufferPointer<dtPoly>(d, polysSize);
-	d += linksSize; // Ignore links; just leave enough space for them. They'll be created on load.
+
+	// Ignore links; just leave enough space for them. They'll be created on load.
+	// リンクを無視します; 十分なスペースを残してください。 ロード時に作成されます。
+	d += linksSize;
+
 	dtPolyDetail* navDMeshes = dtGetThenAdvanceBufferPointer<dtPolyDetail>(d, detailMeshesSize);
 	float* navDVerts = dtGetThenAdvanceBufferPointer<float>(d, detailVertsSize);
 	unsigned char* navDTris = dtGetThenAdvanceBufferPointer<unsigned char>(d, detailTrisSize);
 	dtBVNode* navBvtree = dtGetThenAdvanceBufferPointer<dtBVNode>(d, bvTreeSize);
 	dtOffMeshConnection* offMeshCons = dtGetThenAdvanceBufferPointer<dtOffMeshConnection>(d, offMeshConsSize);
 
-	// Store header
+	// Store header // ヘッダーを保存
 	header->magic = DT_NAVMESH_MAGIC;
 	header->version = DT_NAVMESH_VERSION;
 	header->x = params->tileX;
@@ -467,12 +512,14 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	header->polyCount = totPolyCount;
 	header->vertCount = totVertCount;
 	header->maxLinkCount = maxLinkCount;
+
 	dtVcopy(header->bmin, params->bmin);
 	dtVcopy(header->bmax, params->bmax);
+
 	header->detailMeshCount = params->polyCount;
 	header->detailVertCount = uniqueDetailVertCount;
 	header->detailTriCount = detailTriCount;
-	header->bvQuantFactor = 1.0f / params->cs;
+	header->bvQuantFactor = 1.f / params->cs;
 	header->offMeshBase = params->polyCount;
 	header->walkableHeight = params->walkableHeight;
 	header->walkableRadius = params->walkableRadius;
@@ -483,59 +530,89 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	const int offMeshVertsBase = params->vertCount;
 	const int offMeshPolyBase = params->polyCount;
 
-	// Store vertices
-	// Mesh vertices
+	// Store vertices // 頂点を保存します
+	// Mesh vertices  // メッシュの頂点
 	for (int i = 0; i < params->vertCount; ++i)
 	{
-		const unsigned short* iv = &params->verts[i * 3];
+		const uint16_t* iv = &params->verts[i * 3];
 		float* v = &navVerts[i * 3];
+
 		v[0] = params->bmin[0] + iv[0] * params->cs;
 		v[1] = params->bmin[1] + iv[1] * params->ch;
 		v[2] = params->bmin[2] + iv[2] * params->cs;
 	}
+
 	// Off-mesh link vertices.
-	int n = 0;
+	// オフメッシュリンクの頂点。
+	int n{};
 	for (int i = 0; i < params->offMeshConCount; ++i)
 	{
 		// Only store connections which start from this tile.
-		if (offMeshConClass[i * 2 + 0] == 0xff)
+		// このタイルから始まる接続のみを保存します。
+		if (offMeshConClass[i * 2 + 0] == (std::numeric_limits<uint8_t>::max)())
 		{
 			const float* linkv = &params->offMeshConVerts[i * 2 * 3];
 			float* v = &navVerts[(offMeshVertsBase + n * 2) * 3];
+
 			dtVcopy(&v[0], &linkv[0]);
 			dtVcopy(&v[3], &linkv[3]);
 			n++;
 		}
 	}
 
-	// Store polygons
-	// Mesh polys
-	const unsigned short* src = params->polys;
+	// Store polygons // ポリゴンを保存します
+	// Mesh polys	  // メッシュポリゴン
+	const uint16_t* src = params->polys;
+
 	for (int i = 0; i < params->polyCount; ++i)
 	{
 		dtPoly* p = &navPolys[i];
+
 		p->vertCount = 0;
 		p->flags = params->polyFlags[i];
 		p->setArea(params->polyAreas[i]);
 		p->setType(DT_POLYTYPE_GROUND);
+
 		for (int j = 0; j < nvp; ++j)
 		{
 			if (src[j] == MESH_NULL_IDX) break;
+
 			p->verts[j] = src[j];
+
 			if (src[nvp + j] & 0x8000)
 			{
 				// Border or portal edge.
-				unsigned short dir = src[nvp + j] & 0xf;
-				if (dir == 0xf) // Border
-					p->neis[j] = 0;
-				else if (dir == 0) // Portal x-
-					p->neis[j] = DT_EXT_LINK | 4;
-				else if (dir == 1) // Portal z+
-					p->neis[j] = DT_EXT_LINK | 2;
-				else if (dir == 2) // Portal x+
-					p->neis[j] = DT_EXT_LINK | 0;
-				else if (dir == 3) // Portal z-
-					p->neis[j] = DT_EXT_LINK | 6;
+				// 境界線またはポータルエッジ。
+				uint16_t dir = src[nvp + j] & 0xf;
+
+				switch (dir)
+				{
+					case 0xf: // Border
+					{
+						p->neis[j] = 0;
+						break;
+					}
+					case 0: // Portal x-
+					{
+						p->neis[j] = DT_EXT_LINK | 4;
+						break;
+					}
+					case 1: // Portal z+
+					{
+						p->neis[j] = DT_EXT_LINK | 2;
+						break;
+					}
+					case 2: // Portal x+
+					{
+						p->neis[j] = DT_EXT_LINK | 0;
+						break;
+					}
+					case 3: // Portal z-
+					{
+						p->neis[j] = DT_EXT_LINK | 6;
+						break;
+					}
+				}
 			}
 			else
 			{
@@ -556,8 +633,8 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 		{
 			dtPoly* p = &navPolys[offMeshPolyBase + n];
 			p->vertCount = 2;
-			p->verts[0] = (unsigned short)(offMeshVertsBase + n * 2 + 0);
-			p->verts[1] = (unsigned short)(offMeshVertsBase + n * 2 + 1);
+			p->verts[0] = (uint16_t)(offMeshVertsBase + n * 2 + 0);
+			p->verts[1] = (uint16_t)(offMeshVertsBase + n * 2 + 1);
 			p->flags = params->offMeshConFlags[i];
 			p->setArea(params->offMeshConAreas[i]);
 			p->setType(DT_POLYTYPE_OFFMESH_CONNECTION);
@@ -570,7 +647,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	// We compress the mesh data by skipping them and using the navmesh coordinates.
 	if (params->detailMeshes)
 	{
-		unsigned short vbase = 0;
+		uint16_t vbase = 0;
 		for (int i = 0; i < params->polyCount; ++i)
 		{
 			dtPolyDetail& dtl = navDMeshes[i];
@@ -585,7 +662,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 			if (ndv - nv)
 			{
 				memcpy(&navDVerts[vbase * 3], &params->detailVerts[(vb + nv) * 3], sizeof(float) * 3 * (ndv - nv));
-				vbase += (unsigned short)(ndv - nv);
+				vbase += (uint16_t)(ndv - nv);
 			}
 		}
 		// Store triangles.
@@ -633,7 +710,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 		if (offMeshConClass[i * 2 + 0] == 0xff)
 		{
 			dtOffMeshConnection* con = &offMeshCons[n];
-			con->poly = (unsigned short)(offMeshPolyBase + n);
+			con->poly = (uint16_t)(offMeshPolyBase + n);
 			// Copy connection end-points.
 			const float* endPts = &params->offMeshConVerts[i * 2 * 3];
 			dtVcopy(&con->pos[0], &endPts[0]);
@@ -701,12 +778,12 @@ bool dtNavMeshHeaderSwapEndian(unsigned char* data, const int /*dataSize*/)
 	return true;
 }
 
-/// @par
-///
-/// @warning This function assumes that the header is in the correct endianess already.
-/// Call #dtNavMeshHeaderSwapEndian() first on the data if the data is expected to be in wrong endianess
-/// to start with. Call #dtNavMeshHeaderSwapEndian() after the data has been swapped if converting from
-/// native to foreign endianess.
+// @par
+//
+// @warning This function assumes that the header is in the correct endianess already.
+// Call #dtNavMeshHeaderSwapEndian() first on the data if the data is expected to be in wrong endianess
+// to start with. Call #dtNavMeshHeaderSwapEndian() after the data has been swapped if converting from
+// native to foreign endianess.
 bool dtNavMeshDataSwapEndian(unsigned char* data, const int /*dataSize*/)
 {
 	// Make sure the data is in right format.

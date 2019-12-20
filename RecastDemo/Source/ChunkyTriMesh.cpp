@@ -118,11 +118,13 @@ static void subdivide(BoundsItem* items, int nitems, int imin, int imax, int tri
 		if (axis == 0)
 		{
 			// Sort along x-axis
+			// X軸に沿って並べ替え
 			qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemX);
 		}
 		else if (axis == 1)
 		{
 			// Sort along y-axis
+			// y軸に沿って並べ替え
 			qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemY);
 		}
 
@@ -135,6 +137,7 @@ static void subdivide(BoundsItem* items, int nitems, int imin, int imax, int tri
 
 		int iescape = curNode - icur;
 		// Negative index means escape.
+		// 負のインデックスはエスケープを意味します。
 		node.i = -iescape;
 	}
 }
@@ -155,6 +158,7 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris,
 	cm->ntris = ntris;
 
 	// Build tree
+	// ツリーを構築します
 	BoundsItem* items = new BoundsItem[ntris];
 	if (!items)
 		return false;
@@ -165,6 +169,7 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris,
 		BoundsItem& it = items[i];
 		it.i = i;
 		// Calc triangle XZ bounds.
+		// 三角形のXZ境界を計算します。
 		it.bmin[0] = it.bmax[0] = verts[t[0] * 3 + 0];
 		it.bmin[1] = it.bmax[1] = verts[t[0] * 3 + 2];
 		for (int j = 1; j < 3; ++j)
@@ -187,12 +192,15 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris,
 	cm->nnodes = curNode;
 
 	// Calc max tris per node.
+	// ノードごとの最大トリスを計算します。
 	cm->maxTrisPerChunk = 0;
 	for (int i = 0; i < cm->nnodes; ++i)
 	{
 		rcChunkyTriMeshNode& node = cm->nodes[i];
 		const bool isLeaf = node.i >= 0;
+
 		if (!isLeaf) continue;
+
 		if (node.n > cm->maxTrisPerChunk)
 			cm->maxTrisPerChunk = node.n;
 	}
@@ -265,7 +273,7 @@ static bool checkOverlapSegment(const float p[2], const float q[2],
 		else
 		{
 			// Compute intersection t value of ray with near and far plane of slab
-			float ood = 1.0f / d[i];
+			float ood = 1.f / d[i];
 			float t1 = (bmin[i] - p[i]) * ood;
 			float t2 = (bmax[i] - p[i]) * ood;
 			if (t1 > t2) { float tmp = t1; t1 = t2; t2 = tmp; }

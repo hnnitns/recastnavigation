@@ -297,7 +297,7 @@ void duDebugDrawCompactHeightfieldDistance(duDebugDraw* dd, const rcCompactHeigh
 	const float ch = chf.ch;
 
 	float maxd = chf.maxDistance;
-	if (maxd < 1.0f) maxd = 1;
+	if (maxd < 1.f) maxd = 1;
 	const float dscale = 255.0f / maxd;
 
 	dd->begin(DU_DRAW_QUADS);
@@ -659,7 +659,7 @@ static void getContourCenter(const rcContour* cont, const float* orig, float cs,
 		center[1] += (float)v[1];
 		center[2] += (float)v[2];
 	}
-	const float s = 1.0f / cont->nverts;
+	const float s = 1.f / cont->nverts;
 	center[0] *= s * cs;
 	center[1] *= s * ch;
 	center[2] *= s * cs;
@@ -988,7 +988,7 @@ void duDebugDrawPolyMeshDetail(duDebugDraw* dd, const struct rcPolyMeshDetail& d
 	dd->end();
 
 	// Internal edges.
-	dd->begin(DU_DRAW_LINES, 1.0f);
+	dd->begin(DU_DRAW_LINES, 1.f);
 	const unsigned int coli = duRGBA(0, 0, 0, 64);
 	for (int i = 0; i < dmesh.nmeshes; ++i)
 	{

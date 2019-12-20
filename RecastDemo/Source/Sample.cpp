@@ -17,8 +17,9 @@
 //
 
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
+#include <array>
 #include "Sample.h"
 #include "InputGeom.h"
 #include "Recast.h"
@@ -58,15 +59,15 @@ unsigned int SampleDebugDraw::areaToCol(unsigned int area)
 	switch (ceil)
 	{
 		// Ground : light blue
-	case SAMPLE_POLYAREA_TYPE_GROUND: col = duRGBA(0, 192, 255, 255); break;
-		// Water : blue
-	case SAMPLE_POLYAREA_TYPE_WATER: col = duRGBA(0, 0, 255, 255); break;
-		// Road : brown
-	case SAMPLE_POLYAREA_TYPE_ROAD: col = duRGBA(50, 20, 12, 255); break;
-		// Grass : green
-	case SAMPLE_POLYAREA_TYPE_GRASS: col = duRGBA(0, 255, 0, 255); break;
-		// Unexpected ceil : red
-	default: col = duRGBA(255, 0, 0, 255); break;
+		case SAMPLE_POLYAREA_TYPE_GROUND: col = duRGBA(0, 192, 255, 255); break;
+			// Water : blue
+		case SAMPLE_POLYAREA_TYPE_WATER: col = duRGBA(0, 0, 255, 255); break;
+			// Road : brown
+		case SAMPLE_POLYAREA_TYPE_ROAD: col = duRGBA(50, 20, 12, 255); break;
+			// Grass : green
+		case SAMPLE_POLYAREA_TYPE_GRASS: col = duRGBA(0, 255, 0, 255); break;
+			// Unexpected ceil : red
+		default: col = duRGBA(255, 0, 0, 255); break;
 	}
 
 	if (area & SAMPLE_POLYAREA_FLAG_DOOR)
@@ -138,13 +139,14 @@ void Sample::handleRender()
 	if (!m_geom)
 		return;
 
-	// Draw mesh
+	// Draw mesh // メッシュを描画します
 	duDebugDrawTriMesh(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
-		m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.0f);
-	// Draw bounds
+		m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.f);
+
+	// Draw bounds // 境界を描く
 	const float* bmin = m_geom->getMeshBoundsMin();
 	const float* bmax = m_geom->getMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.0f);
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
 }
 
 void Sample::handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/)
@@ -155,7 +157,8 @@ void Sample::handleMeshChanged(InputGeom* geom)
 {
 	m_geom = geom;
 
-	const BuildSettings* buildSettings = geom->getBuildSettings();
+	const BuildSettings* buildSettings{ geom->getBuildSettings() };
+
 	if (buildSettings)
 	{
 		m_cellSize = buildSettings->cellSize;
@@ -207,67 +210,96 @@ void Sample::resetCommonSettings()
 	m_edgeMaxError = 1.3f;
 	m_vertsPerPoly = 6.0f;
 	m_detailSampleDist = 6.0f;
-	m_detailSampleMaxError = 1.0f;
+	m_detailSampleMaxError = 1.f;
 	m_partitionType = SAMPLE_PARTITION_WATERSHED;
 }
 
 void Sample::handleCommonSettings()
 {
+	// 分類：ラスタライズ
 	imguiLabel("Rasterization");
-	imguiSlider("Cell Size", &m_cellSize, 0.1f, 1.0f, 0.01f);
-	imguiSlider("Cell Height", &m_cellHeight, 0.1f, 1.0f, 0.01f);
+	imguiSlider("Cell Size"/* セルのサイズ */, &m_cellSize, 0.1f, 1.f, 0.01f);
+	imguiSlider("Cell Height"/* セルの高さ */, &m_cellHeight, 0.1f, 1.f, 0.01f);
 
 	if (m_geom)
 	{
 		const float* bmin = m_geom->getNavMeshBoundsMin();
 		const float* bmax = m_geom->getNavMeshBoundsMax();
-		int gw = 0, gh = 0;
+		int gw{}, gh{};
+		std::array<char, 64u> text{};
+
 		rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
-		char text[64];
-		snprintf(text, 64, "Voxels  %d x %d", gw, gh);
-		imguiValue(text);
+
+		snprintf(text.data(), text.size(), "Voxels  %d x %d", gw, gh);
+		imguiValue(text.data());
 	}
 
+	// 分類：エージェント（経路探索を行うターゲット）情報---------------------------------------
+	// ※ ナビメッシュの生成に影響を及ぼす
 	imguiSeparator();
 	imguiLabel("Agent");
-	imguiSlider("Height", &m_agentHeight, 0.1f, 5.0f, 0.1f);
-	imguiSlider("Radius", &m_agentRadius, 0.0f, 5.0f, 0.1f);
-	imguiSlider("Max Climb", &m_agentMaxClimb, 0.1f, 5.0f, 0.1f);
-	imguiSlider("Max Slope", &m_agentMaxSlope, 0.0f, 90.0f, 1.0f);
+	imguiSlider("Height"/* 高さ */, &m_agentHeight, 0.1f, 5.0f, 0.1f);
+	imguiSlider("Radius"/* 半径 */, &m_agentRadius, 0.0f, 5.0f, 0.1f);
+	imguiSlider("Max Climb"/* 壁を登れる高さ */, &m_agentMaxClimb, 0.1f, 5.0f, 0.1f);
+	imguiSlider("Max Slope"/* 歩ける最大勾配 */, &m_agentMaxSlope, 0.0f, 90.0f, 1.f);
 
+	// 分類：ナビメッシュ領域-------------------------------------------------------------------
 	imguiSeparator();
 	imguiLabel("Region");
-	imguiSlider("Min Region Size", &m_regionMinSize, 0.0f, 150.0f, 1.0f);
-	imguiSlider("Merged Region Size", &m_regionMergeSize, 0.0f, 150.0f, 1.0f);
+	// ナビメッシュ領域の最低サイズ（不必要に大きくすると必要な領域が削除される可能性がある）
+	imguiSlider("Min Region Size", &m_regionMinSize, 0.0f, 150.0f, 1.f);
+	// 付近のナビメッシュ領域とマージするサイズ（不必要に小さい領域を減らす為）(ただ、値を大きくすればするほど ナビメッシュ生成に時間がかかる)
+	imguiSlider("Merged Region Size", &m_regionMergeSize, 0.0f, 150.0f, 1.f);
 
+	// 分類：分割-------------------------------------------------------------------------------
 	imguiSeparator();
 	imguiLabel("Partitioning");
+
 	if (imguiCheck("Watershed", m_partitionType == SAMPLE_PARTITION_WATERSHED))
 		m_partitionType = SAMPLE_PARTITION_WATERSHED;
+
 	if (imguiCheck("Monotone", m_partitionType == SAMPLE_PARTITION_MONOTONE))
 		m_partitionType = SAMPLE_PARTITION_MONOTONE;
+
 	if (imguiCheck("Layers", m_partitionType == SAMPLE_PARTITION_LAYERS))
 		m_partitionType = SAMPLE_PARTITION_LAYERS;
 
+	// 分類：歩行可能な面のフィルター --------------------------------------------------------------------
+	// 不要なオーバーハングと、キャラが立つことができないフィルタスパンを削除
 	imguiSeparator();
 	imguiLabel("Filtering");
+
+	// 縁石などの低層の物体や階段などの構造物の上を歩行可能領域の形成を可能にする
 	if (imguiCheck("Low Hanging Obstacles", m_filterLowHangingObstacles))
 		m_filterLowHangingObstacles = !m_filterLowHangingObstacles;
+
+	// 説明を訳すなら出張り部分を削る（主にプレーヤーの幅によって大幅に変わる・ナビメッシュ生成時間にそこそこ影響あり）
 	if (imguiCheck("Ledge Spans", m_filterLedgeSpans))
 		m_filterLedgeSpans = !m_filterLedgeSpans;
+
+	// 指定された高さよりも小さい場合、ウォーク可能スパンをウォーク不可としてマークする
 	if (imguiCheck("Walkable Low Height Spans", m_filterWalkableLowHeightSpans))
 		m_filterWalkableLowHeightSpans = !m_filterWalkableLowHeightSpans;
 
+	// 分類：ポリゴン化------------------------------------------------------------------------
 	imguiSeparator();
 	imguiLabel("Polygonization");
-	imguiSlider("Max Edge Length", &m_edgeMaxLen, 0.0f, 50.0f, 1.0f);
-	imguiSlider("Max Edge Error", &m_edgeMaxError, 0.1f, 3.0f, 0.1f);
-	imguiSlider("Verts Per Poly", &m_vertsPerPoly, 3.0f, 12.0f, 1.0f);
+	/// 圧倒的語彙力不足！
 
+	/* メッシュの境界に沿った輪郭エッジの最大許容長(短くすればするほど端が「ガクガク」になる) */
+	imguiSlider("Max Edge Length", &m_edgeMaxLen, 0.0f, 50.0f, 1.f);
+	/* 輪郭のエッジが元の輪郭から逸脱する最大距離（ナビメッシュをどれだけ地形に合わせるか（短くすればするほど端が「カクカク」になる）） */
+	imguiSlider("Max Edge Error", &m_edgeMaxError, 0.1f, 3.0f, 0.1f);
+	/* 輪郭からポリゴンへの変換時に生成する頂点の最大許可数（一定数を超えると全くナビメッシュが生成されなくなる）*/
+	imguiSlider("Verts Per Poly", &m_vertsPerPoly, 3.0f, 12.0f, 1.f);
+
+	// 分類：詳細メッシュ----------------------------------------------------------------------
 	imguiSeparator();
 	imguiLabel("Detail Mesh");
-	imguiSlider("Sample Distance", &m_detailSampleDist, 0.0f, 16.0f, 1.0f);
-	imguiSlider("Max Sample Error", &m_detailSampleMaxError, 0.0f, 16.0f, 1.0f);
+	/* 地形をサンプリングするときに使用する距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※0だと生成途中でお亡くなりになるので注意 */
+	imguiSlider("Sample Distance", &m_detailSampleDist, 0.0f, 16.0f, 1.f);
+	/* ナビメッシュ表面が地形データから逸脱する最大距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※多くするとナビメッシュから地形がはみ出てしまう*/
+	imguiSlider("Max Sample Error", &m_detailSampleMaxError, 0.0f, 16.0f, 1.f);
 
 	imguiSeparator();
 }

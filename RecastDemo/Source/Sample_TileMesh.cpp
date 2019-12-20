@@ -147,7 +147,7 @@ public:
 			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] - s);
 			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] + s);
 			glEnd();
-			glLineWidth(1.0f);
+			glLineWidth(1.f);
 		}
 	}
 
@@ -543,7 +543,7 @@ void Sample_TileMesh::handleRender()
 	if (!m_geom || !m_geom->getMesh())
 		return;
 
-	const float texScale = 1.0f / (m_cellSize * 10.0f);
+	const float texScale = 1.f / (m_cellSize * 10.0f);
 
 	// Draw mesh
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
@@ -560,7 +560,7 @@ void Sample_TileMesh::handleRender()
 	// Draw bounds
 	const float* bmin = m_geom->getNavMeshBoundsMin();
 	const float* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.0f);
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
 
 	// Tiling grid.
 	int gw = 0, gh = 0;
@@ -568,11 +568,11 @@ void Sample_TileMesh::handleRender()
 	const int tw = (gw + (int)m_tileSize - 1) / (int)m_tileSize;
 	const int th = (gh + (int)m_tileSize - 1) / (int)m_tileSize;
 	const float s = m_tileSize * m_cellSize;
-	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.0f);
+	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
 	// Draw active tile
 	duDebugDrawBoxWire(&m_dd, m_lastBuiltTileBmin[0], m_lastBuiltTileBmin[1], m_lastBuiltTileBmin[2],
-		m_lastBuiltTileBmax[0], m_lastBuiltTileBmax[1], m_lastBuiltTileBmax[2], m_tileCol, 1.0f);
+		m_lastBuiltTileBmax[0], m_lastBuiltTileBmax[1], m_lastBuiltTileBmax[2], m_tileCol, 1.f);
 
 	if (m_navMesh && m_navQuery &&
 		(m_drawMode == DRAWMODE_NAVMESH ||
@@ -872,12 +872,17 @@ void Sample_TileMesh::buildAllTiles()
 
 			int dataSize = 0;
 			unsigned char* data = buildTileMesh(x, y, m_lastBuiltTileBmin, m_lastBuiltTileBmax, dataSize);
+
 			if (data)
 			{
 				// Remove any previous data (navmesh owns and deletes the data).
+				// 以前のデータを削除します（navmeshはデータを所有および削除します）。
 				m_navMesh->removeTile(m_navMesh->getTileRefAt(x, y, 0), 0, 0);
+
 				// Let the navmesh own the data.
+				// navmeshにデータを所有させます。
 				dtStatus status = m_navMesh->addTile(data, dataSize, DT_TILE_FREE_DATA, 0, 0);
+
 				if (dtStatusFailed(status))
 					dtFree(data);
 			}
@@ -1081,7 +1086,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	if (!m_chf)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'."); // メモリー不足「chf」
 		return 0;
 	}
 	if (!rcBuildCompactHeightfield(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid, *m_chf))
@@ -1208,6 +1213,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	}
 
 	// Create contours.
+	// 輪郭を作成します。
 	m_cset = rcAllocContourSet();
 	if (!m_cset)
 	{
@@ -1228,22 +1234,25 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// Build polygon navmesh from the contours.
 	// 輪郭からポリゴンナビメッシュを作成します。
 	m_pmesh = rcAllocPolyMesh();
+
 	if (!m_pmesh)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmesh'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmesh'."); // メモリー不足「pmesh」
 		return 0;
 	}
 	if (!rcBuildPolyMesh(m_ctx, *m_cset, m_cfg.maxVertsPerPoly, *m_pmesh))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not triangulate contours.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not triangulate contours."); // 輪郭を三角測量できませんでした。
 		return 0;
 	}
 
 	// Build detail mesh.
+	// 詳細メッシュを作成します。
 	m_dmesh = rcAllocPolyMeshDetail();
+
 	if (!m_dmesh)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'dmesh'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'dmesh'."); // メモリー不足「dmesh」
 		return 0;
 	}
 
@@ -1251,7 +1260,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		m_cfg.detailSampleDist, m_cfg.detailSampleMaxError,
 		*m_dmesh))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could build polymesh detail.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build polymesh detail."); // ポリゴンメッシュの詳細を作成できませんでした。（コメントまさかのnotつけ忘れ(笑)）
 		return 0;
 	}
 

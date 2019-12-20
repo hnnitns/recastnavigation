@@ -19,7 +19,7 @@
 #include "DetourCommon.h"
 #include "DetourMath.h"
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
 void dtClosestPtPointTriangle(float* closest, const float* p,
 	const float* a, const float* b, const float* c)
@@ -99,7 +99,7 @@ void dtClosestPtPointTriangle(float* closest, const float* p,
 	}
 
 	// P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-	float denom = 1.0f / (va + vb + vc);
+	float denom = 1.f / (va + vb + vc);
 	float v = vb * denom;
 	float w = vc * denom;
 	closest[0] = a[0] + ab[0] * v + ac[0] * w;
@@ -195,7 +195,7 @@ void dtCalcPolyCenter(float* tc, const unsigned short* idx, int nidx, const floa
 		tc[1] += v[1];
 		tc[2] += v[2];
 	}
-	const float s = 1.0f / nidx;
+	const float s = 1.f / nidx;
 	tc[0] *= s;
 	tc[1] *= s;
 	tc[2] *= s;
@@ -215,7 +215,7 @@ bool dtClosestHeightPointTriangle(const float* p, const float* a, const float* b
 	const float dot12 = dtVdot2D(v1, v2);
 
 	// Compute barycentric coordinates
-	const float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+	const float invDenom = 1.f / (dot00 * dot11 - dot01 * dot01);
 	const float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
 	const float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
 
@@ -233,9 +233,9 @@ bool dtClosestHeightPointTriangle(const float* p, const float* a, const float* b
 	return false;
 }
 
-/// @par
-///
-/// All points are projected onto the xz-plane, so the y-values are ignored.
+// @par
+//
+// All points are projected onto the xz-plane, so the y-values are ignored.
 bool dtPointInPolygon(const float* pt, const float* verts, const int nverts)
 {
 	// TODO: Replace pnpoly with triArea2D tests?
@@ -289,9 +289,9 @@ inline bool overlapRange(const float amin, const float amax,
 	return ((amin + eps) > bmax || (amax - eps) < bmin) ? false : true;
 }
 
-/// @par
-///
-/// All vertices are projected onto the xz-plane, so the y-values are ignored.
+// @par
+//
+// All vertices are projected onto the xz-plane, so the y-values are ignored.
 bool dtOverlapPolyPoly2D(const float* polya, const int npolya,
 	const float* polyb, const int npolyb)
 {

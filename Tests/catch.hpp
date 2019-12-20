@@ -2874,9 +2874,9 @@ namespace Catch {
 		virtual void invoke() const {
 			id obj = [[m_cls alloc]init];
 
-			performOptionalSelector(obj, @selector(setUp)  );
+			performOptionalSelector(obj, @selector(setUp));
 			performOptionalSelector(obj, m_sel);
-			performOptionalSelector(obj, @selector(tearDown)  );
+			performOptionalSelector(obj, @selector(tearDown));
 
 			arcSafeRelease(obj);
 		}
@@ -2892,7 +2892,7 @@ namespace Catch {
 			std::string const& annotationName,
 			std::string const& testCaseName) {
 			NSString* selStr = [[NSString alloc]initWithFormat:@"Catch_%s_ % s", annotationName.c_str(), testCaseName.c_str()];
-				SEL sel = NSSelectorFromString(selStr);
+			SEL sel = NSSelectorFromString(selStr);
 			arcSafeRelease(selStr);
 			id value = performOptionalSelector(cls, sel);
 			if (value)
@@ -3098,14 +3098,14 @@ namespace Catch
 		virtual ~WildcardPattern();
 		virtual bool matches(std::string const& str) const {
 			switch (m_wildcard) {
-			case NoWildcard:
-				return m_pattern == adjustCase(str);
-			case WildcardAtStart:
-				return endsWith(adjustCase(str), m_pattern);
-			case WildcardAtEnd:
-				return startsWith(adjustCase(str), m_pattern);
-			case WildcardAtBothEnds:
-				return contains(adjustCase(str), m_pattern);
+				case NoWildcard:
+					return m_pattern == adjustCase(str);
+				case WildcardAtStart:
+					return endsWith(adjustCase(str), m_pattern);
+				case WildcardAtEnd:
+					return startsWith(adjustCase(str), m_pattern);
+				case WildcardAtBothEnds:
+					return contains(adjustCase(str), m_pattern);
 			}
 
 #ifdef __clang__
@@ -3240,12 +3240,12 @@ namespace Catch {
 		void visitChar(char c) {
 			if (m_mode == None) {
 				switch (c) {
-				case ' ': return;
-				case '~': m_exclusion = true; return;
-				case '[': return startNewMode(Tag, ++m_pos);
-				case '"': return startNewMode(QuotedName, ++m_pos);
-				case '\\': return escape();
-				default: startNewMode(Name, m_pos); break;
+					case ' ': return;
+					case '~': m_exclusion = true; return;
+					case '[': return startNewMode(Tag, ++m_pos);
+					case '"': return startNewMode(QuotedName, ++m_pos);
+					case '\\': return escape();
+					default: startNewMode(Name, m_pos); break;
 				}
 			}
 			if (m_mode == Name) {
@@ -4121,13 +4121,13 @@ namespace Clara {
 		}
 		Mode handleMode(std::size_t i, char c, std::string const& arg, std::vector<Token>& tokens) {
 			switch (mode) {
-			case None: return handleNone(i, c);
-			case MaybeShortOpt: return handleMaybeShortOpt(i, c);
-			case ShortOpt:
-			case LongOpt:
-			case SlashOpt: return handleOpt(i, c, arg, tokens);
-			case Positional: return handlePositional(i, c, arg, tokens);
-			default: throw std::logic_error("Unknown mode");
+				case None: return handleNone(i, c);
+				case MaybeShortOpt: return handleMaybeShortOpt(i, c);
+				case ShortOpt:
+				case LongOpt:
+				case SlashOpt: return handleOpt(i, c, arg, tokens);
+				case Positional: return handlePositional(i, c, arg, tokens);
+				default: throw std::logic_error("Unknown mode");
 			}
 		}
 
@@ -4137,17 +4137,17 @@ namespace Clara {
 				return Positional;
 			}
 			switch (c) {
-			case '-': return MaybeShortOpt;
+				case '-': return MaybeShortOpt;
 #ifdef CLARA_PLATFORM_WINDOWS
-			case '/': from = i + 1; return SlashOpt;
+				case '/': from = i + 1; return SlashOpt;
 #endif
-			default: from = i; return Positional;
+				default: from = i; return Positional;
 			}
 		}
 		Mode handleMaybeShortOpt(std::size_t i, char c) {
 			switch (c) {
-			case '-': from = i + 1; return LongOpt;
-			default: from = i; return ShortOpt;
+				case '-': from = i + 1; return LongOpt;
+				default: from = i; return ShortOpt;
 			}
 		}
 		Mode handleOpt(std::size_t i, char c, std::string const& arg, std::vector<Token>& tokens) {
@@ -5611,24 +5611,24 @@ namespace Catch {
 					m_ctx.currentTracker().close();
 
 				switch (m_runState) {
-				case NotStarted:
-				case CompletedSuccessfully:
-				case Failed:
-					throw std::logic_error("Illogical state");
+					case NotStarted:
+					case CompletedSuccessfully:
+					case Failed:
+						throw std::logic_error("Illogical state");
 
-				case NeedsAnotherRun:
-					break;;
+					case NeedsAnotherRun:
+						break;;
 
-				case Executing:
-					m_runState = CompletedSuccessfully;
-					break;
-				case ExecutingChildren:
-					if (m_children.empty() || m_children.back()->isComplete())
+					case Executing:
 						m_runState = CompletedSuccessfully;
-					break;
+						break;
+					case ExecutingChildren:
+						if (m_children.empty() || m_children.back()->isComplete())
+							m_runState = CompletedSuccessfully;
+						break;
 
-				default:
-					throw std::logic_error("Unexpected state");
+					default:
+						throw std::logic_error("Unexpected state");
 				}
 				moveToParent();
 				m_ctx.completeCycle();
@@ -6409,18 +6409,18 @@ namespace Catch {
 		std::vector<TestCase> sorted = unsortedTestCases;
 
 		switch (config.runOrder()) {
-		case RunTests::InLexicographicalOrder:
-			std::sort(sorted.begin(), sorted.end());
+			case RunTests::InLexicographicalOrder:
+				std::sort(sorted.begin(), sorted.end());
+				break;
+			case RunTests::InRandomOrder:
+			{
+				seedRng(config);
+				RandomNumberGenerator::shuffle(sorted);
+			}
 			break;
-		case RunTests::InRandomOrder:
-		{
-			seedRng(config);
-			RandomNumberGenerator::shuffle(sorted);
-		}
-		break;
-		case RunTests::InDeclarationOrder:
-			// already in declaration order
-			break;
+			case RunTests::InDeclarationOrder:
+				// already in declaration order
+				break;
 		}
 		return sorted;
 	}
@@ -6983,21 +6983,21 @@ namespace Catch {
 
 			virtual void use(Colour::Code _colourCode) {
 				switch (_colourCode) {
-				case Colour::None:      return setTextAttribute(originalForegroundAttributes);
-				case Colour::White:     return setTextAttribute(FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
-				case Colour::Red:       return setTextAttribute(FOREGROUND_RED);
-				case Colour::Green:     return setTextAttribute(FOREGROUND_GREEN);
-				case Colour::Blue:      return setTextAttribute(FOREGROUND_BLUE);
-				case Colour::Cyan:      return setTextAttribute(FOREGROUND_BLUE | FOREGROUND_GREEN);
-				case Colour::Yellow:    return setTextAttribute(FOREGROUND_RED | FOREGROUND_GREEN);
-				case Colour::Grey:      return setTextAttribute(0);
+					case Colour::None:      return setTextAttribute(originalForegroundAttributes);
+					case Colour::White:     return setTextAttribute(FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
+					case Colour::Red:       return setTextAttribute(FOREGROUND_RED);
+					case Colour::Green:     return setTextAttribute(FOREGROUND_GREEN);
+					case Colour::Blue:      return setTextAttribute(FOREGROUND_BLUE);
+					case Colour::Cyan:      return setTextAttribute(FOREGROUND_BLUE | FOREGROUND_GREEN);
+					case Colour::Yellow:    return setTextAttribute(FOREGROUND_RED | FOREGROUND_GREEN);
+					case Colour::Grey:      return setTextAttribute(0);
 
-				case Colour::LightGrey:     return setTextAttribute(FOREGROUND_INTENSITY);
-				case Colour::BrightRed:     return setTextAttribute(FOREGROUND_INTENSITY | FOREGROUND_RED);
-				case Colour::BrightGreen:   return setTextAttribute(FOREGROUND_INTENSITY | FOREGROUND_GREEN);
-				case Colour::BrightWhite:   return setTextAttribute(FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
+					case Colour::LightGrey:     return setTextAttribute(FOREGROUND_INTENSITY);
+					case Colour::BrightRed:     return setTextAttribute(FOREGROUND_INTENSITY | FOREGROUND_RED);
+					case Colour::BrightGreen:   return setTextAttribute(FOREGROUND_INTENSITY | FOREGROUND_GREEN);
+					case Colour::BrightWhite:   return setTextAttribute(FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
 
-				case Colour::Bright: throw std::logic_error("not a colour");
+					case Colour::Bright: throw std::logic_error("not a colour");
 				}
 			}
 
@@ -7042,21 +7042,21 @@ namespace Catch {
 		public:
 			virtual void use(Colour::Code _colourCode) {
 				switch (_colourCode) {
-				case Colour::None:
-				case Colour::White:     return setColour("[0m");
-				case Colour::Red:       return setColour("[0;31m");
-				case Colour::Green:     return setColour("[0;32m");
-				case Colour::Blue:      return setColour("[0;34m");
-				case Colour::Cyan:      return setColour("[0;36m");
-				case Colour::Yellow:    return setColour("[0;33m");
-				case Colour::Grey:      return setColour("[1;30m");
+					case Colour::None:
+					case Colour::White:     return setColour("[0m");
+					case Colour::Red:       return setColour("[0;31m");
+					case Colour::Green:     return setColour("[0;32m");
+					case Colour::Blue:      return setColour("[0;34m");
+					case Colour::Cyan:      return setColour("[0;36m");
+					case Colour::Yellow:    return setColour("[0;33m");
+					case Colour::Grey:      return setColour("[1;30m");
 
-				case Colour::LightGrey:     return setColour("[0;37m");
-				case Colour::BrightRed:     return setColour("[1;31m");
-				case Colour::BrightGreen:   return setColour("[1;32m");
-				case Colour::BrightWhite:   return setColour("[1;37m");
+					case Colour::LightGrey:     return setColour("[0;37m");
+					case Colour::BrightRed:     return setColour("[1;31m");
+					case Colour::BrightGreen:   return setColour("[1;32m");
+					case Colour::BrightWhite:   return setColour("[1;37m");
 
-				case Colour::Bright: throw std::logic_error("not a colour");
+					case Colour::Bright: throw std::logic_error("not a colour");
 				}
 			}
 			static IColourImpl* instance() {
@@ -7953,9 +7953,9 @@ namespace Catch {
 			for (size_t i = 0; i < s.size(); ++i) {
 				std::string subs;
 				switch (s[i]) {
-				case '\n': subs = "\\n"; break;
-				case '\t': subs = "\\t"; break;
-				default: break;
+					case '\n': subs = "\\n"; break;
+					case '\t': subs = "\\t"; break;
+					default: break;
 				}
 				if (!subs.empty()) {
 					s = s.substr(0, i) + subs + s.substr(i + 1);
@@ -8793,31 +8793,31 @@ namespace Catch {
 			for (std::size_t i = 0; i < m_str.size(); ++i) {
 				char c = m_str[i];
 				switch (c) {
-				case '<':   os << "&lt;"; break;
-				case '&':   os << "&amp;"; break;
+					case '<':   os << "&lt;"; break;
+					case '&':   os << "&amp;"; break;
 
-				case '>':
-					// See: http://www.w3.org/TR/xml/#syntax
-					if (i > 2 && m_str[i - 1] == ']' && m_str[i - 2] == ']')
-						os << "&gt;";
-					else
-						os << c;
-					break;
+					case '>':
+						// See: http://www.w3.org/TR/xml/#syntax
+						if (i > 2 && m_str[i - 1] == ']' && m_str[i - 2] == ']')
+							os << "&gt;";
+						else
+							os << c;
+						break;
 
-				case '\"':
-					if (m_forWhat == ForAttributes)
-						os << "&quot;";
-					else
-						os << c;
-					break;
+					case '\"':
+						if (m_forWhat == ForAttributes)
+							os << "&quot;";
+						else
+							os << c;
+						break;
 
-				default:
-					// Escape control chars - based on contribution by @espenalb in PR #465 and
-					// by @mrpi PR #588
-					if ((c >= 0 && c < '\x09') || (c > '\x0D' && c < '\x20') || c == '\x7F')
-						os << "&#x" << std::uppercase << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(c) << ';';
-					else
-						os << c;
+					default:
+						// Escape control chars - based on contribution by @espenalb in PR #465 and
+						// by @mrpi PR #588
+						if ((c >= 0 && c < '\x09') || (c > '\x0D' && c < '\x20') || c == '\x7F')
+							os << "&#x" << std::uppercase << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(c) << ';';
+						else
+							os << c;
 				}
 			}
 		}
@@ -9104,31 +9104,31 @@ namespace Catch {
 
 			// And... Print a result applicable to each result type.
 			switch (assertionResult.getResultType()) {
-			case ResultWas::ThrewException:
-				m_xml.scopedElement("Exception")
-					.writeAttribute("filename", assertionResult.getSourceInfo().file)
-					.writeAttribute("line", assertionResult.getSourceInfo().line)
-					.writeText(assertionResult.getMessage());
-				break;
-			case ResultWas::FatalErrorCondition:
-				m_xml.scopedElement("FatalErrorCondition")
-					.writeAttribute("filename", assertionResult.getSourceInfo().file)
-					.writeAttribute("line", assertionResult.getSourceInfo().line)
-					.writeText(assertionResult.getMessage());
-				break;
-			case ResultWas::Info:
-				m_xml.scopedElement("Info")
-					.writeText(assertionResult.getMessage());
-				break;
-			case ResultWas::Warning:
-				// Warning will already have been written
-				break;
-			case ResultWas::ExplicitFailure:
-				m_xml.scopedElement("Failure")
-					.writeText(assertionResult.getMessage());
-				break;
-			default:
-				break;
+				case ResultWas::ThrewException:
+					m_xml.scopedElement("Exception")
+						.writeAttribute("filename", assertionResult.getSourceInfo().file)
+						.writeAttribute("line", assertionResult.getSourceInfo().line)
+						.writeText(assertionResult.getMessage());
+					break;
+				case ResultWas::FatalErrorCondition:
+					m_xml.scopedElement("FatalErrorCondition")
+						.writeAttribute("filename", assertionResult.getSourceInfo().file)
+						.writeAttribute("line", assertionResult.getSourceInfo().line)
+						.writeText(assertionResult.getMessage());
+					break;
+				case ResultWas::Info:
+					m_xml.scopedElement("Info")
+						.writeText(assertionResult.getMessage());
+					break;
+				case ResultWas::Warning:
+					// Warning will already have been written
+					break;
+				case ResultWas::ExplicitFailure:
+					m_xml.scopedElement("Failure")
+						.writeText(assertionResult.getMessage());
+					break;
+				default:
+					break;
 			}
 
 			if (assertionResult.hasExpression())
@@ -9342,29 +9342,29 @@ namespace Catch {
 			if (!result.isOk()) {
 				std::string elementName;
 				switch (result.getResultType()) {
-				case ResultWas::ThrewException:
-				case ResultWas::FatalErrorCondition:
-					elementName = "error";
-					break;
-				case ResultWas::ExplicitFailure:
-					elementName = "failure";
-					break;
-				case ResultWas::ExpressionFailed:
-					elementName = "failure";
-					break;
-				case ResultWas::DidntThrowException:
-					elementName = "failure";
-					break;
+					case ResultWas::ThrewException:
+					case ResultWas::FatalErrorCondition:
+						elementName = "error";
+						break;
+					case ResultWas::ExplicitFailure:
+						elementName = "failure";
+						break;
+					case ResultWas::ExpressionFailed:
+						elementName = "failure";
+						break;
+					case ResultWas::DidntThrowException:
+						elementName = "failure";
+						break;
 
-					// We should never see these here:
-				case ResultWas::Info:
-				case ResultWas::Warning:
-				case ResultWas::Ok:
-				case ResultWas::Unknown:
-				case ResultWas::FailureBit:
-				case ResultWas::Exception:
-					elementName = "internalError";
-					break;
+						// We should never see these here:
+					case ResultWas::Info:
+					case ResultWas::Warning:
+					case ResultWas::Ok:
+					case ResultWas::Unknown:
+					case ResultWas::FailureBit:
+					case ResultWas::Exception:
+						elementName = "internalError";
+						break;
 				}
 
 				XmlWriter::ScopedElement e = xml.scopedElement(elementName);
@@ -9501,65 +9501,65 @@ namespace Catch {
 				printInfoMessages(_printInfoMessages)
 			{
 				switch (result.getResultType()) {
-				case ResultWas::Ok:
-					colour = Colour::Success;
-					passOrFail = "PASSED";
-					//if( result.hasMessage() )
-					if (_stats.infoMessages.size() == 1)
-						messageLabel = "with message";
-					if (_stats.infoMessages.size() > 1)
-						messageLabel = "with messages";
-					break;
-				case ResultWas::ExpressionFailed:
-					if (result.isOk()) {
+					case ResultWas::Ok:
 						colour = Colour::Success;
-						passOrFail = "FAILED - but was ok";
-					}
-					else {
+						passOrFail = "PASSED";
+						//if( result.hasMessage() )
+						if (_stats.infoMessages.size() == 1)
+							messageLabel = "with message";
+						if (_stats.infoMessages.size() > 1)
+							messageLabel = "with messages";
+						break;
+					case ResultWas::ExpressionFailed:
+						if (result.isOk()) {
+							colour = Colour::Success;
+							passOrFail = "FAILED - but was ok";
+						}
+						else {
+							colour = Colour::Error;
+							passOrFail = "FAILED";
+						}
+						if (_stats.infoMessages.size() == 1)
+							messageLabel = "with message";
+						if (_stats.infoMessages.size() > 1)
+							messageLabel = "with messages";
+						break;
+					case ResultWas::ThrewException:
 						colour = Colour::Error;
 						passOrFail = "FAILED";
-					}
-					if (_stats.infoMessages.size() == 1)
-						messageLabel = "with message";
-					if (_stats.infoMessages.size() > 1)
-						messageLabel = "with messages";
-					break;
-				case ResultWas::ThrewException:
-					colour = Colour::Error;
-					passOrFail = "FAILED";
-					messageLabel = "due to unexpected exception with message";
-					break;
-				case ResultWas::FatalErrorCondition:
-					colour = Colour::Error;
-					passOrFail = "FAILED";
-					messageLabel = "due to a fatal error condition";
-					break;
-				case ResultWas::DidntThrowException:
-					colour = Colour::Error;
-					passOrFail = "FAILED";
-					messageLabel = "because no exception was thrown where one was expected";
-					break;
-				case ResultWas::Info:
-					messageLabel = "info";
-					break;
-				case ResultWas::Warning:
-					messageLabel = "warning";
-					break;
-				case ResultWas::ExplicitFailure:
-					passOrFail = "FAILED";
-					colour = Colour::Error;
-					if (_stats.infoMessages.size() == 1)
-						messageLabel = "explicitly with message";
-					if (_stats.infoMessages.size() > 1)
-						messageLabel = "explicitly with messages";
-					break;
-					// These cases are here to prevent compiler warnings
-				case ResultWas::Unknown:
-				case ResultWas::FailureBit:
-				case ResultWas::Exception:
-					passOrFail = "** internal error **";
-					colour = Colour::Error;
-					break;
+						messageLabel = "due to unexpected exception with message";
+						break;
+					case ResultWas::FatalErrorCondition:
+						colour = Colour::Error;
+						passOrFail = "FAILED";
+						messageLabel = "due to a fatal error condition";
+						break;
+					case ResultWas::DidntThrowException:
+						colour = Colour::Error;
+						passOrFail = "FAILED";
+						messageLabel = "because no exception was thrown where one was expected";
+						break;
+					case ResultWas::Info:
+						messageLabel = "info";
+						break;
+					case ResultWas::Warning:
+						messageLabel = "warning";
+						break;
+					case ResultWas::ExplicitFailure:
+						passOrFail = "FAILED";
+						colour = Colour::Error;
+						if (_stats.infoMessages.size() == 1)
+							messageLabel = "explicitly with message";
+						if (_stats.infoMessages.size() > 1)
+							messageLabel = "explicitly with messages";
+						break;
+						// These cases are here to prevent compiler warnings
+					case ResultWas::Unknown:
+					case ResultWas::FailureBit:
+					case ResultWas::Exception:
+						passOrFail = "** internal error **";
+						colour = Colour::Error;
+						break;
 				}
 			}
 
@@ -9896,65 +9896,65 @@ namespace Catch {
 				itMessage = messages.begin();
 
 				switch (result.getResultType()) {
-				case ResultWas::Ok:
-					printResultType(Colour::ResultSuccess, passedString());
-					printOriginalExpression();
-					printReconstructedExpression();
-					if (!result.hasExpression())
-						printRemainingMessages(Colour::None);
-					else
+					case ResultWas::Ok:
+						printResultType(Colour::ResultSuccess, passedString());
+						printOriginalExpression();
+						printReconstructedExpression();
+						if (!result.hasExpression())
+							printRemainingMessages(Colour::None);
+						else
+							printRemainingMessages();
+						break;
+					case ResultWas::ExpressionFailed:
+						if (result.isOk())
+							printResultType(Colour::ResultSuccess, failedString() + std::string(" - but was ok"));
+						else
+							printResultType(Colour::Error, failedString());
+						printOriginalExpression();
+						printReconstructedExpression();
 						printRemainingMessages();
-					break;
-				case ResultWas::ExpressionFailed:
-					if (result.isOk())
-						printResultType(Colour::ResultSuccess, failedString() + std::string(" - but was ok"));
-					else
+						break;
+					case ResultWas::ThrewException:
 						printResultType(Colour::Error, failedString());
-					printOriginalExpression();
-					printReconstructedExpression();
-					printRemainingMessages();
-					break;
-				case ResultWas::ThrewException:
-					printResultType(Colour::Error, failedString());
-					printIssue("unexpected exception with message:");
-					printMessage();
-					printExpressionWas();
-					printRemainingMessages();
-					break;
-				case ResultWas::FatalErrorCondition:
-					printResultType(Colour::Error, failedString());
-					printIssue("fatal error condition with message:");
-					printMessage();
-					printExpressionWas();
-					printRemainingMessages();
-					break;
-				case ResultWas::DidntThrowException:
-					printResultType(Colour::Error, failedString());
-					printIssue("expected exception, got none");
-					printExpressionWas();
-					printRemainingMessages();
-					break;
-				case ResultWas::Info:
-					printResultType(Colour::None, "info");
-					printMessage();
-					printRemainingMessages();
-					break;
-				case ResultWas::Warning:
-					printResultType(Colour::None, "warning");
-					printMessage();
-					printRemainingMessages();
-					break;
-				case ResultWas::ExplicitFailure:
-					printResultType(Colour::Error, failedString());
-					printIssue("explicitly");
-					printRemainingMessages(Colour::None);
-					break;
-					// These cases are here to prevent compiler warnings
-				case ResultWas::Unknown:
-				case ResultWas::FailureBit:
-				case ResultWas::Exception:
-					printResultType(Colour::Error, "** internal error **");
-					break;
+						printIssue("unexpected exception with message:");
+						printMessage();
+						printExpressionWas();
+						printRemainingMessages();
+						break;
+					case ResultWas::FatalErrorCondition:
+						printResultType(Colour::Error, failedString());
+						printIssue("fatal error condition with message:");
+						printMessage();
+						printExpressionWas();
+						printRemainingMessages();
+						break;
+					case ResultWas::DidntThrowException:
+						printResultType(Colour::Error, failedString());
+						printIssue("expected exception, got none");
+						printExpressionWas();
+						printRemainingMessages();
+						break;
+					case ResultWas::Info:
+						printResultType(Colour::None, "info");
+						printMessage();
+						printRemainingMessages();
+						break;
+					case ResultWas::Warning:
+						printResultType(Colour::None, "warning");
+						printMessage();
+						printRemainingMessages();
+						break;
+					case ResultWas::ExplicitFailure:
+						printResultType(Colour::Error, failedString());
+						printIssue("explicitly");
+						printRemainingMessages(Colour::None);
+						break;
+						// These cases are here to prevent compiler warnings
+					case ResultWas::Unknown:
+					case ResultWas::FailureBit:
+					case ResultWas::Exception:
+						printResultType(Colour::Error, "** internal error **");
+						break;
 				}
 			}
 

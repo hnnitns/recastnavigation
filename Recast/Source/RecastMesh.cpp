@@ -1629,22 +1629,22 @@ bool rcMergePolyMeshes(rcContext* ctx, rcPolyMesh** meshes, const int nmeshes, r
 						unsigned short dir = src[k] & 0xf;
 						switch (dir)
 						{
-						case 0: // Portal x-
-							if (isMinX)
-								tgt[k] = src[k];
-							break;
-						case 1: // Portal z+
-							if (isMaxZ)
-								tgt[k] = src[k];
-							break;
-						case 2: // Portal x+
-							if (isMaxX)
-								tgt[k] = src[k];
-							break;
-						case 3: // Portal z-
-							if (isMinZ)
-								tgt[k] = src[k];
-							break;
+							case 0: // Portal x-
+								if (isMinX)
+									tgt[k] = src[k];
+								break;
+							case 1: // Portal z+
+								if (isMaxZ)
+									tgt[k] = src[k];
+								break;
+							case 2: // Portal x+
+								if (isMaxX)
+									tgt[k] = src[k];
+								break;
+							case 3: // Portal z-
+								if (isMinZ)
+									tgt[k] = src[k];
+								break;
 						}
 					}
 				}

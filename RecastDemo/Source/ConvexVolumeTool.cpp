@@ -108,7 +108,7 @@ ConvexVolumeTool::ConvexVolumeTool() :
 	m_areaMod(SAMPLE_AREAMOD_GRASS),
 	m_polyOffset(0.0f),
 	m_boxHeight(6.0f),
-	m_boxDescent(1.0f),
+	m_boxDescent(1.f),
 	m_npts(0),
 	m_nhull(0)
 {

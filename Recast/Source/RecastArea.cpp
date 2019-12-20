@@ -469,7 +469,7 @@ int rcOffsetPoly(const float* verts, const int nverts, const float offset,
 		float d0 = dx0 * dx0 + dy0 * dy0;
 		if (d0 > 1e-6f)
 		{
-			d0 = 1.0f / rcSqrt(d0);
+			d0 = 1.f / rcSqrt(d0);
 			dx0 *= d0;
 			dy0 *= d0;
 		}
@@ -478,7 +478,7 @@ int rcOffsetPoly(const float* verts, const int nverts, const float offset,
 		float d1 = dx1 * dx1 + dy1 * dy1;
 		if (d1 > 1e-6f)
 		{
-			d1 = 1.0f / rcSqrt(d1);
+			d1 = 1.f / rcSqrt(d1);
 			dx1 *= d1;
 			dy1 *= d1;
 		}
@@ -490,10 +490,10 @@ int rcOffsetPoly(const float* verts, const int nverts, const float offset,
 		float dmx = (dlx0 + dlx1) * 0.5f;
 		float dmy = (dly0 + dly1) * 0.5f;
 		float dmr2 = dmx * dmx + dmy * dmy;
-		bool bevel = dmr2 * MITER_LIMIT * MITER_LIMIT < 1.0f;
+		bool bevel = dmr2 * MITER_LIMIT * MITER_LIMIT < 1.f;
 		if (dmr2 > 1e-6f)
 		{
-			const float scale = 1.0f / dmr2;
+			const float scale = 1.f / dmr2;
 			dmx *= scale;
 			dmy *= scale;
 		}
@@ -502,7 +502,7 @@ int rcOffsetPoly(const float* verts, const int nverts, const float offset,
 		{
 			if (n + 2 >= maxOutVerts)
 				return 0;
-			float d = (1.0f - (dx0 * dx1 + dy0 * dy1)) * 0.5f;
+			float d = (1.f - (dx0 * dx1 + dy0 * dy1)) * 0.5f;
 			outVerts[n * 3 + 0] = vb[0] + (-dlx0 + dx0 * d) * offset;
 			outVerts[n * 3 + 1] = vb[1];
 			outVerts[n * 3 + 2] = vb[2] + (-dly0 + dy0 * d) * offset;

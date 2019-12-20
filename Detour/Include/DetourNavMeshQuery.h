@@ -23,13 +23,13 @@
 #include "DetourNavMesh.h"
 #include "DetourStatus.h"
 
-/// Defines polygon filtering and traversal costs for navigation mesh query operations.
-/// @ingroup detour
+// Defines polygon filtering and traversal costs for navigation mesh query operations.
+// @ingroup detour
 class dtQueryFilter
 {
-	float m_areaCost[DT_MAX_AREAS];		///< Cost per area type. (Used by default implementation.)
-	unsigned short m_includeFlags;		///< Flags for polygons that can be visited. (Used by default implementation.)
-	unsigned short m_excludeFlags;		///< Flags for polygons that should not be visted. (Used by default implementation.)
+	float m_areaCost[DT_MAX_AREAS];		//< Cost per area type. (Used by default implementation.)
+	unsigned short m_includeFlags;		//< Flags for polygons that can be visited. (Used by default implementation.)
+	unsigned short m_excludeFlags;		//< Flags for polygons that should not be visted. (Used by default implementation.)
 
 public:
 	dtQueryFilter();
@@ -38,10 +38,10 @@ public:
 	virtual ~dtQueryFilter() { }
 #endif
 
-	/// Returns true if the polygon can be visited.  (I.e. Is traversable.)
-	///  @param[in]		ref		The reference id of the polygon test.
-	///  @param[in]		tile	The tile containing the polygon.
-	///  @param[in]		poly  The polygon to test.
+	// Returns true if the polygon can be visited.  (I.e. Is traversable.)
+	//  @param[in]		ref		The reference id of the polygon test.
+	//  @param[in]		tile	The tile containing the polygon.
+	//  @param[in]		poly  The polygon to test.
 #ifdef DT_VIRTUAL_QUERYFILTER
 	virtual bool passFilter(const dtPolyRef ref,
 		const dtMeshTile* tile,
@@ -52,19 +52,19 @@ public:
 		const dtPoly* poly) const;
 #endif
 
-	/// Returns cost to move from the beginning to the end of a line segment
-	/// that is fully contained within a polygon.
-	///  @param[in]		pa			The start position on the edge of the previous and current polygon. [(x, y, z)]
-	///  @param[in]		pb			The end position on the edge of the current and next polygon. [(x, y, z)]
-	///  @param[in]		prevRef		The reference id of the previous polygon. [opt]
-	///  @param[in]		prevTile	The tile containing the previous polygon. [opt]
-	///  @param[in]		prevPoly	The previous polygon. [opt]
-	///  @param[in]		curRef		The reference id of the current polygon.
-	///  @param[in]		curTile		The tile containing the current polygon.
-	///  @param[in]		curPoly		The current polygon.
-	///  @param[in]		nextRef		The refernece id of the next polygon. [opt]
-	///  @param[in]		nextTile	The tile containing the next polygon. [opt]
-	///  @param[in]		nextPoly	The next polygon. [opt]
+	// Returns cost to move from the beginning to the end of a line segment
+	// that is fully contained within a polygon.
+	//  @param[in]		pa			The start position on the edge of the previous and current polygon. [(x, y, z)]
+	//  @param[in]		pb			The end position on the edge of the current and next polygon. [(x, y, z)]
+	//  @param[in]		prevRef		The reference id of the previous polygon. [opt]
+	//  @param[in]		prevTile	The tile containing the previous polygon. [opt]
+	//  @param[in]		prevPoly	The previous polygon. [opt]
+	//  @param[in]		curRef		The reference id of the current polygon.
+	//  @param[in]		curTile		The tile containing the current polygon.
+	//  @param[in]		curPoly		The current polygon.
+	//  @param[in]		nextRef		The refernece id of the next polygon. [opt]
+	//  @param[in]		nextTile	The tile containing the next polygon. [opt]
+	//  @param[in]		nextPoly	The next polygon. [opt]
 #ifdef DT_VIRTUAL_QUERYFILTER
 	virtual float getCost(const float* pa, const float* pb,
 		const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
@@ -77,82 +77,82 @@ public:
 		const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const;
 #endif
 
-	/// @name Getters and setters for the default implementation data.
-	///@{
-	/// Returns the traversal cost of the area.
-	///  @param[in]		i		The id of the area.
-	/// @returns The traversal cost of the area.
+	// @name Getters and setters for the default implementation data.
+	//@{
+	// Returns the traversal cost of the area.
+	//  @param[in]		i		The id of the area.
+	// @returns The traversal cost of the area.
 	inline float getAreaCost(const int i) const { return m_areaCost[i]; }
 
-	/// Sets the traversal cost of the area.
-	///  @param[in]		i		The id of the area.
-	///  @param[in]		cost	The new cost of traversing the area.
+	// Sets the traversal cost of the area.
+	//  @param[in]		i		The id of the area.
+	//  @param[in]		cost	The new cost of traversing the area.
 	inline void setAreaCost(const int i, const float cost) { m_areaCost[i] = cost; }
 
-	/// Returns the include flags for the filter.
-	/// Any polygons that include one or more of these flags will be
-	/// included in the operation.
+	// Returns the include flags for the filter.
+	// Any polygons that include one or more of these flags will be
+	// included in the operation.
 	inline unsigned short getIncludeFlags() const { return m_includeFlags; }
 
-	/// Sets the include flags for the filter.
-	/// @param[in]		flags	The new flags.
+	// Sets the include flags for the filter.
+	// @param[in]		flags	The new flags.
 	inline void setIncludeFlags(const unsigned short flags) { m_includeFlags = flags; }
 
-	/// Returns the exclude flags for the filter.
-	/// Any polygons that include one ore more of these flags will be
-	/// excluded from the operation.
+	// Returns the exclude flags for the filter.
+	// Any polygons that include one ore more of these flags will be
+	// excluded from the operation.
 	inline unsigned short getExcludeFlags() const { return m_excludeFlags; }
 
-	/// Sets the exclude flags for the filter.
-	/// @param[in]		flags		The new flags.
+	// Sets the exclude flags for the filter.
+	// @param[in]		flags		The new flags.
 	inline void setExcludeFlags(const unsigned short flags) { m_excludeFlags = flags; }
 
-	///@}
+	//@}
 };
 
-/// Provides information about raycast hit
-/// filled by dtNavMeshQuery::raycast
-/// @ingroup detour
+// Provides information about raycast hit
+// filled by dtNavMeshQuery::raycast
+// @ingroup detour
 struct dtRaycastHit
 {
-	/// The hit parameter. (FLT_MAX if no wall hit.)
+	// The hit parameter. (FLT_MAX if no wall hit.)
 	float t;
 
-	/// hitNormal	The normal of the nearest wall hit. [(x, y, z)]
+	// hitNormal	The normal of the nearest wall hit. [(x, y, z)]
 	float hitNormal[3];
 
-	/// The index of the edge on the final polygon where the wall was hit.
+	// The index of the edge on the final polygon where the wall was hit.
 	int hitEdgeIndex;
 
-	/// Pointer to an array of reference ids of the visited polygons. [opt]
+	// Pointer to an array of reference ids of the visited polygons. [opt]
 	dtPolyRef* path;
 
-	/// The number of visited polygons. [opt]
+	// The number of visited polygons. [opt]
 	int pathCount;
 
-	/// The maximum number of polygons the @p path array can hold.
+	// The maximum number of polygons the @p path array can hold.
 	int maxPath;
 
-	///  The cost of the path until hit.
+	//  The cost of the path until hit.
 	float pathCost;
 };
 
-/// Provides custom polygon query behavior.
-/// Used by dtNavMeshQuery::queryPolygons.
-/// @ingroup detour
+// Provides custom polygon query behavior.
+// Used by dtNavMeshQuery::queryPolygons.
+// @ingroup detour
 class dtPolyQuery
 {
 public:
 	virtual ~dtPolyQuery() { }
 
-	/// Called for each batch of unique polygons touched by the search area in dtNavMeshQuery::queryPolygons.
-	/// This can be called multiple times for a single query.
+	// Called for each batch of unique polygons touched by the search area in dtNavMeshQuery::queryPolygons.
+	// This can be called multiple times for a single query.
 	virtual void process(const dtMeshTile* tile, dtPoly** polys, dtPolyRef* refs, int count) = 0;
 };
 
-/// Provides the ability to perform pathfinding related queries against
-/// a navigation mesh.
-/// @ingroup detour
+// Provides the ability to perform pathfinding related queries against
+// a navigation mesh.
+// @ingroup detour
 class dtNavMeshQuery
 {
 public:
@@ -178,7 +178,7 @@ public:
 	// param [out] path		：パスを表すポリゴン参照の順序付きリスト （始めから終わりまで。）
 	// param [out] pathCount	：@pパス配列で返されるポリゴンの数
 	// param [in] maxPath	：@pパス配列が保持できるポリゴンの最大数。 [制限：> = 1]
-	/// @name Standard Pathfinding Functions
+	// @name Standard Pathfinding Functions
 	// /@{
 	// Finds a path from the start polygon to the end polygon.
 	//  @param[in]		startRef	The refrence id of the start polygon.
@@ -537,17 +537,17 @@ public:
 	// @param [out] hit結果で満たされるレイキャストヒット構造体へのポインタ。
 	// @param [in] prevRef start refの親。コスト計算中に使用[opt]
 	// @returnsクエリのステータスフラグ。
-	/// Casts a 'walkability' ray along the surface of the navigation mesh from
-	/// the start position toward the end position.
-	///  @param[in]		startRef	The reference id of the start polygon.
-	///  @param[in]		startPos	A position within the start polygon representing
-	///  							the start of the ray. [(x, y, z)]
-	///  @param[in]		endPos		The position to cast the ray toward. [(x, y, z)]
-	///  @param[in]		filter		The polygon filter to apply to the query.
-	///  @param[in]		flags		govern how the raycast behaves. See dtRaycastOptions
-	///  @param[out]	hit			Pointer to a raycast hit structure which will be filled by the results.
-	///  @param[in]		prevRef		parent of start ref. Used during for cost calculation [opt]
-	/// @returns The status flags for the query.
+	// Casts a 'walkability' ray along the surface of the navigation mesh from
+	// the start position toward the end position.
+	//  @param[in]		startRef	The reference id of the start polygon.
+	//  @param[in]		startPos	A position within the start polygon representing
+	//  							the start of the ray. [(x, y, z)]
+	//  @param[in]		endPos		The position to cast the ray toward. [(x, y, z)]
+	//  @param[in]		filter		The polygon filter to apply to the query.
+	//  @param[in]		flags		govern how the raycast behaves. See dtRaycastOptions
+	//  @param[out]	hit			Pointer to a raycast hit structure which will be filled by the results.
+	//  @param[in]		prevRef		parent of start ref. Used during for cost calculation [opt]
+	// @returns The status flags for the query.
 	dtStatus raycast(dtPolyRef startRef, const float* startPos, const float* endPos,
 		const dtQueryFilter* filter, const unsigned int options,
 		dtRaycastHit* hit, dtPolyRef prevRef = 0) const;
@@ -683,7 +683,6 @@ public:
 	// @}
 	// @name Miscellaneous Functions その他の関数
 	// @{
-
 	// ポリゴン参照が有効で、フィルター制限に合格した場合にtrueを返します。
 	// @param [in] refチェックするポリゴン参照。
 	// @param [in] filter適用するフィルター。
@@ -712,26 +711,26 @@ public:
 	// @return The navigation mesh the query object is using.
 	const dtNavMesh* getAttachedNavMesh() const { return m_nav; }
 
-	/// @}
+	// @}
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator
 	dtNavMeshQuery(const dtNavMeshQuery&);
 	dtNavMeshQuery& operator=(const dtNavMeshQuery&);
 
-	/// Queries polygons within a tile.
+	// Queries polygons within a tile.
 	// タイル内のポリゴンを照会します。
 	void queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, const float* qmax,
 		const dtQueryFilter* filter, dtPolyQuery* query) const;
 
-	/// Returns portal points between two polygons.
+	// Returns portal points between two polygons.
 	dtStatus getPortalPoints(dtPolyRef from, dtPolyRef to, float* left, float* right,
 		unsigned char& fromType, unsigned char& toType) const;
 	dtStatus getPortalPoints(dtPolyRef from, const dtPoly* fromPoly, const dtMeshTile* fromTile,
 		dtPolyRef to, const dtPoly* toPoly, const dtMeshTile* toTile,
 		float* left, float* right) const;
 
-	/// Returns edge mid point between two polygons.
+	// Returns edge mid point between two polygons.
 	// 2つのポリゴン間のエッジの中点を返します。
 	dtStatus getEdgeMidPoint(dtPolyRef from, dtPolyRef to, float* mid) const;
 	// 2つのポリゴン間のエッジの中点を返します。
@@ -753,7 +752,7 @@ private:
 	// 指定された終了ノードへのパスを取得します。
 	dtStatus getPathToNode(struct dtNode* endNode, dtPolyRef* path, int* pathCount, int maxPath) const;
 
-	const dtNavMesh* m_nav;				///< Pointer to navmesh data.
+	const dtNavMesh* m_nav;				//< Pointer to navmesh data.
 
 	struct dtQueryData
 	{

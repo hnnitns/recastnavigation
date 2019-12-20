@@ -21,8 +21,8 @@
 
 #include <stddef.h>
 
-// Provides hint values to the memory allocator on how long the
-// memory is expected to be used.
+// Provides hint values to the memory allocator on how long the memory is expected to be used.
+// メモリが使用されると予想される期間に関するヒントをメモリアロケータに提供します。
 enum rcAllocHint
 {
 	RC_ALLOC_PERM,		// Memory will persist after a function call. // メモリは関数呼び出し後も持続します。
@@ -30,32 +30,46 @@ enum rcAllocHint
 };
 
 // A memory allocation function.
+//	メモリ割り当て関数。
 //  @param[in]		size			The size, in bytes of memory, to allocate.
+//	割り当てるサイズ（メモリのバイト単位）。
 //  @param[in]		rcAllocHint	A hint to the allocator on how long the memory is expected to be in use.
+//	メモリーが使用されると予想される期間に関するアロケーターへのヒント。
 //  @return A pointer to the beginning of the allocated memory block, or null if the allocation failed.
+//	割り当てられたメモリブロックの先頭へのポインタ、または割り当てが失敗した場合はnull。
 //  @see rcAllocSetCustom
 typedef void* (rcAllocFunc)(size_t size, rcAllocHint hint);
 
 // A memory deallocation function.
+//	メモリ割り当て解除関数。
 //  @param[in]		ptr		A pointer to a memory block previously allocated using #rcAllocFunc.
+//	#rcAllocFuncを使用して以前に割り当てられたメモリブロックへのポインター。
 // @see rcAllocSetCustom
 typedef void (rcFreeFunc)(void* ptr);
 
 // Sets the base custom allocation functions to be used by Recast.
+//	Recastが使用するベースのカスタム割り当て関数を設定します。
 //  @param[in]		allocFunc	The memory allocation function to be used by #rcAlloc
+//	#rcAllocによって使用されるメモリ割り当て関数。
 //  @param[in]		freeFunc	The memory de-allocation function to be used by #rcFree
+//	#rcFreeによって使用されるメモリ割り当て解除関数
 void rcAllocSetCustom(rcAllocFunc* allocFunc, rcFreeFunc* freeFunc);
 
 // Allocates a memory block.
 // メモリブロックを割り当てます。
 //  @param[in]		size	The size, in bytes of memory, to allocate.
+//	割り当てるサイズ（メモリのバイト単位）。
 //  @param[in]		hint	A hint to the allocator on how long the memory is expected to be in use.
+//	メモリーが使用されると予想される期間に関するアロケーターへのヒント。
 //  @return A pointer to the beginning of the allocated memory block, or null if the allocation failed.
+//	割り当てられたメモリブロックの先頭へのポインタ、または割り当てが失敗した場合はnull。
 // @see rcFree
 void* rcAlloc(size_t size, rcAllocHint hint);
 
 // Deallocates a memory block.
+// メモリブロックの割り当てを解除します。
 //  @param[in]		ptr		A pointer to a memory block previously allocated using #rcAlloc.
+//	#rcAllocを使用して以前に割り当てられたメモリブロックへのポインター。
 // @see rcAlloc
 void rcFree(void* ptr);
 
@@ -69,11 +83,13 @@ class rcIntArray
 	void doResize(int n);
 
 	// Explicitly disabled copy constructor and copy assignment operator.
+	// コピーコンストラクターとコピー割り当て演算子を明示的に無効にします。
 	rcIntArray(const rcIntArray&);
 	rcIntArray& operator=(const rcIntArray&);
 
 public:
 	// Constructs an instance with an initial array size of zero.
+	// 初期配列サイズがゼロのインスタンスを構築します。
 	rcIntArray() : m_data(0), m_size(0), m_cap(0) {}
 
 	// Constructs an instance initialized to the specified size.
@@ -112,17 +128,24 @@ public:
 	}
 
 	// The value at the specified array index.
+	//	指定された配列インデックスの値。
 	// @warning Does not provide overflow protection.
+	//	オーバーフロー保護を提供しません。
 	//  @param[in]		i	The index of the value.
+	//	値のインデックス。
 	const int& operator[](int i) const { return m_data[i]; }
 
 	// The value at the specified array index.
+	//	指定された配列インデックスの値。
 	// @warning Does not provide overflow protection.
+	//	オーバーフロー保護を提供しません。
 	//  @param[in]		i	The index of the value.
+	//	値のインデックス。
 	int& operator[](int i) { return m_data[i]; }
 
 	// The current size of the integer array.
-	int size() const { return m_size; }
+	// 整数配列の現在のサイズ。
+	int size() const noexcept { return m_size; }
 };
 
 // A simple helper class used to delete an array when it goes out of scope.

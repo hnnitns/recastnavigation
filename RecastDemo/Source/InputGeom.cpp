@@ -90,21 +90,21 @@ static char* parseRow(char* buf, char* bufEnd, char* row, int len)
 		// multirow
 		switch (c)
 		{
-		case '\n':
-			if (start) break;
-			done = true;
-			break;
-		case '\r':
-			break;
-		case '\t':
-		case ' ':
-			if (start) break;
-		default:
-			start = false;
-			row[n++] = c;
-			if (n >= len - 1)
+			case '\n':
+				if (start) break;
 				done = true;
-			break;
+				break;
+			case '\r':
+				break;
+			case '\t':
+			case ' ':
+				if (start) break;
+			default:
+				start = false;
+				row[n++] = c;
+				if (n >= len - 1)
+					done = true;
+				break;
 		}
 	}
 	row[n] = '\0';
@@ -141,12 +141,12 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 	m_mesh = new rcMeshLoaderObj;
 	if (!m_mesh)
 	{
-		ctx->log(RC_LOG_ERROR, "loadMesh: Out of memory 'm_mesh'.");
+		ctx->log(RC_LOG_ERROR, "loadMesh: Out of memory 'm_mesh'."); // メモリー不足「m_mesh」
 		return false;
 	}
 	if (!m_mesh->load(filepath))
 	{
-		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not load '%s'", filepath.c_str());
+		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not load '%s'", filepath.c_str()); // 読み込めない
 		return false;
 	}
 
@@ -155,12 +155,12 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 	m_chunkyMesh = new rcChunkyTriMesh;
 	if (!m_chunkyMesh)
 	{
-		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Out of memory 'm_chunkyMesh'.");
+		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Out of memory 'm_chunkyMesh'."); // メモリー不足「m_chunkyMesh」
 		return false;
 	}
 	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, m_chunkyMesh))
 	{
-		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Failed to build chunky mesh.");
+		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Failed to build chunky mesh."); // チャンキーメッシュの構築に失敗しました
 		return false;
 	}
 
@@ -217,15 +217,19 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 	while (src < srcEnd)
 	{
 		// Parse one row
+		// 1行を解析します
 		row[0] = '\0';
 		src = parseRow(src, srcEnd, row, sizeof(row) / sizeof(char));
+
 		if (row[0] == 'f')
 		{
 			// File name.
 			const char* name = row + 1;
+
 			// Skip white spaces
 			while (*name && isspace(*name))
 				name++;
+
 			if (*name)
 			{
 				if (!loadMesh(ctx, name))
@@ -241,10 +245,12 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 			if (m_offMeshConCount < MAX_OFFMESH_CONNECTIONS)
 			{
 				float* v = &m_offMeshConVerts[m_offMeshConCount * 3 * 2];
-				int bidir, area = 0, flags = 0;
-				float rad;
+				int bidir{}, area{}, flags{};
+				float rad{};
+
 				sscanf_s(row + 1, "%f %f %f  %f %f %f %f %d %d %d",
 					&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags);
+
 				m_offMeshConRads[m_offMeshConCount] = rad;
 				m_offMeshConDirs[m_offMeshConCount] = (unsigned char)bidir;
 				m_offMeshConAreas[m_offMeshConCount] = (unsigned char)area;
@@ -259,6 +265,7 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 			{
 				ConvexVolume* vol = &m_volumes[m_volumeCount++];
 				sscanf_s(row + 1, "%d %c %c %f %f", &vol->nverts, &vol->areaMod.m_value, sizeof(vol->areaMod.m_value), &vol->areaMod.m_mask, sizeof(vol->areaMod.m_mask), &vol->hmin, &vol->hmax);
+
 				for (int i = 0; i < vol->nverts; ++i)
 				{
 					row[0] = '\0';
@@ -323,23 +330,31 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 	if (!m_mesh) return false;
 
 	// Change extension
+	// 拡張子を変更します
 	std::string filepath = m_mesh->getFileName();
 	size_t extPos = filepath.find_last_of('.');
+
 	if (extPos != std::string::npos)
 		filepath = filepath.substr(0, extPos);
 
 	filepath += ".gset";
 
-	FILE* fp = fopen(filepath.c_str(), "w");
+	FILE* fp{ nullptr };
+
+	if (fopen_s(&fp, filepath.c_str(), "w") != 0)
+		return false;
+
 	if (!fp) return false;
 
 	// Store mesh filename.
-	fprintf(fp, "f %s\n", m_mesh->getFileName().c_str());
+	// メッシュファイル名を保存します。
+	fprintf_s(fp, "f %s\n", m_mesh->getFileName().c_str());
 
 	// Store settings if any
+	// 設定があれば保存します
 	if (settings)
 	{
-		fprintf(fp,
+		fprintf_s(fp,
 			"s %f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f\n",
 			settings->cellSize,
 			settings->cellHeight,
@@ -365,6 +380,7 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 	}
 
 	// Store off-mesh links.
+	// オフメッシュリンクを保存します。
 	for (int i = 0; i < m_offMeshConCount; ++i)
 	{
 		const float* v = &m_offMeshConVerts[i * 3 * 2];
@@ -372,17 +388,21 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 		const int bidir = m_offMeshConDirs[i];
 		const int area = m_offMeshConAreas[i];
 		const int flags = m_offMeshConFlags[i];
-		fprintf(fp, "c %f %f %f  %f %f %f  %f %d %d %d\n",
+
+		fprintf_s(fp, "c %f %f %f  %f %f %f  %f %d %d %d\n",
 			v[0], v[1], v[2], v[3], v[4], v[5], rad, bidir, area, flags);
 	}
 
 	// Convex volumes
+	// 凸ボリューム
 	for (int i = 0; i < m_volumeCount; ++i)
 	{
 		ConvexVolume* vol = &m_volumes[i];
-		fprintf(fp, "v %d %c %c %f %f\n", vol->nverts, vol->areaMod.m_value, vol->areaMod.m_mask, vol->hmin, vol->hmax);
+
+		fprintf_s(fp, "v %d %c %c %f %f\n", vol->nverts, vol->areaMod.m_value, vol->areaMod.m_mask, vol->hmin, vol->hmax);
+
 		for (int j = 0; j < vol->nverts; ++j)
-			fprintf(fp, "%f %f %f\n", vol->verts[j * 3 + 0], vol->verts[j * 3 + 1], vol->verts[j * 3 + 2]);
+			fprintf_s(fp, "%f %f %f\n", vol->verts[j * 3 + 0], vol->verts[j * 3 + 1], vol->verts[j * 3 + 2]);
 	}
 
 	fclose(fp);
@@ -406,7 +426,7 @@ static bool isectSegAABB(const float* sp, const float* sq,
 	tmin = 0.0;
 
 	// 光線が移動できる最大距離に設定（セグメント用）
-	tmax = 1.0f;
+	tmax = 1.f;
 
 	// 3つのスラブすべて
 	for (int i = 0; i < 3; i++)
@@ -420,7 +440,7 @@ static bool isectSegAABB(const float* sp, const float* sq,
 		else
 		{
 			//スラブのニアおよびファープレーンとレイの交差t値を計算します
-			const float ood = 1.0f / d[i];
+			const float ood = 1.f / d[i];
 			float t1 = (amin[i] - sp[i]) * ood;
 			float t2 = (amax[i] - sp[i]) * ood;
 
@@ -471,7 +491,7 @@ bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 	if (!ncid)
 		return false;
 
-	tmin = 1.0f;
+	tmin = 1.f;
 	bool hit = false;
 	const float* verts = m_mesh->getVerts();
 

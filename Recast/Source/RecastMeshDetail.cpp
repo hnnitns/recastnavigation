@@ -105,7 +105,7 @@ static float distPtTri(const float* p, const float* a, const float* b, const flo
 	const float dot12 = vdot2(v1, v2);
 
 	// Compute barycentric coordinates
-	const float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+	const float invDenom = 1.f / (dot00 * dot11 - dot01 * dot01);
 	const float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
 	float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
 
@@ -116,7 +116,7 @@ static float distPtTri(const float* p, const float* a, const float* b, const flo
 		const float y = a[1] + v0[1] * u + v1[1] * v;
 		return fabsf(y - p[1]);
 	}
-	return FLT_MAX;
+	return (std::numeric_limits<float>::max)();
 }
 
 static float distancePtSeg(const float* pt, const float* p, const float* q)
@@ -151,6 +151,7 @@ static float distancePtSeg2d(const float* pt, const float* p, const float* q)
 	float dz = pt[2] - p[2];
 	float d = pqx * pqx + pqz * pqz;
 	float t = pqx * dx + pqz * dz;
+
 	if (d > 0)
 		t /= d;
 	if (t < 0)
@@ -166,7 +167,7 @@ static float distancePtSeg2d(const float* pt, const float* p, const float* q)
 
 static float distToTriMesh(const float* p, const float* verts, const int /*nverts*/, const int* tris, const int ntris)
 {
-	float dmin = FLT_MAX;
+	float dmin = (std::numeric_limits<float>::max)();
 	for (int i = 0; i < ntris; ++i)
 	{
 		const float* va = &verts[tris[i * 4 + 0] * 3];
@@ -176,13 +177,13 @@ static float distToTriMesh(const float* p, const float* verts, const int /*nvert
 		if (d < dmin)
 			dmin = d;
 	}
-	if (dmin == FLT_MAX) return -1;
+	if (dmin == (std::numeric_limits<float>::max)()) return -1;
 	return dmin;
 }
 
 static float distToPoly(int nvert, const float* verts, const float* p)
 {
-	float dmin = FLT_MAX;
+	float dmin = (std::numeric_limits<float>::max)();
 	int i, j, c = 0;
 	for (i = 0, j = nvert - 1; i < nvert; j = i++)
 	{
@@ -217,7 +218,7 @@ static unsigned short getHeight(const float fx, const float fy, const float fz,
 		int nextRingIterStart = 8;
 		int nextRingIters = 16;
 
-		float dmin = FLT_MAX;
+		float dmin = (std::numeric_limits<float>::max)();
 		for (int i = 0; i < maxIter; i++)
 		{
 			const int nx = ix + x;
@@ -528,29 +529,35 @@ static void delaunayHull(rcContext* ctx, const int npts, const float* pts,
 }
 
 // Calculate minimum extend of the polygon.
+// ポリゴンの最小延長を計算します。
 static float polyMinExtent(const float* verts, const int nverts)
 {
-	float minDist = FLT_MAX;
+	float minDist = (std::numeric_limits<float>::max)();
+
 	for (int i = 0; i < nverts; i++)
 	{
 		const int ni = (i + 1) % nverts;
 		const float* p1 = &verts[i * 3];
 		const float* p2 = &verts[ni * 3];
-		float maxEdgeDist = 0;
+		float maxEdgeDist{};
+
 		for (int j = 0; j < nverts; j++)
 		{
 			if (j == i || j == ni) continue;
+
 			float d = distancePtSeg2d(&verts[j * 3], p1, p2);
 			maxEdgeDist = rcMax(maxEdgeDist, d);
 		}
 		minDist = rcMin(minDist, maxEdgeDist);
 	}
+
 	return rcSqrt(minDist);
 }
 
 // Last time I checked the if version got compiled using cmov, which was a lot faster than module (with idiv).
-inline int prev(int i, int n) { return i - 1 >= 0 ? i - 1 : n - 1; }
-inline int next(int i, int n) { return i + 1 < n ? i + 1 : 0; }
+// 前回、cmovを使用してバージョンがコンパイルされたかどうかを確認しました。これは、モジュール（idivを使用）よりもはるかに高速でした。
+inline constexpr int prev(int i, int n) { return i - 1 >= 0 ? i - 1 : n - 1; }
+inline constexpr int next(int i, int n) { return i + 1 < n ? i + 1 : 0; }
 
 static void triangulateHull(const int /*nverts*/, const float* verts, const int nhull, const int* hull, rcIntArray& tris)
 {
@@ -620,12 +627,12 @@ static void triangulateHull(const int /*nverts*/, const float* verts, const int 
 
 inline float getJitterX(const int i)
 {
-	return (((i * 0x8da6b343) & 0xffff) / 65535.0f * 2.0f) - 1.0f;
+	return (((i * 0x8da6b343) & 0xffff) / 65535.0f * 2.0f) - 1.f;
 }
 
 inline float getJitterY(const int i)
 {
-	return (((i * 0xd8163841) & 0xffff) / 65535.0f * 2.0f) - 1.0f;
+	return (((i * 0xd8163841) & 0xffff) / 65535.0f * 2.0f) - 1.f;
 }
 
 static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
@@ -634,30 +641,33 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 	const rcHeightPatch& hp, float* verts, int& nverts,
 	rcIntArray& tris, rcIntArray& edges, rcIntArray& samples)
 {
-	static const int MAX_VERTS = 127;
-	static const int MAX_TRIS = 255;	// Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
-	static const int MAX_VERTS_PER_EDGE = 32;
-	float edge[(MAX_VERTS_PER_EDGE + 1) * 3];
-	int hull[MAX_VERTS];
-	int nhull = 0;
+	constexpr int MAX_VERTS = 127;
+	constexpr int MAX_TRIS = 255;	// Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts). // delaunayの最大トリスは2n-2-k（n = num verts、k = num hull verts）です。
+	constexpr int MAX_VERTS_PER_EDGE = 32;
+
+	float edge[(MAX_VERTS_PER_EDGE + 1) * 3]{};
+	int hull[MAX_VERTS]{};
+	int nhull{};
 
 	nverts = nin;
 
 	for (int i = 0; i < nin; ++i)
-		rcVcopy(&verts[i * 3], &in[i * 3]);
+		rcVcopy(&verts[i * 3], &in[i * 3]); // コピー
 
 	edges.resize(0);
 	tris.resize(0);
 
 	const float cs = chf.cs;
-	const float ics = 1.0f / cs;
+	const float ics = 1.f / cs;
 
 	// Calculate minimum extents of the polygon based on input data.
+	// 入力データに基づいてポリゴンの最小範囲を計算します。
 	float minExtent = polyMinExtent(verts, nverts);
 
 	// Tessellate outlines.
-	// This is done in separate pass in order to ensure
-	// seamless height values across the ply boundaries.
+	// 輪郭をテッセレーションします。
+	// This is done in separate pass in order to ensure seamless height values across the ply boundaries.
+	// これは、プライの境界を越えてシームレスな高さの値を確保するために、個別のパスで実行されます。
 	if (sampleDist > 0)
 	{
 		for (int i = 0, j = nin - 1; i < nin; j = i++)
@@ -665,8 +675,9 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 			const float* vj = &in[j * 3];
 			const float* vi = &in[i * 3];
 			bool swapped = false;
-			// Make sure the segments are always handled in same order
-			// using lexological sort or else there will be seams.
+
+			// Make sure the segments are always handled in same order using lexological sort or else there will be seams.
+			// セグメントが語彙ソートを使用して常に同じ順序で処理されるようにします。そうしないと、継ぎ目が発生します。
 			if (fabsf(vj[0] - vi[0]) < 1e-6f)
 			{
 				if (vj[2] > vi[2])
@@ -683,15 +694,17 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 					swapped = true;
 				}
 			}
+
 			// Create samples along the edge.
+			// エッジに沿ってサンプルを作成します。
 			float dx = vi[0] - vj[0];
 			float dy = vi[1] - vj[1];
 			float dz = vi[2] - vj[2];
 			float d = sqrtf(dx * dx + dz * dz);
 			int nn = 1 + (int)floorf(d / sampleDist);
+
 			if (nn >= MAX_VERTS_PER_EDGE) nn = MAX_VERTS_PER_EDGE - 1;
-			if (nverts + nn >= MAX_VERTS)
-				nn = MAX_VERTS - 1 - nverts;
+			if (nverts + nn >= MAX_VERTS) nn = MAX_VERTS - 1 - nverts;
 
 			for (int k = 0; k <= nn; ++k)
 			{
@@ -702,7 +715,9 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 				pos[2] = vj[2] + dz * u;
 				pos[1] = getHeight(pos[0], pos[1], pos[2], cs, ics, chf.ch, heightSearchRadius, hp) * chf.ch;
 			}
+
 			// Simplify samples.
+			// サンプルを簡素化します。
 			int idx[MAX_VERTS_PER_EDGE] = { 0,nn };
 			int nidx = 2;
 			for (int k = 0; k < nidx - 1; )
@@ -712,8 +727,10 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 				const float* va = &edge[a * 3];
 				const float* vb = &edge[b * 3];
 				// Find maximum deviation along the segment.
+				// セグメントに沿った最大偏差を見つけます。
 				float maxd = 0;
 				int maxi = -1;
+
 				for (int m = a + 1; m < b; ++m)
 				{
 					float dev = distancePtSeg(&edge[m * 3], va, vb);
@@ -723,8 +740,10 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 						maxi = m;
 					}
 				}
+
 				// If the max deviation is larger than accepted error,
 				// add new point, else continue to next segment.
+				// 最大偏差が許容誤差よりも大きい場合、新しいポイントを追加するか、次のセグメントに進みます。
 				if (maxi != -1 && maxd > rcSqr(sampleMaxError))
 				{
 					for (int m = nidx; m > k; --m)
@@ -740,11 +759,13 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 
 			hull[nhull++] = j;
 			// Add new vertices.
+			// 新しい頂点を追加します。
 			if (swapped)
 			{
 				for (int k = nidx - 2; k > 0; --k)
 				{
-					rcVcopy(&verts[nverts * 3], &edge[idx[k] * 3]);
+					rcVcopy(&verts[nverts * 3], &edge[idx[k] * 3]); // コピー
+
 					hull[nhull++] = nverts;
 					nverts++;
 				}
@@ -753,7 +774,8 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 			{
 				for (int k = 1; k < nidx - 1; ++k)
 				{
-					rcVcopy(&verts[nverts * 3], &edge[idx[k] * 3]);
+					rcVcopy(&verts[nverts * 3], &edge[idx[k] * 3]); // コピー
+
 					hull[nhull++] = nverts;
 					nverts++;
 				}
@@ -762,6 +784,7 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 	}
 
 	// If the polygon minimum extent is small (sliver or small triangle), do not try to add internal points.
+	// ポリゴンの最小範囲が小さい場合（スライバーまたは小さな三角形）、内部ポイントを追加しようとしないでください。
 	if (minExtent < sampleDist * 2)
 	{
 		triangulateHull(nverts, verts, nhull, hull, tris);
@@ -1157,6 +1180,7 @@ static unsigned char getTriFlags(const float* va, const float* vb, const float* 
 /// @par
 ///
 /// See the #rcConfig documentation for more information on the configuration parameters.
+/// 構成パラメーターの詳細については、＃rcConfigのドキュメントを参照してください。
 ///
 /// @see rcAllocPolyMeshDetail, rcPolyMesh, rcCompactHeightfield, rcPolyMeshDetail, rcConfig
 bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompactHeightfield& chf,
@@ -1187,19 +1211,23 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 	int maxhw = 0, maxhh = 0;
 
 	rcScopedDelete<int> bounds((int*)rcAlloc(sizeof(int) * mesh.npolys * 4, RC_ALLOC_TEMP));
+
 	if (!bounds)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'bounds' (%d).", mesh.npolys * 4);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'bounds' (%d).", mesh.npolys * 4); // メモリー不足「bounds」
 		return false;
 	}
+
 	rcScopedDelete<float> poly((float*)rcAlloc(sizeof(float) * nvp * 3, RC_ALLOC_TEMP));
+
 	if (!poly)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'poly' (%d).", nvp * 3);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'poly' (%d).", nvp * 3); // メモリー不足「poly」
 		return false;
 	}
 
 	// Find max size for a polygon area.
+	// ポリゴン領域の最大サイズを見つけます。
 	for (int i = 0; i < mesh.npolys; ++i)
 	{
 		const unsigned short* p = &mesh.polys[i * nvp * 2];
@@ -1211,9 +1239,11 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		xmax = 0;
 		ymin = chf.height;
 		ymax = 0;
+
 		for (int j = 0; j < nvp; ++j)
 		{
 			if (p[j] == RC_MESH_NULL_IDX) break;
+
 			const unsigned short* v = &mesh.verts[p[j] * 3];
 			xmin = rcMin(xmin, (int)v[0]);
 			xmax = rcMax(xmax, (int)v[0]);
@@ -1221,19 +1251,23 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 			ymax = rcMax(ymax, (int)v[2]);
 			nPolyVerts++;
 		}
+
 		xmin = rcMax(0, xmin - 1);
 		xmax = rcMin(chf.width, xmax + 1);
 		ymin = rcMax(0, ymin - 1);
 		ymax = rcMin(chf.height, ymax + 1);
+
 		if (xmin >= xmax || ymin >= ymax) continue;
+
 		maxhw = rcMax(maxhw, xmax - xmin);
 		maxhh = rcMax(maxhh, ymax - ymin);
 	}
 
 	hp.data = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxhw * maxhh, RC_ALLOC_TEMP);
+
 	if (!hp.data)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'hp.data' (%d).", maxhw * maxhh);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'hp.data' (%d).", maxhw * maxhh); // メモリー不足「hp.data」
 		return false;
 	}
 
@@ -1241,9 +1275,10 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 	dmesh.nverts = 0;
 	dmesh.ntris = 0;
 	dmesh.meshes = (unsigned int*)rcAlloc(sizeof(unsigned int) * dmesh.nmeshes * 4, RC_ALLOC_PERM);
+
 	if (!dmesh.meshes)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.meshes' (%d).", dmesh.nmeshes * 4);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.meshes' (%d).", dmesh.nmeshes * 4); // メモリー不足「dmesh.meshes」
 		return false;
 	}
 
@@ -1254,14 +1289,16 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 	dmesh.verts = (float*)rcAlloc(sizeof(float) * vcap * 3, RC_ALLOC_PERM);
 	if (!dmesh.verts)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.verts' (%d).", vcap * 3);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.verts' (%d).", vcap * 3); // メモリー不足「dmesh.verts」
 		return false;
 	}
+
 	dmesh.ntris = 0;
 	dmesh.tris = (unsigned char*)rcAlloc(sizeof(unsigned char) * tcap * 4, RC_ALLOC_PERM);
+
 	if (!dmesh.tris)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.tris' (%d).", tcap * 4);
+		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.tris' (%d).", tcap * 4); // メモリー不足「dmesh.tris」
 		return false;
 	}
 
@@ -1270,6 +1307,7 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		const unsigned short* p = &mesh.polys[i * nvp * 2];
 
 		// Store polygon vertices for processing.
+		// 処理のためにポリゴンの頂点を保存します。
 		int npoly = 0;
 		for (int j = 0; j < nvp; ++j)
 		{
@@ -1282,6 +1320,7 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		}
 
 		// Get the height data from the area of the polygon.
+		// ポリゴンの領域から高さデータを取得します。
 		hp.xmin = bounds[i * 4 + 0];
 		hp.ymin = bounds[i * 4 + 2];
 		hp.width = bounds[i * 4 + 1] - bounds[i * 4 + 0];
@@ -1289,6 +1328,7 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		getHeightData(ctx, chf, p, npoly, mesh.verts, borderSize, hp, arr, mesh.regs[i]);
 
 		// Build detail mesh.
+		// 詳細メッシュを作成します。
 		int nverts = 0;
 		if (!buildPolyDetail(ctx, poly, npoly,
 			sampleDist, sampleMaxError,

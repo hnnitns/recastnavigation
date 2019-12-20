@@ -75,7 +75,7 @@ static bool isectSegAABB(const float* sp, const float* sq,
 		{
 			// Compute intersection t value of ray with near and far plane of slab
 			// スラブの近いおよび遠い平面とレイの交差t値を計算
-			const float ood = 1.0f / d[i];
+			const float ood = 1.f / d[i];
 			float t1 = (amin[i] - sp[i]) * ood;
 			float t2 = (amax[i] - sp[i]) * ood;
 
@@ -266,7 +266,7 @@ void CrowdToolState::handleRender()
 			const float* pos = ag->corridor.getPos();
 			gridy = dtMax(gridy, pos[1]);
 		}
-		gridy += 1.0f;
+		gridy += 1.f;
 
 		dd.begin(DU_DRAW_QUADS);
 		const dtProximityGrid* grid = crowd->getGrid();
@@ -522,7 +522,7 @@ void CrowdToolState::handleRender()
 
 		duDebugDrawArrow(&dd, pos[0], pos[1] + height, pos[2],
 			pos[0] + dvel[0], pos[1] + height + dvel[1], pos[2] + dvel[2],
-			0.0f, 0.4f, duRGBA(0, 192, 255, 192), (m_agentDebug.idx == i) ? 2.0f : 1.0f);
+			0.0f, 0.4f, duRGBA(0, 192, 255, 192), (m_agentDebug.idx == i) ? 2.0f : 1.f);
 
 		duDebugDrawArrow(&dd, pos[0], pos[1] + height, pos[2],
 			pos[0] + vel[0], pos[1] + height + vel[1], pos[2] + vel[2],
@@ -838,8 +838,10 @@ void CrowdToolState::updateAgentParams()
 void CrowdToolState::updateTick(const float dt)
 {
 	if (!m_sample) return;
+
 	dtNavMesh* nav = m_sample->getNavMesh();
 	dtCrowd* crowd = m_sample->getCrowd();
+
 	if (!nav || !crowd) return;
 
 	TimeVal startTime = getPerfTime();
@@ -939,7 +941,7 @@ void CrowdTool::handleMenu()
 			params->m_obstacleAvoidance = !params->m_obstacleAvoidance;
 			m_state->updateAgentParams();
 		}
-		if (imguiSlider("Avoidance Quality", &params->m_obstacleAvoidanceType, 0.0f, 3.0f, 1.0f))
+		if (imguiSlider("Avoidance Quality", &params->m_obstacleAvoidanceType, 0.0f, 3.0f, 1.f))
 		{
 			m_state->updateAgentParams();
 		}
@@ -1059,7 +1061,7 @@ void CrowdTool::handleStep()
 {
 	if (!m_state) return;
 
-	const float dt = 1.0f / 20.0f;
+	const float dt = 1.f / 20.0f;
 	m_state->updateTick(dt);
 
 	m_state->setRunning(false);

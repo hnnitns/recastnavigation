@@ -51,7 +51,7 @@ static const int MAX_COMMON_NODES = 512;
 
 inline float tween(const float t, const float t0, const float t1)
 {
-	return dtClamp((t - t0) / (t1 - t0), 0.0f, 1.0f);
+	return dtClamp((t - t0) / (t1 - t0), 0.0f, 1.f);
 }
 
 static void integrate(dtCrowdAgent* ag, const float dt)
@@ -122,7 +122,7 @@ static void calcSmoothSteerDirection(const dtCrowdAgent* ag, float* dir)
 	float len0 = dtVlen(dir0);
 	float len1 = dtVlen(dir1);
 	if (len1 > 0.001f)
-		dtVscale(dir1, dir1, 1.0f / len1);
+		dtVscale(dir1, dir1, 1.f / len1);
 
 	dir[0] = dir0[0] - dir1[0] * len0 * 0.5f;
 	dir[1] = 0;
@@ -1203,7 +1203,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		if (ag->params.updateFlags & DT_CROWD_SEPARATION)
 		{
 			const float separationDist = ag->params.collisionQueryRange;
-			const float invSeparationDist = 1.0f / separationDist;
+			const float invSeparationDist = 1.f / separationDist;
 			const float separationWeight = ag->params.separationWeight;
 
 			float w = 0;
@@ -1223,16 +1223,16 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				if (distSqr > dtSqr(separationDist))
 					continue;
 				const float dist = dtMathSqrtf(distSqr);
-				const float weight = separationWeight * (1.0f - dtSqr(dist * invSeparationDist));
+				const float weight = separationWeight * (1.f - dtSqr(dist * invSeparationDist));
 
 				dtVmad(disp, disp, diff, weight / dist);
-				w += 1.0f;
+				w += 1.f;
 			}
 
 			if (w > 0.0001f)
 			{
 				// Adjust desired velocity.
-				dtVmad(dvel, dvel, disp, 1.0f / w);
+				dtVmad(dvel, dvel, disp, 1.f / w);
 				// Clamp desired velocity to desired speed.
 				const float speedSqr = dtVlenSqr(dvel);
 				const float desiredSqr = dtSqr(ag->desiredSpeed);
@@ -1353,17 +1353,17 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				}
 				else
 				{
-					pen = (1.0f / dist) * (pen * 0.5f) * COLLISION_RESOLVE_FACTOR;
+					pen = (1.f / dist) * (pen * 0.5f) * COLLISION_RESOLVE_FACTOR;
 				}
 
 				dtVmad(ag->disp, ag->disp, diff, pen);
 
-				w += 1.0f;
+				w += 1.f;
 			}
 
 			if (w > 0.0001f)
 			{
-				const float iw = 1.0f / w;
+				const float iw = 1.f / w;
 				dtVscale(ag->disp, ag->disp, iw);
 			}
 		}

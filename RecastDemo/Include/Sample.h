@@ -183,7 +183,7 @@ public:
 	void renderOverlayToolStates(double* proj, double* model, int* view);
 
 	void resetCommonSettings();
-	void handleCommonSettings();
+	void handleCommonSettings(); // ‹¤’Ê‚Ìİ’è(Imguiã‚Å‚Ì•ÏX)
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

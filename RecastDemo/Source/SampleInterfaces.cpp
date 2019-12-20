@@ -208,20 +208,20 @@ void DebugDrawGL::begin(duDebugDrawPrimitives prim, float size)
 {
 	switch (prim)
 	{
-	case DU_DRAW_POINTS:
-		glPointSize(size);
-		glBegin(GL_POINTS);
-		break;
-	case DU_DRAW_LINES:
-		glLineWidth(size);
-		glBegin(GL_LINES);
-		break;
-	case DU_DRAW_TRIS:
-		glBegin(GL_TRIANGLES);
-		break;
-	case DU_DRAW_QUADS:
-		glBegin(GL_QUADS);
-		break;
+		case DU_DRAW_POINTS:
+			glPointSize(size);
+			glBegin(GL_POINTS);
+			break;
+		case DU_DRAW_LINES:
+			glLineWidth(size);
+			glBegin(GL_LINES);
+			break;
+		case DU_DRAW_TRIS:
+			glBegin(GL_TRIANGLES);
+			break;
+		case DU_DRAW_QUADS:
+			glBegin(GL_QUADS);
+			break;
 	};
 }
 
@@ -254,8 +254,8 @@ void DebugDrawGL::vertex(const float x, const float y, const float z, unsigned i
 void DebugDrawGL::end()
 {
 	glEnd();
-	glLineWidth(1.0f);
-	glPointSize(1.0f);
+	glLineWidth(1.f);
+	glPointSize(1.f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

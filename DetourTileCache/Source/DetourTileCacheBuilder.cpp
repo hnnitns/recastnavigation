@@ -479,9 +479,9 @@ static bool walkContour(dtTileCacheLayer& layer, int x, int y, dtTempContour& co
 			int pz = y;
 			switch (dir)
 			{
-			case 0: pz++; break;
-			case 1: px++; pz++; break;
-			case 2: px++; break;
+				case 0: pz++; break;
+				case 1: px++; pz++; break;
+				case 2: px++; break;
 			}
 
 			// Try to merge with previous vertex.
@@ -1935,8 +1935,8 @@ dtStatus dtMarkCylinderArea(dtTileCacheLayer& layer, const float* orig, const fl
 
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
-	const float ics = 1.0f / cs;
-	const float ich = 1.0f / ch;
+	const float ics = 1.f / cs;
+	const float ich = 1.f / ch;
 
 	const float px = (pos[0] - orig[0]) * ics;
 	const float pz = (pos[2] - orig[2]) * ics;
@@ -1981,8 +1981,8 @@ dtStatus dtMarkBoxArea(dtTileCacheLayer& layer, const float* orig, const float c
 {
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
-	const float ics = 1.0f / cs;
-	const float ich = 1.0f / ch;
+	const float ics = 1.f / cs;
+	const float ich = 1.f / ch;
 
 	int minx = (int)floorf((bmin[0] - orig[0]) * ics);
 	int miny = (int)floorf((bmin[1] - orig[1]) * ich);

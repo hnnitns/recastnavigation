@@ -223,7 +223,7 @@ void Sample_SoloMesh::handleRender()
 	glEnable(GL_FOG);
 	glDepthMask(GL_TRUE);
 
-	const float texScale = 1.0f / (m_cellSize * 10.0f);
+	const float texScale = 1.f / (m_cellSize * 10.0f);
 
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
@@ -240,7 +240,7 @@ void Sample_SoloMesh::handleRender()
 	// Draw bounds
 	const float* bmin = m_geom->getNavMeshBoundsMin();
 	const float* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.0f);
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
 	m_dd.begin(DU_DRAW_POINTS, 5.0f);
 	m_dd.vertex(bmin[0], bmin[1], bmin[2], duRGBA(255, 255, 255, 128));
 	m_dd.end();
@@ -452,6 +452,7 @@ bool Sample_SoloMesh::handleBuild()
 	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュの面積タイプを計算して、それらをラスタライズできます。
 	memset(m_triareas, 0, ntris * sizeof(unsigned char));
 	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts, nverts, tris, ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
+
 	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, m_triareas, ntris, *m_solid, m_cfg.walkableClimb))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not rasterize triangles.");
@@ -472,30 +473,37 @@ bool Sample_SoloMesh::handleBuild()
 	// remove unwanted overhangs caused by the conservative rasterization
 	// as well as filter spans where the character cannot possibly stand.
 	// すべてのジオメトリがラスタライズされると、フィルタリングの初期パスを実行して、
-	// 保守的なラスタライズによって引き起こされる不要なオーバーハングと、文字が立つことができないフィルタスパンを削除します。
+	// 保守的なラスタライズによって引き起こされる不要なオーバーハングと、キャラが立つことができないフィルタスパンを削除します
 	if (m_filterLowHangingObstacles)
+		// 縁石などの低層の物体や階段などの構造物の上を歩行可能領域の形成を可能にする
 		rcFilterLowHangingWalkableObstacles(m_ctx, m_cfg.walkableClimb, *m_solid);
+
 	if (m_filterLedgeSpans)
+		// 説明を訳すなら出張り部分を削る（主にプレーヤーの幅によって大幅に変わる・ナビメッシュ生成時間にそこそこ影響あり）
 		rcFilterLedgeSpans(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid);
+
 	if (m_filterWalkableLowHeightSpans)
+		// 指定された高さよりも小さい場合、ウォーク可能スパンをウォーク不可としてマークする
 		rcFilterWalkableLowHeightSpans(m_ctx, m_cfg.walkableHeight, *m_solid);
 
 	//
-	// Step 4. Partition walkable surface to simple regions.
+	// Step 4. Partition walkable surface to simple regions. // 歩行可能な表面を単純な領域に分割します。
 	//
 
 	// Compact the heightfield so that it is faster to handle from now on.
 	// This will result more cache coherent data as well as the neighbours
 	// between walkable cells will be calculated.
+	//　ハイトフィールドを圧縮して、今後の処理が高速になるようにします。
+	//　これにより、より多くのキャッシュコヒーレントデータが生成され、ウォーク可能セル間の隣接セルが計算されます。
 	m_chf = rcAllocCompactHeightfield();
 	if (!m_chf)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'."); // メモリー不足「chf」
 		return false;
 	}
 	if (!rcBuildCompactHeightfield(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid, *m_chf))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data."); // コンパクトなデータを構築できませんでした。
 		return false;
 	}
 
@@ -578,7 +586,7 @@ bool Sample_SoloMesh::handleBuild()
 		// 歩行可能な表面に沿って距離フィールドを計算して、領域分割の準備をします。
 		if (!rcBuildDistanceField(m_ctx, *m_chf))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field.");
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした
 			return false;
 		}
 
@@ -586,7 +594,7 @@ bool Sample_SoloMesh::handleBuild()
 		// 歩行可能な表面を、穴のない単純な領域に分割します。
 		if (!rcBuildRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions.");
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした
 			return false;
 		}
 	}
@@ -596,7 +604,7 @@ bool Sample_SoloMesh::handleBuild()
 		// Monotone partitioning does not need distancefield.
 		//歩行可能なサーフェスを、穴のない単純な領域に分割します。
 		//単調な分割は距離フィールドを必要としません。
-		if (!rcBuildRegionsMonotone(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
+		if (!rcBuildRegionsMonotone(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea)) // モノトーン領域を構築できませんでした
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions.");
 			return false;
@@ -606,9 +614,9 @@ bool Sample_SoloMesh::handleBuild()
 	{
 		// Partition the walkable surface into simple regions without holes.
 		// 歩行可能なサーフェスを、穴のない単純な領域に分割します。
-		if (!rcBuildLayerRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea))
+		if (!rcBuildLayerRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea)) //
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions.");
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした
 			return false;
 		}
 	}
@@ -622,12 +630,13 @@ bool Sample_SoloMesh::handleBuild()
 	m_cset = rcAllocContourSet();
 	if (!m_cset)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'cset'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'cset'."); // メモリー不足「cset」
 		return false;
 	}
+
 	if (!rcBuildContours(m_ctx, *m_chf, m_cfg.maxSimplificationError, m_cfg.maxEdgeLen, *m_cset))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours."); // 輪郭を作成できませんでした。
 		return false;
 	}
 
@@ -695,6 +704,7 @@ bool Sample_SoloMesh::handleBuild()
 		int navDataSize = 0;
 
 		// Update poly flags from areas.
+		// エリアからポリゴンフラグを更新します。
 		for (int i = 0; i < m_pmesh->npolys; ++i)
 		{
 			m_pmesh->flags[i] = sampleAreaToFlags(m_pmesh->areas[i]);

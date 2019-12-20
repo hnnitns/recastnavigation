@@ -75,7 +75,7 @@ void drawGraphBackground(const GraphParams* p)
 		snprintf(text, 64, "%.2f %s", v, p->units);
 		const float fy = oy + v * sy;
 		imguiDrawText(p->x + p->w - p->pad, (int)fy - 4, IMGUI_ALIGN_RIGHT, text, imguiRGBA(0, 0, 0, 255));
-		imguiDrawLine((float)p->x + (float)p->pad, fy, (float)p->x + (float)p->w - (float)p->pad - 50, fy, 1.0f, imguiRGBA(0, 0, 0, 64));
+		imguiDrawLine((float)p->x + (float)p->pad, fy, (float)p->x + (float)p->w - (float)p->pad - 50, fy, 1.f, imguiRGBA(0, 0, 0, 64));
 	}
 }
 

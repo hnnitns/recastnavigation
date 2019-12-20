@@ -19,6 +19,8 @@
 #ifndef RECAST_H
 #define RECAST_H
 
+#include <utility>
+#include <algorithm>
 #include "RecastConfig.h"
 
 // The value of PI used by Recast.
@@ -250,127 +252,188 @@ private:
 };
 
 // Specifies a configuration to use when performing Recast builds.
+// リキャストビルドを実行するときに使用する構成を指定します。
 // @ingroup recast
 struct rcConfig
 {
 	// The width of the field along the x-axis. [Limit: >= 0] [Units: vx]
+	// x軸に沿ったフィールドの幅。[制限：> = 0] [単位：vx]
 	int width;
 
 	// The height of the field along the z-axis. [Limit: >= 0] [Units: vx]
+	// z軸に沿ったフィールドの高さ。[制限：> = 0] [単位：vx]
 	int height;
 
 	// The width/height size of tile's on the xz-plane. [Limit: >= 0] [Units: vx]
+	// xz平面上のタイルの幅/高さのサイズ。[制限：> = 0] [単位：vx]
 	int tileSize;
 
 	// The size of the non-navigable border around the heightfield. [Limit: >=0] [Units: vx]
+	// 地形の周りのナビゲートできない境界のサイズ。[制限：> = 0] [単位：vx]
 	int borderSize;
 
 	// The xz-plane cell size to use for fields. [Limit: > 0] [Units: wu]
+	// フィールドに使用するxz平面のセルサイズ。[制限：> 0] [単位：wu]
 	float cs;
 
 	// The y-axis cell size to use for fields. [Limit: > 0] [Units: wu]
+	// フィールドに使用するy軸のセルサイズ。[制限：> 0] [単位：wu]
 	float ch;
 
 	// The minimum bounds of the field's AABB. [(x, y, z)] [Units: wu]
+	// フィールドのAABBの最小境界。[（x、y、z）] [単位：wu]
 	float bmin[3];
 
 	// The maximum bounds of the field's AABB. [(x, y, z)] [Units: wu]
+	// フィールドのAABBの最大境界。[（x、y、z）] [単位：wu]
 	float bmax[3];
 
 	// The maximum slope that is considered walkable. [Limits: 0 <= value < 90] [Units: Degrees]
+	// 歩行可能と見なされる最大勾配。[制限：0 <=値<90] [単位：度]
 	float walkableSlopeAngle;
 
-	// Minimum floor to 'ceiling' height that will still allow the floor area to
-	// be considered walkable. [Limit: >= 3] [Units: vx]
+	// Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable. [Limit: >= 3] [Units: vx]
+	// 床面積が歩行可能と見なされるようにする最小床から「天井」までの高さ。 [制限：> = 3] [単位：vx]
 	int walkableHeight;
 
 	// Maximum ledge height that is considered to still be traversable. [Limit: >=0] [Units: vx]
+	// まだ通過可能であると見なされる最大棚の高さ。[制限：> = 0] [単位：vx]
 	int walkableClimb;
 
-	// The distance to erode/shrink the walkable area of the heightfield away from
-	// obstructions.  [Limit: >=0] [Units: vx]
+	// The distance to erode/shrink the walkable area of the heightfield away from obstructions.  [Limit: >=0] [Units: vx]
+	// 地形の歩行可能領域を障害物から侵食/収縮する距離。 [制限：> = 0] [単位：vx]
 	int walkableRadius;
 
 	// The maximum allowed length for contour edges along the border of the mesh. [Limit: >=0] [Units: vx]
+	// メッシュの境界に沿った輪郭エッジの最大許容長。[制限：> = 0] [単位：vx]
 	int maxEdgeLen;
 
-	// The maximum distance a simplfied contour's border edges should deviate
-	// the original raw contour. [Limit: >=0] [Units: vx]
+	// The maximum distance a simplfied contour's border edges should deviate the original raw contour. [Limit: >=0] [Units: vx]
+	// 単純化された輪郭の境界エッジの最大距離は、元の生の輪郭から逸脱するはずです。 [制限：> = 0] [単位：vx]
 	float maxSimplificationError;
 
 	// The minimum number of cells allowed to form isolated island areas. [Limit: >=0] [Units: vx]
+	// 孤立した島の領域を形成できるセルの最小数。[制限：> = 0] [単位：vx]
 	int minRegionArea;
 
 	// Any regions with a span count smaller than this value will, if possible,
 	// be merged with larger regions. [Limit: >=0] [Units: vx]
+	// 可能な場合、スパンカウントがこの値よりも小さい領域は、より大きな領域とマージされます。 [制限：> = 0] [単位：vx]
 	int mergeRegionArea;
 
 	// The maximum number of vertices allowed for polygons generated during the
 	// contour to polygon conversion process. [Limit: >= 3]
+	// 輪郭からポリゴンへの変換プロセス中に生成されるポリゴンに許可される頂点の最大数。 [制限：> = 3]
 	int maxVertsPerPoly;
 
 	// Sets the sampling distance to use when generating the detail mesh.
 	// (For height detail only.) [Limits: 0 or >= 0.9] [Units: wu]
+	//詳細メッシュを生成するときに使用するサンプリング距離を設定します。（高さの詳細のみ）[制限：0または> = 0.9] [単位：wu]
 	float detailSampleDist;
 
 	// The maximum distance the detail mesh surface should deviate from heightfield
 	// data. (For height detail only.) [Limit: >=0] [Units: wu]
+	// 詳細メッシュの表面が地形データから逸脱する最大距離。（高さの詳細のみ）[制限：> = 0] [単位：wu]
 	float detailSampleMaxError;
 };
 
 // Defines the maximum value for rcSpan::smin and rcSpan::smax.
+// rcSpan :: sminおよびrcSpan :: smaxの最大値を定義します。
 constexpr int RC_SPAN_MAX_HEIGHT = (1 << RC_SPAN_HEIGHT_BITS) - 1;
 
 // The number of spans allocated per span spool.
+// スパンスプールごとに割り当てられたスパンの数。
 // @see rcSpanPool
 constexpr int RC_SPANS_PER_POOL = 2048;
 
 // Represents a span in a heightfield.
+// スパンスプールごとに割り当てられたスパンの数。
 // @see rcHeightfield
 struct rcSpan
 {
-	unsigned int smin : RC_SPAN_HEIGHT_BITS; //< The lower limit of the span. [Limit: < #smax]
-	unsigned int smax : RC_SPAN_HEIGHT_BITS; //< The upper limit of the span. [Limit: <= #RC_SPAN_MAX_HEIGHT]
-	unsigned int area : 6;                   //< The area id assigned to the span.
-	rcSpan* next;                            //< The next span higher up in column.
+	// The lower limit of the span. [Limit: < #smax]
+	// スパンの下限。[制限：<#smax]
+	unsigned int smin : RC_SPAN_HEIGHT_BITS;
+
+	// The upper limit of the span. [Limit: <= #RC_SPAN_MAX_HEIGHT]
+	// スパンの上限。[制限：<= #RC_SPAN_MAX_HEIGHT]
+	unsigned int smax : RC_SPAN_HEIGHT_BITS;
+
+	// The area id assigned to the span.
+	// スパンに割り当てられたエリアID。
+	unsigned int area : 6;
+
+	// The next span higher up in column.
+	// 列の上の次のスパン。
+	rcSpan* next;
 };
 
 // A memory pool used for quick allocation of spans within a heightfield.
+// 地形内のスパンの迅速な割り当てに使用されるメモリプール。
 // @see rcHeightfield
 struct rcSpanPool
 {
-	rcSpanPool* next;					//< The next span pool.
-	rcSpan items[RC_SPANS_PER_POOL];	//< Array of spans in the pool.
+	rcSpanPool* next;					// The next span pool. // 次のスパンプール。
+	rcSpan items[RC_SPANS_PER_POOL];	// Array of spans in the pool. // プール内のスパンの配列。
 };
 
 // A dynamic heightfield representing obstructed space.
+// 遮られた空間を表す動的な地形。
 // @ingroup recast
 struct rcHeightfield
 {
 	rcHeightfield();
 	~rcHeightfield();
 
-	int width;			//< The width of the heightfield. (Along the x-axis in cell units.)
-	int height;			//< The height of the heightfield. (Along the z-axis in cell units.)
-	float bmin[3];  	//< The minimum bounds in world space. [(x, y, z)]
-	float bmax[3];		//< The maximum bounds in world space. [(x, y, z)]
-	float cs;			//< The size of each cell. (On the xz-plane.)
-	float ch;			//< The height of each cell. (The minimum increment along the y-axis.)
-	rcSpan** spans;		//< Heightfield of spans (width*height).
-	rcSpanPool* pools;	//< Linked list of span pools.
-	rcSpan* freelist;	//< The next free span.
+	// The width of the heightfield. (Along the x-axis in cell units.)
+	// 地形の幅。（セル単位のx軸に沿って。）
+	int width;
+
+	// The height of the heightfield. (Along the z-axis in cell units.)
+	// 地形の高さ。（セル単位のz軸に沿って。）
+	int height;
+
+	// The minimum bounds in world space. [(x, y, z)]
+	// ワールド空間の最小境界。[（x、y、z）]
+	float bmin[3];
+
+	// The maximum bounds in world space. [(x, y, z)]
+	// ワールド空間の最大境界。[（x、y、z）]
+	float bmax[3];
+
+	// The size of each cell. (On the xz-plane.)
+	// 各セルのサイズ。（xz平面上。）
+	float cs;
+
+	// The height of each cell. (The minimum increment along the y-axis.)
+	// 各セルの高さ。（y軸に沿った最小増分。）
+	float ch;
+
+	// Heightfield of spans (width*height).
+	// スパンの地形（width * height）。
+	rcSpan** spans;
+
+	// Linked list of span pools.
+	// スパンプールのリンクリスト。
+	rcSpanPool* pools;
+
+	// The next free span.
+	// 次の空きスパン。
+	rcSpan* freelist;
 
 private:
 	// Explicitly-disabled copy constructor and copy assignment operator.
-	rcHeightfield(const rcHeightfield&);
-	rcHeightfield& operator=(const rcHeightfield&);
+	// 明示的に無効化されたコピーコンストラクターとコピー割り当て演算子。
+	rcHeightfield(const rcHeightfield&) = delete;
+	rcHeightfield& operator=(const rcHeightfield&) = delete;
 };
 
 // Provides information on the content of a cell column in a compact heightfield.
+// コンパクトな地形のセル列のコンテンツに関する情報を提供します。
 struct rcCompactCell
 {
-	unsigned int index : 24;	//< Index to the first span in the column.
-	unsigned int count : 8;		//< Number of spans in the column.
+	unsigned int index : 24;	// Index to the first span in the column. // 列の最初のスパンへのインデックス。
+	unsigned int count : 8;		// Number of spans in the column. // 列内のスパンの数。
 };
 
 // Represents a span of unobstructed space within a compact heightfield.
@@ -380,17 +443,21 @@ struct rcCompactSpan
 	// The lower extent of the span. (Measured from the heightfield's base.)
 	// スパンの下限。（ハイトフィールドのベースから測定。）
 	unsigned short y;
+
 	// The id of the region the span belongs to. (Or zero if not in a region.)
 	// スパンが属する領域のID。（または、地域にない場合はゼロ。）
 	unsigned short reg;
+
 	// Packed neighbor connection data.
 	// パックされたネイバー接続データ。
 	unsigned int con : 24;
+
 	// The height of the span.  (Measured from #y.)
 	// スパンの高さ。（#yから測定）
 	unsigned int h : 8;
 };
 
+// 遮られていない空間を表すコンパクトで静的な地形。
 // A compact, static heightfield representing unobstructed space.
 // @ingroup recast
 struct rcCompactHeightfield
@@ -398,72 +465,132 @@ struct rcCompactHeightfield
 	// The width of the heightfield. (Along the x-axis in cell units.)
 	// 地形の幅。（セル単位のx軸に沿って）
 	int width;
+
 	// The height of the heightfield. (Along the z-axis in cell units.)
 	// 地形の高さ。（セル単位のz軸に沿って）
 	int height;
+
 	// The number of spans in the heightfield.
 	// 地形のスパン(人間の手を基準とした長さの単位)の数
 	int spanCount;
+
 	// The walkable height used during the build of the field.  (See: rcConfig::walkableHeight)
 	// フィールドの構築中に使用される歩行可能な高さ
 	int walkableHeight;
+
 	// The walkable climb used during the build of the field. (See: rcConfig::walkableClimb)
 	// フィールドの構築中に使用される歩行可能な上昇
 	int walkableClimb;
+
 	// The AABB border size used during the build of the field. (See: rcConfig::borderSize)
 	// フィールドのビルド中に使用されるAABB境界サイズ
 	int borderSize;
+
 	// The maximum distance value of any span within the field.
 	// フィールド内の任意のスパンの最大距離値
 	unsigned short maxDistance;
+
 	// The maximum region id of any span within the field.
 	// フィールド内の任意のスパンの最大領域ID
 	unsigned short maxRegions;
+
 	// The minimum bounds in world space. [(x, y, z)]
 	// ワールド空間の最小境界。[（x、y、z）]
 	float bmin[3];
+
 	// The maximum bounds in world space. [(x, y, z)]
 	// ワールド空間の最大境界。[（x、y、z）]
 	float bmax[3];
+
 	// The size of each cell. (On the xz-plane.)
 	// 各セルのサイズ。（xz平面上。）
 	float cs;
-	// The height of each cell. (The minimum increment along the y-axis.)
+
+	// The height ofeach cell. (The minimum increment along the y-axis.)
 	// 各セルの高さ。（y軸に沿った最小増分。）
 	float ch;
+
 	// Array of cells. [Size: #width*#height]
 	// セルの配列
 	rcCompactCell* cells;
+
 	// Array of spans. [Size: #spanCount]
 	// スパンの配列
 	rcCompactSpan* spans;
+
 	// Array containing border distance data. [Size: #spanCount]
 	// 境界距離データを含む配列
 	unsigned short* dist;
+
 	// Array containing area id data. [Size: #spanCount]
 	// エリアIDデータを含む配列
 	unsigned char* areas;
 };
 
 // Represents a heightfield layer within a layer set.
+// レイヤーセット内の地形レイヤーを表します。
 // @see rcHeightfieldLayerSet
 struct rcHeightfieldLayer
 {
-	float bmin[3];				//< The minimum bounds in world space. [(x, y, z)]
-	float bmax[3];				//< The maximum bounds in world space. [(x, y, z)]
-	float cs;					//< The size of each cell. (On the xz-plane.)
-	float ch;					//< The height of each cell. (The minimum increment along the y-axis.)
-	int width;					//< The width of the heightfield. (Along the x-axis in cell units.)
-	int height;					//< The height of the heightfield. (Along the z-axis in cell units.)
-	int minx;					//< The minimum x-bounds of usable data.
-	int maxx;					//< The maximum x-bounds of usable data.
-	int miny;					//< The minimum y-bounds of usable data. (Along the z-axis.)
-	int maxy;					//< The maximum y-bounds of usable data. (Along the z-axis.)
-	int hmin;					//< The minimum height bounds of usable data. (Along the y-axis.)
-	int hmax;					//< The maximum height bounds of usable data. (Along the y-axis.)
-	unsigned char* heights;		//< The heightfield. [Size: width * height]
-	unsigned char* areas;		//< Area ids. [Size: Same as #heights]
-	unsigned char* cons;		//< Packed neighbor connection information. [Size: Same as #heights]
+	// The minimum bounds in world space. [(x, y, z)]
+	// ワールド空間の最小境界。[（x、y、z）]
+	float bmin[3];
+
+	// The maximum bounds in world space. [(x, y, z)]
+	// ワールド空間の最大境界。[（x、y、z）]
+	float bmax[3];
+
+	// The size of each cell. (On the xz-plane.)
+	// 各セルのサイズ。（xz平面上）
+	float cs;
+
+	// The height of each cell. (The minimum increment along the y-axis.)
+	// 各セルの高さ。（y軸に沿った最小増分）
+	float ch;
+
+	// The width of the heightfield. (Along the x-axis in cell units.)
+	// 地形の幅。（セル単位のx軸に沿う）
+	int width;
+
+	// The height of the heightfield. (Along the z-axis in cell units.)
+	// 地形の高さ。（セル単位のz軸に沿う）
+	int height;
+
+	// The minimum x-bounds of usable data.
+	// 使用可能なデータの最小x境界。
+	int minx;
+
+	// The maximum x-bounds of usable data.
+	// 使用可能なデータの最大x境界。
+	int maxx;
+
+	// The minimum y-bounds of usable data. (Along the z-axis.)
+	// 使用可能なデータの最小y境界。（z軸に沿う）
+	int miny;
+
+	// The maximum y-bounds of usable data. (Along the z-axis.)
+	// 使用可能なデータの最大y境界。（z軸に沿う）
+	int maxy;
+
+	// The minimum height bounds of usable data. (Along the y-axis.)
+	// 使用可能なデータの最小の高さの境界。（y軸に沿う）
+	int hmin;
+
+	// The maximum height bounds of usable data. (Along the y-axis.)
+	// 使用可能なデータの最大高さの境界。（y軸に沿う）
+	int hmax;
+
+	// The heightfield. [Size: width * height]
+	// 地形。[サイズ：幅 * 高さ]
+	unsigned char* heights;
+
+	// Area ids. [Size: Same as #heights]
+	// エリアID。[サイズ：#heightsと同じ]
+	unsigned char* areas;
+
+	// Packed neighbor connection information. [Size: Same as #heights]
+	// パックされたネイバー接続情報。[サイズ：#heightsと同じ]
+	unsigned char* cons;
 };
 
 // Represents a set of heightfield layers.
@@ -472,69 +599,180 @@ struct rcHeightfieldLayer
 // @see rcAllocHeightfieldLayerSet, rcFreeHeightfieldLayerSet
 struct rcHeightfieldLayerSet
 {
-	rcHeightfieldLayer* layers;			//< The layers in the set. [Size: #nlayers]
-	int nlayers;						//< The number of layers in the set.
+	rcHeightfieldLayer* layers;			// The layers in the set. [Size: #nlayers] // セット内のレイヤー。[サイズ：#nlayers]
+	int nlayers;						// The number of layers in the set. // セット内のレイヤーの数。
 };
 
 // Represents a simple, non-overlapping contour in field space.
+// フィールド空間内の単純な重複しない輪郭を表します。
 struct rcContour
 {
-	int* verts;			//< Simplified contour vertex and connection data. [Size: 4 * #nverts]
-	int nverts;			//< The number of vertices in the simplified contour.
-	int* rverts;		//< Raw contour vertex and connection data. [Size: 4 * #nrverts]
-	int nrverts;		//< The number of vertices in the raw contour.
-	unsigned short reg;	//< The region id of the contour.
-	unsigned char area;	//< The area id of the contour.
+	// Simplified contour vertex and connection data. [Size: 4 * #nverts]
+	// 簡略化された輪郭の頂点と接続データ。[サイズ：4 * #nverts]
+	int* verts;
+
+	// The number of vertices in the simplified contour.
+	// 単純化された輪郭の頂点の数。
+	int nverts;
+
+	// Raw contour vertex and connection data. [Size: 4 * #nrverts]
+	// 生の輪郭の頂点と接続データ。[サイズ：4 * #nrverts]
+	int* rverts;
+
+	// The number of vertices in the raw contour.
+	// 生の輪郭の頂点の数。
+	int nrverts;
+
+	// The region id of the contour.
+	// 輪郭の領域ID。
+	unsigned short reg;
+
+	// The area id of the contour.
+	// 輪郭のエリアID。
+	unsigned char area;
 };
 
 // Represents a group of related contours.
+// 関連する輪郭のグループを表します。
 // @ingroup recast
 struct rcContourSet
 {
-	rcContour* conts;	//< An array of the contours in the set. [Size: #nconts]
-	int nconts;			//< The number of contours in the set.
-	float bmin[3];  	//< The minimum bounds in world space. [(x, y, z)]
-	float bmax[3];		//< The maximum bounds in world space. [(x, y, z)]
-	float cs;			//< The size of each cell. (On the xz-plane.)
-	float ch;			//< The height of each cell. (The minimum increment along the y-axis.)
-	int width;			//< The width of the set. (Along the x-axis in cell units.)
-	int height;			//< The height of the set. (Along the z-axis in cell units.)
-	int borderSize;		//< The AABB border size used to generate the source data from which the contours were derived.
-	float maxError;		//< The max edge error that this contour set was simplified with.
+	// An array of the contours in the set. [Size: #nconts]
+	// セット内の輪郭の配列。[サイズ：#nconts]
+	rcContour* conts;
+
+	// The number of contours in the set.
+	// セット内の輪郭の数。
+	int nconts;
+
+	// The minimum bounds in world space. [(x, y, z)]
+	// ワールド空間の最小境界。[（x、y、z）]
+	float bmin[3];
+
+	// The maximum bounds in world space. [(x, y, z)]
+	// ワールド空間の最大境界。[（x、y、z）]
+	float bmax[3];
+
+	// The size of each cell. (On the xz-plane.)
+	// 各セルのサイズ。（xz平面上）
+	float cs;
+
+	// The height of each cell. (The minimum increment along the y-axis.)
+	// 各セルの高さ。（y軸に沿った最小増分）
+	float ch;
+
+	// The width of the set. (Along the x-axis in cell units.)
+	// セットの幅。（セル単位のx軸に沿う）
+	int width;
+
+	// The height of the set. (Along the z-axis in cell units.)
+	// セットの高さ。（セル単位のz軸に沿う）
+	int height;
+
+	// The AABB border size used to generate the source data from which the contours were derived.
+	// 輪郭の派生元のソースデータを生成するために使用されるAABB境界サイズ。
+	int borderSize;
+
+	// The max edge error that this contour set was simplified with.
+	// この輪郭セットが単純化された最大エッジエラー。
+	float maxError;
 };
 
 // Represents a polygon mesh suitable for use in building a navigation mesh.
+// ナビゲーションメッシュの構築に使用するのに適したポリゴンメッシュを表します。
 // @ingroup recast
 struct rcPolyMesh
 {
-	unsigned short* verts;	//< The mesh vertices. [Form: (x, y, z) * #nverts]
-	unsigned short* polys;	//< Polygon and neighbor data. [Length: #maxpolys * 2 * #nvp]
-	unsigned short* regs;	//< The region id assigned to each polygon. [Length: #maxpolys]
-	unsigned short* flags;	//< The user defined flags for each polygon. [Length: #maxpolys]
-	unsigned char* areas;	//< The area id assigned to each polygon. [Length: #maxpolys]
-	int nverts;				//< The number of vertices.
-	int npolys;				//< The number of polygons.
-	int maxpolys;			//< The number of allocated polygons.
-	int nvp;				//< The maximum number of vertices per polygon.
-	float bmin[3];			//< The minimum bounds in world space. [(x, y, z)]
-	float bmax[3];			//< The maximum bounds in world space. [(x, y, z)]
-	float cs;				//< The size of each cell. (On the xz-plane.)
-	float ch;				//< The height of each cell. (The minimum increment along the y-axis.)
-	int borderSize;			//< The AABB border size used to generate the source data from which the mesh was derived.
-	float maxEdgeError;		//< The max error of the polygon edges in the mesh.
+	// The mesh vertices. [Form: (x, y, z) * #nverts]
+	// メッシュの頂点。[形式：（x、y、z）* #nverts]
+	unsigned short* verts;
+
+	// Polygon and neighbor data. [Length: #maxpolys * 2 * #nvp]
+	// ポリゴンと近傍データ。[長さ：#maxpolys * 2 * #nvp]
+	unsigned short* polys;
+
+	// The region id assigned to each polygon. [Length: #maxpolys]
+	// 各ポリゴンに割り当てられたリージョンID。[長さ：#maxpolys]
+	unsigned short* regs;
+
+	// The user defined flags for each polygon. [Length: #maxpolys]
+	// 各ポリゴンのユーザー定義フラグ。[長さ：#maxpolys]
+	unsigned short* flags;
+
+	// The area id assigned to each polygon. [Length: #maxpolys]
+	// 各ポリゴンに割り当てられたエリアID。[長さ：#maxpolys]
+	unsigned char* areas;
+
+	// The number of vertices.
+	// 頂点の数。
+	int nverts;
+
+	// The number of polygons.
+	// ポリゴンの数。
+	int npolys;
+
+	// The number of allocated polygons.
+	// 割り当てられたポリゴンの数。
+	int maxpolys;
+
+	// The maximum number of vertices per polygon.
+	// ポリゴンごとの頂点の最大数。
+	int nvp;
+
+	// The minimum bounds in world space. [(x, y, z)]
+	// ワールド空間の最小境界。[（x、y、z）]
+	float bmin[3];
+
+	// The maximum bounds in world space. [(x, y, z)]
+	// ワールド空間の最大境界。[（x、y、z）]
+	float bmax[3];
+
+	// The size of each cell. (On the xz-plane.)
+	// 各セルのサイズ。（xz平面上。）
+	float cs;
+
+	// The height of each cell. (The minimum increment along the y-axis.)
+	// 各セルの高さ。（y軸に沿った最小増分。）
+	float ch;
+
+	// The AABB border size used to generate the source data from which the mesh was derived.
+	// メッシュの派生元のソースデータを生成するために使用されるAABB境界サイズ。
+	int borderSize;
+
+	// The max error of the polygon edges in the mesh.
+	// メッシュ内のポリゴンエッジの最大誤差。
+	float maxEdgeError;
 };
 
 // Contains triangle meshes that represent detailed height data associated
 // with the polygons in its associated polygon mesh object.
+// 関連付けられたポリゴンメッシュオブジェクト内のポリゴンに関連付けられた詳細な高さデータを表す三角形メッシュが含まれます。
 // @ingroup recast
 struct rcPolyMeshDetail
 {
-	unsigned int* meshes;	//< The sub-mesh data. [Size: 4*#nmeshes]
-	float* verts;			//< The mesh vertices. [Size: 3*#nverts]
-	unsigned char* tris;	//< The mesh triangles. [Size: 4*#ntris]
-	int nmeshes;			//< The number of sub-meshes defined by #meshes.
-	int nverts;				//< The number of vertices in #verts.
-	int ntris;				//< The number of triangles in #tris.
+	// The sub-mesh data. [Size: 4*#nmeshes]
+	// サブメッシュデータ。[サイズ：4 *＃nmeshes]
+	unsigned int* meshes;
+
+	// The mesh vertices. [Size: 3*#nverts]
+	// メッシュの頂点。[サイズ：3 *＃nverts]
+	float* verts;
+
+	// The mesh triangles. [Size: 4*#ntris]
+	// メッシュの三角形。[サイズ：4 *＃ntris]
+	unsigned char* tris;
+
+	// The number of sub-meshes defined by #meshes.
+	// #meshesで定義されたサブメッシュの数。
+	int nmeshes;
+
+	// The number of vertices in #verts.
+	// #vertsの頂点の数。
+	int nverts;
+
+	// The number of triangles in #tris.
+	// #trisの三角形の数。
+	int ntris;
 };
 
 constexpr unsigned char RC_AREA_FLAGS_MASK = 0x3F;
@@ -544,10 +782,14 @@ class rcAreaModification
 {
 public:
 	// Mask is set to all available bits, which means value is fully applied
+	// マスクは使用可能なすべてのビットに設定されます。つまり、値は完全に適用されます
 	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
+	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
 	rcAreaModification(unsigned char value);
 	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
+	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
 	//  @param[in] mask	Bitwise mask used when applying value. [Limit: <= #RC_AREA_FLAGS_MASK]
+	//  @param [in] mask値を適用するときに使用されるビット単位のマスク。 [制限：<= #RC_AREA_FLAGS_MASK]
 	rcAreaModification(unsigned char value, unsigned char mask);
 	rcAreaModification(const rcAreaModification& other);
 	void operator = (const rcAreaModification& other);
@@ -556,22 +798,27 @@ public:
 	void apply(unsigned char& area) const;
 	unsigned char getMaskedValue() const;
 
-	unsigned char m_value;	//< Value to apply to target area id
-	unsigned char m_mask;	//< Bitwise mask used when applying value to target area id
+	unsigned char m_value;	// Value to apply to target area id // ターゲットエリアIDに適用する値
+	unsigned char m_mask;	// Bitwise mask used when applying value to target area id //ターゲットエリアIDに値を適用するときに使用されるビット単位のマスク
 };
 
 // @name Allocation Functions
 // Functions used to allocate and de-allocate Recast objects.
+// Recastオブジェクトの割り当てと割り当て解除に使用される関数。
 // @see rcAllocSetCustom
 // @{
 // Allocates a heightfield object using the Recast allocator.
+// Recastアロケーターを使用して、heightfieldオブジェクトを割り当てます。
 //  @return A heightfield that is ready for initialization, or null on failure.
+//	初期化の準備ができている高さフィールド、または失敗した場合はnull。
 //  @ingroup recast
 //  @see rcCreateHeightfield, rcFreeHeightField
 rcHeightfield* rcAllocHeightfield();
 
 // Frees the specified heightfield object using the Recast allocator.
+// Recastアロケーターを使用して、指定されたheightfieldオブジェクトを解放します。
 //  @param[in]		hf	A heightfield allocated using #rcAllocHeightfield
+//  #rcAllocHeightfieldを使用して割り当てられた高さフィールド
 //  @ingroup recast
 //  @see rcAllocHeightfield
 void rcFreeHeightField(rcHeightfield* hf);
@@ -585,7 +832,9 @@ void rcFreeHeightField(rcHeightfield* hf);
 rcCompactHeightfield* rcAllocCompactHeightfield();
 
 // Frees the specified compact heightfield object using the Recast allocator.
+// Recastアロケーターを使用して、指定されたコンパクトなheightfieldオブジェクトを解放します。
 //  @param[in]		chf		A compact heightfield allocated using #rcAllocCompactHeightfield
+//  #rcAllocCompactHeightfieldを使用して割り当てられたコンパクトな高さフィールド
 //  @ingroup recast
 //  @see rcAllocCompactHeightfield
 void rcFreeCompactHeightfield(rcCompactHeightfield* chf);
@@ -599,43 +848,57 @@ void rcFreeCompactHeightfield(rcCompactHeightfield* chf);
 rcHeightfieldLayerSet* rcAllocHeightfieldLayerSet();
 
 // Frees the specified heightfield layer set using the Recast allocator.
+// Recastアロケーターを使用して、指定されたheightfieldレイヤーセットを解放します。
 //  @param[in]		lset	A heightfield layer set allocated using #rcAllocHeightfieldLayerSet
+//  #rcAllocHeightfieldLayerSetを使用して割り当てられた高さフィールドレイヤーセット
 //  @ingroup recast
 //  @see rcAllocHeightfieldLayerSet
 void rcFreeHeightfieldLayerSet(rcHeightfieldLayerSet* lset);
 
 // Allocates a contour set object using the Recast allocator.
+// Recastアロケーターを使用して輪郭セットオブジェクトを割り当てます。
 //  @return A contour set that is ready for initialization, or null on failure.
+//  初期化の準備ができている輪郭セット、または失敗した場合はnull。
 //  @ingroup recast
 //  @see rcBuildContours, rcFreeContourSet
 rcContourSet* rcAllocContourSet();
 
 // Frees the specified contour set using the Recast allocator.
+// Recastアロケーターを使用して、指定された輪郭セットを解放します。
 //  @param[in]		cset	A contour set allocated using #rcAllocContourSet
+//  @param[in]		#rcAllocContourSetを使用して割り当てられた輪郭セット
 //  @ingroup recast
 //  @see rcAllocContourSet
 void rcFreeContourSet(rcContourSet* cset);
 
 // Allocates a polygon mesh object using the Recast allocator.
+// Recastアロケーターを使用してポリゴンメッシュオブジェクトを割り当てます。
 //  @return A polygon mesh that is ready for initialization, or null on failure.
+//  初期化の準備ができているポリゴンメッシュ、または失敗した場合はnull。
 //  @ingroup recast
 //  @see rcBuildPolyMesh, rcFreePolyMesh
 rcPolyMesh* rcAllocPolyMesh();
 
 // Frees the specified polygon mesh using the Recast allocator.
+// Recastアロケーターを使用して、指定されたポリゴンメッシュを解放します。
 //  @param[in]		pmesh	A polygon mesh allocated using #rcAllocPolyMesh
+//  #rcAllocPolyMeshを使用して割り当てられたポリゴンメッシュ
 //  @ingroup recast
 //  @see rcAllocPolyMesh
 void rcFreePolyMesh(rcPolyMesh* pmesh);
 
 // Allocates a detail mesh object using the Recast allocator.
+// Recastアロケーターを使用して詳細メッシュオブジェクトを割り当てます。
 //  @return A detail mesh that is ready for initialization, or null on failure.
+//  初期化の準備ができている詳細メッシュ、または失敗した場合はnull。
 //  @ingroup recast
 //  @see rcBuildPolyMeshDetail, rcFreePolyMeshDetail
 rcPolyMeshDetail* rcAllocPolyMeshDetail();
 
 // Frees the specified detail mesh using the Recast allocator.
+// Recastアロケーターを使用して、指定された詳細メッシュを解放します。
 //  @param[in]		dmesh	A detail mesh allocated using #rcAllocPolyMeshDetail
+//  #rcAllocPolyMeshDetailを使用して割り当てられた詳細メッシュ
 //  @ingroup recast
 //  @see rcAllocPolyMeshDetail
 void rcFreePolyMeshDetail(rcPolyMeshDetail* dmesh);
@@ -644,8 +907,7 @@ void rcFreePolyMeshDetail(rcPolyMeshDetail* dmesh);
 
 // Heighfield border flag.
 // 地形境界フラグ。
-// If a heightfield region ID has this bit set, then the region is a border
-// region and its spans are considered unwalkable.
+// If a heightfield region ID has this bit set, then the region is a border region and its spans are considered unwalkable.
 // 地形の領域IDにこのビットが設定されている場合、その領域は境界領域であり、そのスパンは歩行不能と見なされます。
 // (Used during the region and contour build process.)
 //（領域および輪郭の構築プロセス中に使用されます。）
@@ -654,8 +916,7 @@ constexpr unsigned short RC_BORDER_REG = 0x8000;
 
 // Polygon touches multiple regions.
 // ポリゴンは複数の領域に接触します。
-// If a polygon has this region ID it was merged with or created
-// from polygons of different regions during the polymesh
+// If a polygon has this region ID it was merged with or created from polygons of different regions during the polymesh
 // build step that removes redundant border vertices.
 // ポリゴンにこの領域IDがある場合、冗長な境界頂点を削除するpolymeshビルドステップ中に、異なる領域のポリゴンとマージまたは作成されました。
 // (Used during the polymesh and detail polymesh build processes)
@@ -665,12 +926,12 @@ constexpr unsigned short RC_MULTIPLE_REGS = 0;
 
 // Border vertex flag.
 // 境界頂点フラグ。
-// If a region ID has this bit set, then the associated element lies on
-// a tile border. If a contour vertex's region ID has this bit set, the
-// vertex will later be removed in order to match the segments and vertices
-// at tile boundaries.
+// If a region ID has this bit set, then the associated element lies on a tile border.
 // 領域IDにこのビットが設定されている場合、関連する要素はタイルの境界線上にあります。
-// 等高線の頂点の領域IDにこのビットが設定されている場合、タイルの境界でセグメントと頂点を一致させるために、後で頂点が削除されます。
+// If a contour vertex's region ID has this bit set,
+// 等高線の頂点の領域IDにこのビットが設定されている場合、
+// the vertex will later be removed in order to match the segments and vertices at tile boundaries.
+// タイルの境界でセグメントと頂点を一致させるために、後で頂点が削除されます。
 // (Used during the build process.)
 //（ビルドプロセス中に使用されます。）
 // @see rcCompactSpan::reg, #rcContour::verts, #rcContour::rverts
@@ -699,16 +960,17 @@ enum rcBuildContoursFlags
 
 // Applied to the region id field of contour vertices in order to extract the region id.
 // 領域IDを抽出するために、輪郭頂点の領域IDフィールドに適用されます。
-// The region id field of a vertex may have several flags applied to it.  So the
-// fields value can't be used directly.
+// The region id field of a vertex may have several flags applied to it.
 // 頂点の領域IDフィールドには、いくつかのフラグが適用される場合があります。
+// So the fields value can't be used directly.
 // そのため、フィールドの値を直接使用することはできません。
 // @see rcContour::verts, rcContour::rverts
 constexpr int RC_CONTOUR_REG_MASK = 0xffff;
 
 // An value which indicates an invalid index within a mesh.
 // メッシュ内の無効なインデックスを示す値。
-// @note This does not necessarily indicate an error. // これは必ずしもエラーを示しているわけではありません。
+// @note This does not necessarily indicate an error.
+// これは必ずしもエラーを示しているわけではありません。
 // @see rcPolyMesh::polys
 constexpr unsigned short RC_MESH_NULL_IDX = 0xffff;
 
@@ -732,47 +994,53 @@ constexpr int RC_NOT_CONNECTED = 0x3f;
 
 // @name General helper functions
 // @{
-// Used to ignore a function parameter.  VS complains about unused parameters
-// and this silences the warning.
+// Used to ignore a function parameter. VS complains about unused parameters and this silences the warning.
 // 関数パラメーターを無視するために使用されます。 VSは未使用のパラメーターについて不平を言っており、これは警告を黙らせます。
 //  @param [in] _ Unused parameter
 template<class T> void rcIgnoreUnused(const T&) { }
 
 // Swaps the values of the two parameters.
+// 2つのパラメーターの値を交換します。
 //  @param[in,out]	a	Value A
 //  @param[in,out]	b	Value B
-template<class T> inline void rcSwap(T& a, T& b) { T t = a; a = b; b = t; }
+template<class T> inline void rcSwap(T& a, T& b) { std::swap(a, b); }
 
 // Returns the minimum of two values.
+// 最小の2つの値を返します。
 //  @param[in]		a	Value A
 //  @param[in]		b	Value B
 //  @return The minimum of the two values.
-template<class T> inline T rcMin(T a, T b) { return a < b ? a : b; }
+template<class T> inline constexpr T rcMin(T a, T b) { return (std::min)(a, b); }
 
 // Returns the maximum of two values.
+// 最大2つの値を返します。
 //  @param[in]		a	Value A
 //  @param[in]		b	Value B
 //  @return The maximum of the two values.
-template<class T> inline T rcMax(T a, T b) { return a > b ? a : b; }
+template<class T> inline constexpr T rcMax(T a, T b) { return (std::max)(a, b); }
 
 // Returns the absolute value.
+// 絶対値を返します。
 //  @param[in]		a	The value.
 //  @return The absolute value of the specified value.
-template<class T> inline T rcAbs(T a) { return a < 0 ? -a : a; }
+template<class T> inline constexpr T rcAbs(T a) { return a < 0 ? -a : a; }
 
 // Returns the square of the value.
+// 値の二乗を返します。
 //  @param[in]		a	The value.
 //  @return The square of the value.
-template<class T> inline T rcSqr(T a) { return a * a; }
+template<class T> inline constexpr T rcSqr(T a) { return a * a; }
 
 // Clamps the value to the specified range.
+// 指定した範囲に値をクランプします。
 //  @param[in]		v	The value to clamp.
 //  @param[in]		mn	The minimum permitted return value.
 //  @param[in]		mx	The maximum permitted return value.
 //  @return The value, clamped to the specified range.
-template<class T> inline T rcClamp(T v, T mn, T mx) { return v < mn ? mn : (v > mx ? mx : v); }
+template<class T> inline constexpr T rcClamp(T v, T mn, T mx) { return v < mn ? mn : (v > mx ? mx : v); }
 
 // Returns the square root of the value.
+// 値の平方根を返します。
 //  @param[in]		x	The value.
 //  @return The square root of the vlaue.
 float rcSqrt(float x);
@@ -781,10 +1049,11 @@ float rcSqrt(float x);
 // @name Vector helper functions.
 // @{
 // Derives the cross product of two vectors. (@p v1 x @p v2)
+// 2つのベクトルの外積を導出します。
 //  @param[out]	dest	The cross product. [(x, y, z)]
 //  @param[in]		v1		A Vector [(x, y, z)]
 //  @param[in]		v2		A vector [(x, y, z)]
-inline void rcVcross(float* dest, const float* v1, const float* v2)
+inline constexpr void rcVcross(float* dest, const float* v1, const float* v2)
 {
 	dest[0] = v1[1] * v2[2] - v1[2] * v2[1];
 	dest[1] = v1[2] * v2[0] - v1[0] * v2[2];
@@ -792,20 +1061,26 @@ inline void rcVcross(float* dest, const float* v1, const float* v2)
 }
 
 // Derives the dot product of two vectors. (@p v1 . @p v2)
+// 2つのベクトルのドット積を導出します。
 //  @param[in]		v1	A Vector [(x, y, z)]
 //  @param[in]		v2	A vector [(x, y, z)]
 // @return The dot product.
-inline float rcVdot(const float* v1, const float* v2)
+inline constexpr float rcVdot(const float* v1, const float* v2)
 {
 	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
 // Performs a scaled vector addition. (@p v1 + (@p v2 * @p s))
+// スケーリングされたベクトル加算を実行します。
 //  @param[out]	dest	The result vector. [(x, y, z)]
+//  結果ベクトル。[（x、y、z）]
 //  @param[in]		v1		The base vector. [(x, y, z)]
+//  ベースベクトル。[（x、y、z）]
 //  @param[in]		v2		The vector to scale and add to @p v1. [(x, y, z)]
+//  スケーリングして@p v1に追加するベクトル。[（x、y、z）]
 //  @param[in]		s		The amount to scale @p v2 by before adding to @p v1.
-inline void rcVmad(float* dest, const float* v1, const float* v2, const float s)
+//  v1に追加する前に@p v2をスケーリングする量。
+inline constexpr void rcVmad(float* dest, const float* v1, const float* v2, const float s)
 {
 	dest[0] = v1[0] + v2[0] * s;
 	dest[1] = v1[1] + v2[1] * s;
@@ -813,10 +1088,11 @@ inline void rcVmad(float* dest, const float* v1, const float* v2, const float s)
 }
 
 // Performs a vector addition. (@p v1 + @p v2)
+// ベクトルの加算を実行します。（@p v1 + @p v2）
 //  @param[out]	dest	The result vector. [(x, y, z)]
 //  @param[in]		v1		The base vector. [(x, y, z)]
 //  @param[in]		v2		The vector to add to @p v1. [(x, y, z)]
-inline void rcVadd(float* dest, const float* v1, const float* v2)
+inline constexpr void rcVadd(float* dest, const float* v1, const float* v2)
 {
 	dest[0] = v1[0] + v2[0];
 	dest[1] = v1[1] + v2[1];
@@ -824,10 +1100,11 @@ inline void rcVadd(float* dest, const float* v1, const float* v2)
 }
 
 // Performs a vector subtraction. (@p v1 - @p v2)
+// ベクトル減算を実行します。（@p v1-@p v2）
 //  @param[out]	dest	The result vector. [(x, y, z)]
 //  @param[in]		v1		The base vector. [(x, y, z)]
 //  @param[in]		v2		The vector to subtract from @p v1. [(x, y, z)]
-inline void rcVsub(float* dest, const float* v1, const float* v2)
+inline constexpr void rcVsub(float* dest, const float* v1, const float* v2)
 {
 	dest[0] = v1[0] - v2[0];
 	dest[1] = v1[1] - v2[1];
@@ -835,9 +1112,10 @@ inline void rcVsub(float* dest, const float* v1, const float* v2)
 }
 
 // Selects the minimum value of each element from the specified vectors.
+// 指定されたベクトルから各要素の最小値を選択します。
 //  @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
 //  @param[in]		v	A vector. [(x, y, z)]
-inline void rcVmin(float* mn, const float* v)
+inline constexpr void rcVmin(float* mn, const float* v)
 {
 	mn[0] = rcMin(mn[0], v[0]);
 	mn[1] = rcMin(mn[1], v[1]);
@@ -845,9 +1123,10 @@ inline void rcVmin(float* mn, const float* v)
 }
 
 // Selects the maximum value of each element from the specified vectors.
+// 指定されたベクトルから各要素の最大値を選択します。
 //  @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
 //  @param[in]		v	A vector. [(x, y, z)]
-inline void rcVmax(float* mx, const float* v)
+inline constexpr void rcVmax(float* mx, const float* v)
 {
 	mx[0] = rcMax(mx[0], v[0]);
 	mx[1] = rcMax(mx[1], v[1]);
@@ -855,9 +1134,10 @@ inline void rcVmax(float* mx, const float* v)
 }
 
 // Performs a vector copy.
+// ベクターコピーを実行します。
 //  @param[out]	dest	The result. [(x, y, z)]
 //  @param[in]		v		The vector to copy. [(x, y, z)]
-inline void rcVcopy(float* dest, const float* v)
+inline constexpr void rcVcopy(float* dest, const float* v)
 {
 	dest[0] = v[0];
 	dest[1] = v[1];
@@ -865,6 +1145,7 @@ inline void rcVcopy(float* dest, const float* v)
 }
 
 // Returns the distance between two points.
+// 2点間の距離を返します。
 //  @param[in]		v1	A point. [(x, y, z)]
 //  @param[in]		v2	A point. [(x, y, z)]
 // @return The distance between the two points.
@@ -877,10 +1158,11 @@ inline float rcVdist(const float* v1, const float* v2)
 }
 
 // Returns the square of the distance between two points.
+// 2点間の距離の2乗を返します。
 //  @param[in]		v1	A point. [(x, y, z)]
 //  @param[in]		v2	A point. [(x, y, z)]
 // @return The square of the distance between the two points.
-inline float rcVdistSqr(const float* v1, const float* v2)
+inline constexpr float rcVdistSqr(const float* v1, const float* v2)
 {
 	float dx = v2[0] - v1[0];
 	float dy = v2[1] - v1[1];
@@ -889,10 +1171,11 @@ inline float rcVdistSqr(const float* v1, const float* v2)
 }
 
 // Normalizes the vector.
+// ベクトルを正規化します。
 //  @param[in,out]	v	The vector to normalize. [(x, y, z)]
 inline void rcVnormalize(float* v)
 {
-	float d = 1.0f / rcSqrt(rcSqr(v[0]) + rcSqr(v[1]) + rcSqr(v[2]));
+	float d = 1.f / rcSqrt(rcSqr(v[0]) + rcSqr(v[1]) + rcSqr(v[2]));
 	v[0] *= d;
 	v[1] *= d;
 	v[2] *= d;
@@ -903,26 +1186,31 @@ inline void rcVnormalize(float* v)
 // @see rcHeightfield
 // @{
 // Calculates the bounding box of an array of vertices.
+// 頂点の配列の境界ボックスを計算します。
 //  @ingroup recast
 //  @param[in]		verts	An array of vertices. [(x, y, z) * @p nv]
+//  verts頂点の配列。[（x、y、z）* @p nv]
 //  @param[in]		nv		The number of vertices in the @p verts array.
+//  verts配列内の頂点の数。
 //  @param[out]	bmin	The minimum bounds of the AABB. [(x, y, z)] [Units: wu]
+//  AABBの最小境界。[（x、y、z）] [単位：wu]
 //  @param[out]	bmax	The maximum bounds of the AABB. [(x, y, z)] [Units: wu]
+//  AABBの最大境界。[（x、y、z）] [単位：wu]
 void rcCalcBounds(const float* verts, int nv, float* bmin, float* bmax);
 
 // Calculates the grid size based on the bounding box and grid cell size.
 // 境界ボックスとグリッドセルサイズに基づいてグリッドサイズを計算します。
-// @param [in] bmin : AABBの最小境界。 [（x、y、z）] [単位：wu]
-// @param [in] bmax : AABBの最大境界。 [（x、y、z）] [単位：wu]
-// @param [in] cs : xz平面のセルサイズ。 [制限：> 0] [単位：wu]
-// @param [out] w : x軸に沿った幅。 [制限：> = 0] [単位：vx]
-// @param [out] h : z軸に沿った高さ。 [制限：> = 0] [単位：vx]
 //  @ingroup recast
 //  @param[in] bmin : The minimum bounds of the AABB. [(x, y, z)] [Units: wu]
+//  AABBの最小境界。 [（x、y、z）] [単位：wu]
 //  @param[in] bmax	The maximum bounds of the AABB. [(x, y, z)] [Units: wu]
+//  AABBの最大境界。 [（x、y、z）] [単位：wu]
 //  @param[in] cs : The xz-plane cell size. [Limit: > 0] [Units: wu]
+//  xz平面のセルサイズ。 [制限：> 0] [単位：wu]
 //  @param[out] w : The width along the x-axis. [Limit: >= 0] [Units: vx]
+//  x軸に沿った幅。 [制限：> = 0] [単位：vx]
 //  @param[out] h : The height along the z-axis. [Limit: >= 0] [Units: vx]
+//  z軸に沿った高さ。 [制限：> = 0] [単位：vx]
 void rcCalcGridSize(const float* bmin, const float* bmax, float cs, int* w, int* h);
 
 // Initializes a new heightfield. // 新しい地形を初期化します。
@@ -977,18 +1265,26 @@ void rcClearUnwalkableTriangles(rcContext* ctx, const float walkableSlopeAngle, 
 	const int* tris, int nt, unsigned char* areas);
 
 // Adds a span to the specified heightfield.
+//	指定された高さフィールドにスパンを追加します。
 //  @ingroup recast
-//  @param[in,out]	ctx				The build context to use during the operation.
-//  @param[in,out]	hf				An initialized heightfield.
-//  @param[in]		x				The width index where the span is to be added.
-//  								[Limits: 0 <= value < rcHeightfield::width]
-//  @param[in]		y				The height index where the span is to be added.
-//  								[Limits: 0 <= value < rcHeightfield::height]
-//  @param[in]		smin			The minimum height of the span. [Limit: < @p smax] [Units: vx]
-//  @param[in]		smax			The maximum height of the span. [Limit: <= #RC_SPAN_MAX_HEIGHT] [Units: vx]
-//  @param[in]		area			The area id of the span. [Limit: <= #RC_WALKABLE_AREA)
-//  @param[in]		flagMergeThr	The merge theshold. [Limit: >= 0] [Units: vx]
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in,out] hf : An initialized heightfield.
+//	初期化された高さフィールド。
+//  @param[in] x	 : The width index where the span is to be added. [Limits: 0 <= value < rcHeightfield::width]
+//	スパンが追加される幅インデックス。 [制限：0 <=値<rcHeightfield :: width]
+//  @param[in] y	 : The height index where the span is to be added. [Limits: 0 <= value < rcHeightfield::height]
+//	スパンが追加される高さインデックス。 [制限：0 <=値<rcHeightfield :: height]
+//  @param[in] smin : The minimum height of the span. [Limit: < @p smax] [Units: vx]
+//	スパンの最小の高さ。 [制限：<@p smax] [単位：vx]
+//  @param[in] smax : The maximum height of the span. [Limit: <= #RC_SPAN_MAX_HEIGHT] [Units: vx]
+//	スパンの最大の高さ。 [制限：<= #RC_SPAN_MAX_HEIGHT] [単位：vx]
+//  @param[in] area : The area id of the span. [Limit: <= #RC_WALKABLE_AREA)
+//	スパンのエリアID。 [制限：<= #RC_WALKABLE_AREA）
+//  @param[in] flagMergeThr : The merge theshold. [Limit: >= 0] [Units: vx]
+//	マージのしきい値。 [制限：> = 0] [単位：vx]
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcAddSpan(rcContext* ctx, rcHeightfield& hf, const int x, const int y,
 	const unsigned short smin, const unsigned short smax,
 	const unsigned char area, const int flagMergeThr);
@@ -1009,17 +1305,26 @@ bool rcRasterizeTriangle(rcContext* ctx, const float* v0, const float* v1, const
 	const int flagMergeThr = 1);
 
 // Rasterizes an indexed triangle mesh into the specified heightfield.
+//	インデックス付き三角形メッシュを指定された地形にラスタライズします。
 //  @ingroup recast
-//  @param[in,out]	ctx				The build context to use during the operation.
-//  @param[in]		verts			The vertices. [(x, y, z) * @p nv]
-//  @param[in]		nv				The number of vertices.
-//  @param[in]		tris			The triangle indices. [(vertA, vertB, vertC) * @p nt]
-//  @param[in]		areas			The area id's of the triangles. [Limit: <= #RC_WALKABLE_AREA] [Size: @p nt]
-//  @param[in]		nt				The number of triangles.
-//  @param[in,out]	solid			An initialized heightfield.
-//  @param[in]		flagMergeThr	The distance where the walkable flag is favored over the non-walkable flag.
-//  								[Limit: >= 0] [Units: vx]
+//  @param[in,out] ctx	 : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in] verts	 : The vertices. [(x, y, z) * @p nv]
+//	頂点。 [（x、y、z）* @p nv]
+//  @param[in] nv	 : The number of vertices.
+//	頂点の数。
+//  @param[in] tris	 : The triangle indices. [(vertA, vertB, vertC) * @p nt]
+//	三角形のインデックス。 [（vertA、vertB、vertC）* @p nt]
+//  @param[in] areas	 : The area id's of the triangles. [Limit: <= #RC_WALKABLE_AREA] [Size: @p nt]
+//	三角形のエリアID。 [制限：<= #RC_WALKABLE_AREA] [サイズ：@p nt]
+//  @param[in] nt	 : The number of triangles.
+//	三角形の数。
+//  @param[in,out] solid	 : An initialized heightfield.
+//	初期化された地形。
+//  @param[in]		flagMergeThr	The distance where the walkable flag is favored over the non-walkable flag. [Limit: >= 0] [Units: vx]
+//	歩行不可能フラグよりも歩行可能フラグが優先される距離。 [制限：> = 0] [単位：vx]
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int nv,
 	const int* tris, const unsigned char* areas, const int nt,
 	rcHeightfield& solid, const int flagMergeThr = 1);
@@ -1054,23 +1359,28 @@ bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const unsigned cha
 	rcHeightfield& solid, const int flagMergeThr = 1);
 
 // Marks non-walkable spans as walkable if their maximum is within @p walkableClimp of a walkable neighbor.
-// 最大値が歩行可能な隣人の歩行可能なClimp内にある場合、歩行不能としてスパンをマークします。
+// 最大値が歩行可能な隣接の歩行可能なClimp内にある場合、歩行不能としてスパンをマークします。
 //  @ingroup recast
-//  @param[in,out] ctx : The build context to use during the operation. // 操作中に使用するビルドコンテキスト。
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
 //  @param[in] walkableClimb : Maximum ledge height that is considered to still be traversable. [Limit: >=0] [Units: vx]
-//			// まだ通過可能であると見なされる最大の棚の高さ。 [制限：> = 0] [単位：vx]
+//	まだ通過可能であると見なされる最大の出張りの高さ。 [制限：> = 0] [単位：vx]
 //  @param[in,out] solid : A fully built heightfield.  (All spans have been added.)
-//			// 完全に構築された高さフィールド。（すべてのスパンが追加された）
+//	完全に構築された地形。（すべてのスパンが追加された）
 void rcFilterLowHangingWalkableObstacles(rcContext* ctx, const int walkableClimb, rcHeightfield& solid);
 
 // Marks spans that are ledges as not-walkable.
+// 出張りであるスパンを歩行不能としてマークします。
+//
 //  @ingroup recast
-//  @param[in,out]	ctx				The build context to use during the operation.
-//  @param[in]		walkableHeight	Minimum floor to 'ceiling' height that will still allow the floor area to
-//  								be considered walkable. [Limit: >= 3] [Units: vx]
-//  @param[in]		walkableClimb	Maximum ledge height that is considered to still be traversable.
-//  								[Limit: >=0] [Units: vx]
-//  @param[in,out]	solid			A fully built heightfield.  (All spans have been added.)
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in] walkableHeight : Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable. [Limit: >= 3] [Units: vx]
+//	床面積が歩行可能と見なされるようにする最小床から「天井」までの高さ。[制限：> = 3] [単位：vx]
+//  @param[in] walkableClimb : Maximum ledge height that is considered to still be traversable. [Limit: >=0] [Units: vx]
+//	まだ通過可能であると見なされる最大の出張りの高さ。[制限：> = 0] [単位：vx]
+//  @param[in,out] solid : A fully built heightfield. (All spans have been added.)
+//	完全に構築された地形。（すべてのスパンが追加されました。）
 void rcFilterLedgeSpans(rcContext* ctx, const int walkableHeight,
 	const int walkableClimb, rcHeightfield& solid);
 
@@ -1084,10 +1394,14 @@ void rcFilterLedgeSpans(rcContext* ctx, const int walkableHeight,
 void rcFilterWalkableLowHeightSpans(rcContext* ctx, int walkableHeight, rcHeightfield& solid);
 
 // Returns the number of spans contained in the specified heightfield.
+//　指定された高さフィールドに含まれるスパンの数を返します。
 //  @ingroup recast
 //  @param[in,out]	ctx		The build context to use during the operation.
+//　操作中に使用するビルドコンテキスト。
 //  @param[in]		hf		An initialized heightfield.
+//　初期化された高さフィールド。
 //  @returns The number of spans in the heightfield.
+//　高さフィールドのスパンの数。
 int rcGetHeightFieldSpanCount(rcContext* ctx, rcHeightfield& hf);
 
 // @}
@@ -1102,7 +1416,7 @@ int rcGetHeightFieldSpanCount(rcContext* ctx, rcHeightfield& hf);
 //  @param[in] walkableHeight : Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable. [Limit: >= 3] [Units: vx]
 //	床面積が歩行可能と見なされるようにする最小床から「天井」までの高さ。 [制限：> = 3] [単位：vx]
 //  @param[in] walkableClimb : Maximum ledge height that is considered to still be traversable. [Limit: >=0] [Units: vx]
-//	まだ通過可能であると見なされる最大の棚の高さ。 制限：> = 0] [単位：vx]
+//	まだ通過可能であると見なされる最大の出張りの高さ。 制限：> = 0] [単位：vx]
 //  @param[in] hf : The heightfield to be compacted. // 圧縮される高さフィールド。
 //  @param[out] chf : The resulting compact heightfield. (Must be pre-allocated.)
 //	結果のコンパクトな高さフィールド。(事前に割り当てる必要があります。）
@@ -1328,16 +1642,22 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 	rcHeightfieldLayerSet& lset);
 
 // Builds a contour set from the region outlines in the provided compact heightfield.
+//	指定されたコンパクトな高さフィールドの領域アウトラインから輪郭セットを構築します。
 //  @ingroup recast
-//  @param[in,out]	ctx			The build context to use during the operation.
-//  @param[in]		chf			A fully built compact heightfield.
-//  @param[in]		maxError	The maximum distance a simplfied contour's border edges should deviate
-//  							the original raw contour. [Limit: >=0] [Units: wu]
-//  @param[in]		maxEdgeLen	The maximum allowed length for contour edges along the border of the mesh.
-//  							[Limit: >=0] [Units: vx]
-//  @param[out]	cset		The resulting contour set. (Must be pre-allocated.)
-//  @param[in]		buildFlags	The build flags. (See: #rcBuildContoursFlags)
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in] chf : A fully built compact heightfield.
+//	完全に構築されたコンパクトなハイトフィールド。
+//  @param[in] maxError : The maximum distance a simplfied contour's border edges should deviate the original raw contour. [Limit: >=0] [Units: wu]
+//	単純化された輪郭の境界エッジが元の生の輪郭から逸脱する最大距離。 [制限：> = 0] [単位：wu]
+//  @param[in] maxEdgeLen : The maximum allowed length for contour edges along the border of the mesh. [Limit: >=0] [Units: vx]
+//	メッシュの境界に沿った輪郭エッジの最大許容長。 [制限：> = 0] [単位：vx]
+//  @param[out] cset : The resulting contour set. (Must be pre-allocated.)
+//	結果の輪郭セット。 （事前に割り当てる必要があります。）
+//  @param[in] buildFlags : The build flags. (See: #rcBuildContoursFlags)
+//	ビルドフラグ。 （#rcBuildContoursFlagsを参照）
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
 	const float maxError, const int maxEdgeLen,
 	rcContourSet& cset, const int buildFlags = RC_CONTOUR_TESS_WALL_EDGES);
@@ -1358,43 +1678,67 @@ bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
 bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMesh& mesh);
 
 // Merges multiple polygon meshes into a single mesh.
+//	複数のポリゴンメッシュを単一のメッシュにマージします。
 //  @ingroup recast
-//  @param[in,out]	ctx		The build context to use during the operation.
-//  @param[in]		meshes	An array of polygon meshes to merge. [Size: @p nmeshes]
-//  @param[in]		nmeshes	The number of polygon meshes in the meshes array.
-//  @param[in]		mesh	The resulting polygon mesh. (Must be pre-allocated.)
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in] meshes : An array of polygon meshes to merge. [Size: @p nmeshes]
+//	マージするポリゴンメッシュの配列。 [サイズ：@p nmeshes]
+//  @param[in] nmeshes : The number of polygon meshes in the meshes array.
+//	メッシュ配列内のポリゴンメッシュの数。
+//  @param[in] mesh : The resulting polygon mesh. (Must be pre-allocated.)
+//	結果のポリゴンメッシュ。 （事前に割り当てる必要があります。）
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcMergePolyMeshes(rcContext* ctx, rcPolyMesh** meshes, const int nmeshes, rcPolyMesh& mesh);
 
 // Builds a detail mesh from the provided polygon mesh.
+//	指定されたポリゴンメッシュから詳細メッシュを構築します。
 //  @ingroup recast
-//  @param[in,out]	ctx				The build context to use during the operation.
-//  @param[in]		mesh			A fully built polygon mesh.
-//  @param[in]		chf				The compact heightfield used to build the polygon mesh.
-//  @param[in]		sampleDist		Sets the distance to use when samping the heightfield. [Limit: >=0] [Units: wu]
-//  @param[in]		sampleMaxError	The maximum distance the detail mesh surface should deviate from
-//  								heightfield data. [Limit: >=0] [Units: wu]
-//  @param[out]	dmesh			The resulting detail mesh.  (Must be pre-allocated.)
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in] mesh : A fully built polygon mesh.
+//	完全に構築されたポリゴンメッシュ。
+//  @param[in] chf : The compact heightfield used to build the polygon mesh.
+//	ポリゴンメッシュの構築に使用されるコンパクトな高さフィールド。
+//  @param[in] sampleDist : Sets the distance to use when samping the heightfield. [Limit: >=0] [Units: wu]
+//	地形をサンプリングするときに使用する距離を設定します。 [制限：> = 0] [単位：wu]
+//  @param[in] sampleMaxError : The maximum distance the detail mesh surface should deviate from heightfield data. [Limit: >=0] [Units: wu]
+//	詳細メッシュ表面が地形データから逸脱する最大距離。 [制限：> = 0] [単位：wu]
+//  @param[out]	dmesh : The resulting detail mesh.  (Must be pre-allocated.)
+//	結果の詳細メッシュ。 （事前に割り当てる必要があります。）
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompactHeightfield& chf,
 	const float sampleDist, const float sampleMaxError,
 	rcPolyMeshDetail& dmesh);
 
 // Copies the poly mesh data from src to dst.
+//	ポリメッシュデータをsrcからdstにコピーします。
 //  @ingroup recast
 //  @param[in,out]	ctx		The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
 //  @param[in]		src		The source mesh to copy from.
+//	コピー元のソースメッシュ。
 //  @param[out]	dst		The resulting detail mesh. (Must be pre-allocated, must be empty mesh.)
+//	結果の詳細メッシュ。 （事前に割り当てられている必要があり、空のメッシュである必要があります。）
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst);
 
 // Merges multiple detail meshes into a single detail mesh.
+//	複数の詳細メッシュを単一の詳細メッシュにマージします。
 //  @ingroup recast
 //  @param[in,out]	ctx		The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
 //  @param[in]		meshes	An array of detail meshes to merge. [Size: @p nmeshes]
+//	マージする詳細メッシュの配列。 [サイズ：@p nmeshes]
 //  @param[in]		nmeshes	The number of detail meshes in the meshes array.
+//	メッシュ配列内の詳細メッシュの数。
 //  @param[out]	mesh	The resulting detail mesh. (Must be pre-allocated.)
+//	結果の詳細メッシュ。 （事前に割り当てる必要があります。）
 //  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
 bool rcMergePolyMeshDetails(rcContext* ctx, rcPolyMeshDetail** meshes, const int nmeshes, rcPolyMeshDetail& mesh);
 
 // @}

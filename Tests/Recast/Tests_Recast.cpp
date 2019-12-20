@@ -315,9 +315,9 @@ TEST_CASE("rcVnormalize")
 	{
 		float v[3] = { 3, 3, 3 };
 		rcVnormalize(v);
-		REQUIRE(v[0] == Approx(rcSqrt(1.0f / 3.0f)));
-		REQUIRE(v[1] == Approx(rcSqrt(1.0f / 3.0f)));
-		REQUIRE(v[2] == Approx(rcSqrt(1.0f / 3.0f)));
+		REQUIRE(v[0] == Approx(rcSqrt(1.f / 3.0f)));
+		REQUIRE(v[1] == Approx(rcSqrt(1.f / 3.0f)));
+		REQUIRE(v[2] == Approx(rcSqrt(1.f / 3.0f)));
 		float magnitude = rcSqrt(rcSqr(v[0]) + rcSqr(v[1]) + rcSqr(v[2]));
 		REQUIRE(magnitude == Approx(1));
 	}

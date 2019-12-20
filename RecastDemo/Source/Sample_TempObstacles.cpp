@@ -85,7 +85,7 @@ static bool isectSegAABB(const float* sp, const float* sq,
 		{
 			// Compute intersection t value of ray with near and far plane of slab
 			//スラブのニアおよびファープレーンとレイの交差t値を計算します
-			const float ood = 1.0f / d[i];
+			const float ood = 1.f / d[i];
 			float t1 = (amin[i] - sp[i]) * ood;
 			float t2 = (amax[i] - sp[i]) * ood;
 
@@ -742,7 +742,7 @@ public:
 			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] - s);
 			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] + s);
 			glEnd();
-			glLineWidth(1.0f);
+			glLineWidth(1.f);
 
 			int tx = 0, ty = 0;
 			m_sample->getTilePos(m_hitPos, tx, ty);
@@ -851,11 +851,11 @@ void Sample_TempObstacles::handleSettings()
 {
 	Sample::handleCommonSettings();
 
-	if (imguiCheck("Keep Itermediate Results", m_keepInterResults))
+	if (imguiCheck("Keep Itermediate Results"/* 中間結果を保持 */, m_keepInterResults))
 		m_keepInterResults = !m_keepInterResults;
 
-	imguiLabel("Tiling");
-	imguiSlider("TileSize", &m_tileSize, 16.0f, 128.0f, 8.0f);
+	imguiLabel("Tiling"/* タイル */);
+	imguiSlider("TileSize"/* タイルサイズ */, &m_tileSize, 16.0f, 128.0f, 8.0f);
 
 	int gridSize = 1;
 	if (m_geom)
@@ -873,6 +873,8 @@ void Sample_TempObstacles::handleSettings()
 
 		// Max tiles and max polys affect how the tile IDs are caculated.
 		// There are 22 bits available for identifying a tile and a polygon.
+		// 最大タイルと最大ポリープは、タイルIDの計算方法に影響します。
+		// タイルとポリゴンを識別するために利用可能な22ビットがあります。
 		int tileBits = rcMin((int)dtIlog2(dtNextPow2(tw * th * EXPECTED_LAYERS_PER_TILE)), 14);
 		if (tileBits > 14) tileBits = 14;
 		int polyBits = 22 - tileBits;
@@ -1029,7 +1031,7 @@ void Sample_TempObstacles::handleRender()
 	if (!m_geom || !m_geom->getMesh())
 		return;
 
-	const float texScale = 1.0f / (m_cellSize * 10.0f);
+	const float texScale = 1.f / (m_cellSize * 10.0f);
 
 	// Draw mesh
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
@@ -1052,7 +1054,7 @@ void Sample_TempObstacles::handleRender()
 	// Draw bounds
 	const float* bmin = m_geom->getNavMeshBoundsMin();
 	const float* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.0f);
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
 
 	// Tiling grid.
 	int gw = 0, gh = 0;
@@ -1060,7 +1062,7 @@ void Sample_TempObstacles::handleRender()
 	const int tw = (gw + (int)m_tileSize - 1) / (int)m_tileSize;
 	const int th = (gh + (int)m_tileSize - 1) / (int)m_tileSize;
 	const float s = m_tileSize * m_cellSize;
-	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.0f);
+	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
 	if (m_navMesh && m_navQuery &&
 		(m_drawMode == DRAWMODE_NAVMESH ||
@@ -1161,7 +1163,7 @@ void Sample_TempObstacles::addTempObstacle(const float* pos)
 	float p[3];
 	dtVcopy(p, pos);
 	p[1] -= 0.5f;
-	m_tileCache->addObstacle(p, 1.0f, 2.0f, 0);
+	m_tileCache->addObstacle(p, 1.f, 2.0f, 0);
 }
 
 void Sample_TempObstacles::removeTempObstacle(const float* sp, const float* sq)

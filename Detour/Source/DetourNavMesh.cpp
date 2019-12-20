@@ -112,8 +112,8 @@ static void calcSlabEndPoints(const float* va, const float* vb, float* bmin, flo
 
 inline int computeTileHash(int x, int y, const int mask)
 {
-	const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
-	const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
+	const unsigned int h1 = 0x8da6b343; // Large multiplicative constants; // 大きな乗法定数。
+	const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes  // ここで任意に選択された素数
 	unsigned int n = h1 * x + h2 * y;
 	return (int)(n & mask);
 }
@@ -140,10 +140,10 @@ dtNavMesh* dtAllocNavMesh()
 	return new(mem) dtNavMesh;
 }
 
-/// @par
-///
-/// This function will only free the memory for tiles with the #DT_TILE_FREE_DATA
-/// flag set.
+// @par
+//
+// This function will only free the memory for tiles with the #DT_TILE_FREE_DATA
+// flag set.
 void dtFreeNavMesh(dtNavMesh* navmesh)
 {
 	if (!navmesh) return;
@@ -151,7 +151,7 @@ void dtFreeNavMesh(dtNavMesh* navmesh)
 	dtFree(navmesh);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
 /**
 @class dtNavMesh
@@ -288,16 +288,16 @@ dtStatus dtNavMesh::init(unsigned char* data, const int dataSize, const int flag
 	return addTile(data, dataSize, flags, 0, 0);
 }
 
-/// @par
-///
-/// @note The parameters are created automatically when the single tile
-/// initialization is performed.
+// @par
+//
+// @note The parameters are created automatically when the single tile
+// initialization is performed.
 const dtNavMeshParams* dtNavMesh::getParams() const
 {
 	return &m_params;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 int dtNavMesh::findConnectingPolys(const float* va, const float* vb,
 	const dtMeshTile* tile, int side,
 	dtPolyRef* con, float* conarea, int maxcon) const
@@ -434,8 +434,8 @@ void dtNavMesh::connectExtLinks(dtMeshTile* tile, dtMeshTile* target, int side)
 						float tmax = (neia[k * 2 + 1] - va[2]) / (vb[2] - va[2]);
 						if (tmin > tmax)
 							dtSwap(tmin, tmax);
-						link->bmin = (unsigned char)(dtClamp(tmin, 0.0f, 1.0f) * 255.0f);
-						link->bmax = (unsigned char)(dtClamp(tmax, 0.0f, 1.0f) * 255.0f);
+						link->bmin = (unsigned char)(dtClamp(tmin, 0.0f, 1.f) * 255.0f);
+						link->bmax = (unsigned char)(dtClamp(tmax, 0.0f, 1.f) * 255.0f);
 					}
 					else if (dir == 2 || dir == 6)
 					{
@@ -443,8 +443,8 @@ void dtNavMesh::connectExtLinks(dtMeshTile* tile, dtMeshTile* target, int side)
 						float tmax = (neia[k * 2 + 1] - va[0]) / (vb[0] - va[0]);
 						if (tmin > tmax)
 							dtSwap(tmin, tmax);
-						link->bmin = (unsigned char)(dtClamp(tmin, 0.0f, 1.0f) * 255.0f);
-						link->bmax = (unsigned char)(dtClamp(tmax, 0.0f, 1.0f) * 255.0f);
+						link->bmin = (unsigned char)(dtClamp(tmin, 0.0f, 1.f) * 255.0f);
+						link->bmax = (unsigned char)(dtClamp(tmax, 0.0f, 1.f) * 255.0f);
 					}
 				}
 			}
@@ -827,37 +827,47 @@ int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, co
 	}
 }
 
-/// @par
-///
-/// The add operation will fail if the data is in the wrong format, the allocated tile
-/// space is full, or there is a tile already at the specified reference.
-///
-/// The lastRef parameter is used to restore a tile with the same tile
-/// reference it had previously used.  In this case the #dtPolyRef's for the
-/// tile will be restored to the same values they were before the tile was
-/// removed.
-///
-/// The nav mesh assumes exclusive access to the data passed and will make
-/// changes to the dynamic portion of the data. For that reason the data
-/// should not be reused in other nav meshes until the tile has been successfully
-/// removed from this nav mesh.
-///
-/// @see dtCreateNavMeshData, #removeTile
+// @par
+//
+// The add operation will fail if the data is in the wrong format, the allocated tile
+// space is full, or there is a tile already at the specified reference.
+// データの形式が正しくない場合、割り当てられたタイルスペースがいっぱいの場合、
+// または指定された参照に既にタイルがある場合、追加操作は失敗します。
+//
+// The lastRef parameter is used to restore a tile with the same tile
+// reference it had previously used.  In this case the #dtPolyRef's for the
+// tile will be restored to the same values they were before the tile was removed.
+// lastRefパラメータは、以前使用したタイル参照と同じタイル参照でタイルを復元するために使用されます。
+// この場合、タイルの#dtPolyRefは、タイルが削除される前と同じ値に復元されます。
+//
+// The nav mesh assumes exclusive access to the data passed and will make
+// changes to the dynamic portion of the data. For that reason the data
+// should not be reused in other nav meshes until the tile has been successfully
+// removed from this nav mesh.
+// navメッシュは、渡されたデータへの排他的アクセスを想定し、データの動的部分に変更を加えます。
+// そのため、タイルがこのナビゲーションメッシュから正常に削除されるまで、
+// データを他のナビゲーションメッシュで再利用しないでください。
+//
+// @see dtCreateNavMeshData, #removeTile
 dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	dtTileRef lastRef, dtTileRef* result)
 {
 	// Make sure the data is in right format.
+	// データが正しい形式であることを確認します。
 	dtMeshHeader* header = (dtMeshHeader*)data;
 	if (header->magic != DT_NAVMESH_MAGIC)
 		return DT_FAILURE | DT_WRONG_MAGIC;
+
 	if (header->version != DT_NAVMESH_VERSION)
 		return DT_FAILURE | DT_WRONG_VERSION;
 
 	// Make sure the location is free.
+	// 場所が空いていることを確認してください。
 	if (getTileAt(header->x, header->y, header->layer))
 		return DT_FAILURE;
 
 	// Allocate a tile.
+	// タイルを割り当てます。
 	dtMeshTile* tile = 0;
 	if (!lastRef)
 	{
@@ -871,10 +881,13 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	else
 	{
 		// Try to relocate the tile to specific index with same salt.
+		// タイルを同じソルトで特定のインデックスに再配置してください。
 		int tileIndex = (int)decodePolyIdTile((dtPolyRef)lastRef);
 		if (tileIndex >= m_maxTiles)
 			return DT_FAILURE | DT_OUT_OF_MEMORY;
+
 		// Try to find the specific tile id from the free list.
+		// フリーリストから特定のタイルIDを見つけようとします。
 		dtMeshTile* target = &m_tiles[tileIndex];
 		dtMeshTile* prev = 0;
 		tile = m_nextFree;
@@ -883,29 +896,37 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 			prev = tile;
 			tile = tile->next;
 		}
+
 		// Could not find the correct location.
+		// 正しい場所が見つかりませんでした。
 		if (tile != target)
 			return DT_FAILURE | DT_OUT_OF_MEMORY;
+
 		// Remove from freelist
+		// フリーリストから削除
 		if (!prev)
 			m_nextFree = tile->next;
 		else
 			prev->next = tile->next;
 
 		// Restore salt.
+		// ソルトを復元します。
 		tile->salt = decodePolyIdSalt((dtPolyRef)lastRef);
 	}
 
 	// Make sure we could allocate a tile.
+	// タイルを割り当てることができることを確認します。
 	if (!tile)
 		return DT_FAILURE | DT_OUT_OF_MEMORY;
 
 	// Insert tile into the position lut.
+	// タイルを位置lutに挿入します。
 	int h = computeTileHash(header->x, header->y, m_tileLutMask);
 	tile->next = m_posLookup[h];
 	m_posLookup[h] = tile;
 
 	// Patch header pointers.
+	// ヘッダーポインターにパッチを適用します。
 	const int headerSize = dtAlign4(sizeof(dtMeshHeader));
 	const int vertsSize = dtAlign4(sizeof(float) * 3 * header->vertCount);
 	const int polysSize = dtAlign4(sizeof(dtPoly) * header->polyCount);
@@ -926,11 +947,13 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	tile->bvTree = dtGetThenAdvanceBufferPointer<dtBVNode>(d, bvtreeSize);
 	tile->offMeshCons = dtGetThenAdvanceBufferPointer<dtOffMeshConnection>(d, offMeshLinksSize);
 
-	// If there are no items in the bvtree, reset the tree pointer.
+	// If there are no items in the tree, reset the three pointer.
+	// ツリーにアイテムがない場合、3つのポインターをリセットします。
 	if (!bvtreeSize)
 		tile->bvTree = 0;
 
 	// Build links freelist
+	// リンクフリーリストを作成します
 	tile->linksFreeList = 0;
 	tile->links[header->maxLinkCount - 1].next = DT_NULL_LINK;
 	for (int i = 0; i < header->maxLinkCount - 1; ++i)
@@ -945,16 +968,20 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	connectIntLinks(tile);
 
 	// Base off-mesh connections to their starting polygons and connect connections inside the tile.
+	// メッシュ外の接続を開始ポリゴンに接続し、タイル内の接続を接続します。
 	baseOffMeshLinks(tile);
 	connectExtOffMeshLinks(tile, tile, -1);
 
 	// Create connections with neighbour tiles.
+	// 隣接タイルとの接続を作成します。
 	constexpr int MAX_NEIS = 32;
 	dtMeshTile* neis[MAX_NEIS];
 	int nneis;
 
 	// Connect with layers in current tile.
+	// 現在のタイルのレイヤーと接続します。
 	nneis = getTilesAt(header->x, header->y, neis, MAX_NEIS);
+
 	for (int j = 0; j < nneis; ++j)
 	{
 		if (neis[j] == tile)
@@ -967,6 +994,7 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	}
 
 	// Connect with neighbour tiles.
+	// 隣接するタイルと接続します。
 	for (int i = 0; i < 8; ++i)
 	{
 		nneis = getNeighbourTilesAt(header->x, header->y, i, neis, MAX_NEIS);
@@ -1009,21 +1037,21 @@ int dtNavMesh::getNeighbourTilesAt(const int x, const int y, const int side, dtM
 	int nx = x, ny = y;
 	switch (side)
 	{
-	case 0: nx++; break;
-	case 1: nx++; ny++; break;
-	case 2: ny++; break;
-	case 3: nx--; ny++; break;
-	case 4: nx--; break;
-	case 5: nx--; ny--; break;
-	case 6: ny--; break;
-	case 7: nx++; ny--; break;
+		case 0: nx++; break;
+		case 1: nx++; ny++; break;
+		case 2: ny++; break;
+		case 3: nx--; ny++; break;
+		case 4: nx--; break;
+		case 5: nx--; ny--; break;
+		case 6: ny--; break;
+		case 7: nx++; ny--; break;
 	};
 
 	return getTilesAt(nx, ny, tiles, maxTiles);
 }
 
-/// タイル配列が小さすぎて結果セット全体を保持できない場合、この関数は失敗しません。
-/// アレイが容量いっぱいになるだけです。
+// タイル配列が小さすぎて結果セット全体を保持できない場合、この関数は失敗しません。
+// アレイが容量いっぱいになるだけです。
 int dtNavMesh::getTilesAt(const int x, const int y, dtMeshTile** tiles, const int maxTiles) const
 {
 	int n = 0;
@@ -1047,12 +1075,12 @@ int dtNavMesh::getTilesAt(const int x, const int y, dtMeshTile** tiles, const in
 	return n;
 }
 
-/// @par
-///
-/// This function will not fail if the tiles array is too small to hold the
-/// entire result set.  It will simply fill the array to capacity.
-/// タイル配列が小さすぎて結果セット全体を保持できない場合、この関数は失敗しません。
-/// アレイが容量いっぱいになるだけです。
+// @par
+//
+// This function will not fail if the tiles array is too small to hold the
+// entire result set.  It will simply fill the array to capacity.
+// タイル配列が小さすぎて結果セット全体を保持できない場合、この関数は失敗しません。
+// アレイが容量いっぱいになるだけです。
 int dtNavMesh::getTilesAt(const int x, const int y, dtMeshTile const** tiles, const int maxTiles) const
 {
 	int n = 0;
@@ -1133,21 +1161,26 @@ void dtNavMesh::calcTileLoc(const float* pos, int* tx, int* ty) const
 dtStatus dtNavMesh::getTileAndPolyByRef(const dtPolyRef ref, const dtMeshTile** tile, const dtPoly** poly) const
 {
 	if (!ref) return DT_FAILURE;
-	unsigned int salt, it, ip;
+
+	unsigned int salt{}, it{}, ip{};
+
 	decodePolyId(ref, salt, it, ip);
+
 	if (it >= (unsigned int)m_maxTiles) return DT_FAILURE | DT_INVALID_PARAM;
 	if (m_tiles[it].salt != salt || m_tiles[it].header == 0) return DT_FAILURE | DT_INVALID_PARAM;
 	if (ip >= (unsigned int)m_tiles[it].header->polyCount) return DT_FAILURE | DT_INVALID_PARAM;
+
 	*tile = &m_tiles[it];
 	*poly = &m_tiles[it].polys[ip];
+
 	return DT_SUCCESS;
 }
 
-/// @par
-///
-/// @warning Only use this function if it is known that the provided polygon
-/// reference is valid. This function is faster than #getTileAndPolyByRef, but
-/// it does not validate the reference.
+// @par
+//
+// @warning Only use this function if it is known that the provided polygon
+// reference is valid. This function is faster than #getTileAndPolyByRef, but
+// it does not validate the reference.
 // 指定されたポリゴン参照が有効であることがわかっている場合にのみ、この関数を使用します。
 // この関数は#getTileAndPolyByRefより高速ですが、参照を検証しません。(添え値を超える可能性を確認しない)
 void dtNavMesh::getTileAndPolyByRefUnsafe(const dtPolyRef ref, const dtMeshTile** tile, const dtPoly** poly) const
@@ -1169,12 +1202,12 @@ bool dtNavMesh::isValidPolyRef(dtPolyRef ref) const
 	return true;
 }
 
-/// @par
-///
-/// This function returns the data for the tile so that, if desired,
-/// it can be added back to the navigation mesh at a later point.
-///
-/// @see #addTile
+// @par
+//
+// This function returns the data for the tile so that, if desired,
+// it can be added back to the navigation mesh at a later point.
+//
+// @see #addTile
 dtStatus dtNavMesh::removeTile(dtTileRef ref, unsigned char** data, int* dataSize)
 {
 	if (!ref)
@@ -1277,20 +1310,20 @@ dtTileRef dtNavMesh::getTileRef(const dtMeshTile* tile) const
 	return (dtTileRef)encodePolyId(tile->salt, it, 0);
 }
 
-/// @par
-///
-/// Example use case:
-/// @code
-///
-/// const dtPolyRef base = navmesh->getPolyRefBase(tile);
-/// for (int i = 0; i < tile->header->polyCount; ++i)
-/// {
-///     const dtPoly* p = &tile->polys[i];
-///     const dtPolyRef ref = base | (dtPolyRef)i;
-///
-///     // Use the reference to access the polygon data.
-/// }
-/// @endcode
+// @par
+//
+// Example use case:
+// @code
+//
+// const dtPolyRef base = navmesh->getPolyRefBase(tile);
+// for (int i = 0; i < tile->header->polyCount; ++i)
+// {
+//     const dtPoly* p = &tile->polys[i];
+//     const dtPolyRef ref = base | (dtPolyRef)i;
+//
+//     // Use the reference to access the polygon data.
+// }
+// @endcode
 dtPolyRef dtNavMesh::getPolyRefBase(const dtMeshTile* tile) const
 {
 	if (!tile) return 0;
@@ -1311,7 +1344,7 @@ struct dtPolyState
 	unsigned char area;							// Area ID of the polygon.
 };
 
-///  @see #storeTileState
+//  @see #storeTileState
 int dtNavMesh::getTileStateSize(const dtMeshTile* tile) const
 {
 	if (!tile) return 0;
@@ -1320,11 +1353,11 @@ int dtNavMesh::getTileStateSize(const dtMeshTile* tile) const
 	return headerSize + polyStateSize;
 }
 
-/// @par
-///
-/// Tile state includes non-structural data such as polygon flags, area ids, etc.
-/// @note The state data is only valid until the tile reference changes.
-/// @see #getTileStateSize, #restoreTileState
+// @par
+//
+// Tile state includes non-structural data such as polygon flags, area ids, etc.
+// @note The state data is only valid until the tile reference changes.
+// @see #getTileStateSize, #restoreTileState
 dtStatus dtNavMesh::storeTileState(const dtMeshTile* tile, unsigned char* data, const int maxDataSize) const
 {
 	// Make sure there is enough space to store the state.
@@ -1352,11 +1385,11 @@ dtStatus dtNavMesh::storeTileState(const dtMeshTile* tile, unsigned char* data, 
 	return DT_SUCCESS;
 }
 
-/// @par
-///
-/// Tile state includes non-structural data such as polygon flags, area ids, etc.
-/// @note This function does not impact the tile's #dtTileRef and #dtPolyRef's.
-/// @see #storeTileState
+// @par
+//
+// Tile state includes non-structural data such as polygon flags, area ids, etc.
+// @note This function does not impact the tile's #dtTileRef and #dtPolyRef's.
+// @see #storeTileState
 dtStatus dtNavMesh::restoreTileState(dtMeshTile* tile, const unsigned char* data, const int maxDataSize)
 {
 	// Make sure there is enough space to store the state.
@@ -1387,13 +1420,13 @@ dtStatus dtNavMesh::restoreTileState(dtMeshTile* tile, const unsigned char* data
 	return DT_SUCCESS;
 }
 
-/// @par
-///
-/// Off-mesh connections are stored in the navigation mesh as special 2-vertex
-/// polygons with a single edge. At least one of the vertices is expected to be
-/// inside a normal polygon. So an off-mesh connection is "entered" from a
-/// normal polygon at one of its endpoints. This is the polygon identified by
-/// the prevRef parameter.
+// @par
+//
+// Off-mesh connections are stored in the navigation mesh as special 2-vertex
+// polygons with a single edge. At least one of the vertices is expected to be
+// inside a normal polygon. So an off-mesh connection is "entered" from a
+// normal polygon at one of its endpoints. This is the polygon identified by
+// the prevRef parameter.
 dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyRef polyRef, float* startPos, float* endPos) const
 {
 	unsigned int salt, it, ip;

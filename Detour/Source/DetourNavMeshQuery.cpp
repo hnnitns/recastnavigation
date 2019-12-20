@@ -27,58 +27,58 @@
 #include "DetourAssert.h"
 #include <new>
 
-/// @class dtQueryFilter
-///
-/// <b>The Default Implementation</b> デフォルトの実装
-///
-/// At construction: All area costs default to 1.0.  All flags are included
-/// and none are excluded.
-/// 建設時：すべてのエリアコストのデフォルトは1.0です。すべてのフラグが含まれ、どれも除外されません。
-///
-/// If a polygon has both an include and an exclude flag, it will be excluded.
-/// ポリゴンに包含フラグと除外フラグの両方がある場合、ポリゴンは除外されます。
-///
-/// The way filtering works, a navigation mesh polygon must have at least one flag
-/// set to ever be considered by a query. So a polygon with no flags will never
-/// be considered.
-/// フィルタリングの仕組みでは、ナビゲーションメッシュポリゴンには、
-/// クエリで考慮されるために少なくとも1つのフラグが設定されている必要があります。
-/// そのため、フラグのないポリゴンは考慮されません。
-///
-/// Setting the include flags to 0 will result in all polygons being excluded.
-/// includeフラグを0に設定すると、すべてのポリゴンが除外されます。
-///
-/// <b>Custom Implementations</b> カスタム実装
-///
-/// DT_VIRTUAL_QUERYFILTER must be defined in order to extend this class.
-/// このクラスを拡張するには、DT_VIRTUAL_QUERYFILTERを定義する必要があります。
-///
-/// Implement a custom query filter by overriding the virtual passFilter()
-/// and getCost() functions. If this is done, both functions should be as
-/// fast as possible. Use cached local copies of data rather than accessing
-/// your own objects where possible.
-/// 仮想passFilter（）およびgetCost（）関数をオーバーライドして、カスタムクエリフィルターを実装します。
-/// これを行うと、両方の機能が可能な限り高速になります。
-/// 可能な場合は、独自のオブジェクトにアクセスするのではなく、キャッシュされたデータのローカルコピーを使用します。
-///
-/// Custom implementations do not need to adhere to the flags or cost logic
-/// used by the default implementation.
-/// カスタム実装は、デフォルト実装で使用されるフラグまたはコストロジックに従う必要はありません。
-///
-/// In order for A* searches to work properly, the cost should be proportional to
-/// the travel distance. Implementing a cost modifier less than 1.0 is likely
-/// to lead to problems during pathfinding.
-/// A *検索が適切に機能するためには、コストは移動距離に比例する必要があります。
-/// 1.0未満のコスト修飾子を実装すると、パス検索中に問題が発生する可能性があります。
-///
-/// @see dtNavMeshQuery
+// @class dtQueryFilter
+//
+// <b>The Default Implementation</b> デフォルトの実装
+//
+// At construction: All area costs default to 1.0.  All flags are included
+// and none are excluded.
+// 建設時：すべてのエリアコストのデフォルトは1.0です。すべてのフラグが含まれ、どれも除外されません。
+//
+// If a polygon has both an include and an exclude flag, it will be excluded.
+// ポリゴンに包含フラグと除外フラグの両方がある場合、ポリゴンは除外されます。
+//
+// The way filtering works, a navigation mesh polygon must have at least one flag
+// set to ever be considered by a query. So a polygon with no flags will never
+// be considered.
+// フィルタリングの仕組みでは、ナビゲーションメッシュポリゴンには、
+// クエリで考慮されるために少なくとも1つのフラグが設定されている必要があります。
+// そのため、フラグのないポリゴンは考慮されません。
+//
+// Setting the include flags to 0 will result in all polygons being excluded.
+// includeフラグを0に設定すると、すべてのポリゴンが除外されます。
+//
+// <b>Custom Implementations</b> カスタム実装
+//
+// DT_VIRTUAL_QUERYFILTER must be defined in order to extend this class.
+// このクラスを拡張するには、DT_VIRTUAL_QUERYFILTERを定義する必要があります。
+//
+// Implement a custom query filter by overriding the virtual passFilter()
+// and getCost() functions. If this is done, both functions should be as
+// fast as possible. Use cached local copies of data rather than accessing
+// your own objects where possible.
+// 仮想passFilter（）およびgetCost（）関数をオーバーライドして、カスタムクエリフィルターを実装します。
+// これを行うと、両方の機能が可能な限り高速になります。
+// 可能な場合は、独自のオブジェクトにアクセスするのではなく、キャッシュされたデータのローカルコピーを使用します。
+//
+// Custom implementations do not need to adhere to the flags or cost logic
+// used by the default implementation.
+// カスタム実装は、デフォルト実装で使用されるフラグまたはコストロジックに従う必要はありません。
+//
+// In order for A* searches to work properly, the cost should be proportional to
+// the travel distance. Implementing a cost modifier less than 1.0 is likely
+// to lead to problems during pathfinding.
+// A *検索が適切に機能するためには、コストは移動距離に比例する必要があります。
+// 1.0未満のコスト修飾子を実装すると、パス検索中に問題が発生する可能性があります。
+//
+// @see dtNavMeshQuery
 
 dtQueryFilter::dtQueryFilter() :
 	m_includeFlags(0xffff),
 	m_excludeFlags(0)
 {
 	for (int i = 0; i < DT_MAX_AREAS; ++i)
-		m_areaCost[i] = 1.0f;
+		m_areaCost[i] = 1.f;
 }
 
 #ifdef DT_VIRTUAL_QUERYFILTER
@@ -131,30 +131,30 @@ void dtFreeNavMeshQuery(dtNavMeshQuery* navmesh)
 	dtFree(navmesh);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
-/// @class dtNavMeshQuery
-///
-/// For methods that support undersized buffers, if the buffer is too small
-/// to hold the entire result set the return status of the method will include
-/// the #DT_BUFFER_TOO_SMALL flag.
-/// サイズの小さいバッファをサポートするメソッドの場合や、バッファが小さすぎて結果セット全体を保持できない場合は、
-/// メソッドの戻りステータスには#DT_BUFFER_TOO_SMALLフラグが含まれます。
-///
-/// Constant member functions can be used by multiple clients without side
-/// effects. (E.g. No change to the closed list. No impact on an in-progress
-/// sliced path query. Etc.)
-/// 定数メンバー関数は、副作用なしで複数のクライアントで使用できます。
-///（例：クローズドリストへの変更はありません。進行中のスライスパスクエリへの影響はありません。など）
-///
-/// Walls and portals: A @e wall is a polygon segment that is
-/// considered impassable. A @e portal is a passable segment between polygons.
-/// A portal may be treated as a wall based on the dtQueryFilter used for a query.
-/// 壁とポータル：壁は、通過できないと見なされるポリゴンセグメントです。
-/// ポータルは、ポリゴン間の通過可能なセグメントです。
-/// ポータルは、クエリに使用されるdtQueryFilterに基づいて壁として扱うことができます。
-///
-/// @see dtNavMesh, dtQueryFilter, #dtAllocNavMeshQuery(), #dtAllocNavMeshQuery()
+// @class dtNavMeshQuery
+//
+// For methods that support undersized buffers, if the buffer is too small
+// to hold the entire result set the return status of the method will include
+// the #DT_BUFFER_TOO_SMALL flag.
+// サイズの小さいバッファをサポートするメソッドの場合や、バッファが小さすぎて結果セット全体を保持できない場合は、
+// メソッドの戻りステータスには#DT_BUFFER_TOO_SMALLフラグが含まれます。
+//
+// Constant member functions can be used by multiple clients without side
+// effects. (E.g. No change to the closed list. No impact on an in-progress
+// sliced path query. Etc.)
+// 定数メンバー関数は、副作用なしで複数のクライアントで使用できます。
+//（例：クローズドリストへの変更はありません。進行中のスライスパスクエリへの影響はありません。など）
+//
+// Walls and portals: A @e wall is a polygon segment that is
+// considered impassable. A @e portal is a passable segment between polygons.
+// A portal may be treated as a wall based on the dtQueryFilter used for a query.
+// 壁とポータル：壁は、通過できないと見なされるポリゴンセグメントです。
+// ポータルは、ポリゴン間の通過可能なセグメントです。
+// ポータルは、クエリに使用されるdtQueryFilterに基づいて壁として扱うことができます。
+//
+// @see dtNavMesh, dtQueryFilter, #dtAllocNavMeshQuery(), #dtAllocNavMeshQuery()
 
 dtNavMeshQuery::dtNavMeshQuery() :
 	m_nav(0),
@@ -178,13 +178,13 @@ dtNavMeshQuery::~dtNavMeshQuery()
 	dtFree(m_openList);
 }
 
-/// @par
-///
-/// Must be the first function called after construction, before other
-/// functions are used.
-/// 他の関数が使用される前に、構築後に最初に呼び出される関数でなければなりません。
-///
-/// This function can be used multiple times.
+// @par
+//
+// Must be the first function called after construction, before other
+// functions are used.
+// 他の関数が使用される前に、構築後に最初に呼び出される関数でなければなりません。
+//
+// This function can be used multiple times.
 dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes)
 {
 	if (maxNodes > DT_NULL_IDX || maxNodes > (1 << DT_NODE_PARENT_BITS) - 1)
@@ -258,7 +258,7 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 
 		// Choose random tile using reservoi sampling.
 		//リザーバーサンプリングを使用してランダムタイルを選択します。
-		const float area = 1.0f; // Could be tile area too. タイル領域にもなります。
+		const float area = 1.f; // Could be tile area too. タイル領域にもなります。
 		tsum += area;
 		const float u = frand();
 		if (u * tsum <= area)
@@ -553,19 +553,19 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(dtPolyRef startRef, const f
 	return DT_SUCCESS;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
-/// @par
-///
-/// Uses the detail polygons to find the surface height. (Most accurate.)
-/// 詳細ポリゴンを使用して、表面の高さを見つけます。 （最も正確です。）
-///
-/// @p pos does not have to be within the bounds of the polygon or navigation mesh.
-/// posは、ポリゴンまたはナビゲーションメッシュの境界内にある必要はありません。
-///
-/// See closestPointOnPolyBoundary() for a limited but faster option.
-/// 制限されているがより高速なオプションについては、closestPointOnPolyBoundary（）を参照してください。
-///
+// @par
+//
+// Uses the detail polygons to find the surface height. (Most accurate.)
+// 詳細ポリゴンを使用して、表面の高さを見つけます。 （最も正確です。）
+//
+// @p pos does not have to be within the bounds of the polygon or navigation mesh.
+// posは、ポリゴンまたはナビゲーションメッシュの境界内にある必要はありません。
+//
+// See closestPointOnPolyBoundary() for a limited but faster option.
+// 制限されているがより高速なオプションについては、closestPointOnPolyBoundary（）を参照してください。
+//
 dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const
 {
 	dtAssert(m_nav);
@@ -657,21 +657,21 @@ dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, flo
 	return DT_SUCCESS;
 }
 
-/// @par
-///
-/// Much faster than closestPointOnPoly().
-/// nearestPointOnPoly（）よりもはるかに高速。
-///
-/// If the provided position lies within the polygon's xz-bounds (above or below),
-/// then @p pos and @p closest will be equal.
-/// 指定された位置がポリゴンのxz境界内（上または下）にある場合、その後、@ p posと@p最も近い値が等しくなります。
-///
-/// The height of @p closest will be the polygon boundary.  The height detail is not used.
-/// @pの最も近い高さがポリゴンの境界になります。高さの詳細は使用されません。
-///
-/// @p pos does not have to be within the bounds of the polybon or the navigation mesh.
-/// @p posは、polybonまたはナビゲーションメッシュの境界内にある必要はありません。
-///
+// @par
+//
+// Much faster than closestPointOnPoly().
+// nearestPointOnPoly（）よりもはるかに高速。
+//
+// If the provided position lies within the polygon's xz-bounds (above or below),
+// then @p pos and @p closest will be equal.
+// 指定された位置がポリゴンのxz境界内（上または下）にある場合、その後、@ p posと@p最も近い値が等しくなります。
+//
+// The height of @p closest will be the polygon boundary.  The height detail is not used.
+// @pの最も近い高さがポリゴンの境界になります。高さの詳細は使用されません。
+//
+// @p pos does not have to be within the bounds of the polybon or the navigation mesh.
+// @p posは、polybonまたはナビゲーションメッシュの境界内にある必要はありません。
+//
 dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(dtPolyRef ref, const float* pos, float* closest) const
 {
 	dtAssert(m_nav);
@@ -832,13 +832,13 @@ public:
 	}
 };
 
-/// @par
-///
-/// @note If the search box does not intersect any polygons the search will
-/// return #DT_SUCCESS, but @p nearestRef will be zero. So if in doubt, check
-/// @p nearestRef before using @p nearestPt.
-/// 検索ボックスがポリゴンと交差しない場合、検索は#DT_SUCCESSを返しますが、nearestRefはゼロになります。
-/// 疑わしい場合は、nearestPtを使用する前に、nearestRefを確認してください。
+// @par
+//
+// @note If the search box does not intersect any polygons the search will
+// return #DT_SUCCESS, but @p nearestRef will be zero. So if in doubt, check
+// @p nearestRef before using @p nearestPt.
+// 検索ボックスがポリゴンと交差しない場合、検索は#DT_SUCCESSを返しますが、nearestRefはゼロになります。
+// 疑わしい場合は、nearestPtを使用する前に、nearestRefを確認してください。
 dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* extents,
 	const dtQueryFilter* filter,
 	dtPolyRef* nearestRef, float* nearestPt) const
@@ -1030,18 +1030,18 @@ public:
 	}
 };
 
-/// @par
-///
-/// If no polygons are found, the function will return #DT_SUCCESS with a
-/// @p polyCount of zero.
-/// ポリゴンが見つからない場合、関数はゼロの@p polyCountで#DT_SUCCESSを返します。
-///
-/// If @p polys is too small to hold the entire result set, then the array will
-/// be filled to capacity. The method of choosing which polygons from the
-/// full set are included in the partial result set is undefined.
-/// @p polysが小さすぎて結果セット全体を保持できない場合、配列は容量いっぱいになります。
-/// 完全なセットからどのポリゴンを部分的な結果セットに含めるかを選択する方法は未定義です。
-///
+// @par
+//
+// If no polygons are found, the function will return #DT_SUCCESS with a
+// @p polyCount of zero.
+// ポリゴンが見つからない場合、関数はゼロの@p polyCountで#DT_SUCCESSを返します。
+//
+// If @p polys is too small to hold the entire result set, then the array will
+// be filled to capacity. The method of choosing which polygons from the
+// full set are included in the partial result set is undefined.
+// @p polysが小さすぎて結果セット全体を保持できない場合、配列は容量いっぱいになります。
+// 完全なセットからどのポリゴンを部分的な結果セットに含めるかを選択する方法は未定義です。
+//
 dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents,
 	const dtQueryFilter* filter,
 	dtPolyRef* polys, int* polyCount, const int maxPolys) const
@@ -1059,16 +1059,16 @@ dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents
 	return collector.overflowed() ? DT_SUCCESS | DT_BUFFER_TOO_SMALL : DT_SUCCESS;
 }
 
-/// @par
-///
-/// The query will be invoked with batches of polygons. Polygons passed
-/// to the query have bounding boxes that overlap with the center and extents
-/// passed to this function. The dtPolyQuery::process function is invoked multiple
-/// times until all overlapping polygons have been processed.
-/// クエリは、ポリゴンのバッチで呼び出されます。
-/// クエリに渡されるポリゴンには、この関数に渡される中心および範囲と重複する境界ボックスがあります。
-/// dtPolyQuery::process関数は、重複するすべてのポリゴンが処理されるまで複数回呼び出されます。
-///
+// @par
+//
+// The query will be invoked with batches of polygons. Polygons passed
+// to the query have bounding boxes that overlap with the center and extents
+// passed to this function. The dtPolyQuery::process function is invoked multiple
+// times until all overlapping polygons have been processed.
+// クエリは、ポリゴンのバッチで呼び出されます。
+// クエリに渡されるポリゴンには、この関数に渡される中心および範囲と重複する境界ボックスがあります。
+// dtPolyQuery::process関数は、重複するすべてのポリゴンが処理されるまで複数回呼び出されます。
+//
 dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents,
 	const dtQueryFilter* filter, dtPolyQuery* query) const
 {
@@ -1106,22 +1106,22 @@ dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents
 	return DT_SUCCESS;
 }
 
-/// @par
-///
-/// If the end polygon cannot be reached through the navigation graph,
-/// the last polygon in the path will be the nearest the end polygon.
-/// ナビゲーショングラフから終了ポリゴンに到達できない場合、
+// @par
+//
+// If the end polygon cannot be reached through the navigation graph,
+// the last polygon in the path will be the nearest the end polygon.
+// ナビゲーショングラフから終了ポリゴンに到達できない場合、
 //  パス内の最後のポリゴンが終了ポリゴンに最も近くなります。
-///
-/// If the path array is to small to hold the full result, it will be filled as
-/// far as possible from the start polygon toward the end polygon.
-/// 完全な結果を保持するためにパス配列が小さすぎる場合、
-/// 開始ポリゴンから終了ポリゴンに向かって可能な限り埋められます。
-///
-/// The start and end positions are used to calculate traversal costs.
-/// (The y-values impact the result.)
-/// 開始位置と終了位置は、走査コストの計算に使用されます。 （y値は結果に影響します。）
-///
+//
+// If the path array is to small to hold the full result, it will be filled as
+// far as possible from the start polygon toward the end polygon.
+// 完全な結果を保持するためにパス配列が小さすぎる場合、
+// 開始ポリゴンから終了ポリゴンに向かって可能な限り埋められます。
+//
+// The start and end positions are used to calculate traversal costs.
+// (The y-values impact the result.)
+// 開始位置と終了位置は、走査コストの計算に使用されます。 （y値は結果に影響します。）
+//
 // 実際に経路探索を行っている部分
 dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 	const float* startPos, const float* endPos,
@@ -1400,17 +1400,17 @@ dtStatus dtNavMeshQuery::getPathToNode(dtNode* endNode, dtPolyRef* path, int* pa
 	return DT_SUCCESS;
 }
 
-/// @par
-///
-/// @warning Calling any non-slice methods before calling finalizeSlicedFindPath()
-/// or finalizeSlicedFindPathPartial() may result in corrupted data!
-/// @warning finalizeSlicedFindPath（）またはfinalizeSlicedFindPathPartial（）を
-/// 呼び出す前に非スライスメソッドを呼び出すと、データが破損する可能性があります。
-///
-/// The @p filter pointer is stored and used for the duration of the sliced
-/// path query.
-/// @pフィルターポインターは保存され、スライスパスクエリの実行中に使用されます。
-///
+// @par
+//
+// @warning Calling any non-slice methods before calling finalizeSlicedFindPath()
+// or finalizeSlicedFindPathPartial() may result in corrupted data!
+// @warning finalizeSlicedFindPath（）またはfinalizeSlicedFindPathPartial（）を
+// 呼び出す前に非スライスメソッドを呼び出すと、データが破損する可能性があります。
+//
+// The @p filter pointer is stored and used for the duration of the sliced
+// path query.
+// @pフィルターポインターは保存され、スライスパスクエリの実行中に使用されます。
+//
 dtStatus dtNavMeshQuery::initSlicedFindPath(dtPolyRef startRef, dtPolyRef endRef,
 	const float* startPos, const float* endPos,
 	const dtQueryFilter* filter, const unsigned int options)
@@ -1483,6 +1483,7 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 		return m_query.status;
 
 	// Make sure the request is still valid.
+	// リクエストがまだ有効であることを確認します。
 	if (!m_nav->isValidPolyRef(m_query.startRef) || !m_nav->isValidPolyRef(m_query.endRef))
 	{
 		m_query.status = DT_FAILURE;
@@ -1492,68 +1493,85 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 	dtRaycastHit rayHit;
 	rayHit.maxPath = 0;
 
-	int iter = 0;
+	int iter{};
 	while (iter < maxIter && !m_openList->empty())
 	{
 		iter++;
 
 		// Remove node from open list and put it in closed list.
+		// オープンリストからノードを削除し、クローズリストに配置します。
 		dtNode* bestNode = m_openList->pop();
 		bestNode->flags &= ~DT_NODE_OPEN;
 		bestNode->flags |= DT_NODE_CLOSED;
 
 		// Reached the goal, stop searching.
+		// 目標に到達し、検索を停止します。
 		if (bestNode->id == m_query.endRef)
 		{
 			m_query.lastBestNode = bestNode;
 			const dtStatus details = m_query.status & DT_STATUS_DETAIL_MASK;
 			m_query.status = DT_SUCCESS | details;
-			if (doneIters)
-				*doneIters = iter;
+
+			if (doneIters) *doneIters = iter;
+
 			return m_query.status;
 		}
 
 		// Get current poly and tile.
+		// 現在のポリゴンとタイルを取得します。
 		// The API input has been cheked already, skip checking internal data.
+		// API入力は既にチェックされており、内部データのチェックをスキップします。
 		const dtPolyRef bestRef = bestNode->id;
-		const dtMeshTile* bestTile = 0;
-		const dtPoly* bestPoly = 0;
+		const dtMeshTile* bestTile{};
+		const dtPoly* bestPoly{};
+
 		if (dtStatusFailed(m_nav->getTileAndPolyByRef(bestRef, &bestTile, &bestPoly)))
 		{
 			// The polygon has disappeared during the sliced query, fail.
+			// スライスされたクエリ中にポリゴンが消えた、失敗。
 			m_query.status = DT_FAILURE;
-			if (doneIters)
-				*doneIters = iter;
+
+			if (doneIters) *doneIters = iter;
+
 			return m_query.status;
 		}
 
 		// Get parent and grand parent poly and tile.
-		dtPolyRef parentRef = 0, grandpaRef = 0;
-		const dtMeshTile* parentTile = 0;
-		const dtPoly* parentPoly = 0;
-		dtNode* parentNode = 0;
+		// 親および親のポリゴンとタイルを取得します。
+		dtPolyRef parentRef{}, grandpaRef{};
+		const dtMeshTile* parentTile{};
+		const dtPoly* parentPoly{};
+		dtNode* parentNode{};
+
 		if (bestNode->pidx)
 		{
 			parentNode = m_nodePool->getNodeAtIdx(bestNode->pidx);
 			parentRef = parentNode->id;
+
 			if (parentNode->pidx)
 				grandpaRef = m_nodePool->getNodeAtIdx(parentNode->pidx)->id;
 		}
+
 		if (parentRef)
 		{
 			bool invalidParent = dtStatusFailed(m_nav->getTileAndPolyByRef(parentRef, &parentTile, &parentPoly));
+
 			if (invalidParent || (grandpaRef && !m_nav->isValidPolyRef(grandpaRef)))
 			{
 				// The polygon has disappeared during the sliced query, fail.
+				// スライスされたクエリ中にポリゴンが消えた、失敗。
 				m_query.status = DT_FAILURE;
-				if (doneIters)
-					*doneIters = iter;
+
+				if (doneIters) *doneIters = iter;
+
 				return m_query.status;
 			}
 		}
 
 		// decide whether to test raycast to previous nodes
+		// 前のノードへのレイキャストをテストするかどうかを決定します
 		bool tryLOS = false;
+
 		if (m_query.options & DT_FINDPATH_ANY_ANGLE)
 		{
 			if ((parentRef != 0) && (dtVdistSqr(parentNode->pos, bestNode->pos) < m_query.raycastLimitSqr))
@@ -1565,19 +1583,24 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			dtPolyRef neighbourRef = bestTile->links[i].ref;
 
 			// Skip invalid ids and do not expand back to where we came from.
+			// 無効なIDをスキップし、元の場所に展開しません。
 			if (!neighbourRef || neighbourRef == parentRef)
 				continue;
 
 			// Get neighbour poly and tile.
+			// 隣接するポリゴンとタイルを取得します。
 			// The API input has been cheked already, skip checking internal data.
-			const dtMeshTile* neighbourTile = 0;
-			const dtPoly* neighbourPoly = 0;
+			// API入力は既にチェックされており、内部データのチェックをスキップします。
+			const dtMeshTile* neighbourTile{};
+			const dtPoly* neighbourPoly{};
+
 			m_nav->getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly);
 
 			if (!m_query.filter->passFilter(neighbourRef, neighbourTile, neighbourPoly))
 				continue;
 
 			// get the neighbor node
+			// 隣接ノードを取得します
 			dtNode* neighbourNode = m_nodePool->getNode(neighbourRef, 0);
 			if (!neighbourNode)
 			{
@@ -1586,10 +1609,12 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			}
 
 			// do not expand to nodes that were already visited from the same parent
+			// 同じ親から既にアクセスされたノードには展開しません
 			if (neighbourNode->pidx != 0 && neighbourNode->pidx == bestNode->pidx)
 				continue;
 
 			// If the node is visited the first time, calculate node position.
+			// ノードに初めてアクセスした場合、ノードの位置を計算します。
 			if (neighbourNode->flags == 0)
 			{
 				getEdgeMidPoint(bestRef, bestPoly, bestTile,
@@ -1598,27 +1623,33 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			}
 
 			// Calculate cost and heuristic.
-			float cost = 0;
-			float heuristic = 0;
+			// コストとヒューリスティックを計算します。
+			float cost{};
+			float heuristic{};
 
 			// raycast parent
+			// レイキャストの親
 			bool foundShortCut = false;
 			rayHit.pathCost = rayHit.t = 0;
+
 			if (tryLOS)
 			{
 				raycast(parentRef, parentNode->pos, neighbourNode->pos, m_query.filter, DT_RAYCAST_USE_COSTS, &rayHit, grandpaRef);
-				foundShortCut = rayHit.t >= 1.0f;
+				foundShortCut = rayHit.t >= 1.f;
 			}
 
 			// update move cost
+			// 移動コストを更新します
 			if (foundShortCut)
 			{
 				// shortcut found using raycast. Using shorter cost instead
+				// raycastを使用して見つかったショートカット。代わりに短いコストを使用する
 				cost = parentNode->cost + rayHit.pathCost;
 			}
 			else
 			{
 				// No shortcut found.
+				// ショートカットが見つかりません。
 				const float curCost = m_query.filter->getCost(bestNode->pos, neighbourNode->pos,
 					parentRef, parentTile, parentPoly,
 					bestRef, bestTile, bestPoly,
@@ -1627,6 +1658,7 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			}
 
 			// Special case for last node.
+			// 最後のノードの特別な場合。
 			if (neighbourRef == m_query.endRef)
 			{
 				const float endCost = m_query.filter->getCost(neighbourNode->pos, m_query.endPos,
@@ -1645,34 +1677,42 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			const float total = cost + heuristic;
 
 			// The node is already in open list and the new result is worse, skip.
+			// ノードは既にオープンリストにあり、新しい結果はさらに悪いので、スキップします。
 			if ((neighbourNode->flags & DT_NODE_OPEN) && total >= neighbourNode->total)
 				continue;
+
 			// The node is already visited and process, and the new result is worse, skip.
+			// ノードはすでにアクセスされて処理されており、新しい結果はさらに悪いのでスキップします。
 			if ((neighbourNode->flags & DT_NODE_CLOSED) && total >= neighbourNode->total)
 				continue;
 
 			// Add or update the node.
+			// ノードを追加または更新します。
 			neighbourNode->pidx = foundShortCut ? bestNode->pidx : m_nodePool->getNodeIdx(bestNode);
 			neighbourNode->id = neighbourRef;
 			neighbourNode->flags = (neighbourNode->flags & ~(DT_NODE_CLOSED | DT_NODE_PARENT_DETACHED));
 			neighbourNode->cost = cost;
 			neighbourNode->total = total;
+
 			if (foundShortCut)
 				neighbourNode->flags = (neighbourNode->flags | DT_NODE_PARENT_DETACHED);
 
 			if (neighbourNode->flags & DT_NODE_OPEN)
 			{
 				// Already in open, update node location.
+				// 既に開いており、ノードの場所を更新します。
 				m_openList->modify(neighbourNode);
 			}
 			else
 			{
 				// Put the node in open list.
+				// ノードをオープンリストに配置します。
 				neighbourNode->flags |= DT_NODE_OPEN;
 				m_openList->push(neighbourNode);
 			}
 
 			// Update nearest node to target so far.
+			// これまでのターゲットに最も近いノードを更新します。
 			if (heuristic < m_query.lastBestNodeCost)
 			{
 				m_query.lastBestNodeCost = heuristic;
@@ -1682,6 +1722,7 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 	}
 
 	// Exhausted all nodes, but could not find path.
+	// これまでのターゲットに最も近いノードを更新します。
 	if (m_openList->empty())
 	{
 		const dtStatus details = m_query.status & DT_STATUS_DETAIL_MASK;
@@ -1700,7 +1741,7 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPath(dtPolyRef* path, int* pathCount,
 
 	if (dtStatusFailed(m_query.status))
 	{
-		// Reset query.
+		// Reset query. // クエリをリセットします。
 		memset(&m_query, 0, sizeof(dtQueryData));
 		return DT_FAILURE;
 	}
@@ -1710,45 +1751,58 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPath(dtPolyRef* path, int* pathCount,
 	if (m_query.startRef == m_query.endRef)
 	{
 		// Special case: the search starts and ends at same poly.
+		// 特別な場合：検索は同じポリゴンで開始および終了します。
 		path[n++] = m_query.startRef;
 	}
 	else
 	{
 		// Reverse the path.
+		// パスを逆にします。
 		dtAssert(m_query.lastBestNode);
 
 		if (m_query.lastBestNode->id != m_query.endRef)
 			m_query.status |= DT_PARTIAL_RESULT;
 
-		dtNode* prev = 0;
+		dtNode* prev{};
 		dtNode* node = m_query.lastBestNode;
-		int prevRay = 0;
+		int prevRay{};
+
 		do
 		{
 			dtNode* next = m_nodePool->getNodeAtIdx(node->pidx);
 			node->pidx = m_nodePool->getNodeIdx(prev);
 			prev = node;
-			int nextRay = node->flags & DT_NODE_PARENT_DETACHED; // keep track of whether parent is not adjacent (i.e. due to raycast shortcut)
-			node->flags = (node->flags & ~DT_NODE_PARENT_DETACHED) | prevRay; // and store it in the reversed path's node
+
+			// keep track of whether parent is not adjacent (i.e. due to raycast shortcut)
+			// 親が隣接していないかどうかを追跡します（つまり、レイキャストショートカットによる）
+			int nextRay = node->flags & DT_NODE_PARENT_DETACHED;
+
+			// and store it in the reversed path's node
+			// そして、逆のパスのノードに保存します
+			node->flags = (node->flags & ~DT_NODE_PARENT_DETACHED) | prevRay;
 			prevRay = nextRay;
 			node = next;
 		} while (node);
 
-		// Store path
+		// Store path // パスを保存します
 		node = prev;
 		do
 		{
 			dtNode* next = m_nodePool->getNodeAtIdx(node->pidx);
-			dtStatus status = 0;
+			dtStatus status{};
+
 			if (node->flags & DT_NODE_PARENT_DETACHED)
 			{
-				float t, normal[3];
-				int m;
+				float t{}, normal[3]{};
+				int m{};
+
 				status = raycast(node->id, node->pos, next->pos, m_query.filter, &t, normal, path + n, &m, maxPath - n);
 				n += m;
+
 				// raycast ends on poly boundary and the path might include the next poly boundary.
+				//レイキャストはポリ境界で終了し、パスには次のポリ境界が含まれる場合があります。
 				if (path[n - 1] == next->id)
-					n--; // remove to avoid duplicates
+					n--; // remove to avoid duplicates // 重複を避けるために削除します
 			}
 			else
 			{
@@ -1768,7 +1822,7 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPath(dtPolyRef* path, int* pathCount,
 
 	const dtStatus details = m_query.status & DT_STATUS_DETAIL_MASK;
 
-	// Reset query.
+	// Reset query. // クエリをリセットします。
 	memset(&m_query, 0, sizeof(dtQueryData));
 
 	*pathCount = n;
@@ -1961,31 +2015,31 @@ dtStatus dtNavMeshQuery::appendPortals(const int startIdx, const int endIdx, con
 	return DT_IN_PROGRESS;
 }
 
-/// @par
-///
-/// This method peforms what is often called 'string pulling'.
-/// このメソッドは、「ストリングプル」と呼ばれることが多い方法を実行します。
-///
-/// The start position is clamped to the first polygon in the path, and the
-/// end position is clamped to the last. So the start and end positions should
-/// normally be within or very near the first and last polygons respectively.
-/// 開始位置はパスの最初のポリゴンに固定され、終了位置は最後に固定されます。
-/// そのため、通常、開始位置と終了位置は、それぞれ最初と最後のポリゴン内または非常に近くにある必要があります。
-///
-/// The returned polygon references represent the reference id of the polygon
-/// that is entered at the associated path position. The reference id associated
-/// with the end point will always be zero.  This allows, for example, matching
-/// off-mesh link points to their representative polygons.
-/// 返されるポリゴン参照は、関連付けられたパス位置に入力されたポリゴンの参照IDを表します。
-/// エンドポイントに関連付けられた参照IDは常にゼロになります。
-/// これにより、たとえば、メッシュ外のリンクポイントを代表的なポリゴンに一致させることができます。
-///
-/// If the provided result buffers are too small for the entire result set,
-/// they will be filled as far as possible from the start toward the end
-/// position.
-/// 指定された結果バッファーが結果セット全体に対して小さすぎる場合、
-/// 開始位置から終了位置に向かって可能な限りいっぱいになります。
-///
+// @par
+//
+// This method peforms what is often called 'string pulling'.
+// このメソッドは、「ストリングプル」と呼ばれることが多い方法を実行します。
+//
+// The start position is clamped to the first polygon in the path, and the
+// end position is clamped to the last. So the start and end positions should
+// normally be within or very near the first and last polygons respectively.
+// 開始位置はパスの最初のポリゴンに固定され、終了位置は最後に固定されます。
+// そのため、通常、開始位置と終了位置は、それぞれ最初と最後のポリゴン内または非常に近くにある必要があります。
+//
+// The returned polygon references represent the reference id of the polygon
+// that is entered at the associated path position. The reference id associated
+// with the end point will always be zero.  This allows, for example, matching
+// off-mesh link points to their representative polygons.
+// 返されるポリゴン参照は、関連付けられたパス位置に入力されたポリゴンの参照IDを表します。
+// エンドポイントに関連付けられた参照IDは常にゼロになります。
+// これにより、たとえば、メッシュ外のリンクポイントを代表的なポリゴンに一致させることができます。
+//
+// If the provided result buffers are too small for the entire result set,
+// they will be filled as far as possible from the start toward the end
+// position.
+// 指定された結果バッファーが結果セット全体に対して小さすぎる場合、
+// 開始位置から終了位置に向かって可能な限りいっぱいになります。
+//
 dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* endPos,
 	const dtPolyRef* path, const int pathSize,
 	float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
@@ -2212,34 +2266,34 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 	return DT_SUCCESS | ((*straightPathCount >= maxStraightPath) ? DT_BUFFER_TOO_SMALL : 0);
 }
 
-/// @par
-///
-/// This method is optimized for small delta movement and a small number of
-/// polygons. If used for too great a distance, the result set will form an
-/// incomplete path.
-/// この方法は、小さなデルタ移動と少数のポリゴン用に最適化されています。
-/// 長すぎる距離を使用すると、結果セットは不完全なパスを形成します。
-///
-/// @p resultPos will equal the @p endPos if the end is reached.
-/// Otherwise the closest reachable position will be returned.
-/// resultPosは、終了に達すると@p endPosと等しくなります。
-/// それ以外の場合、最も近い到達可能な位置が返されます。
-///
-/// @p resultPos is not projected onto the surface of the navigation
-/// mesh. Use #getPolyHeight if this is needed.
-/// resultPosは、ナビゲーションメッシュの表面に投影されません。 これが必要な場合は#getPolyHeightを使用します。
-///
-/// This method treats the end position in the same manner as
-/// the #raycast method. (As a 2D point.) See that method's documentation
-/// for details.
-/// このメソッドは、終了位置を#raycastメソッドと同じ方法で処理します。（2Dポイントとして）
-/// 詳細については、そのメソッドのドキュメントを参照してください。
-///
-/// If the @p visited array is too small to hold the entire result set, it will
-/// be filled as far as possible from the start position toward the end
-/// position.
-/// 訪問された@p配列が小さすぎて結果セット全体を保持できない場合、可能な限り開始位置から終了位置に向かって埋められます。
-///
+// @par
+//
+// This method is optimized for small delta movement and a small number of
+// polygons. If used for too great a distance, the result set will form an
+// incomplete path.
+// この方法は、小さなデルタ移動と少数のポリゴン用に最適化されています。
+// 長すぎる距離を使用すると、結果セットは不完全なパスを形成します。
+//
+// @p resultPos will equal the @p endPos if the end is reached.
+// Otherwise the closest reachable position will be returned.
+// resultPosは、終了に達すると@p endPosと等しくなります。
+// それ以外の場合、最も近い到達可能な位置が返されます。
+//
+// @p resultPos is not projected onto the surface of the navigation
+// mesh. Use #getPolyHeight if this is needed.
+// resultPosは、ナビゲーションメッシュの表面に投影されません。 これが必要な場合は#getPolyHeightを使用します。
+//
+// This method treats the end position in the same manner as
+// the #raycast method. (As a 2D point.) See that method's documentation
+// for details.
+// このメソッドは、終了位置を#raycastメソッドと同じ方法で処理します。（2Dポイントとして）
+// 詳細については、そのメソッドのドキュメントを参照してください。
+//
+// If the @p visited array is too small to hold the entire result set, it will
+// be filled as far as possible from the start position toward the end
+// position.
+// 訪問された@p配列が小さすぎて結果セット全体を保持できない場合、可能な限り開始位置から終了位置に向かって埋められます。
+//
 dtStatus dtNavMeshQuery::moveAlongSurface(dtPolyRef startRef, const float* startPos, const float* endPos,
 	const dtQueryFilter* filter,
 	float* resultPos, dtPolyRef* visited, int* visitedCount, const int maxVisitedSize) const
@@ -2518,7 +2572,7 @@ dtStatus dtNavMeshQuery::getPortalPoints(dtPolyRef from, const dtPoly* fromPoly,
 		// Unpack portal limits.
 		if (link->bmin != 0 || link->bmax != 255)
 		{
-			const float s = 1.0f / 255.0f;
+			const float s = 1.f / 255.0f;
 			const float tmin = link->bmin * s;
 			const float tmax = link->bmax * s;
 			dtVlerp(left, &fromTile->verts[v0 * 3], &fromTile->verts[v1 * 3], tmin);
@@ -2556,58 +2610,58 @@ dtStatus dtNavMeshQuery::getEdgeMidPoint(dtPolyRef from, const dtPoly* fromPoly,
 	return DT_SUCCESS;
 }
 
-/// @par
-///
-/// This method is meant to be used for quick, short distance checks.
-/// このメソッドは、迅速な短距離チェックに使用することを目的としています。
-///
-/// If the path array is too small to hold the result, it will be filled as
-/// far as possible from the start postion toward the end position.
-/// パス配列が小さすぎて結果を保持できない場合、可能な限り開始位置から終了位置に向かって埋められます。
-///
-/// <b>Using the Hit Parameter ヒットパラメーターの使用 (t)</b>
-///
-/// If the hit parameter is a very high value (FLT_MAX), then the ray has hit
-/// the end position. In this case the path represents a valid corridor to the
-/// end position and the value of @p hitNormal is undefined.
-/// ヒットパラメーターが非常に高い値（FLT_MAX）の場合、レイは終了位置にヒットしています。
-/// この場合、パスは終了位置への有効なコリドーを表し、@ p hitNormalの値は未定義です。
-///
-/// If the hit parameter is zero, then the start position is on the wall that
-/// was hit and the value of @p hitNormal is undefined.
-/// ヒットパラメータがゼロの場合、開始位置はヒットした壁上にあり、@ p hitNormalの値は未定義です。
-///
-/// If 0 < t < 1.0 then the following applies:
-/// 0 <t <1.0の場合、以下が適用されます。
-///
-/// @code
-/// distanceToHitBorder = distanceToEndPosition * t
-/// hitPoint = startPos + (endPos - startPos) * t
-/// @endcode
-///
-/// <b>Use Case Restriction ユースケースの制限 </b>
-///
-/// The raycast ignores the y-value of the end position. (2D check.) This
-/// places significant limits on how it can be used. For example:
-/// レイキャストは終了位置のy値を無視します。 （2Dチェック）
-/// これは、その使用方法に大きな制限を課します。 例えば：
-///
-/// Consider a scene where there is a main floor with a second floor balcony
-/// that hangs over the main floor. So the first floor mesh extends below the
-/// balcony mesh. The start position is somewhere on the first floor. The end
-/// position is on the balcony.
-/// メインフロアがあり、メインフロアに2階のバルコニーがかかっているシーンを考えます。
-/// そのため、1階メッシュはバルコニーメッシュの下に伸びています。
-/// 開始位置は1階のどこかにあります。 終了位置はバルコニーにあります。
-///
-/// The raycast will search toward the end position along the first floor mesh.
-/// If it reaches the end position's xz-coordinates it will indicate FLT_MAX
-/// (no wall hit), meaning it reached the end position. This is one example of why
-/// this method is meant for short distance checks.
-/// レイキャストは、1階メッシュに沿って終了位置に向かって検索します。
-/// 終了位置のxz座標に到達すると、FLT_MAX（壁に衝突しない）、つまり終了位置に到達したことを示します。
-/// これは、この方法が短距離チェック用である理由の一例です。
-///
+// @par
+//
+// This method is meant to be used for quick, short distance checks.
+// このメソッドは、迅速な短距離チェックに使用することを目的としています。
+//
+// If the path array is too small to hold the result, it will be filled as
+// far as possible from the start postion toward the end position.
+// パス配列が小さすぎて結果を保持できない場合、可能な限り開始位置から終了位置に向かって埋められます。
+//
+// <b>Using the Hit Parameter ヒットパラメーターの使用 (t)</b>
+//
+// If the hit parameter is a very high value (FLT_MAX), then the ray has hit
+// the end position. In this case the path represents a valid corridor to the
+// end position and the value of @p hitNormal is undefined.
+// ヒットパラメーターが非常に高い値（FLT_MAX）の場合、レイは終了位置にヒットしています。
+// この場合、パスは終了位置への有効なコリドーを表し、@ p hitNormalの値は未定義です。
+//
+// If the hit parameter is zero, then the start position is on the wall that
+// was hit and the value of @p hitNormal is undefined.
+// ヒットパラメータがゼロの場合、開始位置はヒットした壁上にあり、@ p hitNormalの値は未定義です。
+//
+// If 0 < t < 1.0 then the following applies:
+// 0 <t <1.0の場合、以下が適用されます。
+//
+// @code
+// distanceToHitBorder = distanceToEndPosition * t
+// hitPoint = startPos + (endPos - startPos) * t
+// @endcode
+//
+// <b>Use Case Restriction ユースケースの制限 </b>
+//
+// The raycast ignores the y-value of the end position. (2D check.) This
+// places significant limits on how it can be used. For example:
+// レイキャストは終了位置のy値を無視します。 （2Dチェック）
+// これは、その使用方法に大きな制限を課します。 例えば：
+//
+// Consider a scene where there is a main floor with a second floor balcony
+// that hangs over the main floor. So the first floor mesh extends below the
+// balcony mesh. The start position is somewhere on the first floor. The end
+// position is on the balcony.
+// メインフロアがあり、メインフロアに2階のバルコニーがかかっているシーンを考えます。
+// そのため、1階メッシュはバルコニーメッシュの下に伸びています。
+// 開始位置は1階のどこかにあります。 終了位置はバルコニーにあります。
+//
+// The raycast will search toward the end position along the first floor mesh.
+// If it reaches the end position's xz-coordinates it will indicate FLT_MAX
+// (no wall hit), meaning it reached the end position. This is one example of why
+// this method is meant for short distance checks.
+// レイキャストは、1階メッシュに沿って終了位置に向かって検索します。
+// 終了位置のxz座標に到達すると、FLT_MAX（壁に衝突しない）、つまり終了位置に到達したことを示します。
+// これは、この方法が短距離チェック用である理由の一例です。
+//
 dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, const float* endPos,
 	const dtQueryFilter* filter,
 	float* t, float* hitNormal, dtPolyRef* path, int* pathCount, const int maxPath) const
@@ -2627,58 +2681,58 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 	return status;
 }
 
-/// @par
-///
-/// This method is meant to be used for quick, short distance checks.
-/// このメソッドは、迅速な短距離チェックに使用することを目的としています。
-///
-/// If the path array is too small to hold the result, it will be filled as
-/// far as possible from the start postion toward the end position.
-/// パス配列が小さすぎて結果を保持できない場合、可能な限り開始位置から終了位置に向かって埋められます。
-///
-/// <b>Using the Hit Parameter t of RaycastHit ヒットパラメーターの使用 </b>
-///
-/// If the hit parameter is a very high value (FLT_MAX), then the ray has hit
-/// the end position. In this case the path represents a valid corridor to the
-/// end position and the value of @p hitNormal is undefined.
-/// ヒットパラメーターが非常に高い値（FLT_MAX）の場合、レイは終了位置にヒットしています。
-/// この場合、パスは終了位置への有効なコリドーを表し、@ p hitNormalの値は未定義です。
-///
-/// If the hit parameter is zero, then the start position is on the wall that
-/// was hit and the value of @p hitNormal is undefined.
-/// ヒットパラメータがゼロの場合、開始位置はヒットした壁上にあり、@ p hitNormalの値は未定義です。
-///
-/// If 0 < t < 1.0 then the following applies:
-/// 0 <t <1.0の場合、以下が適用されます。
-///
-/// @code
-/// distanceToHitBorder = distanceToEndPosition * t
-/// hitPoint = startPos + (endPos - startPos) * t
-/// @endcode
-///
-/// <b>Use Case Restriction</b>
-///
-/// The raycast ignores the y-value of the end position. (2D check.) This
-/// places significant limits on how it can be used. For example:
-/// レイキャストは終了位置のy値を無視します。 （2Dチェック）
-/// これは、その使用方法に大きな制限を課します。 例えば：
-///
-/// Consider a scene where there is a main floor with a second floor balcony
-/// that hangs over the main floor. So the first floor mesh extends below the
-/// balcony mesh. The start position is somewhere on the first floor. The end
-/// position is on the balcony.
-/// メインフロアがあり、メインフロアに2階のバルコニーがかかっているシーンを考えます。
-/// そのため、1階メッシュはバルコニーメッシュの下に伸びています。
-/// 開始位置は1階のどこかにあります。 終了位置はバルコニーにあります。
-///
-/// The raycast will search toward the end position along the first floor mesh.
-/// If it reaches the end position's xz-coordinates it will indicate FLT_MAX
-/// (no wall hit), meaning it reached the end position. This is one example of why
-/// this method is meant for short distance checks.
-/// レイキャストは、1階メッシュに沿って終了位置に向かって検索します。
-/// 終了位置のxz座標に到達すると、FLT_MAX（壁に衝突しない）、つまり終了位置に到達したことを示します。
-/// これは、この方法が短距離チェック用である理由の一例です。
-///
+// @par
+//
+// This method is meant to be used for quick, short distance checks.
+// このメソッドは、迅速な短距離チェックに使用することを目的としています。
+//
+// If the path array is too small to hold the result, it will be filled as
+// far as possible from the start postion toward the end position.
+// パス配列が小さすぎて結果を保持できない場合、可能な限り開始位置から終了位置に向かって埋められます。
+//
+// <b>Using the Hit Parameter t of RaycastHit ヒットパラメーターの使用 </b>
+//
+// If the hit parameter is a very high value (FLT_MAX), then the ray has hit
+// the end position. In this case the path represents a valid corridor to the
+// end position and the value of @p hitNormal is undefined.
+// ヒットパラメーターが非常に高い値（FLT_MAX）の場合、レイは終了位置にヒットしています。
+// この場合、パスは終了位置への有効なコリドーを表し、@ p hitNormalの値は未定義です。
+//
+// If the hit parameter is zero, then the start position is on the wall that
+// was hit and the value of @p hitNormal is undefined.
+// ヒットパラメータがゼロの場合、開始位置はヒットした壁上にあり、@ p hitNormalの値は未定義です。
+//
+// If 0 < t < 1.0 then the following applies:
+// 0 <t <1.0の場合、以下が適用されます。
+//
+// @code
+// distanceToHitBorder = distanceToEndPosition * t
+// hitPoint = startPos + (endPos - startPos) * t
+// @endcode
+//
+// <b>Use Case Restriction</b>
+//
+// The raycast ignores the y-value of the end position. (2D check.) This
+// places significant limits on how it can be used. For example:
+// レイキャストは終了位置のy値を無視します。 （2Dチェック）
+// これは、その使用方法に大きな制限を課します。 例えば：
+//
+// Consider a scene where there is a main floor with a second floor balcony
+// that hangs over the main floor. So the first floor mesh extends below the
+// balcony mesh. The start position is somewhere on the first floor. The end
+// position is on the balcony.
+// メインフロアがあり、メインフロアに2階のバルコニーがかかっているシーンを考えます。
+// そのため、1階メッシュはバルコニーメッシュの下に伸びています。
+// 開始位置は1階のどこかにあります。 終了位置はバルコニーにあります。
+//
+// The raycast will search toward the end position along the first floor mesh.
+// If it reaches the end position's xz-coordinates it will indicate FLT_MAX
+// (no wall hit), meaning it reached the end position. This is one example of why
+// this method is meant for short distance checks.
+// レイキャストは、1階メッシュに沿って終了位置に向かって検索します。
+// 終了位置のxz座標に到達すると、FLT_MAX（壁に衝突しない）、つまり終了位置に到達したことを示します。
+// これは、この方法が短距離チェック用である理由の一例です。
+//
 dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, const float* endPos,
 	const dtQueryFilter* filter, const unsigned int options,
 	dtRaycastHit* hit, dtPolyRef prevRef) const
@@ -2814,7 +2868,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			if (link->side == 0 || link->side == 4)
 			{
 				// Calculate link size.
-				const float s = 1.0f / 255.0f;
+				const float s = 1.f / 255.0f;
 				float lmin = left[2] + (right[2] - left[2]) * (link->bmin * s);
 				float lmax = left[2] + (right[2] - left[2]) * (link->bmax * s);
 				if (lmin > lmax) dtSwap(lmin, lmax);
@@ -2830,7 +2884,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			else if (link->side == 2 || link->side == 6)
 			{
 				// Calculate link size.
-				const float s = 1.0f / 255.0f;
+				const float s = 1.f / 255.0f;
 				float lmin = left[0] + (right[0] - left[0]) * (link->bmin * s);
 				float lmax = left[0] + (right[0] - left[0]) * (link->bmax * s);
 				if (lmin > lmax) dtSwap(lmin, lmax);
@@ -2897,49 +2951,49 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 	return status;
 }
 
-/// @par
-///
-/// At least one result array must be provided.
-/// 少なくとも1つの結果配列を提供する必要があります。
-///
-/// The order of the result set is from least to highest cost to reach the polygon.
-/// 結果セットの順序は、ポリゴンに到達するための最小コストから最大コストです。
-///
-/// A common use case for this method is to perform Dijkstra searches.
-/// Candidate polygons are found by searching the graph beginning at the start polygon.
-/// このメソッドの一般的な使用例は、ダイクストラ検索を実行することです。
-/// 候補ポリゴンは、開始ポリゴンから始まるグラフを検索することで見つけられます。
-///
-/// If a polygon is not found via the graph search, even if it intersects the
-/// search circle, it will not be included in the result set. For example:
-/// グラフ検索で多角形が見つからない場合、たとえそれが交差しても
-/// 検索サークル、それは結果セットに含まれません。例えば：
-///
-/// polyA is the start polygon.
-/// polyB shares an edge with polyA. (Is adjacent.)
-/// polyC shares an edge with polyB, but not with polyA
-/// Even if the search circle overlaps polyC, it will not be included in the
-/// result set unless polyB is also in the set.
-/// polyAは開始ポリゴンです。
-/// polyBはpolyAとエッジを共有します。 （隣接しています。）
-/// polyCはpolyBとエッジを共有しますが、polyAとは共有しません。
-/// 検索サークルがpolyCと重複しても、polyBもセットに含まれていない限り、結果セットには含まれません。
-///
-/// The value of the center point is used as the start position for cost
-/// calculations. It is not projected onto the surface of the mesh, so its
-/// y-value will effect the costs.
-/// 中心点の値は、コスト計算の開始位置として使用されます。メッシュの表面には投影されないため、y値はコストに影響します。
-///
-/// Intersection tests occur in 2D. All polygons and the search circle are
-/// projected onto the xz-plane. So the y-value of the center point does not
-/// effect intersection tests.
-/// 交差点テストは2Dで行われます。すべてのポリゴンと検索円は、xz平面に投影されます。
-/// したがって、中心点のy値は交差テストに影響しません。
-///
-/// If the result arrays are to small to hold the entire result set, they will be
-/// filled to capacity.
-/// 結果セット全体を保持するために結果配列が小さすぎる場合、それらは容量がフルになります。
-///
+// @par
+//
+// At least one result array must be provided.
+// 少なくとも1つの結果配列を提供する必要があります。
+//
+// The order of the result set is from least to highest cost to reach the polygon.
+// 結果セットの順序は、ポリゴンに到達するための最小コストから最大コストです。
+//
+// A common use case for this method is to perform Dijkstra searches.
+// Candidate polygons are found by searching the graph beginning at the start polygon.
+// このメソッドの一般的な使用例は、ダイクストラ検索を実行することです。
+// 候補ポリゴンは、開始ポリゴンから始まるグラフを検索することで見つけられます。
+//
+// If a polygon is not found via the graph search, even if it intersects the
+// search circle, it will not be included in the result set. For example:
+// グラフ検索で多角形が見つからない場合、たとえそれが交差しても
+// 検索サークル、それは結果セットに含まれません。例えば：
+//
+// polyA is the start polygon.
+// polyB shares an edge with polyA. (Is adjacent.)
+// polyC shares an edge with polyB, but not with polyA
+// Even if the search circle overlaps polyC, it will not be included in the
+// result set unless polyB is also in the set.
+// polyAは開始ポリゴンです。
+// polyBはpolyAとエッジを共有します。 （隣接しています。）
+// polyCはpolyBとエッジを共有しますが、polyAとは共有しません。
+// 検索サークルがpolyCと重複しても、polyBもセットに含まれていない限り、結果セットには含まれません。
+//
+// The value of the center point is used as the start position for cost
+// calculations. It is not projected onto the surface of the mesh, so its
+// y-value will effect the costs.
+// 中心点の値は、コスト計算の開始位置として使用されます。メッシュの表面には投影されないため、y値はコストに影響します。
+//
+// Intersection tests occur in 2D. All polygons and the search circle are
+// projected onto the xz-plane. So the y-value of the center point does not
+// effect intersection tests.
+// 交差点テストは2Dで行われます。すべてのポリゴンと検索円は、xz平面に投影されます。
+// したがって、中心点のy値は交差テストに影響しません。
+//
+// If the result arrays are to small to hold the entire result set, they will be
+// filled to capacity.
+// 結果セット全体を保持するために結果配列が小さすぎる場合、それらは容量がフルになります。
+//
 dtStatus dtNavMeshQuery::findPolysAroundCircle(dtPolyRef startRef, const float* centerPos, const float radius,
 	const dtQueryFilter* filter,
 	dtPolyRef* resultRef, dtPolyRef* resultParent, float* resultCost,
@@ -3085,37 +3139,37 @@ dtStatus dtNavMeshQuery::findPolysAroundCircle(dtPolyRef startRef, const float* 
 	return status;
 }
 
-/// @par
-///
-/// The order of the result set is from least to highest cost.
-/// 結果セットの順序は、最小から最大のコストです。
-///
-/// At least one result array must be provided.
-/// 少なくとも1つの結果配列を提供する必要があります。
-///
-/// A common use case for this method is to perform Dijkstra searches.
-/// Candidate polygons are found by searching the graph beginning at the start
-/// polygon.
-/// このメソッドの一般的な使用例は、ダイクストラ検索を実行することです。
-/// 候補ポリゴンは、開始ポリゴンから始まるグラフを検索することで見つけられます。
-///
-/// The same intersection test restrictions that apply to findPolysAroundCircle()
-/// method apply to this method.
-/// findPolysAroundCircle（）メソッドに適用される同じ交差テストの制限がこのメソッドに適用されます。
-///
-/// The 3D centroid of the search polygon is used as the start position for cost
-/// calculations.
-/// 検索ポリゴンの3D重心は、コスト計算の開始位置として使用されます。
-///
-/// Intersection tests occur in 2D. All polygons are projected onto the
-/// xz-plane. So the y-values of the vertices do not effect intersection tests.
-/// 交差点テストは2Dで行われます。 すべてのポリゴンはxz平面に投影されます。
-/// したがって、頂点のy値は交差テストに影響しません。
-///
-/// If the result arrays are is too small to hold the entire result set, they will
-/// be filled to capacity.
-/// 結果の配列が小さすぎて結果セット全体を保持できない場合、容量がフルになります。
-///
+// @par
+//
+// The order of the result set is from least to highest cost.
+// 結果セットの順序は、最小から最大のコストです。
+//
+// At least one result array must be provided.
+// 少なくとも1つの結果配列を提供する必要があります。
+//
+// A common use case for this method is to perform Dijkstra searches.
+// Candidate polygons are found by searching the graph beginning at the start
+// polygon.
+// このメソッドの一般的な使用例は、ダイクストラ検索を実行することです。
+// 候補ポリゴンは、開始ポリゴンから始まるグラフを検索することで見つけられます。
+//
+// The same intersection test restrictions that apply to findPolysAroundCircle()
+// method apply to this method.
+// findPolysAroundCircle（）メソッドに適用される同じ交差テストの制限がこのメソッドに適用されます。
+//
+// The 3D centroid of the search polygon is used as the start position for cost
+// calculations.
+// 検索ポリゴンの3D重心は、コスト計算の開始位置として使用されます。
+//
+// Intersection tests occur in 2D. All polygons are projected onto the
+// xz-plane. So the y-values of the vertices do not effect intersection tests.
+// 交差点テストは2Dで行われます。 すべてのポリゴンはxz平面に投影されます。
+// したがって、頂点のy値は交差テストに影響しません。
+//
+// If the result arrays are is too small to hold the entire result set, they will
+// be filled to capacity.
+// 結果の配列が小さすぎて結果セット全体を保持できない場合、容量がフルになります。
+//
 dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* verts, const int nverts,
 	const dtQueryFilter* filter,
 	dtPolyRef* resultRef, dtPolyRef* resultParent, float* resultCost,
@@ -3137,7 +3191,7 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 	float centerPos[3] = { 0,0,0 };
 	for (int i = 0; i < nverts; ++i)
 		dtVadd(centerPos, centerPos, &verts[i * 3]);
-	dtVscale(centerPos, centerPos, 1.0f / nverts);
+	dtVscale(centerPos, centerPos, 1.f / nverts);
 
 	dtNode* startNode = m_nodePool->getNode(startRef);
 	dtVcopy(startNode->pos, centerPos);
@@ -3217,7 +3271,7 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 			int segMin, segMax;
 			if (!dtIntersectSegmentPoly2D(va, vb, verts, nverts, tmin, tmax, segMin, segMax))
 				continue;
-			if (tmin > 1.0f || tmax < 0.0f)
+			if (tmin > 1.f || tmax < 0.0f)
 				continue;
 
 			dtNode* neighbourNode = m_nodePool->getNode(neighbourRef);
@@ -3282,35 +3336,35 @@ dtStatus dtNavMeshQuery::getPathFromDijkstraSearch(dtPolyRef endRef, dtPolyRef* 
 	return getPathToNode(endNode, path, pathCount, maxPath);
 }
 
-/// @par
-///
-/// This method is optimized for a small search radius and small number of result
-/// polygons.
-/// この方法は、検索半径が小さく、結果のポリゴン数が少ない場合に最適化されます。
-///
-/// Candidate polygons are found by searching the navigation graph beginning at
-/// the start polygon.
-/// 候補ポリゴンは、開始ポリゴンから始まるナビゲーショングラフを検索することで検出されます。
-///
-/// The same intersection test restrictions that apply to the findPolysAroundCircle
-/// mehtod applies to this method.
-/// findPolysAroundCircleメソッドに適用される同じ交差テストの制限がこのメソッドに適用されます。
-///
-/// The value of the center point is used as the start point for cost calculations.
-/// It is not projected onto the surface of the mesh, so its y-value will effect
-/// the costs.
-/// 中心点の値は、コスト計算の開始点として使用されます。メッシュの表面には投影されないため、y値はコストに影響します。
-///
-/// Intersection tests occur in 2D. All polygons and the search circle are
-/// projected onto the xz-plane. So the y-value of the center point does not
-/// effect intersection tests.
-/// 交差点テストは2Dで行われます。 すべてのポリゴンと検索円は、xz平面に投影されます。
-/// したがって、中心点のy値は交差テストに影響しません。
-///
-/// If the result arrays are is too small to hold the entire result set, they will
-/// be filled to capacity.
-/// 結果の配列が小さすぎて結果セット全体を保持できない場合、容量がいっぱいになります。
-///
+// @par
+//
+// This method is optimized for a small search radius and small number of result
+// polygons.
+// この方法は、検索半径が小さく、結果のポリゴン数が少ない場合に最適化されます。
+//
+// Candidate polygons are found by searching the navigation graph beginning at
+// the start polygon.
+// 候補ポリゴンは、開始ポリゴンから始まるナビゲーショングラフを検索することで検出されます。
+//
+// The same intersection test restrictions that apply to the findPolysAroundCircle
+// mehtod applies to this method.
+// findPolysAroundCircleメソッドに適用される同じ交差テストの制限がこのメソッドに適用されます。
+//
+// The value of the center point is used as the start point for cost calculations.
+// It is not projected onto the surface of the mesh, so its y-value will effect
+// the costs.
+// 中心点の値は、コスト計算の開始点として使用されます。メッシュの表面には投影されないため、y値はコストに影響します。
+//
+// Intersection tests occur in 2D. All polygons and the search circle are
+// projected onto the xz-plane. So the y-value of the center point does not
+// effect intersection tests.
+// 交差点テストは2Dで行われます。 すべてのポリゴンと検索円は、xz平面に投影されます。
+// したがって、中心点のy値は交差テストに影響しません。
+//
+// If the result arrays are is too small to hold the entire result set, they will
+// be filled to capacity.
+// 結果の配列が小さすぎて結果セット全体を保持できない場合、容量がいっぱいになります。
+//
 dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float* centerPos, const float radius,
 	const dtQueryFilter* filter,
 	dtPolyRef* resultRef, dtPolyRef* resultParent,
@@ -3514,22 +3568,22 @@ static void insertInterval(dtSegInterval* ints, int& nints, const int maxInts,
 	nints++;
 }
 
-/// @par
-///
-/// If the @p segmentRefs parameter is provided, then all polygon segments will be returned.
-/// Otherwise only the wall segments are returned.
-/// segmentRefsパラメーターが指定されている場合、すべてのポリゴンセグメントが返されます。
-/// それ以外の場合、壁セグメントのみが返されます。
-///
-/// A segment that is normally a portal will be included in the result set as a
-/// wall if the @p filter results in the neighbor polygon becoomming impassable.
-/// 通常はポータルであるセグメントは、フィルターが近隣ポリゴンを通過できない場合、結果セットに壁として含まれます。
-///
-/// The @p segmentVerts and @p segmentRefs buffers should normally be sized for the
-/// maximum segments per polygon of the source navigation mesh.
-/// 通常、segmentVertsおよびsegmentRefsバッファーは、
-/// ソースナビゲーションメッシュのポリゴンごとの最大セグメントに合わせてサイズを調整する必要があります。
-///
+// @par
+//
+// If the @p segmentRefs parameter is provided, then all polygon segments will be returned.
+// Otherwise only the wall segments are returned.
+// segmentRefsパラメーターが指定されている場合、すべてのポリゴンセグメントが返されます。
+// それ以外の場合、壁セグメントのみが返されます。
+//
+// A segment that is normally a portal will be included in the result set as a
+// wall if the @p filter results in the neighbor polygon becoomming impassable.
+// 通常はポータルであるセグメントは、フィルターが近隣ポリゴンを通過できない場合、結果セットに壁として含まれます。
+//
+// The @p segmentVerts and @p segmentRefs buffers should normally be sized for the
+// maximum segments per polygon of the source navigation mesh.
+// 通常、segmentVertsおよびsegmentRefsバッファーは、
+// ソースナビゲーションメッシュのポリゴンごとの最大セグメントに合わせてサイズを調整する必要があります。
+//
 dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter* filter,
 	float* segmentVerts, dtPolyRef* segmentRefs, int* segmentCount,
 	const int maxSegments) const
@@ -3670,19 +3724,19 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 	return status;
 }
 
-/// @par
-///
-/// @p hitPos is not adjusted using the height detail data.
-/// hitPosは、高さ詳細データを使用して調整されていません。
-///
-/// @p hitDist will equal the search radius if there is no wall within the
-/// radius. In this case the values of @p hitPos and @p hitNormal are
-/// undefined.
-/// 半径内に壁がない場合、hitDistは検索半径と等しくなります。この場合、hitPosとhitNormalの値は未定義です。
-///
-/// The normal will become unpredicable if @p hitDist is a very small number.
-/// hitDistが非常に小さい場合、法線は予測不能になります。
-///
+// @par
+//
+// @p hitPos is not adjusted using the height detail data.
+// hitPosは、高さ詳細データを使用して調整されていません。
+//
+// @p hitDist will equal the search radius if there is no wall within the
+// radius. In this case the values of @p hitPos and @p hitNormal are
+// undefined.
+// 半径内に壁がない場合、hitDistは検索半径と等しくなります。この場合、hitPosとhitNormalの値は未定義です。
+//
+// The normal will become unpredicable if @p hitDist is a very small number.
+// hitDistが非常に小さい場合、法線は予測不能になります。
+//
 dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* centerPos, const float maxRadius,
 	const dtQueryFilter* filter,
 	float* hitDist, float* hitPos, float* hitNormal) const
@@ -3892,12 +3946,12 @@ bool dtNavMeshQuery::isValidPolyRef(dtPolyRef ref, const dtQueryFilter* filter) 
 	return true;
 }
 
-/// @par
-///
-/// The closed list is the list of polygons that were fully evaluated during
-/// the last navigation graph search. (A* or Dijkstra)
-/// 閉じたリストは、最後のナビゲーショングラフ検索中に完全に評価されたポリゴンのリストです。（A*またはダイクストラ）
-///
+// @par
+//
+// The closed list is the list of polygons that were fully evaluated during
+// the last navigation graph search. (A* or Dijkstra)
+// 閉じたリストは、最後のナビゲーショングラフ検索中に完全に評価されたポリゴンのリストです。（A*またはダイクストラ）
+//
 bool dtNavMeshQuery::isInClosedList(dtPolyRef ref) const
 {
 	if (!m_nodePool) return false;

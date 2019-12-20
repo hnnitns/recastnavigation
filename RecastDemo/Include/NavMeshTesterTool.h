@@ -100,6 +100,7 @@ public:
 	virtual void reset();
 	virtual void handleMenu();
 	virtual void handleClick(const float* s, const float* p, bool shift);
+	// ƒpƒX‚Ì’ÇÕˆ—‚ğs‚¤
 	virtual void handleToggle();
 	virtual void handleStep();
 	virtual void handleUpdate(const float dt);

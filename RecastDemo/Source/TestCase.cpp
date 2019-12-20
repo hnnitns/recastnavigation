@@ -66,21 +66,21 @@ static char* parseRow(char* buf, char* bufEnd, char* row, int len)
 		// multirow
 		switch (c)
 		{
-		case '\n':
-			if (start) break;
-			done = true;
-			break;
-		case '\r':
-			break;
-		case '\t':
-		case ' ':
-			if (start) break;
-		default:
-			start = false;
-			row[n++] = c;
-			if (n >= len - 1)
+			case '\n':
+				if (start) break;
 				done = true;
-			break;
+				break;
+			case '\r':
+				break;
+			case '\t':
+			case ' ':
+				if (start) break;
+			default:
+				start = false;
+				row[n++] = c;
+				if (n >= len - 1)
+					done = true;
+				break;
 		}
 	}
 	row[n] = '\0';
@@ -328,6 +328,7 @@ void TestCase::handleRender()
 {
 	glLineWidth(2.0f);
 	glBegin(GL_LINES);
+
 	for (Test* iter = m_tests; iter; iter = iter->next)
 	{
 		float dir[3];
@@ -380,7 +381,7 @@ void TestCase::handleRender()
 		}
 	}
 	glEnd();
-	glLineWidth(1.0f);
+	glLineWidth(1.f);
 }
 
 bool TestCase::handleRenderOverlay(double* proj, double* model, int* view)
@@ -389,7 +390,7 @@ bool TestCase::handleRenderOverlay(double* proj, double* model, int* view)
 	char text[64], subtext[64];
 	int n = 0;
 
-	static const float LABEL_DIST = 1.0f;
+	static const float LABEL_DIST = 1.f;
 
 	for (Test* iter = m_tests; iter; iter = iter->next)
 	{

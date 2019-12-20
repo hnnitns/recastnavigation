@@ -29,18 +29,18 @@
 
 #else
 
-/// An assertion failure function.
+// An assertion failure function.
 //  @param[in]		expression  asserted expression.
 //  @param[in]		file  Filename of the failed assertion.
 //  @param[in]		line  Line number of the failed assertion.
-///  @see dtAssertFailSetCustom
+//  @see dtAssertFailSetCustom
 typedef void (dtAssertFailFunc)(const char* expression, const char* file, int line);
 
-/// Sets the base custom assertion failure function to be used by Detour.
-///  @param[in]		assertFailFunc	The function to be invoked in case of failure of #dtAssert
+// Sets the base custom assertion failure function to be used by Detour.
+//  @param[in]		assertFailFunc	The function to be invoked in case of failure of #dtAssert
 void dtAssertFailSetCustom(dtAssertFailFunc* assertFailFunc);
 
-/// Gets the base custom assertion failure function to be used by Detour.
+// Gets the base custom assertion failure function to be used by Detour.
 dtAssertFailFunc* dtAssertFailGetCustom();
 
 #	include <assert.h>

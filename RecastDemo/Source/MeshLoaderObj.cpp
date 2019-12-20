@@ -24,7 +24,7 @@
 #include <math.h>
 
 rcMeshLoaderObj::rcMeshLoaderObj() :
-	m_scale(1.0f),
+	m_scale(1.f),
 	m_verts(0),
 	m_tris(0),
 	m_normals(0),
@@ -91,23 +91,23 @@ static char* parseRow(char* buf, char* bufEnd, char* row, int len)
 		// multirow
 		switch (c)
 		{
-		case '\\':
-			break;
-		case '\n':
-			if (start) break;
-			done = true;
-			break;
-		case '\r':
-			break;
-		case '\t':
-		case ' ':
-			if (start) break;
-		default:
-			start = false;
-			row[n++] = c;
-			if (n >= len - 1)
+			case '\\':
+				break;
+			case '\n':
+				if (start) break;
 				done = true;
-			break;
+				break;
+			case '\r':
+				break;
+			case '\t':
+			case ' ':
+				if (start) break;
+			default:
+				start = false;
+				row[n++] = c;
+				if (n >= len - 1)
+					done = true;
+				break;
 		}
 	}
 	row[n] = '\0';

@@ -254,10 +254,10 @@ void NavMeshTesterTool::init(Sample* sample)
 	if (m_navQuery)
 	{
 		// Change costs.
-		m_filter.setAreaCost(SAMPLE_POLYAREA_TYPE_GROUND, 1.0f);
+		m_filter.setAreaCost(SAMPLE_POLYAREA_TYPE_GROUND, 1.f);
 		m_filter.setAreaCost(SAMPLE_POLYAREA_TYPE_WATER, 10.0f);
-		m_filter.setAreaCost(SAMPLE_POLYAREA_TYPE_ROAD, 1.0f);
-		m_filter.setAreaCost(SAMPLE_POLYAREA_FLAG_DOOR, 1.0f);
+		m_filter.setAreaCost(SAMPLE_POLYAREA_TYPE_ROAD, 1.f);
+		m_filter.setAreaCost(SAMPLE_POLYAREA_FLAG_DOOR, 1.f);
 		m_filter.setAreaCost(SAMPLE_POLYAREA_TYPE_GRASS, 2.0f);
 		m_filter.setAreaCost(SAMPLE_POLYAREA_FLAG_JUMP, 1.5f);
 	}
@@ -484,7 +484,7 @@ void NavMeshTesterTool::handleStep()
 
 void NavMeshTesterTool::handleToggle()
 {
-	// TODO: merge separate to a path iterator. Use same code in recalc() too.
+	// TODO: merge separate to a path iterator. Use same code in recalc() too. // 個別にパスイテレータにマージします。 recalc（）でも同じコードを使用します。
 	if (m_toolMode != TOOLMODE_PATHFIND_FOLLOW)
 		return;
 
@@ -506,6 +506,7 @@ void NavMeshTesterTool::handleToggle()
 		if (m_pathIterPolyCount)
 		{
 			// Iterate over the path to find smooth path on the detail mesh surface.
+			// パスを反復処理して、詳細メッシュサーフェス上の滑らかなパスを見つけます。
 			m_navQuery->closestPointOnPoly(m_startRef, m_spos, m_iterPos, 0);
 			m_navQuery->closestPointOnPoly(m_pathIterPolys[m_pathIterPolyCount - 1], m_epos, m_targetPos, 0);
 
@@ -528,8 +529,10 @@ void NavMeshTesterTool::handleToggle()
 
 	// Move towards target a small advancement at a time until target reached or
 	// when ran out of memory to store the path.
+	// ターゲットに到達するまで、またはパスを保存するためにメモリを使い果たしたときに、少しずつターゲットに向かって移動します。
 
 	// Find location to steer towards.
+	// 操縦する場所を見つけます。
 	float steerPos[3];
 	unsigned char steerPosFlag;
 	dtPolyRef steerPosRef;
@@ -571,7 +574,7 @@ void NavMeshTesterTool::handleToggle()
 	dtVcopy(m_iterPos, result);
 
 	// Handle end of path and off-mesh links when close enough.
-	if (endOfPath && inRange(m_iterPos, steerPos, SLOP, 1.0f))
+	if (endOfPath && inRange(m_iterPos, steerPos, SLOP, 1.f))
 	{
 		// Reached end of path.
 		dtVcopy(m_iterPos, m_targetPos);
@@ -582,7 +585,7 @@ void NavMeshTesterTool::handleToggle()
 		}
 		return;
 	}
-	else if (offMeshConnection && inRange(m_iterPos, steerPos, SLOP, 1.0f))
+	else if (offMeshConnection && inRange(m_iterPos, steerPos, SLOP, 1.f))
 	{
 		// Reached off-mesh connection.
 		float startPos[3], endPos[3];
@@ -633,12 +636,16 @@ void NavMeshTesterTool::handleToggle()
 
 void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 {
+	// Sliceモードのみ
 	if (m_toolMode == TOOLMODE_PATHFIND_SLICED)
 	{
+		// パスの探索順に探索する
 		if (dtStatusInProgress(m_pathFindStatus))
 		{
 			m_pathFindStatus = m_navQuery->updateSlicedFindPath(1, 0);
 		}
+
+		// パスの探索を完了
 		if (dtStatusSucceed(m_pathFindStatus))
 		{
 			m_navQuery->finalizeSlicedFindPath(m_polys, &m_npolys, MAX_POLYS);
@@ -646,6 +653,7 @@ void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 			if (m_npolys)
 			{
 				// In case of partial path, make sure the end point is clamped to the last polygon.
+				// 部分パスの場合、終点が最後のポリゴンに固定されていることを確認してください。
 				float epos[3];
 				dtVcopy(epos, m_epos);
 				if (m_polys[m_npolys - 1] != m_endRef)
@@ -770,7 +778,7 @@ void NavMeshTesterTool::recalc()
 					dtVcopy(iterPos, result);
 
 					// Handle end of path and off-mesh links when close enough.
-					if (endOfPath && inRange(iterPos, steerPos, SLOP, 1.0f))
+					if (endOfPath && inRange(iterPos, steerPos, SLOP, 1.f))
 					{
 						// Reached end of path.
 						dtVcopy(iterPos, targetPos);
@@ -781,7 +789,7 @@ void NavMeshTesterTool::recalc()
 						}
 						break;
 					}
-					else if (offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.0f))
+					else if (offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.f))
 					{
 						// Reached off-mesh connection.
 						float startPos[3], endPos[3];
@@ -1026,7 +1034,7 @@ static void getPolyCenter(dtNavMesh* navMesh, dtPolyRef ref, float* center)
 		center[1] += v[1];
 		center[2] += v[2];
 	}
-	const float s = 1.0f / poly->vertCount;
+	const float s = 1.f / poly->vertCount;
 	center[0] *= s;
 	center[1] *= s;
 	center[2] *= s;
@@ -1087,7 +1095,7 @@ void NavMeshTesterTool::handleRender()
 			duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_pathIterPolys[0], duRGBA(255, 255, 255, 128));
 
 			dd.depthMask(false);
-			dd.begin(DU_DRAW_LINES, 1.0f);
+			dd.begin(DU_DRAW_LINES, 1.f);
 
 			const unsigned int prevCol = duRGBA(255, 192, 0, 220);
 			const unsigned int curCol = duRGBA(255, 255, 255, 220);
@@ -1398,7 +1406,7 @@ void NavMeshTesterTool::drawAgent(const float* pos, float r, float h, float c, c
 	// Agent dimensions.
 	duDebugDrawCylinderWire(&dd, pos[0] - r, pos[1] + 0.02f, pos[2] - r, pos[0] + r, pos[1] + h, pos[2] + r, col, 2.0f);
 
-	duDebugDrawCircle(&dd, pos[0], pos[1] + c, pos[2], r, duRGBA(0, 0, 0, 64), 1.0f);
+	duDebugDrawCircle(&dd, pos[0], pos[1] + c, pos[2], r, duRGBA(0, 0, 0, 64), 1.f);
 
 	unsigned int colb = duRGBA(0, 0, 0, 196);
 	dd.begin(DU_DRAW_LINES);

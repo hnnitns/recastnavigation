@@ -554,9 +554,9 @@ struct rcRegion
 		ymax(0)
 	{}
 
-	int spanCount;					// Number of spans belonging to this region
-	unsigned short id;				// ID of the region
-	unsigned char areaType;			// Are type.
+	int spanCount;					// Number of spans belonging to this region //この領域に属するスパンの数
+	unsigned short id;				// ID of the region //領域のID
+	unsigned char areaType;			// Are type.　// タイプ
 	bool remap;
 	bool visited;
 	bool overlap;
@@ -569,12 +569,14 @@ struct rcRegion
 static void removeAdjacentNeighbours(rcRegion& reg)
 {
 	// Remove adjacent duplicates.
+	// 隣接する重複を削除します。
 	for (int i = 0; i < reg.connections.size() && reg.connections.size() > 1; )
 	{
 		int ni = (i + 1) % reg.connections.size();
 		if (reg.connections[i] == reg.connections[ni])
 		{
 			// Remove duplicate
+			// 重複を削除します
 			for (int j = i; j < reg.connections.size() - 1; ++j)
 				reg.connections[j] = reg.connections[j + 1];
 			reg.connections.pop();
@@ -638,6 +640,7 @@ static bool mergeRegions(rcRegion& rega, rcRegion& regb)
 	unsigned short bid = regb.id;
 
 	// Duplicate current neighbourhood.
+	// 現在の周辺を複製します。
 	rcIntArray acon;
 	acon.resize(rega.connections.size());
 	for (int i = 0; i < rega.connections.size(); ++i)
@@ -645,6 +648,7 @@ static bool mergeRegions(rcRegion& rega, rcRegion& regb)
 	rcIntArray& bcon = regb.connections;
 
 	// Find insertion point on A.
+	// Aの挿入ポイントを見つけます
 	int insa = -1;
 	for (int i = 0; i < acon.size(); ++i)
 	{
@@ -658,6 +662,7 @@ static bool mergeRegions(rcRegion& rega, rcRegion& regb)
 		return false;
 
 	// Find insertion point on B.
+	// Bの挿入ポイントを見つけます
 	int insb = -1;
 	for (int i = 0; i < bcon.size(); ++i)
 	{
@@ -671,6 +676,7 @@ static bool mergeRegions(rcRegion& rega, rcRegion& regb)
 		return false;
 
 	// Merge neighbours.
+	// 周辺とマージする
 	rega.connections.resize(0);
 	for (int i = 0, ni = acon.size(); i < ni - 1; ++i)
 		rega.connections.push(acon[(insa + 1 + i) % ni]);
@@ -693,6 +699,8 @@ static bool isRegionConnectedToBorder(const rcRegion& reg)
 {
 	// Region is connected to border if
 	// one of the neighbours is null id.
+	// リージョンは次の場合にボーダーに接続されます
+	// 近隣の1つがnull IDです。
 	for (int i = 0; i < reg.connections.size(); ++i)
 	{
 		if (reg.connections[i] == 0)
@@ -745,6 +753,7 @@ static void walkContour(int x, int y, int i, int dir,
 		if (isSolidEdge(chf, srcReg, x, y, i, dir))
 		{
 			// Choose the edge corner
+			// エッジコーナーを選択します
 			unsigned short r = 0;
 			if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
 			{
@@ -759,7 +768,7 @@ static void walkContour(int x, int y, int i, int dir,
 				cont.push(curReg);
 			}
 
-			dir = (dir + 1) & 0x3;  // Rotate CW
+			dir = (dir + 1) & 0x3;  // Rotate CW // 時計回り回る
 		}
 		else
 		{
@@ -774,12 +783,13 @@ static void walkContour(int x, int y, int i, int dir,
 			if (ni == -1)
 			{
 				// Should not happen.
+				// 起こるべきではありません。
 				return;
 			}
 			x = nx;
 			y = ny;
 			i = ni;
-			dir = (dir + 3) & 0x3;	// Rotate CCW
+			dir = (dir + 3) & 0x3;	// Rotate CCW // 反時計回り回る
 		}
 
 		if (starti == i && startDir == dir)
@@ -789,6 +799,7 @@ static void walkContour(int x, int y, int i, int dir,
 	}
 
 	// Remove adjacent duplicates.
+	// 隣接する重複を削除します。
 	if (cont.size() > 1)
 	{
 		for (int j = 0; j < cont.size(); )
@@ -823,10 +834,12 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 	}
 
 	// Construct regions
+	// 領域を構築します
 	for (int i = 0; i < nreg; ++i)
 		new(&regions[i]) rcRegion((unsigned short)i);
 
 	// Find edge of a region and find connections around the contour.
+	// 領域のエッジを見つけ、輪郭の周りの接続を見つけます。
 	for (int y = 0; y < h; ++y)
 	{
 		for (int x = 0; x < w; ++x)
@@ -842,6 +855,7 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 				reg.spanCount++;
 
 				// Update floors.
+				// フロアを更新します。
 				for (int j = (int)c.index; j < ni; ++j)
 				{
 					if (i == j) continue;
@@ -854,12 +868,14 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 				}
 
 				// Have found contour
+				// 輪郭を見つけました
 				if (reg.connections.size() > 0)
 					continue;
 
 				reg.areaType = chf.areas[i];
 
 				// Check if this cell is next to a border.
+				// このセルが境界線の隣にあるかどうかを確認します。
 				int ndir = -1;
 				for (int dir = 0; dir < 4; ++dir)
 				{
@@ -874,6 +890,8 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 				{
 					// The cell is at border.
 					// Walk around the contour to find all the neighbours.
+					// セルは境界にあります。
+					// 輪郭を歩き回り、すべての隣人を見つけます。
 					walkContour(x, y, i, ndir, chf, srcReg, reg.connections);
 				}
 			}
@@ -881,6 +899,7 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 	}
 
 	// Remove too small regions.
+	// 小さすぎる領域を削除します。
 	rcIntArray stack(32);
 	rcIntArray trace(32);
 	for (int i = 0; i < nreg; ++i)
@@ -895,6 +914,8 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 
 		// Count the total size of all the connected regions.
 		// Also keep track of the regions connects to a tile border.
+		// 接続されているすべての領域の合計サイズをカウントします。
+		// また、タイル境界に接続する領域を追跡します。
 		bool connectsToBorder = false;
 		int spanCount = 0;
 		stack.resize(0);
@@ -935,9 +956,13 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 		// Do not remove areas which connect to tile borders
 		// as their size cannot be estimated correctly and removing them
 		// can potentially remove necessary areas.
+		// 蓄積された領域のサイズが小さすぎる場合は、削除します。
+		// サイズを正しく推定できないため、タイルの境界に接続する領域を削除しないでください。
+		// 削除すると、必要な領域が削除される可能性があります。
 		if (spanCount < minRegionArea && !connectsToBorder)
 		{
 			// Kill all visited regions.
+			// 訪問したすべてのリージョンを強制終了します。
 			for (int j = 0; j < trace.size(); ++j)
 			{
 				regions[trace[j]].spanCount = 0;
@@ -947,6 +972,7 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 	}
 
 	// Merge too small regions to neighbour regions.
+	// 小さすぎる領域を隣接する領域にマージします。
 	int mergeCount = 0;
 	do
 	{
@@ -962,12 +988,16 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 				continue;
 
 			// Check to see if the region should be merged.
+			// 領域をマージする必要があるかどうかを確認します。
 			if (reg.spanCount > mergeRegionSize&& isRegionConnectedToBorder(reg))
 				continue;
 
 			// Small region with more than 1 connection.
 			// Or region which is not connected to a border at all.
 			// Find smallest neighbour region that connects to this one.
+			// 複数の接続がある小さな領域。
+			// または境界にまったく接続されていない地域。
+			// これに接続する最小の隣接領域を見つけます。
 			int smallest = 0xfffffff;
 			unsigned short mergeId = reg.id;
 			for (int j = 0; j < reg.connections.size(); ++j)
@@ -983,25 +1013,33 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 					mergeId = mreg.id;
 				}
 			}
+
 			// Found new id.
+			// 新しいIDが見つかりました。
 			if (mergeId != reg.id)
 			{
 				unsigned short oldId = reg.id;
 				rcRegion& target = regions[mergeId];
 
 				// Merge neighbours.
+				// 周辺とマージします。
 				if (mergeRegions(target, reg))
 				{
 					// Fixup regions pointing to current region.
+					// 現在の領域を指す修正領域。
 					for (int j = 0; j < nreg; ++j)
 					{
 						if (regions[j].id == 0 || (regions[j].id & RC_BORDER_REG)) continue;
+
 						// If another region was already merged into current region
 						// change the nid of the previous region too.
+						// 別の領域がすでに現在の領域にマージされている場合、前の領域のIDも変更します。
 						if (regions[j].id == oldId)
 							regions[j].id = mergeId;
+
 						// Replace the current region with the new one if the
 						// current regions is neighbour.
+						// 現在の領域が隣接している場合、現在の領域を新しい領域に置き換えます。
 						replaceNeighbour(regions[j], oldId, mergeId);
 					}
 					mergeCount++;
@@ -1011,11 +1049,12 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 	} while (mergeCount > 0);
 
 	// Compress region Ids.
+	// リージョンIDを圧縮します。
 	for (int i = 0; i < nreg; ++i)
 	{
 		regions[i].remap = false;
-		if (regions[i].id == 0) continue;       // Skip nil regions.
-		if (regions[i].id & RC_BORDER_REG) continue;    // Skip external regions.
+		if (regions[i].id == 0) continue;       // Skip nil regions. //ゼロ領域をスキップします。
+		if (regions[i].id & RC_BORDER_REG) continue;    // Skip external regions. //外部領域をスキップします。
 		regions[i].remap = true;
 	}
 
@@ -1038,6 +1077,7 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 	maxRegionId = regIdGen;
 
 	// Remap regions.
+	// 領域を再マップします。
 	for (int i = 0; i < chf.spanCount; ++i)
 	{
 		if ((srcReg[i] & RC_BORDER_REG) == 0)
@@ -1045,6 +1085,7 @@ static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRe
 	}
 
 	// Return regions that we found to be overlapping.
+	// 重複していることがわかった領域を返します。
 	for (int i = 0; i < nreg; ++i)
 		if (regions[i].overlap)
 			overlaps.push(regions[i].id);
@@ -1618,9 +1659,7 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 	unsigned short regionId = 1;
 	unsigned short level = (chf.maxDistance + 1) & ~1;
 
-	// TODO: Figure better formula, expandIters defines how much the
-	// watershed "overflows" and simplifies the regions. Tying it to
-	// agent radius was usually good indication how greedy it could be.
+	// TODO: Figure better formula, expandIters defines how much the watershed "overflows" and simplifies the regions. Tying it to agent radius was usually good indication how greedy it could be.
 	// TODO：式の改善、expendIturesは、分水界が「オーバーフロー」する量を定義し、地域を単純化します。それをエージェントの半径に結び付けることは、通常、それがどれほど貪欲であるかを示す良い指標でした。
 	// constexpr int expandIters = 4 + walkableRadius * 2;
 	constexpr int expandIters = 8;

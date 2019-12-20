@@ -202,8 +202,8 @@ void Sample_Debug::handleRender()
 	/*	float bmin[3], bmax[3];
 		rcVsub(bmin, m_center, m_ext);
 		rcVadd(bmax, m_center, m_ext);
-		duDebugDrawBoxWire(&dd, bmin[0],bmin[1],bmin[2], bmax[0],bmax[1],bmax[2], duRGBA(255,255,255,128), 1.0f);
-		duDebugDrawCross(&dd, m_center[0], m_center[1], m_center[2], 1.0f, duRGBA(255,255,255,128), 2.0f);*/
+		duDebugDrawBoxWire(&dd, bmin[0],bmin[1],bmin[2], bmax[0],bmax[1],bmax[2], duRGBA(255,255,255,128), 1.f);
+		duDebugDrawCross(&dd, m_center[0], m_center[1], m_center[2], 1.f, duRGBA(255,255,255,128), 2.0f);*/
 
 	if (m_cset)
 	{
@@ -268,7 +268,7 @@ void Sample_Debug::handleRender()
 		const int nverts = sizeof(verts)/(sizeof(int)*4);
 
 		const unsigned int colln = duRGBA(255,255,255,128);
-		dd.begin(DU_DRAW_LINES, 1.0f);
+		dd.begin(DU_DRAW_LINES, 1.f);
 		for (int i = 0, j = nverts-1; i < nverts; j=i++)
 		{
 			const int* va = &verts[j*4];
@@ -363,7 +363,7 @@ bool Sample_Debug::handleBuild()
 		rcFreeContourSet(m_cset);
 		m_cset = 0;
 
-		// Create contours.
+		// Create contours. // —ÖŠs‚ð¶¬‚·‚é
 		m_cset = rcAllocContourSet();
 		if (!m_cset)
 		{

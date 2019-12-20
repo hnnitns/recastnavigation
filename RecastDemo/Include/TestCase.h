@@ -21,6 +21,7 @@
 
 #include <string>
 #include "DetourNavMesh.h"
+#include "DetourNavMeshQuery.h"
 
 class TestCase
 {
@@ -96,7 +97,7 @@ public:
 	const std::string& getSampleName() const { return m_sampleName; }
 	const std::string& getGeomFileName() const { return m_geomFileName; }
 
-	void doTests(class dtNavMesh* navmesh, class dtNavMeshQuery* navquery);
+	void doTests(dtNavMesh* navmesh, dtNavMeshQuery* navquery);
 
 	void handleRender();
 	bool handleRenderOverlay(double* proj, double* model, int* view);

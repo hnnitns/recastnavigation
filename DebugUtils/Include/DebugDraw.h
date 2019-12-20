@@ -42,7 +42,7 @@ struct duDebugDraw
 	/// Begin drawing primitives.
 	///  @param prim [in] primitive type to draw, one of rcDebugDrawPrimitives.
 	///  @param size [in] size of a primitive, applies to point size and line width only.
-	virtual void begin(duDebugDrawPrimitives prim, float size = 1.0f) = 0;
+	virtual void begin(duDebugDrawPrimitives prim, float size = 1.f) = 0;
 
 	/// Submit a vertex
 	///  @param pos [in] position of the verts.
@@ -204,7 +204,7 @@ public:
 	duDisplayList(int cap = 512);
 	~duDisplayList();
 	virtual void depthMask(bool state);
-	virtual void begin(duDebugDrawPrimitives prim, float size = 1.0f);
+	virtual void begin(duDebugDrawPrimitives prim, float size = 1.f);
 	virtual void vertex(const float x, const float y, const float z, unsigned int color);
 	virtual void vertex(const float* pos, unsigned int color);
 	virtual void end();

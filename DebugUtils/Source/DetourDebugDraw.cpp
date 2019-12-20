@@ -298,8 +298,8 @@ void duDebugDrawNavMeshNodes(struct duDebugDraw* dd, const dtNavMeshQuery& query
 static void drawMeshTileBVTree(duDebugDraw* dd, const dtMeshTile* tile)
 {
 	// Draw BV nodes.
-	const float cs = 1.0f / tile->header->bvQuantFactor;
-	dd->begin(DU_DRAW_LINES, 1.0f);
+	const float cs = 1.f / tile->header->bvQuantFactor;
+	dd->begin(DU_DRAW_LINES, 1.f);
 	for (int i = 0; i < tile->header->bvNodeCount; ++i)
 	{
 		const dtBVNode* n = &tile->bvTree[i];

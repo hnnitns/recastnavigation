@@ -35,39 +35,53 @@ struct ConvexVolume
 
 struct BuildSettings
 {
-	// Cell size in world units
+	// Cell size in world units // ワールド単位のセルサイズ
 	float cellSize;
-	// Cell height in world units
+
+	// Cell height in world units // ワールド単位のセルの高さ
 	float cellHeight;
-	// Agent height in world units
+
+	// Agent height in world units // ワールド単位でのエージェントの高さ
 	float agentHeight;
-	// Agent radius in world units
+
+	// Agent radius in world units // ワールド単位のエージェント半径
 	float agentRadius;
-	// Agent max climb in world units
+
+	// Agent max climb in world units // ワールド単位でのエージェント最大上昇
 	float agentMaxClimb;
-	// Agent max slope in degrees
+
+	// Agent max slope in degrees // エージェントの最大勾配（度単位）
 	float agentMaxSlope;
-	// Region minimum size in voxels.
+
+	// Region minimum size in voxels. // ボクセル単位の領域の最小サイズ。
 	// regionMinSize = sqrt(regionMinArea)
 	float regionMinSize;
-	// Region merge size in voxels.
+
+	// Region merge size in voxels. // ボクセル単位の領域マージサイズ。
 	// regionMergeSize = sqrt(regionMergeArea)
 	float regionMergeSize;
-	// Edge max length in world units
+
+	// Edge max length in world units // ワールド単位のエッジの最大長
 	float edgeMaxLen;
-	// Edge max error in voxels
+
+	// Edge max error in voxels // ボクセルのエッジ最大誤差
 	float edgeMaxError;
 	float vertsPerPoly;
-	// Detail sample distance in voxels
+
+	// Detail sample distance in voxels // ボクセル単位の詳細なサンプル距離
 	float detailSampleDist;
-	// Detail sample max error in voxel heights.
+
+	// Detail sample max error in voxel heights. // ボクセルの高さの最大サンプルエラーの詳細。
 	float detailSampleMaxError;
-	// Partition type, see SamplePartitionType
+
+	// Partition type, see SamplePartitionType // 分割タイプ、SamplePartitionTypeを参照
 	int partitionType;
-	// Bounds of the area to mesh
+
+	// Bounds of the area to mesh // メッシュの領域の境界
 	float navMeshBMin[3];
 	float navMeshBMax[3];
-	// Size of the tiles in voxels
+
+	// Size of the tiles in voxels // ボクセルのタイルのサイズ
 	float tileSize;
 };
 
@@ -108,6 +122,7 @@ public:
 	bool saveGeomSet(const BuildSettings* settings);
 
 	/// Method to return static mesh data.
+	/// 静的メッシュデータを返すメソッド。
 	const rcMeshLoaderObj* getMesh() const { return m_mesh; }
 	const float* getMeshBoundsMin() const { return m_meshBMin; }
 	const float* getMeshBoundsMax() const { return m_meshBMax; }

@@ -380,7 +380,7 @@ inline void vcross(float* dest, const float* v1, const float* v2)
 
 inline void vnormalize(float* v)
 {
-	float d = 1.0f / sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+	float d = 1.f / sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 	v[0] *= d;
 	v[1] *= d;
 	v[2] *= d;
@@ -430,7 +430,7 @@ void duAppendArc(struct duDebugDraw* dd, const float x0, const float y0, const f
 	if (!dd) return;
 	static const int NUM_ARC_PTS = 8;
 	static const float PAD = 0.05f;
-	static const float ARC_PTS_SCALE = (1.0f - PAD * 2) / (float)NUM_ARC_PTS;
+	static const float ARC_PTS_SCALE = (1.f - PAD * 2) / (float)NUM_ARC_PTS;
 	const float dx = x1 - x0;
 	const float dy = y1 - y0;
 	const float dz = z1 - z0;
@@ -526,7 +526,7 @@ duDisplayList::duDisplayList(int cap) :
 	m_cap(0),
 	m_depthMask(true),
 	m_prim(DU_DRAW_LINES),
-	m_primSize(1.0f)
+	m_primSize(1.f)
 {
 	if (cap < 8)
 		cap = 8;

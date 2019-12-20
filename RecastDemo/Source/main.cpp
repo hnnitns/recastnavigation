@@ -80,10 +80,12 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 	// Enable depth buffer.
+	// 深度バッファを有効にします。
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
 	// Set color channel depth.
+	// カラーチャネルの深さを設定します。
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -100,9 +102,11 @@ int main(int /*argc*/, char** /*argv*/)
 	Uint32 flags = SDL_WINDOW_OPENGL;
 	int width;
 	int height;
+
 	if (presentationMode)
 	{
 		// Create a fullscreen window at the native resolution.
+		// ネイティブ解像度でフルスクリーンウィンドウを作成します。
 		width = displayMode.w;
 		height = displayMode.h;
 		flags |= SDL_WINDOW_FULLSCREEN;
@@ -139,12 +143,12 @@ int main(int /*argc*/, char** /*argv*/)
 	float timeAcc = 0.f;
 	Uint32 prevFrameTime = SDL_GetTicks();
 	int mousePos[2] = { 0, 0 };
-	int origMousePos[2] = { 0, 0 }; // Used to compute mouse movement totals across frames.
+	int origMousePos[2] = { 0, 0 }; // Used to compute mouse movement totals across frames. //フレーム全体のマウスの動きの合計を計算するために使用されます。
 
 	float cameraEulers[] = { 45, -45 };
 	float cameraPos[] = { 0, 0, 0 };
 	float camr = 1000;
-	float origCameraEulers[] = { 0, 0 }; // Used to compute rotational changes across frames.
+	float origCameraEulers[] = { 0, 0 }; // Used to compute rotational changes across frames. //フレーム全体の回転変化を計算するために使用されます。
 
 	float moveFront = 0.f, moveBack = 0.f, moveLeft = 0.f, moveRight = 0.f, moveUp = 0.f, moveDown = 0.f;
 
@@ -163,6 +167,7 @@ int main(int /*argc*/, char** /*argv*/)
 	bool showTestCases = false;
 
 	// Window scroll positions.
+	// ウィンドウのスクロール位置。
 	int propScroll = 0;
 	int logScroll = 0;
 	int toolsScroll = 0;
@@ -176,16 +181,17 @@ int main(int /*argc*/, char** /*argv*/)
 	float markerPosition[3] = { 0, 0, 0 };
 	bool markerPositionSet = false;
 
-	InputGeom* geom = 0;
-	Sample* sample = 0;
+	/// 流石に見える部分で生ポインタで扱いたくなかった
+	std::unique_ptr<InputGeom> geom;
+	std::unique_ptr<Sample> sample;
 
 	const string testCasesFolder = "TestCases";
-	TestCase* test = 0;
+	std::unique_ptr<TestCase> test;
 
 	BuildContext ctx;
 
 	// Fog.
-	float fogColor[4] = { 0.32f, 0.31f, 0.30f, 1.0f };
+	float fogColor[4] = { 0.32f, 0.31f, 0.30f, 1.f };
 	glEnable(GL_FOG);
 	glFogi(GL_FOG_MODE, GL_LINEAR);
 	glFogf(GL_FOG_START, camr * 0.1f);
@@ -198,8 +204,9 @@ int main(int /*argc*/, char** /*argv*/)
 	bool done = false;
 	while (!done)
 	{
-		// Handle input events.
-		int mouseScroll = 0;
+		/// Handle input events.
+		/// 入力イベントを処理します。
+		int mouseScroll = 0;              // マウスホイールの値
 		bool processHitTest = false;      // マウスの処理が行われた
 		bool processHitTestShift = false; // シフトの処理が行われた
 		SDL_Event event;
@@ -209,151 +216,173 @@ int main(int /*argc*/, char** /*argv*/)
 		{
 			switch (event.type)
 			{
-			case SDL_KEYDOWN:
-			{
-				// Handle any key presses here.
-				if (event.key.keysym.sym == SDLK_ESCAPE)
+				// キーを押した瞬間
+				case SDL_KEYDOWN:
 				{
-					done = true;
-				}
-				else if (event.key.keysym.sym == SDLK_t)
-				{
-					showLevels = false;
-					showSample = false;
-					showTestCases = true;
-					scanDirectory(testCasesFolder, ".txt", files);
-				}
-				else if (event.key.keysym.sym == SDLK_TAB)
-				{
-					showMenu = !showMenu;
-				}
-				else if (event.key.keysym.sym == SDLK_SPACE)
-				{
-					if (sample)
-						sample->handleToggle();
-				}
-				else if (event.key.keysym.sym == SDLK_1)
-				{
-					if (sample)
-						sample->handleStep();
-				}
-				else if (event.key.keysym.sym == SDLK_9)
-				{
-					if (sample && geom)
+					/// Handle any key presses here.
+					/// ここでキーの押下を処理します。
+					switch (event.key.keysym.sym)
 					{
-						string savePath = meshesFolder + "/";
-						BuildSettings settings;
-						memset(&settings, 0, sizeof(settings));
-
-						rcVcopy(settings.navMeshBMin, geom->getNavMeshBoundsMin());
-						rcVcopy(settings.navMeshBMax, geom->getNavMeshBoundsMax());
-
-						sample->collectSettings(settings);
-
-						geom->saveGeomSet(&settings);
-					}
-				}
-				break;
-			}
-			case SDL_MOUSEWHEEL:
-			{
-				if (event.wheel.y < 0)
-				{
-					// wheel down
-					if (mouseOverMenu)
-					{
-						mouseScroll++;
-					}
-					else
-					{
-						scrollZoom += 1.0f;
-					}
-				}
-				else
-				{
-					if (mouseOverMenu)
-					{
-						mouseScroll--;
-					}
-					else
-					{
-						scrollZoom -= 1.0f;
-					}
-				}
-				break;
-			}
-			case SDL_MOUSEBUTTONDOWN:
-			{
-				if (event.button.button == SDL_BUTTON_RIGHT)
-				{
-					if (!mouseOverMenu)
-					{
-						// Rotate view
-						rotate = true;
-						movedDuringRotate = false;
-						origMousePos[0] = mousePos[0];
-						origMousePos[1] = mousePos[1];
-						origCameraEulers[0] = cameraEulers[0];
-						origCameraEulers[1] = cameraEulers[1];
-					}
-				}
-				break;
-			}
-			// マウスのボタンから離した瞬間
-			case SDL_MOUSEBUTTONUP:
-			{
-				// Handle mouse clicks here.
-				if (event.button.button == SDL_BUTTON_RIGHT)
-				{
-					rotate = false;
-					if (!mouseOverMenu)
-					{
-						if (!movedDuringRotate)
+						// 終了
+						case SDLK_ESCAPE:
 						{
-							processHitTest = true;
-							processHitTestShift = true;
+							done = true;
+							break;
+						}
+						// テストを行う
+						case SDLK_t:
+						{
+							showLevels = false;
+							showSample = false;
+							showTestCases = true;
+							scanDirectory(testCasesFolder, ".txt", files);
+							break;
+						}
+						// ImGuiの表示非表示
+						case SDLK_TAB:
+						{
+							showMenu = !showMenu;
+							break;
+						}
+						// パスの追跡処理を行う
+						case SDLK_SPACE:
+						{
+							if (sample)
+								sample->handleToggle();
+							break;
+						}
+						// 群衆AI時で１フレーム進む
+						case SDLK_1:
+						{
+							if (sample)
+								sample->handleStep();
+							break;
+						}
+						// ナビメッシュ設定のファイル書き出し
+						case SDLK_9:
+						{
+							if (sample && geom)
+							{
+								string savePath = meshesFolder + "/";
+								BuildSettings settings;
+								memset(&settings, 0, sizeof(settings));
+
+								rcVcopy(settings.navMeshBMin, geom->getNavMeshBoundsMin());
+								rcVcopy(settings.navMeshBMax, geom->getNavMeshBoundsMax());
+
+								sample->collectSettings(settings);
+
+								geom->saveGeomSet(&settings);
+							}
+							break;
 						}
 					}
+					break;
 				}
-				else if (event.button.button == SDL_BUTTON_LEFT)
+				// マウスホイール
+				case SDL_MOUSEWHEEL:
 				{
-					if (!mouseOverMenu)
+					if (event.wheel.y < 0)
 					{
-						processHitTest = true;
-						processHitTestShift = (SDL_GetModState() & KMOD_SHIFT) ? true : false;
+						// wheel down
+						if (mouseOverMenu)
+						{
+							mouseScroll++;
+						}
+						else
+						{
+							scrollZoom += 1.f;
+						}
 					}
+					else
+					{
+						if (mouseOverMenu)
+						{
+							mouseScroll--;
+						}
+						else
+						{
+							scrollZoom -= 1.f;
+						}
+					}
+					break;
 				}
-
-				break;
-			}
-			case SDL_MOUSEMOTION:
-			{
-				mousePos[0] = event.motion.x;
-				mousePos[1] = height - 1 - event.motion.y;
-
-				if (rotate)
+				// マウスのボタンを押した瞬間
+				case SDL_MOUSEBUTTONDOWN:
 				{
-					int dx = mousePos[0] - origMousePos[0];
-					int dy = mousePos[1] - origMousePos[1];
-					cameraEulers[0] = origCameraEulers[0] - dy * 0.25f;
-					cameraEulers[1] = origCameraEulers[1] + dx * 0.25f;
-					if (dx * dx + dy * dy > 3 * 3)
+					if (event.button.button == SDL_BUTTON_RIGHT)
 					{
-						movedDuringRotate = true;
+						if (!mouseOverMenu)
+						{
+							// Rotate view
+							rotate = true;
+							movedDuringRotate = false;
+							origMousePos[0] = mousePos[0];
+							origMousePos[1] = mousePos[1];
+							origCameraEulers[0] = cameraEulers[0];
+							origCameraEulers[1] = cameraEulers[1];
+						}
 					}
+					break;
 				}
-				break;
-			}
-			case SDL_QUIT:
-			{
-				done = true;
-				break;
-			}
-			default:
-				break;
+				// マウスのボタンから離した瞬間
+				case SDL_MOUSEBUTTONUP:
+				{
+					// Handle mouse clicks here.
+					if (event.button.button == SDL_BUTTON_RIGHT)
+					{
+						rotate = false;
+						if (!mouseOverMenu)
+						{
+							if (!movedDuringRotate)
+							{
+								processHitTest = true;
+								processHitTestShift = true;
+							}
+						}
+					}
+					else if (event.button.button == SDL_BUTTON_LEFT)
+					{
+						if (!mouseOverMenu)
+						{
+							processHitTest = true;
+							processHitTestShift = (SDL_GetModState() & KMOD_SHIFT) ? true : false;
+						}
+					}
+
+					break;
+				}
+				// マウスを動かしている
+				case SDL_MOUSEMOTION:
+				{
+					mousePos[0] = event.motion.x;
+					mousePos[1] = height - 1 - event.motion.y;
+
+					if (rotate)
+					{
+						int dx = mousePos[0] - origMousePos[0];
+						int dy = mousePos[1] - origMousePos[1];
+						cameraEulers[0] = origCameraEulers[0] - dy * 0.25f;
+						cameraEulers[1] = origCameraEulers[1] + dx * 0.25f;
+						if (dx * dx + dy * dy > 3 * 3)
+						{
+							movedDuringRotate = true;
+						}
+					}
+					break;
+				}
+				// 終了
+				case SDL_QUIT:
+				{
+					done = true;
+					break;
+				}
+				default:
+					break;
 			}
 		}
 
+		// マウス
 		unsigned char mouseButtonMask = 0;
 		if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
 			mouseButtonMask |= IMGUI_MBUT_LEFT;
@@ -421,8 +450,8 @@ int main(int /*argc*/, char** /*argv*/)
 		// Update sample simulation.
 		// サンプルシミュレーションを更新します。
 		const float SIM_RATE = 20;
-		const float DELTA_TIME = 1.0f / SIM_RATE;
-		timeAcc = rcClamp(timeAcc + dt, -1.0f, 1.0f);
+		const float DELTA_TIME = 1.f / SIM_RATE;
+		timeAcc = rcClamp(timeAcc + dt, -1.f, 1.f);
 		int simIter = 0;
 
 		while (timeAcc > DELTA_TIME)
@@ -437,7 +466,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		// Clamp the framerate so that we do not hog all the CPU.
 		// すべてのCPUを占有しないように、フレームレートをクランプします。
-		const float MIN_FRAME_TIME = 1.0f / 40.f;
+		const float MIN_FRAME_TIME = 1.f / 40.f;
 		if (dt < MIN_FRAME_TIME)
 		{
 			int ms = (int)((MIN_FRAME_TIME - dt) * 1000.f);
@@ -445,13 +474,13 @@ int main(int /*argc*/, char** /*argv*/)
 			if (ms >= 0) SDL_Delay(ms);
 		}
 
-		// Set the viewport.
+		// Set the viewport. // ビューポートを設定します。
 		glViewport(0, 0, width, height);
 		GLint viewport[4];
 		glGetIntegerv(GL_VIEWPORT, viewport);
 
-		// Clear the screen
-		glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
+		// Clear the screen // 画面をクリアします
+		glClearColor(0.3f, 0.3f, 0.32f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -459,13 +488,15 @@ int main(int /*argc*/, char** /*argv*/)
 		glEnable(GL_DEPTH_TEST);
 
 		// Compute the projection matrix.
+		// 投影行列を計算します。
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		gluPerspective(50.f, (float)width / (float)height, 1.0f, camr);
+		gluPerspective(50.f, (float)width / (float)height, 1.f, camr);
 		GLdouble projectionMatrix[16];
 		glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
 
 		// Compute the modelview matrix.
+		// モデルビュー行列を計算します。
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		glRotatef(cameraEulers[0], 1, 0, 0);
@@ -483,20 +514,21 @@ int main(int /*argc*/, char** /*argv*/)
 		ray_start[2] = (float)z;
 
 		// マウスのレイの終了地点を計算
-		gluUnProject(mousePos[0], mousePos[1], 1.0f, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
+		gluUnProject(mousePos[0], mousePos[1], 1.f, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
 		ray_end[0] = (float)x;
 		ray_end[1] = (float)y;
 		ray_end[2] = (float)z;
 
 		// Handle keyboard movement.
 		// キーボードの動きを処理します。
-		const Uint8* keystate = SDL_GetKeyboardState(NULL);
-		moveFront = rcClamp(moveFront + dt * 4 * ((keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP]) ? 1 : -1), 0.f, 1.0f);
-		moveLeft = rcClamp(moveLeft + dt * 4 * ((keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT]) ? 1 : -1), 0.f, 1.0f);
-		moveBack = rcClamp(moveBack + dt * 4 * ((keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN]) ? 1 : -1), 0.f, 1.0f);
-		moveRight = rcClamp(moveRight + dt * 4 * ((keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT]) ? 1 : -1), 0.f, 1.0f);
-		moveUp = rcClamp(moveUp + dt * 4 * ((keystate[SDL_SCANCODE_Q] || keystate[SDL_SCANCODE_PAGEUP]) ? 1 : -1), 0.f, 1.0f);
-		moveDown = rcClamp(moveDown + dt * 4 * ((keystate[SDL_SCANCODE_E] || keystate[SDL_SCANCODE_PAGEDOWN]) ? 1 : -1), 0.f, 1.0f);
+		const Uint8* keystate = SDL_GetKeyboardState(nullptr);
+
+		moveFront = rcClamp(moveFront + dt * 4 * ((keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP]) ? 1 : -1), 0.f, 1.f);
+		moveLeft = rcClamp(moveLeft + dt * 4 * ((keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT]) ? 1 : -1), 0.f, 1.f);
+		moveBack = rcClamp(moveBack + dt * 4 * ((keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN]) ? 1 : -1), 0.f, 1.f);
+		moveRight = rcClamp(moveRight + dt * 4 * ((keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT]) ? 1 : -1), 0.f, 1.f);
+		moveUp = rcClamp(moveUp + dt * 4 * ((keystate[SDL_SCANCODE_Q] || keystate[SDL_SCANCODE_PAGEUP]) ? 1 : -1), 0.f, 1.f);
+		moveDown = rcClamp(moveDown + dt * 4 * ((keystate[SDL_SCANCODE_E] || keystate[SDL_SCANCODE_PAGEDOWN]) ? 1 : -1), 0.f, 1.f);
 
 		float keybSpeed = 22.0f;
 		if (SDL_GetModState() & KMOD_SHIFT)
@@ -520,6 +552,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		glEnable(GL_FOG);
 
+		// メッシュと四角の描画
 		if (sample) sample->handleRender();
 
 		if (test) test->handleRender();
@@ -539,22 +572,19 @@ int main(int /*argc*/, char** /*argv*/)
 		imguiBeginFrame(mousePos[0], mousePos[1], mouseButtonMask, mouseScroll);
 
 		if (sample)
-		{
 			sample->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport);
-		}
-		if (test)
-		{
-			if (test->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport))
-				mouseOverMenu = true;
-		}
 
-		// Help text.
+		if (test && test->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport))
+			mouseOverMenu = true;
+
+		// Help text. // ヘルプテキスト
 		if (showMenu)
 		{
 			const char msg[] = "W/S/A/D: Move  RMB: Rotate";
 			imguiDrawText(280, height - 20, IMGUI_ALIGN_LEFT, msg, imguiRGBA(255, 255, 255, 128));
 		}
 
+		// 右のウィンドウ画面（Properties）
 		if (showMenu)
 		{
 			if (imguiBeginScrollArea("Properties", width - 250 - 10, 10, 250, height - 20, &propScroll))
@@ -562,11 +592,14 @@ int main(int /*argc*/, char** /*argv*/)
 
 			if (imguiCheck("Show Log", showLog))
 				showLog = !showLog;
+
 			if (imguiCheck("Show Tools", showTools))
 				showTools = !showTools;
 
 			imguiSeparator();
 			imguiLabel("Sample");
+
+			// 「Choose Sample...」部分
 			if (imguiButton(sampleName.c_str()))
 			{
 				if (showSample)
@@ -584,6 +617,8 @@ int main(int /*argc*/, char** /*argv*/)
 
 			imguiSeparator();
 			imguiLabel("Input Mesh");
+
+			// 「Choose Mesh...」部分
 			if (imguiButton(meshName.c_str()))
 			{
 				if (showLevels)
@@ -600,15 +635,20 @@ int main(int /*argc*/, char** /*argv*/)
 					scanDirectoryAppend(meshesFolder, ".gset", files);
 				}
 			}
+
+			// 頂点数、ポリゴン数の表示
 			if (geom)
 			{
-				char text[64];
-				snprintf(text, 64, "Verts: %.1fk  Tris: %.1fk",
+				std::array<char, 64u> text;
+
+				snprintf(text.data(), text.size(), "Verts: %.1fk  Tris: %.1fk",
 					geom->getMesh()->getVertCount() / 1000.f,
 					geom->getMesh()->getTriCount() / 1000.f);
-				imguiValue(text);
+
+				imguiValue(text.data());
 			}
-			imguiSeparator();
+
+			imguiSeparator(); // 区切り
 
 			if (geom && sample)
 			{
@@ -619,6 +659,7 @@ int main(int /*argc*/, char** /*argv*/)
 				if (imguiButton("Build"))
 				{
 					ctx.resetLog();
+
 					// ナビメッシュの生成
 					if (!sample->handleBuild())
 					{
@@ -628,8 +669,7 @@ int main(int /*argc*/, char** /*argv*/)
 					ctx.dumpLog("Build log %s:", meshName.c_str());
 
 					// Clear test.
-					delete test;
-					test = 0;
+					test = nullptr;
 				}
 
 				imguiSeparator();
@@ -648,11 +688,13 @@ int main(int /*argc*/, char** /*argv*/)
 		// サンプルが選ばれている
 		if (showSample)
 		{
-			static int levelScroll = 0;
+			static int levelScroll;
+
 			if (imguiBeginScrollArea("Choose Sample", width - 10 - 250 - 10 - 200, height - 10 - 250, 200, 250, &levelScroll))
 				mouseOverMenu = true;
 
-			Sample* newSample = 0;
+			Sample* newSample{};
+
 			// Imgui上での表示と選択
 			for (int i = 0; i < g_nsamples; ++i)
 			{
@@ -668,20 +710,19 @@ int main(int /*argc*/, char** /*argv*/)
 			// 新しいサンプルが選ばれている
 			if (newSample)
 			{
-				delete sample;
-				sample = newSample;
+				sample.reset(newSample);
 				sample->setContext(&ctx);
-				if (geom)
-				{
-					sample->handleMeshChanged(geom);
-				}
+
+				if (geom) sample->handleMeshChanged(geom.get());
+
 				showSample = false;
 			}
 
 			if (geom || sample)
 			{
-				const float* bmin = 0;
-				const float* bmax = 0;
+				const float* bmin{};
+				const float* bmax{};
+
 				if (geom)
 				{
 					bmin = geom->getNavMeshBoundsMin();
@@ -700,6 +741,7 @@ int main(int /*argc*/, char** /*argv*/)
 					cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
 					camr *= 3;
 				}
+
 				cameraEulers[0] = 45;
 				cameraEulers[1] = -45;
 				glFogf(GL_FOG_START, camr * 0.1f);
@@ -709,11 +751,11 @@ int main(int /*argc*/, char** /*argv*/)
 			imguiEndScrollArea();
 		}
 
-		// Level selection dialog.
+		// Level selection dialog. // レベル選択ダイアログ。
 		// Chose Meshを選択している
 		if (showLevels)
 		{
-			static int levelScroll = 0;
+			static int levelScroll;
 			if (imguiBeginScrollArea("Choose Level", width - 10 - 250 - 10 - 200, height - 10 - 450, 200, 450, &levelScroll))
 				mouseOverMenu = true;
 
@@ -736,47 +778,48 @@ int main(int /*argc*/, char** /*argv*/)
 				showLevels = false;
 
 				// 既に読み込まれているジオメトリを削除
-				delete geom;
-				geom = 0;
+				geom = nullptr;
 
 				// 読み込むパスを決定
 				string path = meshesFolder + "/" + meshName;
 
 				// ジオメトリを構築し
-				geom = new InputGeom;
+				geom = std::make_unique<InputGeom>();
 
 				// 読み込む
 				if (!geom->load(&ctx, path))
 				{
-					delete geom;
-					geom = 0;
+					geom = nullptr;
 
 					// Destroy the sample if it already had geometry loaded, as we've just deleted it!
+					// 削除したばかりのジオメトリが既にロードされている場合、サンプルを破壊します！
 					if (sample && sample->getInputGeom())
-					{
-						delete sample;
-						sample = 0;
-					}
+						sample = nullptr;
 
 					showLog = true;
 					logScroll = 0;
+
 					ctx.dumpLog("Geom load log %s:", meshName.c_str());
 				}
+
 				if (sample && geom)
 				{
-					sample->handleMeshChanged(geom);
+					sample->handleMeshChanged(geom.get());
 				}
 
 				if (geom || sample)
 				{
 					const float* bmin = 0;
 					const float* bmax = 0;
+
 					if (geom)
 					{
 						bmin = geom->getNavMeshBoundsMin();
 						bmax = geom->getNavMeshBoundsMax();
 					}
+
 					// Reset camera and fog to match the mesh bounds.
+					// メッシュの境界に一致するようにカメラとフォグをリセットします。
 					if (bmin && bmax)
 					{
 						camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
@@ -797,7 +840,7 @@ int main(int /*argc*/, char** /*argv*/)
 			imguiEndScrollArea();
 		}
 
-		// Test cases
+		// Test cases // テスト画面
 		if (showTestCases)
 		{
 			static int testScroll = 0;
@@ -818,18 +861,16 @@ int main(int /*argc*/, char** /*argv*/)
 			if (testToLoad != filesEnd)
 			{
 				string path = testCasesFolder + "/" + *testToLoad;
-				test = new TestCase;
+				test = std::make_unique<TestCase>();
+
 				if (test)
 				{
 					// Load the test.
-					if (!test->load(path))
-					{
-						delete test;
-						test = 0;
-					}
+					if (!test->load(path)) test = nullptr;
 
 					// Create sample
-					Sample* newSample = 0;
+					Sample* newSample{};
+
 					for (int i = 0; i < g_nsamples; ++i)
 					{
 						if (g_samples[i].name == test->getSampleName())
@@ -840,8 +881,7 @@ int main(int /*argc*/, char** /*argv*/)
 						}
 					}
 
-					delete sample;
-					sample = newSample;
+					sample.reset(newSample);
 
 					if (sample)
 					{
@@ -854,24 +894,21 @@ int main(int /*argc*/, char** /*argv*/)
 
 					path = meshesFolder + "/" + meshName;
 
-					delete geom;
-					geom = new InputGeom;
+					geom = std::make_unique<InputGeom>();
+
 					if (!geom || !geom->load(&ctx, path))
 					{
-						delete geom;
-						geom = 0;
-						delete sample;
-						sample = 0;
+						geom = nullptr;
+						sample = nullptr;
 						showLog = true;
 						logScroll = 0;
 						ctx.dumpLog("Geom load log %s:", meshName.c_str());
 					}
-					if (sample && geom)
-					{
-						sample->handleMeshChanged(geom);
-					}
+
+					if (sample && geom) { sample->handleMeshChanged(geom.get()); }
 
 					// This will ensure that tile & poly bits are updated in tiled sample.
+					// これにより、タイルサンプルでタイルビットとポリビットが更新されます。
 					if (sample)
 						sample->handleSettings();
 
@@ -890,17 +927,22 @@ int main(int /*argc*/, char** /*argv*/)
 							bmin = geom->getNavMeshBoundsMin();
 							bmax = geom->getNavMeshBoundsMax();
 						}
+
 						// Reset camera and fog to match the mesh bounds.
+						// メッシュの境界に一致するようにカメラとフォグをリセットします。
 						if (bmin && bmax)
 						{
-							camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
-								rcSqr(bmax[1] - bmin[1]) +
-								rcSqr(bmax[2] - bmin[2])) / 2;
+							camr =
+								sqrtf(rcSqr(bmax[0] - bmin[0]) +
+									rcSqr(bmax[1] - bmin[1]) +
+									rcSqr(bmax[2] - bmin[2])) / 2;
+
 							cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
 							cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
 							cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
 							camr *= 3;
 						}
+
 						cameraEulers[0] = 45;
 						cameraEulers[1] = -45;
 						glFogf(GL_FOG_START, camr * 0.2f);
@@ -908,15 +950,14 @@ int main(int /*argc*/, char** /*argv*/)
 					}
 
 					// Do the tests.
-					if (sample)
-						test->doTests(sample->getNavMesh(), sample->getNavMeshQuery());
+					if (sample) test->doTests(sample->getNavMesh(), sample->getNavMeshQuery());
 				}
 			}
 
 			imguiEndScrollArea();
 		}
 
-		// Log
+		// Log // ログ
 		if (showLog && showMenu)
 		{
 			if (imguiBeginScrollArea("Log", 250 + 20, 10, width - 300 - 250, 200, &logScroll))
@@ -926,7 +967,8 @@ int main(int /*argc*/, char** /*argv*/)
 			imguiEndScrollArea();
 		}
 
-		// Left column tools menu
+		// Left column tools menu // 左列ツールメニュー
+		// 左のウィンドウ画面（Tools）
 		if (!showTestCases && showTools && showMenu) // && geom && sample)
 		{
 			if (imguiBeginScrollArea("Tools", 10, 10, 250, height - 20, &toolsScroll))
@@ -938,15 +980,17 @@ int main(int /*argc*/, char** /*argv*/)
 			imguiEndScrollArea();
 		}
 
-		// Marker
-		if (markerPositionSet && gluProject((GLdouble)markerPosition[0], (GLdouble)markerPosition[1], (GLdouble)markerPosition[2],
-			modelviewMatrix, projectionMatrix, viewport, &x, &y, &z))
+		// Marker // マーカー
+		if (markerPositionSet &&
+			gluProject((GLdouble)markerPosition[0], (GLdouble)markerPosition[1], (GLdouble)markerPosition[2],
+				modelviewMatrix, projectionMatrix, viewport, &x, &y, &z))
 		{
-			// Draw marker circle
+			// Draw marker circle // マーカー円を描きます
 			glLineWidth(5.0f);
 			glColor4ub(240, 220, 0, 196);
 			glBegin(GL_LINE_LOOP);
 			const float r = 25.0f;
+
 			for (int i = 0; i < 20; ++i)
 			{
 				const float a = (float)i / 20.f * RC_PI * 2;
@@ -954,8 +998,9 @@ int main(int /*argc*/, char** /*argv*/)
 				const float fy = (float)y + sinf(a) * r;
 				glVertex2f(fx, fy);
 			}
+
 			glEnd();
-			glLineWidth(1.0f);
+			glLineWidth(1.f);
 		}
 
 		imguiEndFrame();
@@ -965,12 +1010,9 @@ int main(int /*argc*/, char** /*argv*/)
 		SDL_GL_SwapWindow(window);
 	}
 
+	// 終了処理
 	imguiRenderGLDestroy();
-
 	SDL_Quit();
-
-	delete sample;
-	delete geom;
 
 	return 0;
 }

@@ -82,14 +82,14 @@ void rcFilterLowHangingWalkableObstacles(rcContext* ctx, const int walkableClimb
 //
 // A ledge is a span with one or more neighbors whose maximum is further away than @p walkableClimb
 // from the current span's maximum.
-// レッジとは、最大値が現在のスパンの最大値からwalkableClimbよりも離れている1つ以上の隣接するスパンです。
+// 出張りとは、最大値が現在のスパンの最大値からwalkableClimbよりも離れている1つ以上の隣接するスパンです。
 // This method removes the impact of the overestimation of conservative voxelization
 // so the resulting mesh will not have regions hanging in the air over ledges.
 // このメソッドは、保守的なボクセル化の過大評価の影響を除去するため、
-// 結果のメッシュには、棚の上に空中にぶら下がった領域がありません。
+// 結果のメッシュには、出張りの上に空中にぶら下がった領域がありません。
 //
 // A span is a ledge if: <tt>rcAbs(currentSpan.smax - neighborSpan.smax) > walkableClimb</tt>
-// 次の場合、スパンは棚です：<tt> rcAbs（currentSpan.smax-neighborSpan.smax）> walkableClimb </ tt>
+// 次の場合、スパンは出張りです：<tt> rcAbs（currentSpan.smax-neighborSpan.smax）> walkableClimb </ tt>
 //
 // @see rcHeightfield, rcConfig
 void rcFilterLedgeSpans(rcContext* ctx, const int walkableHeight, const int walkableClimb,
@@ -178,7 +178,7 @@ void rcFilterLedgeSpans(rcContext* ctx, const int walkableHeight, const int walk
 
 				// The current span is close to a ledge if the drop to any
 				// neighbour span is less than the walkableClimb.
-				// 隣接するスパンへのドロップが「walkableClimb」より小さい場合、現在のスパンは棚に近い。
+				// 隣接するスパンへのドロップが「walkableClimb」より小さい場合、現在のスパンは出張りに近い。
 				if (minh < -walkableClimb)
 				{
 					s->area = RC_NULL_AREA;

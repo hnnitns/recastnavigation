@@ -38,6 +38,7 @@ constexpr unsigned int DT_TILE_BITS = 28;
 constexpr unsigned int DT_POLY_BITS = 20;
 typedef uint64_t dtPolyRef;
 #else
+//ナビゲーションメッシュタイル内のポリゴンのハンドル。
 typedef unsigned int dtPolyRef;
 #endif
 
@@ -46,68 +47,94 @@ typedef unsigned int dtPolyRef;
 #ifdef DT_POLYREF64
 typedef uint64_t dtTileRef;
 #else
+// ナビゲーションメッシュ内のタイルへのハンドル。
 typedef unsigned int dtTileRef;
 #endif
 
 // The maximum number of vertices per navigation polygon.
+// ナビゲーションポリゴンごとの頂点の最大数。
 // @ingroup detour
 constexpr int DT_VERTS_PER_POLYGON = 6;
 
 // @{
 // @name Tile Serialization Constants
-// These constants are used to detect whether a navigation tile's data
-// and state format is compatible with the current build.
+// These constants are used to detect whether a navigation tile's data and state format is compatible with the current build.
+// これらの定数は、ナビゲーションタイルのデータと状態の形式が現在のビルドと互換性があるかどうかを検出するために使用されます。
 //
 
 // A magic number used to detect compatibility of navigation tile data.
+// ナビゲーションタイルデータの互換性を検出するために使用されるマジックナンバー。
 constexpr int DT_NAVMESH_MAGIC = 'D' << 24 | 'N' << 16 | 'A' << 8 | 'V';
 
 // A version number used to detect compatibility of navigation tile data.
+// ナビゲーションタイルデータの互換性を検出するために使用されるバージョン番号。
 constexpr int DT_NAVMESH_VERSION = 7;
 
 // A magic number used to detect the compatibility of navigation tile states.
+// ナビゲーションタイルの状態の互換性を検出するために使用されるマジックナンバー。
 constexpr int DT_NAVMESH_STATE_MAGIC = 'D' << 24 | 'N' << 16 | 'M' << 8 | 'S';
 
 // A version number used to detect compatibility of navigation tile states.
+// ナビゲーションタイルの状態の互換性を検出するために使用されるバージョン番号。
 constexpr int DT_NAVMESH_STATE_VERSION = 1;
 
 // @}
 
 // A flag that indicates that an entity links to an external entity.
+// エンティティが外部エンティティにリンクしていることを示すフラグ。
 // (E.g. A polygon edge is a portal that links to another polygon.)
+// （たとえば、ポリゴンエッジは、別のポリゴンにリンクするポータルです。）
 constexpr unsigned short DT_EXT_LINK = 0x8000;
 
 // A value that indicates the entity does not link to anything.
+// エンティティが何にもリンクしていないことを示す値。
 constexpr unsigned int DT_NULL_LINK = 0xffffffff;
 
 // A flag that indicates that an off-mesh connection can be traversed in both directions. (Is bidirectional.)
+// オフメッシュ接続を両方向に横断できることを示すフラグ。（双方向です。）
 constexpr unsigned int DT_OFFMESH_CON_BIDIR = 1;
 
 // The maximum number of user defined area ids.
+// ユーザー定義のエリアIDの最大数。
 // @ingroup detour
 constexpr int DT_MAX_AREAS = 64;
 
 // Tile flags used for various functions and fields.
+// さまざまな関数とフィールドに使用されるタイルフラグ。
 // For an example, see dtNavMesh::addTile().
+// 例については、dtNavMesh :: addTile（）を参照してください。
 enum dtTileFlags
 {
 	// The navigation mesh owns the tile memory and is responsible for freeing it.
+	// ナビゲーションメッシュはタイルメモリを所有し、タイルメモリを解放します。
 	DT_TILE_FREE_DATA = 0x01,
 };
 
 // Vertex flags returned by dtNavMeshQuery::findStraightPath.
+// dtNavMeshQuery :: findStraightPathによって返される頂点フラグ。
 enum dtStraightPathFlags
 {
-	DT_STRAIGHTPATH_START = 0x01,				//< The vertex is the start position in the path.
-	DT_STRAIGHTPATH_END = 0x02,					//< The vertex is the end position in the path.
-	DT_STRAIGHTPATH_OFFMESH_CONNECTION = 0x04,	//< The vertex is the start of an off-mesh connection.
+	// The vertex is the start position in the path.
+	// 頂点はパスの開始位置です。
+	DT_STRAIGHTPATH_START = 0x01,
+	// The vertex is the end position in the path.
+	// 頂点はパス内の終了位置です。
+	DT_STRAIGHTPATH_END = 0x02,
+	// The vertex is the start of an off-mesh connection.
+	// 頂点はオフメッシュ接続の開始点です。
+	DT_STRAIGHTPATH_OFFMESH_CONNECTION = 0x04,
 };
 
 // Options for dtNavMeshQuery::findStraightPath.
+// dtNavMeshQuery :: findStraightPathのオプション。
 enum dtStraightPathOptions
 {
-	DT_STRAIGHTPATH_AREA_CROSSINGS = 0x01,	//< Add a vertex at every polygon edge crossing where area changes.
-	DT_STRAIGHTPATH_ALL_CROSSINGS = 0x02,	//< Add a vertex at every polygon edge crossing.
+	// Add a vertex at every polygon edge crossing where area changes.
+	// 面積が変わる場所で交差するすべてのポリゴンエッジに頂点を追加します。
+	DT_STRAIGHTPATH_AREA_CROSSINGS = 0x01,
+	// Add a vertex at every polygon edge crossing.
+	// ポリゴンのエッジが交差するたびに頂点を追加します。
+	DT_STRAIGHTPATH_ALL_CROSSINGS = 0x02,
 };
 
 // Options for dtNavMeshQuery::initSlicedFindPath and updateSlicedFindPath
@@ -339,12 +366,19 @@ public:
 	const dtNavMeshParams* getParams() const;
 
 	// Adds a tile to the navigation mesh.
-	//  @param[in]		data		Data for the new tile mesh. (See: #dtCreateNavMeshData)
-	//  @param[in]		dataSize	Data size of the new tile mesh.
-	//  @param[in]		flags		Tile flags. (See: #dtTileFlags)
-	//  @param[in]		lastRef		The desired reference for the tile. (When reloading a tile.) [opt] [Default: 0]
-	//  @param[out]	result		The tile reference. (If the tile was succesfully added.) [opt]
+	//	ナビゲーションメッシュにタイルを追加します。
+	//  @param[in] data : Data for the new tile mesh. (See: #dtCreateNavMeshData)
+	//	新しいタイルメッシュのデータ。 （#dtCreateNavMeshDataを参照）
+	//  @param[in] dataSize : Data size of the new tile mesh.
+	//	新しいタイルメッシュのデータサイズ。
+	//  @param[in] flags : Tile flags. (See: #dtTileFlags)
+	//	タイルフラグ。 （参照：#dtTileFlags）
+	//  @param[in] lastRef : The desired reference for the tile. (When reloading a tile.) [opt] [Default: 0]
+	//	タイルに必要な参照。 （タイルをリロードする場合。）[デフォルト：0]
+	//  @param[out] result : The tile reference. (If the tile was succesfully added.) [opt]
+	//	タイル参照。 （タイルが正常に追加された場合。）
 	// @return The status flags for the operation.
+	//	操作のステータスフラグ。
 	dtStatus addTile(unsigned char* data, int dataSize, int flags, dtTileRef lastRef, dtTileRef* result);
 
 	// Removes the specified tile from the navigation mesh.
@@ -544,6 +578,7 @@ public:
 	}
 
 	// Extracts a tile's salt value from the specified polygon reference.
+	// 指定されたポリゴン参照からタイルのソルト値を抽出します。
 	//  @note This function is generally meant for internal use only.
 	//  @param[in]	ref		The polygon reference.
 	//  @see #encodePolyId
@@ -665,7 +700,7 @@ void dtFreeNavMesh(dtNavMesh* navmesh);
 
 #endif // DETOURNAVMESH_H
 
-//////////////////////////////////////////////////
+//////////////////////////////////
 
 // This section contains detailed documentation for members that don't have
 // a source file. It reduces clutter in the main section of the header.
@@ -745,7 +780,7 @@ This value is used for converting between world and bounding volume coordinates.
 
 For example:
 @code
-const float cs = 1.0f / tile->header->bvQuantFactor;
+const float cs = 1.f / tile->header->bvQuantFactor;
 const dtBVNode* n = &tile->bvTree[i];
 if (n->i >= 0)
 {

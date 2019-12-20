@@ -66,7 +66,7 @@ bool dtProximityGrid::init(const int poolSize, const float cellSize)
 	dtAssert(cellSize > 0.0f);
 
 	m_cellSize = cellSize;
-	m_invCellSize = 1.0f / m_cellSize;
+	m_invCellSize = 1.f / m_cellSize;
 
 	// Allocate hashs buckets
 	m_bucketsSize = dtNextPow2(poolSize);

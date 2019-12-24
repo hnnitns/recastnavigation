@@ -124,11 +124,14 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 	memcpy(&m_params, params, sizeof(m_params));
 
 	// Alloc space for obstacles.
+	// 障害物にスペースを割り当てます。
 	m_obstacles = (dtTileCacheObstacle*)dtAlloc(sizeof(dtTileCacheObstacle) * m_params.maxObstacles, DT_ALLOC_PERM);
-	if (!m_obstacles)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+
+	if (!m_obstacles) return DT_FAILURE | DT_OUT_OF_MEMORY;
+
 	memset(m_obstacles, 0, sizeof(dtTileCacheObstacle) * m_params.maxObstacles);
 	m_nextFreeObstacle = 0;
+
 	for (int i = m_params.maxObstacles - 1; i >= 0; --i)
 	{
 		m_obstacles[i].salt = 1;
@@ -136,20 +139,24 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 		m_nextFreeObstacle = &m_obstacles[i];
 	}
 
-	// Init tiles
+	// Init tiles // タイルの初期化
 	m_tileLutSize = dtNextPow2(m_params.maxTiles / 4);
-	if (!m_tileLutSize) m_tileLutSize = 1;
-	m_tileLutMask = m_tileLutSize - 1;
 
+	if (!m_tileLutSize) m_tileLutSize = 1;
+
+	m_tileLutMask = m_tileLutSize - 1;
 	m_tiles = (dtCompressedTile*)dtAlloc(sizeof(dtCompressedTile) * m_params.maxTiles, DT_ALLOC_PERM);
-	if (!m_tiles)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+
+	if (!m_tiles) return DT_FAILURE | DT_OUT_OF_MEMORY;
+
 	m_posLookup = (dtCompressedTile**)dtAlloc(sizeof(dtCompressedTile*) * m_tileLutSize, DT_ALLOC_PERM);
-	if (!m_posLookup)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+
+	if (!m_posLookup) return DT_FAILURE | DT_OUT_OF_MEMORY;
+
 	memset(m_tiles, 0, sizeof(dtCompressedTile) * m_params.maxTiles);
 	memset(m_posLookup, 0, sizeof(dtCompressedTile*) * m_tileLutSize);
-	m_nextFreeTile = 0;
+	m_nextFreeTile = nullptr;
+
 	for (int i = m_params.maxTiles - 1; i >= 0; --i)
 	{
 		m_tiles[i].salt = 1;
@@ -158,11 +165,14 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 	}
 
 	// Init ID generator values.
+	// Init IDジェネレーターの値。
 	m_tileBits = dtIlog2(dtNextPow2((unsigned int)m_params.maxTiles));
+
 	// Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
+	// ソルトマスクは32ビットuintを使用して計算され、オーバーフローするため、31ソルトビットのみを許可します。
 	m_saltBits = dtMin((unsigned int)31, 32 - m_tileBits);
-	if (m_saltBits < 10)
-		return DT_FAILURE | DT_INVALID_PARAM;
+
+	if (m_saltBits < 10) return DT_FAILURE | DT_INVALID_PARAM;
 
 	return DT_SUCCESS;
 }

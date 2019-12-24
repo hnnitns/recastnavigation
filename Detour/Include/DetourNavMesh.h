@@ -348,10 +348,14 @@ public:
 
 	// @{
 	// @name Initialization and Tile Management
+	// 初期化とタイル管理。
 
 	// Initializes the navigation mesh for tiled use.
-	//  @param[in]	params		Initialization parameters.
+	// タイル化された使用のためにナビゲーションメッシュを初期化します。
+	// @param[in] params : Initialization parameters.
+	// 初期化パラメーター。
 	// @return The status flags for the operation.
+	// 操作のステータスフラグ。
 	dtStatus init(const dtNavMeshParams* params);
 
 	// Initializes the navigation mesh for single tile use.
@@ -694,6 +698,7 @@ private:
 dtNavMesh* dtAllocNavMesh();
 
 // Frees the specified navigation mesh object using the Detour allocator.
+// Detourアロケーターを使用して、指定されたナビゲーションメッシュオブジェクトを解放します。
 //  @param[in]	navmesh		A navigation mesh allocated using #dtAllocNavMesh
 //  @ingroup detour
 void dtFreeNavMesh(dtNavMesh* navmesh);

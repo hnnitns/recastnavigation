@@ -376,6 +376,7 @@ void dtCrowd::purge()
 /// @par
 ///
 /// May be called more than once to purge and re-initialize the crowd.
+/// クラウドをパージして再初期化するために複数回呼び出される場合があります。
 bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* nav)
 {
 	purge();
@@ -386,8 +387,9 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	dtVset(m_ext, m_maxAgentRadius * 2.0f, m_maxAgentRadius * 1.5f, m_maxAgentRadius * 2.0f);
 
 	m_grid = dtAllocProximityGrid();
-	if (!m_grid)
-		return false;
+
+	if (!m_grid) return false;
+
 	if (!m_grid->init(m_maxAgents * 4, maxAgentRadius * 3))
 		return false;
 
@@ -398,6 +400,7 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 		return false;
 
 	// Init obstacle query params.
+	// 障害物クエリパラメータを初期化します。
 	memset(m_obstacleQueryParams, 0, sizeof(m_obstacleQueryParams));
 	for (int i = 0; i < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS; ++i)
 	{
@@ -415,6 +418,7 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	}
 
 	// Allocate temp buffer for merging paths.
+	// パスをマージするための一時バッファを割り当てます。
 	m_maxPathResult = 256;
 	m_pathResult = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef) * m_maxPathResult, DT_ALLOC_PERM);
 	if (!m_pathResult)
@@ -424,21 +428,19 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 		return false;
 
 	m_agents = (dtCrowdAgent*)dtAlloc(sizeof(dtCrowdAgent) * m_maxAgents, DT_ALLOC_PERM);
-	if (!m_agents)
-		return false;
+	if (!m_agents) return false;
 
 	m_activeAgents = (dtCrowdAgent**)dtAlloc(sizeof(dtCrowdAgent*) * m_maxAgents, DT_ALLOC_PERM);
-	if (!m_activeAgents)
-		return false;
+	if (!m_activeAgents) return false;
 
 	m_agentAnims = (dtCrowdAgentAnimation*)dtAlloc(sizeof(dtCrowdAgentAnimation) * m_maxAgents, DT_ALLOC_PERM);
-	if (!m_agentAnims)
-		return false;
+	if (!m_agentAnims) return false;
 
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		new(&m_agents[i]) dtCrowdAgent();
 		m_agents[i].active = false;
+
 		if (!m_agents[i].corridor.init(m_maxPathResult))
 			return false;
 	}
@@ -449,9 +451,11 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	}
 
 	// The navquery is mostly used for local searches, no need for large node pool.
+	// navqueryは主にローカル検索に使用され、大きなノードプールは必要ありません。
 	m_navquery = dtAllocNavMeshQuery();
-	if (!m_navquery)
-		return false;
+
+	if (!m_navquery) return false;
+
 	if (dtStatusFailed(m_navquery->init(nav, MAX_COMMON_NODES)))
 		return false;
 
@@ -468,7 +472,8 @@ const dtObstacleAvoidanceParams* dtCrowd::getObstacleAvoidanceParams(const int i
 {
 	if (idx >= 0 && idx < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS)
 		return &m_obstacleQueryParams[idx];
-	return 0;
+
+	return nullptr;
 }
 
 int dtCrowd::getAgentCount() const

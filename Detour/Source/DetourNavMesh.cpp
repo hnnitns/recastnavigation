@@ -142,8 +142,8 @@ dtNavMesh* dtAllocNavMesh()
 
 // @par
 //
-// This function will only free the memory for tiles with the #DT_TILE_FREE_DATA
-// flag set.
+// This function will only free the memory for tiles with the #DT_TILE_FREE_DATA flag set.
+// この関数は、＃DT_TILE_FREE_DATAフラグが設定されているタイルのメモリのみを解放します。
 void dtFreeNavMesh(dtNavMesh* navmesh)
 {
 	if (!navmesh) return;
@@ -226,10 +226,12 @@ dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 	m_tileWidth = params->tileWidth;
 	m_tileHeight = params->tileHeight;
 
-	// Init tiles
+	// Init tiles // タイルの初期化
 	m_maxTiles = params->maxTiles;
 	m_tileLutSize = dtNextPow2(params->maxTiles / 4);
+
 	if (!m_tileLutSize) m_tileLutSize = 1;
+
 	m_tileLutMask = m_tileLutSize - 1;
 
 	m_tiles = (dtMeshTile*)dtAlloc(sizeof(dtMeshTile) * m_maxTiles, DT_ALLOC_PERM);
@@ -242,7 +244,8 @@ dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 
 	memset(m_tiles, 0, sizeof(dtMeshTile) * m_maxTiles);
 	memset(m_posLookup, 0, sizeof(dtMeshTile*) * m_tileLutSize);
-	m_nextFree = 0;
+	m_nextFree = nullptr;
+
 	for (int i = m_maxTiles - 1; i >= 0; --i)
 	{
 		m_tiles[i].salt = 1;
@@ -251,6 +254,7 @@ dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 	}
 
 	// Init ID generator values.
+	// IDジェネレーターの値を初期化
 #ifndef DT_POLYREF64
 	m_tileBits = dtIlog2(dtNextPow2((unsigned int)params->maxTiles));
 	m_polyBits = dtIlog2(dtNextPow2((unsigned int)params->maxPolys));

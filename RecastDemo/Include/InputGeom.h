@@ -24,9 +24,11 @@
 #include "Recast.h"
 
 constexpr int MAX_CONVEXVOL_PTS = 12;
+
 struct ConvexVolume
 {
 	ConvexVolume() : areaMod(RC_AREA_FLAGS_MASK) {}
+
 	float verts[MAX_CONVEXVOL_PTS * 3];
 	float hmin, hmax;
 	int nverts;
@@ -93,7 +95,7 @@ class InputGeom
 	BuildSettings m_buildSettings;
 	bool m_hasBuildSettings;
 
-	/// @name Off-Mesh connections.
+	/// @name Off-Mesh connections. // オフメッシュ接続。
 	///@{
 	static constexpr int MAX_OFFMESH_CONNECTIONS = 256;
 	float m_offMeshConVerts[MAX_OFFMESH_CONNECTIONS * 3 * 2];
@@ -105,7 +107,7 @@ class InputGeom
 	int m_offMeshConCount;
 	///@}
 
-	/// @name Convex Volumes.
+	/// @name Convex Volumes. // 凸ボリューム。
 	///@{
 	static constexpr int MAX_VOLUMES = 256;
 	ConvexVolume m_volumes[MAX_VOLUMES];

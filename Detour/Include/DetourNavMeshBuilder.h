@@ -186,11 +186,11 @@ struct dtNavMeshCreateParams
 };
 
 // Builds navigation mesh tile data from the provided tile creation data.
-//	提供されたタイル作成データからナビゲーションメッシュタイルデータを構築します。
+// 提供されたタイル作成データからナビゲーションメッシュタイルデータを構築します。
 // @ingroup detour
-//  @param[in] params : Tile creation data. // タイル作成データ。
-//  @param[out] outData : The resulting tile data. // 結果のタイルデータ。
-//  @param[out] outDataSize : The size of the tile data array. // タイルデータ配列のサイズ。
+// @param[in] params : Tile creation data. // タイル作成データ。
+// @param[out] outData : The resulting tile data. // 結果のタイルデータ。
+// @param[out] outDataSize : The size of the tile data array. // タイルデータ配列のサイズ。
 // @return True if the tile data was successfully created.
 //  タイルデータが正常に作成された場合はTrue。
 bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize);

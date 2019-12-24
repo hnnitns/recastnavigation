@@ -211,6 +211,7 @@ dtPathCorridor::~dtPathCorridor()
 /// @par
 ///
 /// @warning Cannot be called more than once.
+/// •¡”‰ñŒÄ‚Ño‚·‚±‚Æ‚Í‚Å‚«‚Ü‚¹‚ñB
 bool dtPathCorridor::init(const int maxPath)
 {
 	dtAssert(!m_path);

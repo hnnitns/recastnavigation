@@ -24,12 +24,21 @@
 #include "DetourStatus.h"
 
 // Defines polygon filtering and traversal costs for navigation mesh query operations.
+// ナビゲーションメッシュクエリ操作のポリゴンフィルタリングとトラバーサルコストを定義します。
 // @ingroup detour
 class dtQueryFilter
 {
-	float m_areaCost[DT_MAX_AREAS];		//< Cost per area type. (Used by default implementation.)
-	unsigned short m_includeFlags;		//< Flags for polygons that can be visited. (Used by default implementation.)
-	unsigned short m_excludeFlags;		//< Flags for polygons that should not be visted. (Used by default implementation.)
+	// Cost per area type. (Used by default implementation.)
+	// エリアタイプごとのコスト。 （デフォルトの実装で使用されます。）
+	float m_areaCost[DT_MAX_AREAS];
+
+	// Flags for polygons that can be visited. (Used by default implementation.)
+	// 訪問できるポリゴンのフラグ。 （デフォルトの実装で使用されます。）
+	unsigned short m_includeFlags;
+
+	// Flags for polygons that should not be visted. (Used by default implementation.)
+	// 参照されるべきではないポリゴンのフラグ。 （デフォルトの実装で使用されます。）
+	unsigned short m_excludeFlags;
 
 public:
 	dtQueryFilter();
@@ -38,39 +47,55 @@ public:
 	virtual ~dtQueryFilter() { }
 #endif
 
-	// Returns true if the polygon can be visited.  (I.e. Is traversable.)
-	//  @param[in]		ref		The reference id of the polygon test.
-	//  @param[in]		tile	The tile containing the polygon.
-	//  @param[in]		poly  The polygon to test.
 #ifdef DT_VIRTUAL_QUERYFILTER
 	virtual bool passFilter(const dtPolyRef ref,
 		const dtMeshTile* tile,
 		const dtPoly* poly) const;
 #else
-	bool passFilter(const dtPolyRef ref,
+	// Returns true if the polygon can be visited.  (I.e. Is traversable.)
+	// ポリゴンにアクセスできる場合はtrueを返します。 （つまり、トラバース可能です。）
+	// @param[in] ref : The reference id of the polygon test.
+	// ポリゴンテストの参照ID。
+	// @param[in] tile : The tile containing the polygon.
+	// ポリゴンを含むタイル。
+	// @param[in] poly : The polygon to test.
+	// テストするポリゴン。
+	bool passFilter(
+		const dtPolyRef ref,
 		const dtMeshTile* tile,
 		const dtPoly* poly) const;
 #endif
 
-	// Returns cost to move from the beginning to the end of a line segment
-	// that is fully contained within a polygon.
-	//  @param[in]		pa			The start position on the edge of the previous and current polygon. [(x, y, z)]
-	//  @param[in]		pb			The end position on the edge of the current and next polygon. [(x, y, z)]
-	//  @param[in]		prevRef		The reference id of the previous polygon. [opt]
-	//  @param[in]		prevTile	The tile containing the previous polygon. [opt]
-	//  @param[in]		prevPoly	The previous polygon. [opt]
-	//  @param[in]		curRef		The reference id of the current polygon.
-	//  @param[in]		curTile		The tile containing the current polygon.
-	//  @param[in]		curPoly		The current polygon.
-	//  @param[in]		nextRef		The refernece id of the next polygon. [opt]
-	//  @param[in]		nextTile	The tile containing the next polygon. [opt]
-	//  @param[in]		nextPoly	The next polygon. [opt]
 #ifdef DT_VIRTUAL_QUERYFILTER
 	virtual float getCost(const float* pa, const float* pb,
 		const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
 		const dtPolyRef curRef, const dtMeshTile* curTile, const dtPoly* curPoly,
 		const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const;
 #else
+	// Returns cost to move from the beginning to the end of a line segment that is fully contained within a polygon.
+	// ポリゴン内に完全に含まれるラインセグメントの最初から最後まで移動するコストを返します。
+	// @param[in] pa : The start position on the edge of the previous and current polygon. [(x, y, z)]
+	// 前のポリゴンと現在のポリゴンの端の開始位置。 [（x、y、z）]
+	// @param[in] pb : The end position on the edge of the current and next polygon. [(x, y, z)]
+	// 現在および次のポリゴンの端の終了位置。 [（x、y、z）]
+	// @param[in] prevRef : The reference id of the previous polygon. [opt]
+	// 前のポリゴンの参照ID。 [最適化]
+	// @param[in] prevTile : The tile containing the previous polygon. [opt]
+	// 前のポリゴンを含むタイル。 [最適化]
+	// @param[in] prevPoly : The previous polygon. [opt]
+	// 前のポリゴン。 [最適化]
+	// @param[in] curRef : The reference id of the current polygon.
+	// 現在のポリゴンの参照ID。
+	// @param[in] curTile : The tile containing the current polygon.
+	// 現在のポリゴンを含むタイル。
+	// @param[in] curPoly : The current polygon.
+	// 現在のポリゴン。
+	// @param[in] nextRef : The refernece id of the next polygon. [opt]
+	// 次のポリゴンの参照ID。 [最適化]
+	// @param[in] nextTile : The tile containing the next polygon. [opt]
+	// 次のポリゴンを含むタイル。 [最適化]
+	// @param[in] nextPoly : The next polygon. [opt]
+	// 次のポリゴン。 [最適化]
 	float getCost(const float* pa, const float* pb,
 		const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
 		const dtPolyRef curRef, const dtMeshTile* curTile, const dtPoly* curPoly,
@@ -78,32 +103,40 @@ public:
 #endif
 
 	// @name Getters and setters for the default implementation data.
+	// デフォルトの実装データの取得メソッドと設定メソッド。
 	//@{
+
 	// Returns the traversal cost of the area.
+	// エリアの横断コストを返します。
 	//  @param[in]		i		The id of the area.
 	// @returns The traversal cost of the area.
 	inline float getAreaCost(const int i) const { return m_areaCost[i]; }
 
 	// Sets the traversal cost of the area.
+	// エリアのトラバーサルコストを設定します。
 	//  @param[in]		i		The id of the area.
 	//  @param[in]		cost	The new cost of traversing the area.
 	inline void setAreaCost(const int i, const float cost) { m_areaCost[i] = cost; }
 
 	// Returns the include flags for the filter.
-	// Any polygons that include one or more of these flags will be
-	// included in the operation.
+	// フィルタのインクルードフラグを返します。
+	// Any polygons that include one or more of these flags will be included in the operation.
+	// これらのフラグの1つ以上を含むポリゴンは、操作に含まれます。
 	inline unsigned short getIncludeFlags() const { return m_includeFlags; }
 
 	// Sets the include flags for the filter.
+	// フィルタのインクルードフラグを設定します。
 	// @param[in]		flags	The new flags.
 	inline void setIncludeFlags(const unsigned short flags) { m_includeFlags = flags; }
 
 	// Returns the exclude flags for the filter.
-	// Any polygons that include one ore more of these flags will be
-	// excluded from the operation.
+	// フィルタの除外フラグを返します。
+	// Any polygons that include one ore more of these flags will be excluded from the operation.
+	// これらのフラグを1つ以上含むポリゴンはすべて、操作から除外されます。
 	inline unsigned short getExcludeFlags() const { return m_excludeFlags; }
 
 	// Sets the exclude flags for the filter.
+	// フィルタの除外フラグを設定します。
 	// @param[in]		flags		The new flags.
 	inline void setExcludeFlags(const unsigned short flags) { m_excludeFlags = flags; }
 

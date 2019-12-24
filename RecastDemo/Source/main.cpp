@@ -666,6 +666,7 @@ int main(int /*argc*/, char** /*argv*/)
 						showLog = true;
 						logScroll = 0;
 					}
+
 					ctx.dumpLog("Build log %s:", meshName.c_str());
 
 					// Clear test.

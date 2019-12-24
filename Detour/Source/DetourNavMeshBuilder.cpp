@@ -544,8 +544,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 
 	// Off-mesh link vertices.
 	// オフメッシュリンクの頂点。
-	int n{};
-	for (int i = 0; i < params->offMeshConCount; ++i)
+	for (int i = 0, n = 0; i < params->offMeshConCount; ++i)
 	{
 		// Only store connections which start from this tile.
 		// このタイルから始まる接続のみを保存します。
@@ -587,7 +586,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 
 				switch (dir)
 				{
-					case 0xf: // Border
+					case 0xf: // Border // 境界線
 					{
 						p->neis[j] = 0;
 						break;
@@ -616,7 +615,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 			}
 			else
 			{
-				// Normal connection
+				// Normal connection // 通常の接続
 				p->neis[j] = src[nvp + j] + 1;
 			}
 
@@ -624,14 +623,17 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 		}
 		src += nvp * 2;
 	}
+
 	// Off-mesh connection vertices.
-	n = 0;
-	for (int i = 0; i < params->offMeshConCount; ++i)
+	// メッシュ外の接続頂点。
+	for (int i = 0, n = 0; i < params->offMeshConCount; ++i)
 	{
 		// Only store connections which start from this tile.
+		// このタイルから始まる接続のみを保存します。
 		if (offMeshConClass[i * 2 + 0] == 0xff)
 		{
 			dtPoly* p = &navPolys[offMeshPolyBase + n];
+
 			p->vertCount = 2;
 			p->verts[0] = (uint16_t)(offMeshVertsBase + n * 2 + 0);
 			p->verts[1] = (uint16_t)(offMeshVertsBase + n * 2 + 1);
@@ -643,83 +645,106 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	}
 
 	// Store detail meshes and vertices.
+	// 詳細メッシュと頂点を保存します。
 	// The nav polygon vertices are stored as the first vertices on each mesh.
+	// ナビゲーションポリゴンの頂点は、各メッシュの最初の頂点として保存されます。
 	// We compress the mesh data by skipping them and using the navmesh coordinates.
+	// メッシュデータをスキップし、ナビメッシュ座標を使用して、メッシュデータを圧縮します。
 	if (params->detailMeshes)
 	{
-		uint16_t vbase = 0;
+		uint16_t vbase{};
+
 		for (int i = 0; i < params->polyCount; ++i)
 		{
 			dtPolyDetail& dtl = navDMeshes[i];
 			const int vb = (int)params->detailMeshes[i * 4 + 0];
 			const int ndv = (int)params->detailMeshes[i * 4 + 1];
 			const int nv = navPolys[i].vertCount;
+
 			dtl.vertBase = (unsigned int)vbase;
 			dtl.vertCount = (unsigned char)(ndv - nv);
 			dtl.triBase = (unsigned int)params->detailMeshes[i * 4 + 2];
 			dtl.triCount = (unsigned char)params->detailMeshes[i * 4 + 3];
+
 			// Copy vertices except the first 'nv' verts which are equal to nav poly verts.
+			// nav poly vertと等しい最初の「nv」頂点以外の頂点をコピーします。
 			if (ndv - nv)
 			{
 				memcpy(&navDVerts[vbase * 3], &params->detailVerts[(vb + nv) * 3], sizeof(float) * 3 * (ndv - nv));
 				vbase += (uint16_t)(ndv - nv);
 			}
 		}
+
 		// Store triangles.
+		// 三角形を保存します。
 		memcpy(navDTris, params->detailTris, sizeof(unsigned char) * 4 * params->detailTriCount);
 	}
 	else
 	{
 		// Create dummy detail mesh by triangulating polys.
-		int tbase = 0;
+		// ポリゴンを三角形分割してダミーの詳細メッシュを作成します。
+		int tbase{};
 		for (int i = 0; i < params->polyCount; ++i)
 		{
 			dtPolyDetail& dtl = navDMeshes[i];
 			const int nv = navPolys[i].vertCount;
+
 			dtl.vertBase = 0;
 			dtl.vertCount = 0;
 			dtl.triBase = (unsigned int)tbase;
 			dtl.triCount = (unsigned char)(nv - 2);
+
 			// Triangulate polygon (local indices).
+			// ポリゴンを三角形化します（ローカルインデックス）。
 			for (int j = 2; j < nv; ++j)
 			{
 				unsigned char* t = &navDTris[tbase * 4];
+
 				t[0] = 0;
 				t[1] = (unsigned char)(j - 1);
 				t[2] = (unsigned char)j;
 				// Bit for each edge that belongs to poly boundary.
+				// ポリゴン境界に属する各エッジのビット。
 				t[3] = (1 << 2);
+
 				if (j == 2) t[3] |= (1 << 0);
 				if (j == nv - 1) t[3] |= (1 << 4);
+
 				tbase++;
 			}
 		}
 	}
 
 	// Store and create BVtree.
+	// BVtreeを保存および作成します。
 	if (params->buildBvTree)
-	{
 		createBVTree(params, navBvtree, 2 * params->polyCount);
-	}
 
 	// Store Off-Mesh connections.
-	n = 0;
-	for (int i = 0; i < params->offMeshConCount; ++i)
+	// オフメッシュ接続を保存します。
+	for (int i = 0, n = 0; i < params->offMeshConCount; ++i)
 	{
 		// Only store connections which start from this tile.
+		// このタイルから始まる接続のみを保存します。
 		if (offMeshConClass[i * 2 + 0] == 0xff)
 		{
 			dtOffMeshConnection* con = &offMeshCons[n];
+
 			con->poly = (uint16_t)(offMeshPolyBase + n);
+
 			// Copy connection end-points.
+			// 接続のエンドポイントをコピーします。
 			const float* endPts = &params->offMeshConVerts[i * 2 * 3];
+
 			dtVcopy(&con->pos[0], &endPts[0]);
 			dtVcopy(&con->pos[3], &endPts[3]);
 			con->rad = params->offMeshConRad[i];
 			con->flags = params->offMeshConDir[i] ? DT_OFFMESH_CON_BIDIR : 0;
 			con->side = offMeshConClass[i * 2 + 1];
+
 			if (params->offMeshConUserID)
 				con->userId = params->offMeshConUserID[i];
+
 			n++;
 		}
 	}

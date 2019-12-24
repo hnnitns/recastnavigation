@@ -174,11 +174,15 @@ void CrowdToolState::init(class Sample* sample)
 		crowd->init(MAX_AGENTS, m_sample->getAgentRadius(), nav);
 
 		// Make polygons with 'disabled' flag invalid.
+		//「無効」フラグのあるポリゴンを無効にします。
 		crowd->getEditableFilter(0)->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
 
 		// Setup local avoidance params to different qualities.
+		// ローカル回避パラメーターを異なる品質に設定します。
 		dtObstacleAvoidanceParams params;
+
 		// Use mostly default settings, copy from dtCrowd.
+		// ほとんどのデフォルト設定を使用し、dtCrowdからコピーします。
 		memcpy(&params, crowd->getObstacleAvoidanceParams(0), sizeof(dtObstacleAvoidanceParams));
 
 		// Low (11)

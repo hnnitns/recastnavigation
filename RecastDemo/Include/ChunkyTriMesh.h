@@ -47,15 +47,18 @@ private:
 // Creates partitioned triangle mesh (AABB tree),
 // where each node contains at max trisPerChunk triangles.
 // 分割された三角形メッシュ（AABBツリー）を作成します。各ノードには最大でtrisPerChunkの三角形が含まれます。
+// 分厚い三角形メッシュを作成する
 bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris,
 	int trisPerChunk, rcChunkyTriMesh* cm);
 
 // Returns the chunk indices which overlap the input rectable.
 // 入力rectableと重複するチャンクインデックスを返します。
+// チャンクの重複する四角形を取得
 int rcGetChunksOverlappingRect(const rcChunkyTriMesh* cm, float bmin[2], float bmax[2], int* ids, const int maxIds);
 
 // Returns the chunk indices which overlap the input segment.
 // 入力セグメントと重複するチャンクインデックスを返します。
+// チャンク重複セグメントの取得
 int rcGetChunksOverlappingSegment(const rcChunkyTriMesh* cm, float p[2], float q[2], int* ids, const int maxIds);
 
 #endif // CHUNKYTRIMESH_H

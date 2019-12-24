@@ -16,8 +16,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <string.h>
+#include <cstring>
 #include <new>
+#include <cstdint>
+#include <limits>
 #include "DetourProximityGrid.h"
 #include "DetourCommon.h"
 #include "DetourMath.h"
@@ -69,17 +71,19 @@ bool dtProximityGrid::init(const int poolSize, const float cellSize)
 	m_invCellSize = 1.f / m_cellSize;
 
 	// Allocate hashs buckets
+	// ハッシュバケットを割り当てます
 	m_bucketsSize = dtNextPow2(poolSize);
 	m_buckets = (unsigned short*)dtAlloc(sizeof(unsigned short) * m_bucketsSize, DT_ALLOC_PERM);
 	if (!m_buckets)
 		return false;
 
 	// Allocate pool of items.
+	// アイテムのプールを割り当てます。
 	m_poolSize = poolSize;
 	m_poolHead = 0;
 	m_pool = (Item*)dtAlloc(sizeof(Item) * m_poolSize, DT_ALLOC_PERM);
-	if (!m_pool)
-		return false;
+
+	if (!m_pool) return false;
 
 	clear();
 
@@ -88,12 +92,14 @@ bool dtProximityGrid::init(const int poolSize, const float cellSize)
 
 void dtProximityGrid::clear()
 {
+	constexpr uint16_t UShortMax{ (std::numeric_limits<uint16_t>::max)() };
+
 	memset(m_buckets, 0xff, sizeof(unsigned short) * m_bucketsSize);
 	m_poolHead = 0;
-	m_bounds[0] = 0xffff;
-	m_bounds[1] = 0xffff;
-	m_bounds[2] = -0xffff;
-	m_bounds[3] = -0xffff;
+	m_bounds[0] = UShortMax;
+	m_bounds[1] = UShortMax;
+	m_bounds[2] = -UShortMax;
+	m_bounds[3] = -UShortMax;
 }
 
 void dtProximityGrid::addItem(const unsigned short id,

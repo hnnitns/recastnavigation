@@ -635,6 +635,7 @@ inline float getJitterY(const int i)
 	return (((i * 0xd8163841) & 0xffff) / 65535.0f * 2.0f) - 1.f;
 }
 
+// ポリゴンの詳細を構築
 static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 	const float sampleDist, const float sampleMaxError,
 	const int heightSearchRadius, const rcCompactHeightfield& chf,
@@ -642,7 +643,7 @@ static bool buildPolyDetail(rcContext* ctx, const float* in, const int nin,
 	rcIntArray& tris, rcIntArray& edges, rcIntArray& samples)
 {
 	constexpr int MAX_VERTS = 127;
-	constexpr int MAX_TRIS = 255;	// Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts). // delaunayの最大トリスは2n-2-k（n = num verts、k = num hull verts）です。
+	constexpr int MAX_TRIS = 255; // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts). // delaunayの最大トリスは2n-2-k（n = num verts、k = num hull verts）です。
 	constexpr int MAX_VERTS_PER_EDGE = 32;
 
 	float edge[(MAX_VERTS_PER_EDGE + 1) * 3]{};
@@ -1330,23 +1331,23 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		// Build detail mesh.
 		// 詳細メッシュを作成します。
 		int nverts = 0;
-		if (!buildPolyDetail(ctx, poly, npoly,
-			sampleDist, sampleMaxError,
-			heightSearchRadius, chf, hp,
-			verts, nverts, tris,
-			edges, samples))
+		if (!buildPolyDetail(
+			ctx, poly, npoly, sampleDist, sampleMaxError, heightSearchRadius, chf, hp, verts, nverts, tris, edges, samples))
 		{
 			return false;
 		}
 
 		// Move detail verts to world space.
+		// 詳細頂点をワールド空間に移動します。
 		for (int j = 0; j < nverts; ++j)
 		{
 			verts[j * 3 + 0] += orig[0];
-			verts[j * 3 + 1] += orig[1] + chf.ch; // Is this offset necessary?
+			verts[j * 3 + 1] += orig[1] + chf.ch; // Is this offset necessary? // このオフセットは必要ですか？
 			verts[j * 3 + 2] += orig[2];
 		}
+
 		// Offset poly too, will be used to flag checking.
+		// オフセットポリも、フラグチェックに使用されます。
 		for (int j = 0; j < npoly; ++j)
 		{
 			poly[j * 3 + 0] += orig[0];
@@ -1355,6 +1356,7 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		}
 
 		// Store detail submesh.
+		// 詳細サブメッシュを保存します。
 		const int ntris = tris.size() / 4;
 
 		dmesh.meshes[i * 4 + 0] = (unsigned int)dmesh.nverts;
@@ -1363,22 +1365,26 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		dmesh.meshes[i * 4 + 3] = (unsigned int)ntris;
 
 		// Store vertices, allocate more memory if necessary.
+		// 頂点を保存し、必要に応じてより多くのメモリを割り当てます。
 		if (dmesh.nverts + nverts > vcap)
 		{
 			while (dmesh.nverts + nverts > vcap)
 				vcap += 256;
 
 			float* newv = (float*)rcAlloc(sizeof(float) * vcap * 3, RC_ALLOC_PERM);
+
 			if (!newv)
 			{
-				ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newv' (%d).", vcap * 3);
+				ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newv' (%d).", vcap * 3); // メモリー不足「newv」
 				return false;
 			}
-			if (dmesh.nverts)
-				memcpy(newv, dmesh.verts, sizeof(float) * 3 * dmesh.nverts);
+
+			if (dmesh.nverts) memcpy(newv, dmesh.verts, sizeof(float) * 3 * dmesh.nverts);
+
 			rcFree(dmesh.verts);
 			dmesh.verts = newv;
 		}
+
 		for (int j = 0; j < nverts; ++j)
 		{
 			dmesh.verts[dmesh.nverts * 3 + 0] = verts[j * 3 + 0];
@@ -1388,24 +1394,30 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 		}
 
 		// Store triangles, allocate more memory if necessary.
+		// 三角形を保存し、必要に応じてより多くのメモリを割り当てます。
 		if (dmesh.ntris + ntris > tcap)
 		{
 			while (dmesh.ntris + ntris > tcap)
 				tcap += 256;
+
 			unsigned char* newt = (unsigned char*)rcAlloc(sizeof(unsigned char) * tcap * 4, RC_ALLOC_PERM);
+
 			if (!newt)
 			{
-				ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newt' (%d).", tcap * 4);
+				ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newt' (%d).", tcap * 4); // メモリー不足「newt」
 				return false;
 			}
-			if (dmesh.ntris)
-				memcpy(newt, dmesh.tris, sizeof(unsigned char) * 4 * dmesh.ntris);
+
+			if (dmesh.ntris) memcpy(newt, dmesh.tris, sizeof(unsigned char) * 4 * dmesh.ntris);
+
 			rcFree(dmesh.tris);
 			dmesh.tris = newt;
 		}
+
 		for (int j = 0; j < ntris; ++j)
 		{
 			const int* t = &tris[j * 4];
+
 			dmesh.tris[dmesh.ntris * 4 + 0] = (unsigned char)t[0];
 			dmesh.tris[dmesh.ntris * 4 + 1] = (unsigned char)t[1];
 			dmesh.tris[dmesh.ntris * 4 + 2] = (unsigned char)t[2];

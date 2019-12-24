@@ -1421,6 +1421,7 @@ int rcGetHeightFieldSpanCount(rcContext* ctx, rcHeightfield& hf);
 //  @param[out] chf : The resulting compact heightfield. (Must be pre-allocated.)
 //	結果のコンパクトな高さフィールド。(事前に割り当てる必要があります。）
 //  @returns True if the operation completed successfully. // 操作が正常に完了した場合はtrue。
+//  コンパクトな地形の構築
 bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const int walkableClimb,
 	rcHeightfield& hf, rcCompactHeightfield& chf);
 

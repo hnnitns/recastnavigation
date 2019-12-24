@@ -217,18 +217,20 @@ inline bool checkOverlapRect(const float amin[2], const float amax[2],
 	return overlap;
 }
 
+// チャンクの重複する四角形を取得
 int rcGetChunksOverlappingRect(const rcChunkyTriMesh* cm,
 	float bmin[2], float bmax[2],
 	int* ids, const int maxIds)
 {
-	// Traverse tree
-	int i = 0;
-	int n = 0;
+	// Traverse tree // トラバースツリー（データ構造）
+	int i{};
+	int n{};
+
 	while (i < cm->nnodes)
 	{
 		const rcChunkyTriMeshNode* node = &cm->nodes[i];
 		const bool overlap = checkOverlapRect(bmin, bmax, node->bmin, node->bmax);
-		const bool isLeafNode = node->i >= 0;
+		const bool isLeafNode = (node->i >= 0);
 
 		if (isLeafNode && overlap)
 		{

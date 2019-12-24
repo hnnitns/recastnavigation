@@ -358,7 +358,7 @@ bool Sample_SoloMesh::handleBuild()
 {
 	if (!m_geom || !m_geom->getMesh())
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified."); // 入力メッシュが指定されていません。
 		return false;
 	}
 
@@ -393,9 +393,8 @@ bool Sample_SoloMesh::handleBuild()
 	m_cfg.detailSampleMaxError = m_cellHeight * m_detailSampleMaxError;
 
 	// Set the area where the navigation will be build.
-	// Here the bounds of the input mesh are used, but the
-	// area could be specified by an user defined box, etc.
 	// ナビゲーションを構築するエリアを設定します。
+	// Here the bounds of the input mesh are used, but the area could be specified by an user defined box, etc.
 	// ここでは、入力メッシュの境界が使用されますが、領域はユーザー定義のボックスなどで指定できます。
 	rcVcopy(m_cfg.bmin, bmin); // コピー
 	rcVcopy(m_cfg.bmax, bmax); // コピー
@@ -424,38 +423,38 @@ bool Sample_SoloMesh::handleBuild()
 	m_solid = rcAllocHeightfield();
 	if (!m_solid)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'."); // メモリー不足「solid」
 		return false;
 	}
 	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin, m_cfg.bmax, m_cfg.cs, m_cfg.ch))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield."); // ソリッド地形を作成できませんでした
 		return false;
 	}
 
 	// Allocate array that can hold triangle area types.
+	// 三角形領域タイプを保持できる配列を割り当てます。
 	// If you have multiple meshes you need to process, allocate
 	// and array which can hold the max number of triangles you need to process.
-	// 三角形領域タイプを保持できる配列を割り当てます。
 	// 複数のメッシュを処理する必要がある場合、処理する必要のある三角形の最大数を保持できる配列、割り当て、および配列。
 	m_triareas = new unsigned char[ntris];
 	if (!m_triareas)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", ntris);
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", ntris); // メモリー不足「m_triareas」
 		return false;
 	}
 
 	// Find triangles which are walkable based on their slope and rasterize them.
+	// 傾斜に基づいて歩行可能な三角形を見つけ、ラスタライズします。
 	// If your input data is multiple meshes, you can transform them here, calculate
 	// the are type for each of the meshes and rasterize them.
-	// 傾斜に基づいて歩行可能な三角形を見つけ、ラスタライズします。
 	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュの面積タイプを計算して、それらをラスタライズできます。
 	memset(m_triareas, 0, ntris * sizeof(unsigned char));
 	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts, nverts, tris, ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
 
 	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, m_triareas, ntris, *m_solid, m_cfg.walkableClimb))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not rasterize triangles.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not rasterize triangles."); // 三角形をラスタライズできませんでした。
 		return false;
 	}
 
@@ -491,16 +490,18 @@ bool Sample_SoloMesh::handleBuild()
 	//
 
 	// Compact the heightfield so that it is faster to handle from now on.
-	// This will result more cache coherent data as well as the neighbours
-	// between walkable cells will be calculated.
 	//　ハイトフィールドを圧縮して、今後の処理が高速になるようにします。
+	// This will result more cache coherent data as well as the neighbours between walkable cells will be calculated.
 	//　これにより、より多くのキャッシュコヒーレントデータが生成され、ウォーク可能セル間の隣接セルが計算されます。
 	m_chf = rcAllocCompactHeightfield();
+
 	if (!m_chf)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'."); // メモリー不足「chf」
 		return false;
 	}
+
+	// コンパクトな地形の生成
 	if (!rcBuildCompactHeightfield(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid, *m_chf))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data."); // コンパクトなデータを構築できませんでした。
@@ -517,15 +518,16 @@ bool Sample_SoloMesh::handleBuild()
 	// エージェント半径ごとに歩行可能エリアを侵食します。
 	if (!rcErodeWalkableArea(m_ctx, m_cfg.walkableRadius, *m_chf))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode."); // 侵食できませんでした。
 		return false;
 	}
 
 	// (Optional) Mark areas.
 	// （オプション）エリアをマークします。
-	const ConvexVolume* vols = m_geom->getConvexVolumes();
-	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
-		rcMarkConvexPolyArea(m_ctx, vols[i].verts, vols[i].nverts, vols[i].hmin, vols[i].hmax, vols[i].areaMod, *m_chf);
+	const ConvexVolume* vols = m_geom->getConvexVolumes(); // 凸ボリュームを取得
+
+	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i) // 凸ボリューム数を取得
+		rcMarkConvexPolyArea(m_ctx, vols[i].verts, vols[i].nverts, vols[i].hmin, vols[i].hmax, vols[i].areaMod, *m_chf); // 凸多角形領域をマーク
 
 	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
 	// There are 3 martitioning methods, each with some pros and cons:
@@ -580,44 +582,53 @@ bool Sample_SoloMesh::handleBuild()
 	//   -小さな障害物のある大きなオープンエリアがある場合、遅いことがあり、少しいテッセレーションを作成できます（モノトーンよりも優れています）（タイルを使用する場合は問題ありません）
 	//   *中型および小型のタイルでタイル張りされたnavmeshに使用するのに適した選択肢
 
-	if (m_partitionType == SAMPLE_PARTITION_WATERSHED)
+	switch (m_partitionType)
 	{
-		// Prepare for region partitioning, by calculating distance field along the walkable surface.
-		// 歩行可能な表面に沿って距離フィールドを計算して、領域分割の準備をします。
-		if (!rcBuildDistanceField(m_ctx, *m_chf))
+		case SAMPLE_PARTITION_WATERSHED: // 分水界分割
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした
-			return false;
-		}
+			// Prepare for region partitioning, by calculating distance field along the walkable surface.
+			// 歩行可能な表面に沿って距離フィールドを計算して、領域分割の準備をします。
+			if (!rcBuildDistanceField(m_ctx, *m_chf))
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした
+				return false;
+			}
 
-		// Partition the walkable surface into simple regions without holes.
-		// 歩行可能な表面を、穴のない単純な領域に分割します。
-		if (!rcBuildRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
-		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした
-			return false;
+			// Partition the walkable surface into simple regions without holes.
+			// 歩行可能な表面を、穴のない単純な領域に分割します。
+			if (!rcBuildRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした
+				return false;
+			}
+
+			break;
 		}
-	}
-	else if (m_partitionType == SAMPLE_PARTITION_MONOTONE)
-	{
-		// Partition the walkable surface into simple regions without holes.
-		// Monotone partitioning does not need distancefield.
-		//歩行可能なサーフェスを、穴のない単純な領域に分割します。
-		//単調な分割は距離フィールドを必要としません。
-		if (!rcBuildRegionsMonotone(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea)) // モノトーン領域を構築できませんでした
+		case SAMPLE_PARTITION_MONOTONE: // モノトーン分割
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions.");
-			return false;
+			// Partition the walkable surface into simple regions without holes.
+			// Monotone partitioning does not need distancefield.
+			//歩行可能なサーフェスを、穴のない単純な領域に分割します。
+			//単調な分割は距離フィールドを必要としません。
+			if (!rcBuildRegionsMonotone(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions."); // モノトーン領域を構築できませんでした。
+				return false;
+			}
+
+			break;
 		}
-	}
-	else // SAMPLE_PARTITION_LAYERS
-	{
-		// Partition the walkable surface into simple regions without holes.
-		// 歩行可能なサーフェスを、穴のない単純な領域に分割します。
-		if (!rcBuildLayerRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea)) //
+		case SAMPLE_PARTITION_LAYERS:
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした
-			return false;
+			// Partition the walkable surface into simple regions without holes.
+			// 歩行可能なサーフェスを、穴のない単純な領域に分割します。
+			if (!rcBuildLayerRegions(m_ctx, *m_chf, 0, m_cfg.minRegionArea)) //
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした
+				return false;
+			}
+
+			break;
 		}
 	}
 
@@ -649,12 +660,12 @@ bool Sample_SoloMesh::handleBuild()
 	m_pmesh = rcAllocPolyMesh();
 	if (!m_pmesh)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmesh'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmesh'."); // メモリー不足「pmesh」
 		return false;
 	}
 	if (!rcBuildPolyMesh(m_ctx, *m_cset, m_cfg.maxVertsPerPoly, *m_pmesh))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not triangulate contours.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not triangulate contours."); // 輪郭を三角測量できませんでした。
 		return false;
 	}
 
@@ -666,13 +677,13 @@ bool Sample_SoloMesh::handleBuild()
 	m_dmesh = rcAllocPolyMeshDetail();
 	if (!m_dmesh)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmdtl'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmdtl'."); // メモリー不足「pmdtl」
 		return false;
 	}
 
 	if (!rcBuildPolyMeshDetail(m_ctx, *m_pmesh, *m_chf, m_cfg.detailSampleDist, m_cfg.detailSampleMaxError, *m_dmesh))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build detail mesh.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build detail mesh."); // 詳細メッシュを構築できませんでした。
 		return false;
 	}
 
@@ -685,8 +696,8 @@ bool Sample_SoloMesh::handleBuild()
 	}
 
 	// At this point the navigation mesh data is ready, you can access it from m_pmesh.
-	// See duDebugDrawPolyMesh or dtCreateNavMeshData as examples how to access the data.
 	// この時点で、ナビゲーションメッシュデータの準備ができました。m_pmeshからアクセスできます。
+	// See duDebugDrawPolyMesh or dtCreateNavMeshData as examples how to access the data.
 	// データにアクセスする方法の例として、duDebugDrawPolyMeshまたはdtCreateNavMeshDataを参照してください。
 
 	//
@@ -694,8 +705,8 @@ bool Sample_SoloMesh::handleBuild()
 	//
 
 	// The GUI may allow more max points per polygon than Detour can handle.
-	// Only build the detour navmesh if we do not exceed the limit.
 	// GUIでは、Detourで処理できるよりも多くのポリゴンあたりの最大ポイントが許可される場合があります。
+	// Only build the detour navmesh if we do not exceed the limit.
 	// 制限を超えない場合にのみ、迂回navmeshを構築します。
 
 	if (m_cfg.maxVertsPerPoly <= DT_VERTS_PER_POLYGON)

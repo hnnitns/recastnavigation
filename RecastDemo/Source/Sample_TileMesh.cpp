@@ -745,11 +745,10 @@ bool Sample_TileMesh::handleBuild()
 		return false;
 	}
 
-	if (m_buildAll)
-		buildAllTiles();
+	if (m_buildAll) buildAllTiles();
 
-	if (m_tool)
-		m_tool->init(this);
+	if (m_tool) m_tool->init(this);
+
 	initToolStates(this);
 
 	return true;
@@ -847,8 +846,10 @@ void Sample_TileMesh::buildAllTiles()
 
 	const float* bmin = m_geom->getNavMeshBoundsMin();
 	const float* bmax = m_geom->getNavMeshBoundsMax();
-	int gw = 0, gh = 0;
+	int gw{}, gh{};
+
 	rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+
 	const int ts = (int)m_tileSize;
 	const int tw = (gw + ts - 1) / ts;
 	const int th = (gh + ts - 1) / ts;
@@ -870,7 +871,7 @@ void Sample_TileMesh::buildAllTiles()
 			m_lastBuiltTileBmax[1] = bmax[1];
 			m_lastBuiltTileBmax[2] = bmin[2] + (y + 1) * tcs;
 
-			int dataSize = 0;
+			int dataSize{};
 			unsigned char* data = buildTileMesh(x, y, m_lastBuiltTileBmin, m_lastBuiltTileBmax, dataSize);
 
 			if (data)
@@ -883,13 +884,13 @@ void Sample_TileMesh::buildAllTiles()
 				// navmeshにデータを所有させます。
 				dtStatus status = m_navMesh->addTile(data, dataSize, DT_TILE_FREE_DATA, 0, 0);
 
-				if (dtStatusFailed(status))
-					dtFree(data);
+				if (dtStatusFailed(status)) dtFree(data);
 			}
 		}
 	}
 
-	// Start the build process.
+	// Stop the build process.
+	// ビルドプロセスを停止します。
 	m_ctx->stopTimer(RC_TIMER_TEMP);
 
 	m_totalBuildTimeMs = m_ctx->getAccumulatedTime(RC_TIMER_TEMP) / 1000.0f;
@@ -918,7 +919,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	if (!m_geom || !m_geom->getMesh() || !m_geom->getChunkyMesh())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified.");  // 入力メッシュが指定されていません。
-		return 0;
+		return nullptr;
 	}
 
 	m_tileMemUsage = 0;
@@ -957,11 +958,11 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	//
 	// This is done in order to make sure that the navmesh tiles connect correctly at the borders,
 	// and the obstacles close to the border work correctly with the dilation process.
-	// これは、navmeshタイルが境界で正しく接続され、境界に近い障害物が膨張プロセスで正しく機能することを確認するために行われます。
+	// これは、ナビメッシュタイルが境界で正しく接続され、境界に近い障害物が膨張プロセスで正しく機能することを確認するために行われます。
 	// No polygons (or contours) will be created on the border area.
 	// 境界領域にポリゴン（または輪郭）は作成されません。
 	//
-	// IMPORTANT!
+	// IMPORTANT! // 重要！
 	//
 	//   :''''''''':
 	//   : +-----+ :
@@ -976,10 +977,11 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	//
 	// For example if you build a navmesh for terrain, and want the navmesh tiles to match the terrain tile size
 	// you will need to pass in data from neighbour terrain tiles too!
-	// たとえば、地形のnavmeshを構築し、navmeshタイルを地形タイルのサイズに一致させたい場合、隣接する地形タイルからもデータを渡す必要があります！
+	// たとえば、地形のnavmeshを構築し、navmeshタイルを地形タイルのサイズに一致させたい場合、
+	// 隣接する地形タイルからもデータを渡す必要があります！
 	// In a simple case, just pass in all the 8 neighbours,
 	// or use the bounding box below to only pass in a sliver of each of the 8 neighbours.
-	// 単純な場合、8つの隣人すべてを渡すか、下の境界ボックスを使用して、8つの隣人それぞれのスライバーだけを渡します。
+	// 単純な場合、8つの隣すべてを渡すか、下の境界ボックスを使用して、8つの隣人それぞれのスライバーだけを渡します。
 	rcVcopy(m_cfg.bmin, bmin);
 	rcVcopy(m_cfg.bmax, bmax);
 	m_cfg.bmin[0] -= m_cfg.borderSize * m_cfg.cs;
@@ -1005,14 +1007,14 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	if (!m_solid)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'.");
-		return 0;
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'."); // メモリー不足「solid」
+		return nullptr;
 	}
 
 	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin, m_cfg.bmax, m_cfg.cs, m_cfg.ch))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield."); // ソリッドハイトフィールドを作成できませんでした。
-		return 0;
+		return nullptr;
 	}
 
 	// Allocate array that can hold triangle flags.
@@ -1024,19 +1026,21 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	if (!m_triareas)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk);
-		return 0;
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk); // メモリー不足「m_triareas」
+		return nullptr;
 	}
 
-	float tbmin[2], tbmax[2];
+	float tbmin[2]{}, tbmax[2]{};
+
 	tbmin[0] = m_cfg.bmin[0];
 	tbmin[1] = m_cfg.bmin[2];
 	tbmax[0] = m_cfg.bmax[0];
 	tbmax[1] = m_cfg.bmax[2];
-	int cid[512]; // TODO: Make grow when returning too many items.
+
+	int cid[512]{}; // TODO: Make grow when returning too many items. // 戻るアイテムが多すぎる場合はサイズを大きくさせる。
 	const int ncid = rcGetChunksOverlappingRect(chunkyMesh, tbmin, tbmax, cid, 512);
 
-	if (!ncid) return 0;
+	if (!ncid) return nullptr;
 
 	m_tileTriCount = 0;
 
@@ -1087,12 +1091,12 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	if (!m_chf)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'."); // メモリー不足「chf」
-		return 0;
+		return nullptr;
 	}
 	if (!rcBuildCompactHeightfield(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid, *m_chf))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data."); // コンパクトなデータを構築できませんでした。
-		return 0;
+		return nullptr;
 	}
 
 	if (!m_keepInterResults)
@@ -1106,7 +1110,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	if (!rcErodeWalkableArea(m_ctx, m_cfg.walkableRadius, *m_chf))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode.");  // 侵食できませんでした。
-		return 0;
+		return nullptr;
 	}
 
 	// (Optional) Mark areas.
@@ -1178,7 +1182,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		if (!rcBuildDistanceField(m_ctx, *m_chf))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした。
-			return 0;
+			return nullptr;
 		}
 
 		// Partition the walkable surface into simple regions without holes.
@@ -1186,7 +1190,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		if (!rcBuildRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした。
-			return 0;
+			return nullptr;
 		}
 	}
 	else if (m_partitionType == SAMPLE_PARTITION_MONOTONE)
@@ -1198,7 +1202,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		if (!rcBuildRegionsMonotone(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions."); // モノトーン領域を構築できませんでした。
-			return 0;
+			return nullptr;
 		}
 	}
 	else // SAMPLE_PARTITION_LAYERS
@@ -1208,7 +1212,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		if (!rcBuildLayerRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした。
-			return 0;
+			return nullptr;
 		}
 	}
 
@@ -1218,18 +1222,16 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	if (!m_cset)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'cset'."); // メモリー不足「cset」
-		return 0;
+		return nullptr;
 	}
+
 	if (!rcBuildContours(m_ctx, *m_chf, m_cfg.maxSimplificationError, m_cfg.maxEdgeLen, *m_cset))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours."); // 輪郭を作成できませんでした。
-		return 0;
+		return nullptr;
 	}
 
-	if (m_cset->nconts == 0)
-	{
-		return 0;
-	}
+	if (m_cset->nconts == 0) return nullptr;
 
 	// Build polygon navmesh from the contours.
 	// 輪郭からポリゴンナビメッシュを作成します。
@@ -1238,12 +1240,12 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	if (!m_pmesh)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmesh'."); // メモリー不足「pmesh」
-		return 0;
+		return nullptr;
 	}
 	if (!rcBuildPolyMesh(m_ctx, *m_cset, m_cfg.maxVertsPerPoly, *m_pmesh))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not triangulate contours."); // 輪郭を三角測量できませんでした。
-		return 0;
+		return nullptr;
 	}
 
 	// Build detail mesh.
@@ -1253,7 +1255,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	if (!m_dmesh)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'dmesh'."); // メモリー不足「dmesh」
-		return 0;
+		return nullptr;
 	}
 
 	if (!rcBuildPolyMeshDetail(m_ctx, *m_pmesh, *m_chf,
@@ -1261,7 +1263,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		*m_dmesh))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build polymesh detail."); // ポリゴンメッシュの詳細を作成できませんでした。（コメントまさかのnotつけ忘れ(笑)）
-		return 0;
+		return nullptr;
 	}
 
 	if (!m_keepInterResults)
@@ -1279,17 +1281,20 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		if (m_pmesh->nverts >= 0xffff)
 		{
 			// The vertex indices are ushorts, and cannot point to more than 0xffff vertices.
+			// 頂点インデックスはushortsであり、0xffffを超える頂点を指すことはできません。
 			m_ctx->log(RC_LOG_ERROR, "Too many vertices per tile %d (max: %d).", m_pmesh->nverts, 0xffff);
-			return 0;
+			return nullptr;
 		}
 
 		// Update poly flags from areas.
+		// エリアからポリゴンフラグを更新します。
 		for (int i = 0; i < m_pmesh->npolys; ++i)
 		{
 			m_pmesh->flags[i] = sampleAreaToFlags(m_pmesh->areas[i]);
 		}
 
-		dtNavMeshCreateParams params;
+		dtNavMeshCreateParams params{};
+
 		memset(&params, 0, sizeof(params));
 		params.verts = m_pmesh->verts;
 		params.vertCount = m_pmesh->nverts;
@@ -1325,7 +1330,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		if (!dtCreateNavMeshData(&params, &navData, &navDataSize))
 		{
 			m_ctx->log(RC_LOG_ERROR, "Could not build Detour navmesh.");
-			return 0;
+			return nullptr;
 		}
 	}
 	m_tileMemUsage = navDataSize / 1024.0f;
@@ -1333,11 +1338,12 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	m_ctx->stopTimer(RC_TIMER_TOTAL);
 
 	// Show performance stats.
+	// パフォーマンスの統計を表示します。
 	duLogBuildTimes(*m_ctx, m_ctx->getAccumulatedTime(RC_TIMER_TOTAL));
 	m_ctx->log(RC_LOG_PROGRESS, ">> Polymesh: %d vertices  %d polygons", m_pmesh->nverts, m_pmesh->npolys);
 
 	m_tileBuildTime = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
-
 	dataSize = navDataSize;
+
 	return navData;
 }

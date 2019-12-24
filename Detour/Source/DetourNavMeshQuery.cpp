@@ -185,6 +185,7 @@ dtNavMeshQuery::~dtNavMeshQuery()
 // 他の関数が使用される前に、構築後に最初に呼び出される関数でなければなりません。
 //
 // This function can be used multiple times.
+// この関数は複数回使用できます。
 dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes)
 {
 	if (maxNodes > DT_NULL_IDX || maxNodes > (1 << DT_NODE_PARENT_BITS) - 1)

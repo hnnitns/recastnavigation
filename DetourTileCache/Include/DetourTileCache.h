@@ -7,15 +7,17 @@ typedef unsigned int dtObstacleRef;
 
 typedef unsigned int dtCompressedTileRef;
 
-/// Flags for addTile
+// Flags for addTile // addTileのフラグ
 enum dtCompressedTileFlags
 {
-	DT_COMPRESSEDTILE_FREE_DATA = 0x01,					///< Navmesh owns the tile memory and should free it.
+	// Navmesh owns the tile memory and should free it.
+	// ナビメッシュはタイルメモリを所有しており、解放する必要があります。
+	DT_COMPRESSEDTILE_FREE_DATA = 0x01,
 };
 
 struct dtCompressedTile
 {
-	unsigned int salt;						///< Counter describing modifications to the tile.
+	unsigned int salt; // Counter describing modifications to the tile. // タイルの変更を説明するカウンター。
 	struct dtTileCacheLayerHeader* header;
 	unsigned char* compressed;
 	int compressedSize;
@@ -52,7 +54,8 @@ struct dtObstacleBox
 	float bmax[3];
 };
 
-static const int DT_MAX_TOUCHED_TILES = 8;
+constexpr int DT_MAX_TOUCHED_TILES = 8;
+
 struct dtTileCacheObstacle
 {
 	union
@@ -135,12 +138,18 @@ public:
 	dtStatus queryTiles(const float* bmin, const float* bmax,
 		dtCompressedTileRef* results, int* resultCount, const int maxResults) const;
 
-	/// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests.
-	///  @param[in]		dt			The time step size. Currently not used.
-	///  @param[in]		navmesh		The mesh to affect when rebuilding tiles.
-	///  @param[out]	upToDate	Whether the tile cache is fully up to date with obstacle requests and tile rebuilds.
-	///  							If the tile cache is up to date another (immediate) call to update will have no effect;
-	///  							otherwise another call will continue processing obstacle requests and tile rebuilds.
+	// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests.
+	// 未完成の障害物リクエストが接触したタイルを再構築して、タイルキャッシュを更新します。
+	//  @param[in] dt : The time step size. Currently not used.
+	// タイムステップサイズ。 現在使用されていません。
+	//  @param[in] navmesh : The mesh to affect when rebuilding tiles.
+	// タイルを再構築するときに影響するメッシュ。
+	//  @param[out] upToDate	Whether : the tile cache is fully up to date with obstacle requests and tile rebuilds.
+	// タイルキャッシュが障害要求とタイルの再構築によって完全に最新であるかどうか。
+	// If the tile cache is up to date another (immediate) call to update will have no effect;
+	// タイルキャッシュが最新の場合、更新の別の（即時）呼び出しは効果がありません。
+	// otherwise another call will continue processing obstacle requests and tile rebuilds.
+	// それ以外の場合は、別の呼び出しが障害要求の処理とタイルの再構築を続行します。
 	dtStatus update(const float dt, class dtNavMesh* navmesh, bool* upToDate = 0);
 
 	dtStatus buildNavMeshTilesAt(const int tx, const int ty, class dtNavMesh* navmesh);
@@ -151,40 +160,46 @@ public:
 
 	void getObstacleBounds(const struct dtTileCacheObstacle* ob, float* bmin, float* bmax) const;
 
-	/// Encodes a tile id.
+	// Encodes a tile id.
+	// タイルIDをエンコードします。
 	inline dtCompressedTileRef encodeTileId(unsigned int salt, unsigned int it) const
 	{
 		return ((dtCompressedTileRef)salt << m_tileBits) | (dtCompressedTileRef)it;
 	}
 
-	/// Decodes a tile salt.
+	// Decodes a tile salt.
+	// タイルソルトをデコードします。
 	inline unsigned int decodeTileIdSalt(dtCompressedTileRef ref) const
 	{
 		const dtCompressedTileRef saltMask = ((dtCompressedTileRef)1 << m_saltBits) - 1;
 		return (unsigned int)((ref >> m_tileBits)& saltMask);
 	}
 
-	/// Decodes a tile id.
+	// Decodes a tile id.
+	// タイルIDをデコードします。
 	inline unsigned int decodeTileIdTile(dtCompressedTileRef ref) const
 	{
 		const dtCompressedTileRef tileMask = ((dtCompressedTileRef)1 << m_tileBits) - 1;
 		return (unsigned int)(ref & tileMask);
 	}
 
-	/// Encodes an obstacle id.
+	// Encodes an obstacle id.
+	// 障害物IDをエンコードします。
 	inline dtObstacleRef encodeObstacleId(unsigned int salt, unsigned int it) const
 	{
 		return ((dtObstacleRef)salt << 16) | (dtObstacleRef)it;
 	}
 
-	/// Decodes an obstacle salt.
+	// Decodes an obstacle salt.
+	// 障害物ソルトをデコードします。
 	inline unsigned int decodeObstacleIdSalt(dtObstacleRef ref) const
 	{
 		const dtObstacleRef saltMask = ((dtObstacleRef)1 << 16) - 1;
 		return (unsigned int)((ref >> 16)& saltMask);
 	}
 
-	/// Decodes an obstacle id.
+	// Decodes an obstacle id.
+	// 障害物IDをデコードします。
 	inline unsigned int decodeObstacleIdObstacle(dtObstacleRef ref) const
 	{
 		const dtObstacleRef tileMask = ((dtObstacleRef)1 << 16) - 1;
@@ -208,15 +223,15 @@ private:
 		dtObstacleRef ref;
 	};
 
-	int m_tileLutSize;						///< Tile hash lookup size (must be pot).
-	int m_tileLutMask;						///< Tile hash lookup mask.
+	int m_tileLutSize; // Tile hash lookup size (must be pot). // タイルハッシュルックアップサイズ（ポットである必要があります）。
+	int m_tileLutMask; // Tile hash lookup mask.               // タイルハッシュルックアップマスク。
 
-	dtCompressedTile** m_posLookup;			///< Tile hash lookup.
-	dtCompressedTile* m_nextFreeTile;		///< Freelist of tiles.
-	dtCompressedTile* m_tiles;				///< List of tiles.
+	dtCompressedTile** m_posLookup;	  // Tile hash lookup.  // タイルハッシュルックアップ。
+	dtCompressedTile* m_nextFreeTile; // Freelist of tiles. // タイルのフリーリスト。
+	dtCompressedTile* m_tiles;		  // List of tiles.     // タイルのリスト。
 
-	unsigned int m_saltBits;				///< Number of salt bits in the tile ID.
-	unsigned int m_tileBits;				///< Number of tile bits in the tile ID.
+	unsigned int m_saltBits; // Number of salt bits in the tile ID. // タイルIDのソルトビットの数。
+	unsigned int m_tileBits; // Number of tile bits in the tile ID. // タイルIDのタイルビット数。
 
 	dtTileCacheParams m_params;
 

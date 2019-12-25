@@ -126,9 +126,11 @@ public:
 	/// Method to return static mesh data.
 	/// 静的メッシュデータを返すメソッド。
 	const rcMeshLoaderObj* getMesh() const { return m_mesh; }
-	const float* getMeshBoundsMin() const { return m_meshBMin; }
-	const float* getMeshBoundsMax() const { return m_meshBMax; }
+	const float* getMeshBoundsMin() const { return m_meshBMin; } // メッシュ境界の最小値を取得
+	const float* getMeshBoundsMax() const { return m_meshBMax; } // メッシュ境界の最大値を取得
+	// ナビメッシュ境界の最小値を取得
 	const float* getNavMeshBoundsMin() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMin : m_meshBMin; }
+	// ナビメッシュ境界の最大値を取得
 	const float* getNavMeshBoundsMax() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMax : m_meshBMax; }
 	const rcChunkyTriMesh* getChunkyMesh() const { return m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_hasBuildSettings ? &m_buildSettings : 0; }

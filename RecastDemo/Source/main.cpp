@@ -531,6 +531,7 @@ int main(int /*argc*/, char** /*argv*/)
 		moveDown = rcClamp(moveDown + dt * 4 * ((keystate[SDL_SCANCODE_E] || keystate[SDL_SCANCODE_PAGEDOWN]) ? 1 : -1), 0.f, 1.f);
 
 		float keybSpeed = 22.0f;
+
 		if (SDL_GetModState() & KMOD_SHIFT)
 		{
 			keybSpeed *= 4.0f;
@@ -559,7 +560,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		glDisable(GL_FOG);
 
-		// Render GUI
+		// Render GUI // GUI•`‰æ
 		glDisable(GL_DEPTH_TEST);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -963,8 +964,10 @@ int main(int /*argc*/, char** /*argv*/)
 		{
 			if (imguiBeginScrollArea("Log", 250 + 20, 10, width - 300 - 250, 200, &logScroll))
 				mouseOverMenu = true;
+
 			for (int i = 0; i < ctx.getLogCount(); ++i)
 				imguiLabel(ctx.getLogText(i));
+
 			imguiEndScrollArea();
 		}
 

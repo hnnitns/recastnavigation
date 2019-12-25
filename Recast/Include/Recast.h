@@ -1238,16 +1238,25 @@ bool rcCreateHeightfield(rcContext* ctx, rcHeightfield& hf, int width, int heigh
 	float cs, float ch);
 
 // Modifies the area id of all triangles with a slope below the specified value.
+//	指定された値より低い勾配ですべての三角形のエリアIDを変更します。
 //  @ingroup recast
-//  @param[in,out]	ctx					The build context to use during the operation.
-//  @param[in]		walkableSlopeAngle	The maximum slope that is considered walkable.
-//  									[Limits: 0 <= value < 90] [Units: Degrees]
-//  @param[in]		verts				The vertices. [(x, y, z) * @p nv]
-//  @param[in]		nv					The number of vertices.
-//  @param[in]		tris				The triangle vertex indices. [(vertA, vertB, vertC) * @p nt]
-//  @param[in]		nt					The number of triangles.
-//  @param[out]	areas				The triangle area ids. [Length: >= @p nt]
-//  @param[in]		areaMod				The area modification to apply.
+//  @param[in,out] ctx : The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in walkableSlopeAngle : The maximum slope that is considered walkable. [Limits: 0 <= value < 90] [Units: Degrees]
+//	歩行可能と見なされる最大勾配。 [制限：0 <=値<90] [単位：度]
+//  @param[in] verts	 : The vertices. [(x, y, z) * @p nv]
+//	頂点。 [（x、y、z）* @p nv]
+//  @param[in] nv : The number of vertices.
+//	頂点の数。
+//  @param[in] tris : The triangle vertex indices. [(vertA, vertB, vertC) * @p nt]
+//	三角形の頂点のインデックス。 [（vertA、vertB、vertC）* @p nt]
+//  @param[in] nt : The number of triangles.
+//	三角形の数。
+//  @param[out] areas : The triangle area ids. [Length: >= @p nt]
+//	三角形のエリアID。 [長さ：> = @p nt]
+//  @param[in] areaMod : The area modification to apply.
+//	適用するエリアの変更。
+// 歩行可能な三角形をマーク
 void rcMarkWalkableTriangles(rcContext* ctx, const float walkableSlopeAngle, const float* verts, int nv,
 	const int* tris, int nt, unsigned char* areas, rcAreaModification areaMod);
 
@@ -1325,6 +1334,7 @@ bool rcRasterizeTriangle(rcContext* ctx, const float* v0, const float* v1, const
 //	歩行不可能フラグよりも歩行可能フラグが優先される距離。 [制限：> = 0] [単位：vx]
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
+// 三角形のラスタライズ
 bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int nv,
 	const int* tris, const unsigned char* areas, const int nt,
 	rcHeightfield& solid, const int flagMergeThr = 1);

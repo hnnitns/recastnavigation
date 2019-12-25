@@ -179,16 +179,16 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 
 int dtTileCache::getTilesAt(const int tx, const int ty, dtCompressedTileRef* tiles, const int maxTiles) const
 {
-	int n = 0;
+	int n{};
 
 	// Find tile based on hash.
+	// ハッシュに基づいてタイルを見つけます。
 	int h = computeTileHash(tx, ty, m_tileLutMask);
 	dtCompressedTile* tile = m_posLookup[h];
+
 	while (tile)
 	{
-		if (tile->header &&
-			tile->header->tx == tx &&
-			tile->header->ty == ty)
+		if (tile->header && tile->header->tx == tx && tile->header->ty == ty)
 		{
 			if (n < maxTiles)
 				tiles[n++] = getTileRef(tile);
@@ -607,13 +607,14 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 
 dtStatus dtTileCache::buildNavMeshTilesAt(const int tx, const int ty, dtNavMesh* navmesh)
 {
-	const int MAX_TILES = 32;
-	dtCompressedTileRef tiles[MAX_TILES];
+	constexpr int MAX_TILES = 32;
+	dtCompressedTileRef tiles[MAX_TILES]{};
 	const int ntiles = getTilesAt(tx, ty, tiles, MAX_TILES);
 
 	for (int i = 0; i < ntiles; ++i)
 	{
 		dtStatus status = buildNavMeshTile(tiles[i], navmesh);
+
 		if (dtStatusFailed(status))
 			return status;
 	}
@@ -627,10 +628,13 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	dtAssert(m_tcomp);
 
 	unsigned int idx = decodeTileIdTile(ref);
+
 	if (idx > (unsigned int)m_params.maxTiles)
 		return DT_FAILURE | DT_INVALID_PARAM;
+
 	const dtCompressedTile* tile = &m_tiles[idx];
 	unsigned int salt = decodeTileIdSalt(ref);
+
 	if (tile->salt != salt)
 		return DT_FAILURE | DT_INVALID_PARAM;
 

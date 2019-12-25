@@ -380,6 +380,7 @@ bool rcRasterizeTriangle(rcContext* ctx, const float* v0, const float* v1, const
 //// スパンは、地形グリッドに重なる三角形にのみ追加されます。
 ///
 /// @see rcHeightfield
+/// 三角形のラスタライズ
 bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int /*nv*/,
 	const int* tris, const unsigned char* areas, const int nt,
 	rcHeightfield& solid, const int flagMergeThr)

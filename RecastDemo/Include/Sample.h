@@ -22,47 +22,78 @@
 #include "Recast.h"
 #include "SampleInterfaces.h"
 
-/// Tool types.
+// Tool types. // ツールタイプ。
 enum SampleToolType
 {
-	TOOL_NONE = 0,
-	TOOL_TILE_EDIT,
-	TOOL_TILE_HIGHLIGHT,
-	TOOL_TEMP_OBSTACLE,
-	TOOL_NAVMESH_TESTER,
-	TOOL_NAVMESH_PRUNE,
-	TOOL_OFFMESH_CONNECTION,
-	TOOL_CONVEX_VOLUME,
-	TOOL_CROWD,
+	TOOL_NONE = 0,	         // なし
+	TOOL_TILE_EDIT,	         // タイル編集
+	TOOL_TILE_HIGHLIGHT,     // タイルのハイライト
+	TOOL_TEMP_OBSTACLE,	     // 一時的な障害
+	TOOL_NAVMESH_TESTER,     // ナビメッシュテスター
+	TOOL_NAVMESH_PRUNE,	     // ナビメッシュプルーン
+	TOOL_OFFMESH_CONNECTION, // オフメッシュ接続
+	TOOL_CONVEX_VOLUME,	     // 凸ボリューム
+	TOOL_CROWD,	             // 群集
 	MAX_TOOLS
 };
 
-/// Mask of the ceil part of the area id (3 lower bits)
-/// the 0 value (RC_NULL_AREA) is left unused
+// Mask of the ceil part of the area id (3 lower bits)
+// エリアid（下位3ビット）のceil部分のマスク、値0（RC_NULL_AREA）は未使用のまま
+// the 0 value (RC_NULL_AREA) is left unused
+// 0の値（RC_NULL_AREA）は未使用のままになります
 constexpr unsigned char SAMPLE_POLYAREA_TYPE_MASK = 0x07;
-/// Value for the kind of ceil "ground"
+
+// Value for the kind of ceil "ground"
+// 「グランド」の種類の値
 constexpr unsigned char SAMPLE_POLYAREA_TYPE_GROUND = 0x1;
-/// Value for the kind of ceil "water"
+
+// Value for the kind of ceil "water"
+// 「水」の種類の値
 constexpr unsigned char SAMPLE_POLYAREA_TYPE_WATER = 0x2;
-/// Value for the kind of ceil "road"
+
+// Value for the kind of ceil "road"
+// 「道路」の種類の値
 constexpr unsigned char SAMPLE_POLYAREA_TYPE_ROAD = 0x3;
-/// Value for the kind of ceil "grass"
+
+// Value for the kind of ceil "grass"
+// 「草」の種類の値
 constexpr unsigned char SAMPLE_POLYAREA_TYPE_GRASS = 0x4;
-/// Flag for door area. Can be combined with area types and jump flag.
+
+// Flag for door area. Can be combined with area types and jump flag.
+// ドア領域のフラグ。 領域タイプおよびジャンプフラグと組み合わせることができます。
 constexpr unsigned char SAMPLE_POLYAREA_FLAG_DOOR = 0x08;
-/// Flag for jump area. Can be combined with area types and door flag.
+
+// Flag for jump area. Can be combined with area types and door flag.
+// ジャンプ領域のフラグ。 領域タイプおよびドアフラグと組み合わせることができます。
 constexpr unsigned char SAMPLE_POLYAREA_FLAG_JUMP = 0x10;
 
 extern rcAreaModification const SAMPLE_AREAMOD_GROUND;
 
 enum SamplePolyFlags
 {
-	SAMPLE_POLYFLAGS_WALK = 0x01,		// Ability to walk (ground, grass, road)
-	SAMPLE_POLYFLAGS_SWIM = 0x02,		// Ability to swim (water).
-	SAMPLE_POLYFLAGS_DOOR = 0x04,		// Ability to move through doors.
-	SAMPLE_POLYFLAGS_JUMP = 0x08,		// Ability to jump.
-	SAMPLE_POLYFLAGS_DISABLED = 0x10,		// Disabled polygon
-	SAMPLE_POLYFLAGS_ALL = 0xffff	// All abilities.
+	// Ability to walk (ground, grass, road)
+	// 歩く能力（地面、草、道路）
+	SAMPLE_POLYFLAGS_WALK = 0x01,
+
+	// Ability to swim (water).
+	// 泳ぐ能力（水）。
+	SAMPLE_POLYFLAGS_SWIM = 0x02,
+
+	// Ability to move through doors.
+	// ドアを通って移動する機能。
+	SAMPLE_POLYFLAGS_DOOR = 0x04,
+
+	// Ability to jump.
+	// ジャンプする機能。
+	SAMPLE_POLYFLAGS_JUMP = 0x08,
+
+	// Disabled polygon
+	// 無効なポリゴン
+	SAMPLE_POLYFLAGS_DISABLED = 0x10,
+
+	// All abilities.
+	// すべての能力。
+	SAMPLE_POLYFLAGS_ALL = 0xffff
 };
 
 unsigned short sampleAreaToFlags(unsigned char area);

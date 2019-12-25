@@ -321,7 +321,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	if (!rc.triareas)
 	{
 		// メモリー不足「m_triareas」
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk);
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk); // メモリー不足「m_triareas」
 		return 0;
 	}
 
@@ -331,13 +331,10 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	tbmax[0] = tcfg.bmax[0];
 	tbmax[1] = tcfg.bmax[2];
 
-	int cid[512];// TODO: Make grow when returning too many items.  // 返品するアイテムが多すぎる場合は成長させます。
+	int cid[512]{}; // TODO: Make grow when returning too many items.  // 返品するアイテムが多すぎる場合は成長させます。
 	const int ncid = rcGetChunksOverlappingRect(chunkyMesh, tbmin, tbmax, cid, 512);
 
-	if (!ncid)
-	{
-		return 0; // empty
-	}
+	if (!ncid) return 0; // empty
 
 	for (int i = 0; i < ncid; ++i)
 	{
@@ -346,6 +343,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 		const int ntris = node.n;
 
 		memset(rc.triareas, 0, ntris * sizeof(unsigned char));
+
 		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle,
 			verts, nverts, tris, ntris, rc.triareas,
 			SAMPLE_AREAMOD_GROUND);
@@ -372,12 +370,13 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	rc.chf = rcAllocCompactHeightfield();
 	if (!rc.chf)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'."); // メモリー不足「chf」
 		return 0;
 	}
+
 	if (!rcBuildCompactHeightfield(m_ctx, tcfg.walkableHeight, tcfg.walkableClimb, *rc.solid, *rc.chf))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data."); // コンパクトなデータを構築できませんでした。
 		return 0;
 	}
 
@@ -385,7 +384,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	//　エージェントの半径ごとに歩行可能エリアを侵食します。
 	if (!rcErodeWalkableArea(m_ctx, tcfg.walkableRadius, *rc.chf))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode."); // 侵食できませんでした。
 		return 0;
 	}
 
@@ -404,7 +403,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	rc.lset = rcAllocHeightfieldLayerSet();
 	if (!rc.lset)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'lset'.");
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'lset'."); // メモリー不足「lset」
 		return 0;
 	}
 	// コンパクトな地形からレイヤーセットを構築
@@ -1286,14 +1285,14 @@ bool Sample_TempObstacles::handleBuild()
 	status = m_navMesh->init(&params);
 	if (dtStatusFailed(status))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init navmesh.");
+		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init navmesh."); // ナビメッシュを初期化できませんでした。
 		return false;
 	}
 
 	status = m_navQuery->init(m_navMesh, 2048);
 	if (dtStatusFailed(status))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init Detour navmesh query");
+		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init Detour navmesh query"); // Detour ナビメッシュクエリを初期化できませんでした
 		return false;
 	}
 
@@ -1331,28 +1330,32 @@ bool Sample_TempObstacles::handleBuild()
 		}
 	}
 
-	// Build initial meshes
+	// Build initial meshes // 初期メッシュを作成します
 	m_ctx->startTimer(RC_TIMER_TOTAL);
+
 	for (int y = 0; y < th; ++y)
 		for (int x = 0; x < tw; ++x)
 			m_tileCache->buildNavMeshTilesAt(x, y, m_navMesh);
+
 	m_ctx->stopTimer(RC_TIMER_TOTAL);
 
 	m_cacheBuildTimeMs = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
 	m_cacheBuildMemUsage = m_talloc->high;
 
 	const dtNavMesh* nav = m_navMesh;
-	int navmeshMemUsage = 0;
+	int navmeshMemUsage{};
+
 	for (int i = 0; i < nav->getMaxTiles(); ++i)
 	{
 		const dtMeshTile* tile = nav->getTile(i);
 		if (tile->header)
 			navmeshMemUsage += tile->dataSize;
 	}
+
 	printf("navmeshMemUsage = %.1f kB", navmeshMemUsage / 1024.0f);
 
-	if (m_tool)
-		m_tool->init(this);
+	if (m_tool) m_tool->init(this);
+
 	initToolStates(this);
 
 	return true;

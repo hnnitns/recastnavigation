@@ -304,13 +304,17 @@ static void calcTriNormal(const float* v0, const float* v1, const float* v2, flo
 
 // @par
 //
-// Only sets the area id's for the walkable triangles.  Does not alter the
-// area id's for unwalkable triangles.
+// Only sets the area id's for the walkable triangles.
+// 歩行可能な三角形のエリアIDのみを設定します。
+// Does not alter the area id's for unwalkable triangles.
+// 歩行不可能な三角形のエリアIDは変更しません。
 //
 // See the #rcConfig documentation for more information on the configuration parameters.
 //
 // @see rcHeightfield, rcClearUnwalkableTriangles, rcRasterizeTriangles
-void rcMarkWalkableTriangles(rcContext* ctx, const float walkableSlopeAngle,
+// 歩行可能な三角形をマーク
+void rcMarkWalkableTriangles(
+	rcContext* ctx, const float walkableSlopeAngle,
 	const float* verts, int nv,
 	const int* tris, int nt,
 	unsigned char* areas,
@@ -321,13 +325,15 @@ void rcMarkWalkableTriangles(rcContext* ctx, const float walkableSlopeAngle,
 
 	const float walkableThr = cosf(walkableSlopeAngle / 180.0f * RC_PI);
 
-	float norm[3];
+	float norm[3]{};
 
 	for (int i = 0; i < nt; ++i)
 	{
 		const int* tri = &tris[i * 3];
 		calcTriNormal(&verts[tri[0] * 3], &verts[tri[1] * 3], &verts[tri[2] * 3], norm);
+
 		// Check if the face is walkable.
+		// 表面が歩行可能かどうかを確認します。
 		if (norm[1] > walkableThr)
 			areaMod.apply(areas[i]);
 	}
@@ -422,7 +428,7 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 
 	if (!chf.cells)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.cells' (%d)", w * h);
+		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.cells' (%d)", w * h); // メモリー不足「chf.cells」
 		return false;
 	}
 
@@ -431,7 +437,7 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 
 	if (!chf.spans)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.spans' (%d)", spanCount);
+		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.spans' (%d)", spanCount); // メモリー不足「chf.spans」
 		return false;
 	}
 
@@ -440,7 +446,7 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 
 	if (!chf.areas)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.areas' (%d)", spanCount);
+		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.areas' (%d)", spanCount); // メモリー不足「chf.areas」
 		return false;
 	}
 	memset(chf.areas, RC_NULL_AREA, sizeof(unsigned char) * spanCount);
@@ -470,9 +476,11 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 				{
 					const int bot = (int)span->smax;
 					const int top = span->next ? (int)span->next->smin : MAX_HEIGHT;
+
 					chf.spans[idx].y = (unsigned short)rcClamp(bot, 0, 0xffff);
 					chf.spans[idx].h = (unsigned char)rcClamp(top - bot, 0, 0xff);
 					chf.areas[idx] = span->area;
+
 					idx++;
 					c.count++;
 				}
@@ -503,8 +511,7 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 
 					// First check that the neighbour cell is in bounds.
 					//最初に、隣接セルが境界内にあることを確認します。
-					if (nx < 0 || ny < 0 || nx >= w || ny >= h)
-						continue;
+					if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
 
 					// Iterate over all neighbour spans and check if any of the is
 					// accessible from current cell.
@@ -543,6 +550,7 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 
 	if (tooHighNeighbour > MAX_LAYERS)
 	{
+		// 地形のレイヤーが多すぎます。
 		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Heightfield has too many layers %d (max: %d)",
 			tooHighNeighbour, MAX_LAYERS);
 	}

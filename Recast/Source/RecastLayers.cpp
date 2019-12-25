@@ -26,43 +26,45 @@
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
 
-// Must be 255 or smaller (not 256) because layer IDs are stored as
-// a byte where 255 is a special value.
-static const int RC_MAX_LAYERS = 63;
-static const int RC_MAX_NEIS = 16;
+// Must be 255 or smaller (not 256) because layer IDs are stored as a byte where 255 is a special value.
+// レイヤーIDは255が特別な値であるバイトとして保存されるため、255以下（256ではない）でなければなりません。
+constexpr int RC_MAX_LAYERS = 63;
+constexpr int RC_MAX_NEIS = 16;
 
 struct rcLayerRegion
 {
 	unsigned char layers[RC_MAX_LAYERS];
 	unsigned char neis[RC_MAX_NEIS];
 	unsigned short ymin, ymax;
-	unsigned char layerId;		// Layer ID
-	unsigned char nlayers;		// Layer count
-	unsigned char nneis;		// Neighbour count
-	unsigned char base;		// Flag indicating if the region is the base of merged regions.
+	unsigned char layerId;	// Layer ID // レイヤーID
+	unsigned char nlayers;	// Layer count // レイヤー数
+	unsigned char nneis;	// Neighbour count // 隣接カウント
+	// Flag indicating if the region is the base of merged regions.
+	// リージョンがマージされたリージョンのベースであるかどうかを示すフラグ。
+	unsigned char base;
 };
 
-static bool contains(const unsigned char* a, const unsigned char an, const unsigned char v)
+static inline bool contains(const unsigned char* a, const unsigned char an, const unsigned char v)
 {
 	const int n = (int)an;
+
 	for (int i = 0; i < n; ++i)
 	{
-		if (a[i] == v)
-			return true;
+		if (a[i] == v) return true;
 	}
+
 	return false;
 }
 
-static bool addUnique(unsigned char* a, unsigned char& an, int anMax, unsigned char v)
+static inline bool addUnique(unsigned char* a, unsigned char& an, int anMax, unsigned char v)
 {
-	if (contains(a, an, v))
-		return true;
+	if (contains(a, an, v)) return true;
 
-	if ((int)an >= anMax)
-		return false;
+	if ((int)an >= anMax) return false;
 
 	a[an] = v;
 	an++;
+
 	return true;
 }
 
@@ -74,9 +76,9 @@ inline bool overlapRange(const unsigned short amin, const unsigned short amax,
 
 struct rcLayerSweepSpan
 {
-	unsigned short ns;	// number samples
-	unsigned char id;	// region id
-	unsigned char nei;	// neighbour id
+	unsigned short ns;	// number samples // サンプル数
+	unsigned char id;	// region id      // 領域ID
+	unsigned char nei;	// neighbour id   // 隣ID
 };
 
 /// @par
@@ -89,6 +91,8 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 	const int borderSize, const int walkableHeight,
 	rcHeightfieldLayerSet& lset)
 {
+	constexpr int UCharMax{ (std::numeric_limits<uint8_t>::max)() };
+
 	rcAssert(ctx);
 
 	rcScopedTimer timer(ctx, RC_TIMER_BUILD_LAYERS);
@@ -97,30 +101,33 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 	const int h = chf.height;
 
 	rcScopedDelete<unsigned char> srcReg((unsigned char*)rcAlloc(sizeof(unsigned char) * chf.spanCount, RC_ALLOC_TEMP));
+
 	if (!srcReg)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'srcReg' (%d).", chf.spanCount);
+		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'srcReg' (%d).", chf.spanCount); // メモリー不足「srcReg」
 		return false;
 	}
-	memset(srcReg, 0xff, sizeof(unsigned char) * chf.spanCount);
+
+	memset(srcReg, UCharMax, sizeof(unsigned char) * chf.spanCount);
 
 	const int nsweeps = chf.width;
 	rcScopedDelete<rcLayerSweepSpan> sweeps((rcLayerSweepSpan*)rcAlloc(sizeof(rcLayerSweepSpan) * nsweeps, RC_ALLOC_TEMP));
+
 	if (!sweeps)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'sweeps' (%d).", nsweeps);
+		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'sweeps' (%d).", nsweeps); // メモリー不足「sweeps」
 		return false;
 	}
 
 	// Partition walkable area into monotone regions.
 	// 歩行可能領域をモノトーン領域に分割します。
-	int prevCount[256];
-	unsigned char regId = 0;
+	int prevCount[256]{};
+	unsigned char regId{};
 
 	for (int y = borderSize; y < h - borderSize; ++y)
 	{
 		memset(prevCount, 0, sizeof(int) * regId);
-		unsigned char sweepId = 0;
+		unsigned char sweepId{};
 
 		for (int x = borderSize; x < w - borderSize; ++x)
 		{
@@ -132,7 +139,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 				if (chf.areas[i] == RC_NULL_AREA) continue;
 
-				unsigned char sid = 0xff;
+				unsigned char sid = UCharMax;
 
 				// -x
 				if (rcGetCon(s, 0) != RC_NOT_CONNECTED)
@@ -140,14 +147,15 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					const int ax = x + rcGetDirOffsetX(0);
 					const int ay = y + rcGetDirOffsetY(0);
 					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, 0);
-					if (chf.areas[ai] != RC_NULL_AREA && srcReg[ai] != 0xff)
+
+					if (chf.areas[ai] != RC_NULL_AREA && srcReg[ai] != UCharMax)
 						sid = srcReg[ai];
 				}
 
-				if (sid == 0xff)
+				if (sid == UCharMax)
 				{
 					sid = sweepId++;
-					sweeps[sid].nei = 0xff;
+					sweeps[sid].nei = UCharMax;
 					sweeps[sid].ns = 0;
 				}
 
@@ -158,7 +166,8 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					const int ay = y + rcGetDirOffsetY(3);
 					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, 3);
 					const unsigned char nr = srcReg[ai];
-					if (nr != 0xff)
+
+					if (nr != UCharMax)
 					{
 						// Set neighbour when first valid neighbour is encoutered.
 						// 最初の有効な近隣が検出されたときに隣を設定します。
@@ -175,9 +184,10 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 						else
 						{
 							// This is hit if there is nore than one neighbour.
+							// これは、複数の隣がいる場合にヒットします。
 							// Invalidate the neighbour.
-							// これは、複数の隣がいる場合にヒットします。隣を無効にします。
-							sweeps[sid].nei = 0xff;
+							// 隣を無効にします。
+							sweeps[sid].nei = UCharMax;
 						}
 					}
 				}
@@ -194,17 +204,18 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 			// the sweep will be merged with the previous one, else new region is created.
 			// 隣が設定されており、隣への連続接続が1つしかない場合、
 			// スイープは前のスイープとマージされ、そうでない場合は新しい領域が作成されます。
-			if (sweeps[i].nei != 0xff && prevCount[sweeps[i].nei] == (int)sweeps[i].ns)
+			if (sweeps[i].nei != UCharMax && prevCount[sweeps[i].nei] == (int)sweeps[i].ns)
 			{
 				sweeps[i].id = sweeps[i].nei;
 			}
 			else
 			{
-				if (regId == 255)
+				if (regId == UCharMax)
 				{
-					ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Region ID overflow.");
+					ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Region ID overflow."); // 領域IDのオーバーフロー。
 					return false;
 				}
+
 				sweeps[i].id = regId++;
 			}
 		}
@@ -214,9 +225,10 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 		for (int x = borderSize; x < w - borderSize; ++x)
 		{
 			const rcCompactCell& c = chf.cells[x + y * w];
+
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
-				if (srcReg[i] != 0xff)
+				if (srcReg[i] != UCharMax)
 					srcReg[i] = sweeps[srcReg[i]].id;
 			}
 		}
@@ -226,16 +238,20 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 	// レイヤー領域を割り当てて初期化します。
 	const int nregs = (int)regId;
 	rcScopedDelete<rcLayerRegion> regs((rcLayerRegion*)rcAlloc(sizeof(rcLayerRegion) * nregs, RC_ALLOC_TEMP));
+
 	if (!regs)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'regs' (%d).", nregs);
+		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'regs' (%d).", nregs); // メモリー不足「regs」
+
 		return false;
 	}
+
 	memset(regs, 0, sizeof(rcLayerRegion) * nregs);
+
 	for (int i = 0; i < nregs; ++i)
 	{
-		regs[i].layerId = 0xff;
-		regs[i].ymin = 0xffff;
+		regs[i].layerId = UCharMax;
+		regs[i].ymin = (std::numeric_limits<uint16_t>::max)();
 		regs[i].ymax = 0;
 	}
 
@@ -248,13 +264,14 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 			const rcCompactCell& c = chf.cells[x + y * w];
 
 			unsigned char lregs[RC_MAX_LAYERS];
-			int nlregs = 0;
+			int nlregs{};
 
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
 				const unsigned char ri = srcReg[i];
-				if (ri == 0xff) continue;
+
+				if (ri == UCharMax) continue;
 
 				regs[ri].ymin = rcMin(regs[ri].ymin, s.y);
 				regs[ri].ymax = rcMax(regs[ri].ymax, s.y);
@@ -274,11 +291,11 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 						const int ay = y + rcGetDirOffsetY(dir);
 						const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
 						const unsigned char rai = srcReg[ai];
-						if (rai != 0xff && rai != ri)
+
+						if (rai != UCharMax && rai != ri)
 						{
 							// Don't check return value -- if we cannot add the neighbor
-							// it will just cause a few more regions to be created, which
-							// is fine.
+							// it will just cause a few more regions to be created, which is fine.
 							// 戻り値をチェックしない-隣人を追加できない場合、
 							// さらにいくつかの領域が作成されますが、これは問題ありません。
 							addUnique(regs[ri].neis, regs[ri].nneis, RC_MAX_NEIS, rai);
@@ -301,7 +318,9 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 						if (!addUnique(ri.layers, ri.nlayers, RC_MAX_LAYERS, lregs[j]) ||
 							!addUnique(rj.layers, rj.nlayers, RC_MAX_LAYERS, lregs[i]))
 						{
-							ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: layer overflow (too many overlapping walkable platforms). Try increasing RC_MAX_LAYERS.");
+							// レイヤーオーバーフロー（重複する歩行可能なプラットフォームが多すぎる)。RC_MAX_LAYERSを増やしてみてください。
+							ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: "
+								"layer overflow (too many overlapping walkable platforms). Try increasing RC_MAX_LAYERS.");
 							return false;
 						}
 					}
@@ -312,11 +331,11 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 	// Create 2D layers from regions.
 	// 領域から2Dレイヤーを作成します。
-	unsigned char layerId = 0;
+	unsigned char layerId{};
 
 	static const int MAX_STACK = 64;
 	unsigned char stack[MAX_STACK];
-	int nstack = 0;
+	int nstack{};
 
 	for (int i = 0; i < nregs; ++i)
 	{
@@ -324,8 +343,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 		// Skip already visited.
 		// 既にアクセスしたものをスキップします。
-		if (root.layerId != 0xff)
-			continue;
+		if (root.layerId != UCharMax) continue;
 
 		// Start search.
 		root.layerId = layerId;
@@ -338,11 +356,14 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 		{
 			// Pop front
 			rcLayerRegion& reg = regs[stack[0]];
+
 			nstack--;
+
 			for (int j = 0; j < nstack; ++j)
 				stack[j] = stack[j + 1];
 
 			const int nneis = (int)reg.nneis;
+
 			for (int j = 0; j < nneis; ++j)
 			{
 				const unsigned char nei = reg.neis[j];
@@ -350,7 +371,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 				// Skip already visited.
 				// 既にアクセスしたものをスキップします。
-				if (regn.layerId != 0xff) continue;
+				if (regn.layerId != UCharMax) continue;
 
 				// Skip if the neighbour is overlapping root region.
 				// 隣がルート領域と重複している場合はスキップします。
@@ -365,7 +386,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 				if (nstack < MAX_STACK)
 				{
-					// Deepen
+					// Deepen // 深める
 					stack[nstack++] = (unsigned char)nei;
 
 					// Mark layer id
@@ -378,7 +399,9 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					{
 						if (!addUnique(root.layers, root.nlayers, RC_MAX_LAYERS, regn.layers[k]))
 						{
-							ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: layer overflow (too many overlapping walkable platforms). Try increasing RC_MAX_LAYERS.");
+							// レイヤーオーバーフロー（重複する歩行可能なプラットフォームが多すぎる)。RC_MAX_LAYERSを増やしてみてください。
+							ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers:"
+								"layer overflow (too many overlapping walkable platforms). Try increasing RC_MAX_LAYERS.");
 							return false;
 						}
 					}
@@ -403,9 +426,9 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 		unsigned char newId = ri.layerId;
 
-		for (;;)
+		while (true)
 		{
-			unsigned char oldId = 0xff;
+			unsigned char oldId = UCharMax;
 
 			for (int j = 0; j < nregs; ++j)
 			{
@@ -460,7 +483,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 			// Could not find anything to merge with, stop.
 			//マージするものが見つかりませんでした。停止します。
-			if (oldId == 0xff) break;
+			if (oldId == UCharMax) break;
 
 			// Merge
 			for (int j = 0; j < nregs; ++j)
@@ -469,7 +492,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 				if (rj.layerId == oldId)
 				{
 					rj.base = 0;
-					// Remap layerIds.
+					// Remap layerIds. // レイヤIDを再マップします。
 					rj.layerId = newId;
 
 					// Add overlaid layers from 'rj' to 'ri'.
@@ -478,7 +501,9 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 					{
 						if (!addUnique(ri.layers, ri.nlayers, RC_MAX_LAYERS, rj.layers[k]))
 						{
-							ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: layer overflow (too many overlapping walkable platforms). Try increasing RC_MAX_LAYERS.");
+							// レイヤーオーバーフロー（重複する歩行可能なプラットフォームが多すぎる)。RC_MAX_LAYERSを増やしてみてください。
+							ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers:"
+								"layer overflow (too many overlapping walkable platforms). Try increasing RC_MAX_LAYERS.");
 							return false;
 						}
 					}
@@ -494,7 +519,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 	// Compact layer Ids
 	// コンパクトレイヤーID
-	unsigned char remap[256];
+	unsigned char remap[256]{};
 	memset(remap, 0, 256);
 
 	// Find number of unique layers.
@@ -509,7 +534,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 		if (remap[i])
 			remap[i] = layerId++;
 		else
-			remap[i] = 0xff;
+			remap[i] = UCharMax;
 	}
 
 	// Remap ids.
@@ -541,11 +566,13 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 	lset.nlayers = (int)layerId;
 
 	lset.layers = (rcHeightfieldLayer*)rcAlloc(sizeof(rcHeightfieldLayer) * lset.nlayers, RC_ALLOC_PERM);
+
 	if (!lset.layers)
 	{
-		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'layers' (%d).", lset.nlayers);
+		ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'layers' (%d).", lset.nlayers); // メモリー不足「layers」
 		return false;
 	}
+
 	memset(lset.layers, 0, sizeof(rcHeightfieldLayer) * lset.nlayers);
 
 	// Store layers.
@@ -559,32 +586,38 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 		const int gridSize = sizeof(unsigned char) * lw * lh;
 
 		layer->heights = (unsigned char*)rcAlloc(gridSize, RC_ALLOC_PERM);
+
 		if (!layer->heights)
 		{
-			ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'heights' (%d).", gridSize);
+			ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'heights' (%d).", gridSize); // メモリー不足「heights」
 			return false;
 		}
-		memset(layer->heights, 0xff, gridSize);
+
+		memset(layer->heights, UCharMax, gridSize);
 
 		layer->areas = (unsigned char*)rcAlloc(gridSize, RC_ALLOC_PERM);
+
 		if (!layer->areas)
 		{
-			ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'areas' (%d).", gridSize);
+			ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'areas' (%d).", gridSize); // メモリー不足「areas」
 			return false;
 		}
+
 		memset(layer->areas, 0, gridSize);
 
 		layer->cons = (unsigned char*)rcAlloc(gridSize, RC_ALLOC_PERM);
+
 		if (!layer->cons)
 		{
-			ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'cons' (%d).", gridSize);
+			ctx->log(RC_LOG_ERROR, "rcBuildHeightfieldLayers: Out of memory 'cons' (%d).", gridSize); // メモリー不足「cons」
 			return false;
 		}
+
 		memset(layer->cons, 0, gridSize);
 
 		// Find layer height bounds.
 		// レイヤーの高さの境界を見つけます。
-		int hmin = 0, hmax = 0;
+		int hmin{}, hmax{};
 		for (int j = 0; j < nregs; ++j)
 		{
 			if (regs[j].base && regs[j].layerId == curId)
@@ -624,17 +657,19 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 				const int cx = borderSize + x;
 				const int cy = borderSize + y;
 				const rcCompactCell& c = chf.cells[cx + cy * w];
+
 				for (int j = (int)c.index, nj = (int)(c.index + c.count); j < nj; ++j)
 				{
 					const rcCompactSpan& s = chf.spans[j];
 
 					// Skip unassigned regions.
 					// 未割り当ての領域をスキップします。
-					if (srcReg[j] == 0xff) continue;
+					if (srcReg[j] == UCharMax) continue;
 
 					// Skip of does nto belong to current layer.
 					// 現在のレイヤーに属さない場合はスキップします。
 					unsigned char lid = regs[srcReg[j]].layerId;
+
 					if (lid != curId) continue;
 
 					// Update data bounds.
@@ -652,8 +687,9 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 					// Check connection.
 					// 接続を確認します。
-					unsigned char portal = 0;
-					unsigned char con = 0;
+					unsigned char portal{};
+					unsigned char con{};
+
 					for (int dir = 0; dir < 4; ++dir)
 					{
 						if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
@@ -661,7 +697,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 							const int ax = cx + rcGetDirOffsetX(dir);
 							const int ay = cy + rcGetDirOffsetY(dir);
 							const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
-							unsigned char alid = srcReg[ai] != 0xff ? regs[srcReg[ai]].layerId : 0xff;
+							unsigned char alid = srcReg[ai] != UCharMax ? regs[srcReg[ai]].layerId : UCharMax;
 
 							// Portal mask
 							// ポータルマスク
@@ -682,6 +718,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 							{
 								const int nx = ax - borderSize;
 								const int ny = ay - borderSize;
+
 								if (nx >= 0 && ny >= 0 && nx < lw && ny < lh)
 									con |= (unsigned char)(1 << dir);
 							}
@@ -695,6 +732,7 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 		if (layer->minx > layer->maxx)
 			layer->minx = layer->maxx = 0;
+
 		if (layer->miny > layer->maxy)
 			layer->miny = layer->maxy = 0;
 	}

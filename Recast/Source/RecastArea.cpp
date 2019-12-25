@@ -52,7 +52,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 		return false;
 	}
 
-	// Init distance.
+	// Init distance. // ãóó£Çèâä˙âª
 	memset(dist, 0xff, sizeof(unsigned char) * chf.spanCount);
 
 	// Mark boundary cells.
@@ -62,6 +62,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 		for (int x = 0; x < w; ++x)
 		{
 			const rcCompactCell& c = chf.cells[x + y * w];
+
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				if (chf.areas[i] == RC_NULL_AREA)
@@ -71,7 +72,8 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 				else
 				{
 					const rcCompactSpan& s = chf.spans[i];
-					int nc = 0;
+					int nc{};
+
 					for (int dir = 0; dir < 4; ++dir)
 					{
 						if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
@@ -95,7 +97,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 		}
 	}
 
-	unsigned char nd;
+	unsigned char nd{};
 
 	// Pass 1
 	for (int y = 0; y < h; ++y)
@@ -103,6 +105,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 		for (int x = 0; x < w; ++x)
 		{
 			const rcCompactCell& c = chf.cells[x + y * w];
+
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
@@ -129,6 +132,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 							dist[i] = nd;
 					}
 				}
+
 				if (rcGetCon(s, 3) != RC_NOT_CONNECTED)
 				{
 					// (0,-1)
@@ -161,6 +165,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 		for (int x = w - 1; x >= 0; --x)
 		{
 			const rcCompactCell& c = chf.cells[x + y * w];
+
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				const rcCompactSpan& s = chf.spans[i];
@@ -187,6 +192,7 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 							dist[i] = nd;
 					}
 				}
+
 				if (rcGetCon(s, 1) != RC_NOT_CONNECTED)
 				{
 					// (0,1)
@@ -214,9 +220,11 @@ bool rcErodeWalkableArea(rcContext* ctx, int radius, rcCompactHeightfield& chf)
 	}
 
 	const unsigned char thr = (unsigned char)(radius * 2);
+
 	for (int i = 0; i < chf.spanCount; ++i)
-		if (dist[i] < thr)
-			chf.areas[i] = RC_NULL_AREA;
+	{
+		if (dist[i] < thr) chf.areas[i] = RC_NULL_AREA;
+	}
 
 	rcFree(dist);
 
@@ -362,15 +370,17 @@ void rcMarkBoxArea(rcContext* ctx, const float* bmin, const float* bmax, rcAreaM
 
 static int pointInPoly(int nvert, const float* verts, const float* p)
 {
-	int i, j, c = 0;
+	int i{}, j{}, c{};
+
 	for (i = 0, j = nvert - 1; i < nvert; j = i++)
 	{
 		const float* vi = &verts[i * 3];
 		const float* vj = &verts[j * 3];
-		if (((vi[2] > p[2]) != (vj[2] > p[2])) &&
-			(p[0] < (vj[0] - vi[0]) * (p[2] - vi[2]) / (vj[2] - vi[2]) + vi[0]))
+
+		if (((vi[2] > p[2]) != (vj[2] > p[2])) && (p[0] < (vj[0] - vi[0]) * (p[2] - vi[2]) / (vj[2] - vi[2]) + vi[0]))
 			c = !c;
 	}
+
 	return c;
 }
 
@@ -411,30 +421,32 @@ void rcMarkConvexPolyArea(rcContext* ctx, const float* verts, const int nverts,
 	int maxy = (int)((bmax[1] - chf.bmin[1]) / chf.ch);
 	int maxz = (int)((bmax[2] - chf.bmin[2]) / chf.cs);
 
-	if (maxx < 0) return;
-	if (minx >= chf.width) return;
-	if (maxz < 0) return;
+	if (maxx < 0)			return;
+	if (minx >= chf.width)	return;
+	if (maxz < 0)			return;
 	if (minz >= chf.height) return;
 
-	if (minx < 0) minx = 0;
-	if (maxx >= chf.width) maxx = chf.width - 1;
-	if (minz < 0) minz = 0;
+	if (minx < 0) minx           = 0;
+	if (maxx >= chf.width) maxx  = chf.width - 1;
+	if (minz < 0) minz           = 0;
 	if (maxz >= chf.height) maxz = chf.height - 1;
 
-	// TODO: Optimize.
+	// TODO: Optimize. // ç≈ìKâª
 	for (int z = minz; z <= maxz; ++z)
 	{
 		for (int x = minx; x <= maxx; ++x)
 		{
 			const rcCompactCell& c = chf.cells[x + z * chf.width];
+
 			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 			{
 				rcCompactSpan& span = chf.spans[i];
+
 				if (chf.areas[i] == RC_NULL_AREA) continue;
 
 				if ((int)span.y >= miny && (int)span.y <= maxy)
 				{
-					float p[3];
+					float p[3]{};
 					p[0] = chf.bmin[0] + (x + 0.5f) * chf.cs;
 					p[1] = 0;
 					p[2] = chf.bmin[2] + (z + 0.5f) * chf.cs;

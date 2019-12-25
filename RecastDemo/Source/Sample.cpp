@@ -234,7 +234,7 @@ void Sample::handleCommonSettings()
 		imguiValue(text.data());
 	}
 
-	// 分類：エージェント（経路探索を行うターゲット）情報---------------------------------------
+	// 分類：エージェント（経路探索を行う対象）情報---------------------------------------
 	// ※ ナビメッシュの生成に影響を及ぼす
 	imguiSeparator();
 	imguiLabel("Agent");
@@ -265,19 +265,19 @@ void Sample::handleCommonSettings()
 		m_partitionType = SAMPLE_PARTITION_LAYERS;
 
 	// 分類：歩行可能な面のフィルター --------------------------------------------------------------------
-	// 不要なオーバーハングと、キャラが立つことができないフィルタスパンを削除
+	// 不要なオーバーハングと、キャラが立つことができないフィルタスパンを削除 → いわゆるナビメッシュを綺麗にする機能
 	imguiSeparator();
 	imguiLabel("Filtering");
 
-	// 縁石などの低層の物体や階段などの構造物の上を歩行可能領域の形成を可能にする
+	// 縁石などの低層の物体や階段などの構造物の上を歩行可能領域の形成を可能にする（低層の物体などの構造物が多いほど、生成時間に影響が出てくる）
 	if (imguiCheck("Low Hanging Obstacles", m_filterLowHangingObstacles))
 		m_filterLowHangingObstacles = !m_filterLowHangingObstacles;
 
-	// 説明を訳すなら出張り部分を削る（主にプレーヤーの幅によって大幅に変わる・ナビメッシュ生成時間にそこそこ影響あり）
+	// 説明を訳すなら出張り部分を削る（主にエージェントの幅によって大幅に変わる・ナビメッシュ生成時間にそこそこ影響あり）
 	if (imguiCheck("Ledge Spans", m_filterLedgeSpans))
 		m_filterLedgeSpans = !m_filterLedgeSpans;
 
-	// 指定された高さよりも小さい場合、ウォーク可能スパンをウォーク不可としてマークする
+	// 指定された高さよりも小さい場合、ウォーク可能スパンをウォーク不可としてマークする（ナビメッシュ生成時間に僅かに影響あり）
 	if (imguiCheck("Walkable Low Height Spans", m_filterWalkableLowHeightSpans))
 		m_filterWalkableLowHeightSpans = !m_filterWalkableLowHeightSpans;
 
@@ -297,7 +297,7 @@ void Sample::handleCommonSettings()
 	imguiSeparator();
 	imguiLabel("Detail Mesh");
 	/* 地形をサンプリングするときに使用する距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※0だと生成途中でお亡くなりになるので注意 */
-	imguiSlider("Sample Distance", &m_detailSampleDist, 0.0f, 16.0f, 1.f);
+	imguiSlider("Sample Distance", &m_detailSampleDist, 0.1f, 16.0f, 1.f);
 	/* ナビメッシュ表面が地形データから逸脱する最大距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※多くするとナビメッシュから地形がはみ出てしまう*/
 	imguiSlider("Max Sample Error", &m_detailSampleMaxError, 0.0f, 16.0f, 1.f);
 

@@ -95,8 +95,8 @@ class InputGeom
 	BuildSettings m_buildSettings;
 	bool m_hasBuildSettings;
 
-	/// @name Off-Mesh connections. // オフメッシュ接続。
-	///@{
+	// @name Off-Mesh connections. // オフメッシュ接続。
+	//@{
 	static constexpr int MAX_OFFMESH_CONNECTIONS = 256;
 	float m_offMeshConVerts[MAX_OFFMESH_CONNECTIONS * 3 * 2];
 	float m_offMeshConRads[MAX_OFFMESH_CONNECTIONS];
@@ -105,14 +105,14 @@ class InputGeom
 	unsigned short m_offMeshConFlags[MAX_OFFMESH_CONNECTIONS];
 	unsigned int m_offMeshConId[MAX_OFFMESH_CONNECTIONS];
 	int m_offMeshConCount;
-	///@}
+	//@}
 
-	/// @name Convex Volumes. // 凸ボリューム。
-	///@{
+	// @name Convex Volumes. // 凸ボリューム。
+	//@{
 	static constexpr int MAX_VOLUMES = 256;
 	ConvexVolume m_volumes[MAX_VOLUMES];
 	int m_volumeCount;
-	///@}
+	//@}
 
 	bool loadMesh(class rcContext* ctx, const std::string& filepath);
 	bool loadGeomSet(class rcContext* ctx, const std::string& filepath);
@@ -123,8 +123,8 @@ public:
 	bool load(class rcContext* ctx, const std::string& filepath);
 	bool saveGeomSet(const BuildSettings* settings);
 
-	/// Method to return static mesh data.
-	/// 静的メッシュデータを返すメソッド。
+	// Method to return static mesh data.
+	// 静的メッシュデータを返すメソッド。
 	const rcMeshLoaderObj* getMesh() const { return m_mesh; }
 	const float* getMeshBoundsMin() const { return m_meshBMin; } // メッシュ境界の最小値を取得
 	const float* getMeshBoundsMax() const { return m_meshBMax; } // メッシュ境界の最大値を取得
@@ -133,14 +133,14 @@ public:
 	// ナビメッシュ境界の最大値を取得
 	const float* getNavMeshBoundsMax() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMax : m_meshBMax; }
 	const rcChunkyTriMesh* getChunkyMesh() const { return m_chunkyMesh; }
-	const BuildSettings* getBuildSettings() const { return m_hasBuildSettings ? &m_buildSettings : 0; }
+	const BuildSettings* getBuildSettings() const { return m_hasBuildSettings ? &m_buildSettings : nullptr; }
 
 	// メッシュデータとマウスのレイとの判定
 	// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
 	bool raycastMesh(float* src, float* dst, float& tmin);
 
-	/// @name Off-Mesh connections.
-	///@{
+	// @name Off-Mesh connections. // オフメッシュ接続。
+	//@{
 	int getOffMeshConnectionCount() const { return m_offMeshConCount; }
 	const float* getOffMeshConnectionVerts() const { return m_offMeshConVerts; }
 	const float* getOffMeshConnectionRads() const { return m_offMeshConRads; }
@@ -152,17 +152,17 @@ public:
 		unsigned char bidir, unsigned char area, unsigned short flags);
 	void deleteOffMeshConnection(int i);
 	void drawOffMeshConnections(struct duDebugDraw* dd, bool hilight = false);
-	///@}
+	//@}
 
-	/// @name Box Volumes.
-	///@{
+	// @name Box Volumes. // ボックスボリューム。
+	//@{
 	int getConvexVolumeCount() const { return m_volumeCount; }
 	const ConvexVolume* getConvexVolumes() const { return m_volumes; }
 	void addConvexVolume(const float* verts, const int nverts,
 		const float minh, const float maxh, rcAreaModification areaMod);
 	void deleteConvexVolume(int i);
 	void drawConvexVolumes(struct duDebugDraw* dd, bool hilight = false);
-	///@}
+	//@}
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

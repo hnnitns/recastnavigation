@@ -58,10 +58,12 @@ struct SampleItem
 	Sample* (*create)();
 	const string name;
 };
+
 Sample* createSolo() { return new Sample_SoloMesh(); }
 Sample* createTile() { return new Sample_TileMesh(); }
 Sample* createTempObstacle() { return new Sample_TempObstacles(); }
 Sample* createDebug() { return new Sample_Debug(); }
+
 static SampleItem g_samples[] =
 {
 	{ createSolo, "Solo Mesh" },
@@ -154,10 +156,10 @@ int main(int /*argc*/, char** /*argv*/)
 
 	float scrollZoom = 0;
 	bool rotate = false;
-	bool movedDuringRotate = false;
+	bool movedDuringRotate = false; //
 	float ray_start[3];
 	float ray_end[3];
-	bool mouseOverMenu = false;
+	bool mouseOverMenu = false; // ImGui上のウィンドウにマウスが存在する
 
 	bool showMenu = !presentationMode;
 	bool showLog = false;
@@ -209,7 +211,7 @@ int main(int /*argc*/, char** /*argv*/)
 		int mouseScroll = 0;              // マウスホイールの値
 		bool processHitTest = false;      // マウスの処理が行われた
 		bool processHitTestShift = false; // シフトの処理が行われた
-		SDL_Event event;
+		SDL_Event event{};
 
 		// インプット系のアップデート
 		while (SDL_PollEvent(&event))
@@ -219,8 +221,8 @@ int main(int /*argc*/, char** /*argv*/)
 				// キーを押した瞬間
 				case SDL_KEYDOWN:
 				{
-					/// Handle any key presses here.
-					/// ここでキーの押下を処理します。
+					// Handle any key presses here.
+					// ここでキーの押下を処理します。
 					switch (event.key.keysym.sym)
 					{
 						// 終了
@@ -235,7 +237,8 @@ int main(int /*argc*/, char** /*argv*/)
 							showLevels = false;
 							showSample = false;
 							showTestCases = true;
-							scanDirectory(testCasesFolder, ".txt", files);
+							scanDirectory(testCasesFolder, ".txt", files); // ファイルのスキャンして、一覧をfilesに保存
+
 							break;
 						}
 						// ImGuiの表示非表示
@@ -247,15 +250,15 @@ int main(int /*argc*/, char** /*argv*/)
 						// パスの追跡処理を行う
 						case SDLK_SPACE:
 						{
-							if (sample)
-								sample->handleToggle();
+							if (sample) sample->handleToggle();
+
 							break;
 						}
 						// 群衆AI時で１フレーム進む
 						case SDLK_1:
 						{
-							if (sample)
-								sample->handleStep();
+							if (sample) sample->handleStep();
+
 							break;
 						}
 						// ナビメッシュ設定のファイル書き出し
@@ -264,14 +267,17 @@ int main(int /*argc*/, char** /*argv*/)
 							if (sample && geom)
 							{
 								string savePath = meshesFolder + "/";
-								BuildSettings settings;
-								memset(&settings, 0, sizeof(settings));
 
+								BuildSettings settings{}; // 保存用構造体
+
+								// コピー
 								rcVcopy(settings.navMeshBMin, geom->getNavMeshBoundsMin());
 								rcVcopy(settings.navMeshBMax, geom->getNavMeshBoundsMax());
 
+								// 保存したい設定の収集
 								sample->collectSettings(settings);
 
+								// 保存を実行
 								geom->saveGeomSet(&settings);
 							}
 							break;
@@ -284,11 +290,14 @@ int main(int /*argc*/, char** /*argv*/)
 				{
 					if (event.wheel.y < 0)
 					{
-						// wheel down
+						// wheel down // ホイールダウン
+
+						// ImGuiウィンドウ上で操作
 						if (mouseOverMenu)
 						{
 							mouseScroll++;
 						}
+						// 通常
 						else
 						{
 							scrollZoom += 1.f;
@@ -296,57 +305,67 @@ int main(int /*argc*/, char** /*argv*/)
 					}
 					else
 					{
+						// ImGuiウィンドウ上で操作
 						if (mouseOverMenu)
 						{
 							mouseScroll--;
 						}
+						// 通常
 						else
 						{
 							scrollZoom -= 1.f;
 						}
 					}
+
 					break;
 				}
 				// マウスのボタンを押した瞬間
 				case SDL_MOUSEBUTTONDOWN:
 				{
-					if (event.button.button == SDL_BUTTON_RIGHT)
+					// 右ボタンでImGuiウィンドウ外
+					if (event.button.button == SDL_BUTTON_RIGHT && !mouseOverMenu)
 					{
-						if (!mouseOverMenu)
-						{
-							// Rotate view
-							rotate = true;
-							movedDuringRotate = false;
-							origMousePos[0] = mousePos[0];
-							origMousePos[1] = mousePos[1];
-							origCameraEulers[0] = cameraEulers[0];
-							origCameraEulers[1] = cameraEulers[1];
-						}
+						// Rotate view // ビューを回転
+						rotate = true;
+						movedDuringRotate = false;
+						origMousePos[0] = mousePos[0];
+						origMousePos[1] = mousePos[1];
+						origCameraEulers[0] = cameraEulers[0];
+						origCameraEulers[1] = cameraEulers[1];
 					}
+
 					break;
 				}
 				// マウスのボタンから離した瞬間
 				case SDL_MOUSEBUTTONUP:
 				{
 					// Handle mouse clicks here.
-					if (event.button.button == SDL_BUTTON_RIGHT)
+					//　ここでマウスクリックを処理します。
+					switch (event.button.button)
 					{
-						rotate = false;
-						if (!mouseOverMenu)
+						case SDL_BUTTON_RIGHT:
 						{
-							if (!movedDuringRotate)
+							rotate = false;
+
+							// ImGuiウィンドウ外でマウスを動かしていない
+							if (!(mouseOverMenu || movedDuringRotate))
 							{
 								processHitTest = true;
 								processHitTestShift = true;
 							}
+
+							break;
 						}
-					}
-					else if (event.button.button == SDL_BUTTON_LEFT)
-					{
-						if (!mouseOverMenu)
+						case SDL_BUTTON_LEFT:
 						{
-							processHitTest = true;
-							processHitTestShift = (SDL_GetModState() & KMOD_SHIFT) ? true : false;
+							// ImGuiウィンドウ外
+							if (!mouseOverMenu)
+							{
+								processHitTest = true;
+								processHitTestShift = (SDL_GetModState() & KMOD_SHIFT) ? true : false;
+							}
+
+							break;
 						}
 					}
 
@@ -362,13 +381,16 @@ int main(int /*argc*/, char** /*argv*/)
 					{
 						int dx = mousePos[0] - origMousePos[0];
 						int dy = mousePos[1] - origMousePos[1];
+
 						cameraEulers[0] = origCameraEulers[0] - dy * 0.25f;
 						cameraEulers[1] = origCameraEulers[1] + dx * 0.25f;
+
 						if (dx * dx + dy * dy > 3 * 3)
 						{
 							movedDuringRotate = true;
 						}
 					}
+
 					break;
 				}
 				// 終了
@@ -383,30 +405,33 @@ int main(int /*argc*/, char** /*argv*/)
 		}
 
 		// マウス
-		unsigned char mouseButtonMask = 0;
+		unsigned char mouseButtonMask{};
+
 		if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
 			mouseButtonMask |= IMGUI_MBUT_LEFT;
+
 		if (SDL_GetMouseState(0, 0) & SDL_BUTTON_RMASK)
 			mouseButtonMask |= IMGUI_MBUT_RIGHT;
 
 		Uint32 time = SDL_GetTicks();
 		float dt = (time - prevFrameTime) / 1000.f;
-		prevFrameTime = time;
 
+		prevFrameTime = time;
 		t += dt;
 
 		// Hit test mesh.
 		// テストメッシュをヒットします。
+
 		// マウスの左ボタン・右ボタンを離した瞬間、メッシュデータが存在し、サンプルも選択している状態
 		if (processHitTest && geom && sample)
 		{
-			float hit_dis;
+			float hit_dis{};
 
 			// マウスの指すレイと読み込まれたメッシュとの当たり判定
 			// ※ このエディタの場合はスタート地点やゴール地点をメッシュデータ上にマウスで配置するので、経路探索をこの中に持ってこれる
 			if (geom->raycastMesh(ray_start, ray_end, hit_dis))
 			{
-				std::array<float, 3u> ray_vec;
+				std::array<float, 3u> ray_vec{};
 
 				// レイのベクトルを求める
 				for (size_t i = 0; i < 3u; i++)
@@ -414,6 +439,7 @@ int main(int /*argc*/, char** /*argv*/)
 					ray_vec[i] = ray_end[i] - ray_start[i];
 				}
 
+				// マーカー
 				if (SDL_GetModState() & KMOD_CTRL)
 				{
 					// Marker
@@ -424,6 +450,7 @@ int main(int /*argc*/, char** /*argv*/)
 					markerPosition[1] = ray_start[1] + (ray_vec[1] * hit_dis);
 					markerPosition[2] = ray_start[2] + (ray_vec[2] * hit_dis);
 				}
+				// 通常時
 				else
 				{
 					float pos[3];
@@ -449,27 +476,29 @@ int main(int /*argc*/, char** /*argv*/)
 
 		// Update sample simulation.
 		// サンプルシミュレーションを更新します。
-		const float SIM_RATE = 20;
-		const float DELTA_TIME = 1.f / SIM_RATE;
+		constexpr float SIM_RATE = 20;
+		constexpr float DELTA_TIME = 1.f / SIM_RATE;
+		int simIter{};
+
 		timeAcc = rcClamp(timeAcc + dt, -1.f, 1.f);
-		int simIter = 0;
 
 		while (timeAcc > DELTA_TIME)
 		{
 			timeAcc -= DELTA_TIME;
+
 			if (simIter < 5 && sample)
-			{
 				sample->handleUpdate(DELTA_TIME);
-			}
+
 			simIter++;
 		}
 
 		// Clamp the framerate so that we do not hog all the CPU.
 		// すべてのCPUを占有しないように、フレームレートをクランプします。
-		const float MIN_FRAME_TIME = 1.f / 40.f;
+		constexpr float MIN_FRAME_TIME = 1.f / 40.f;
 		if (dt < MIN_FRAME_TIME)
 		{
-			int ms = (int)((MIN_FRAME_TIME - dt) * 1000.f);
+			int ms = static_cast<int>((MIN_FRAME_TIME - dt) * 1000.f);
+
 			if (ms > 10) ms = 10;
 			if (ms >= 0) SDL_Delay(ms);
 		}
@@ -632,6 +661,8 @@ int main(int /*argc*/, char** /*argv*/)
 					showSample = false;
 					showTestCases = false;
 					showLevels = true;
+
+					// 「.obj」・「.gset」をfilesに追加
 					scanDirectory(meshesFolder, ".obj", files);
 					scanDirectoryAppend(meshesFolder, ".gset", files);
 				}
@@ -640,7 +671,7 @@ int main(int /*argc*/, char** /*argv*/)
 			// 頂点数、ポリゴン数の表示
 			if (geom)
 			{
-				std::array<char, 64u> text;
+				std::array<char, 64u> text{};
 
 				snprintf(text.data(), text.size(), "Verts: %.1fk  Tris: %.1fk",
 					geom->getMesh()->getVertCount() / 1000.f,
@@ -655,6 +686,7 @@ int main(int /*argc*/, char** /*argv*/)
 			{
 				imguiSeparatorLine();
 
+				// ナビメッシュ設定の表示
 				sample->handleSettings();
 
 				if (imguiButton("Build"))
@@ -680,6 +712,8 @@ int main(int /*argc*/, char** /*argv*/)
 			if (sample)
 			{
 				imguiSeparatorLine();
+
+				// Draw欄の表示
 				sample->handleDebugMode();
 			}
 
@@ -811,8 +845,8 @@ int main(int /*argc*/, char** /*argv*/)
 
 				if (geom || sample)
 				{
-					const float* bmin = 0;
-					const float* bmax = 0;
+					const float* bmin{};
+					const float* bmax{};
 
 					if (geom)
 					{
@@ -832,8 +866,10 @@ int main(int /*argc*/, char** /*argv*/)
 						cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
 						camr *= 3;
 					}
+
 					cameraEulers[0] = 45;
 					cameraEulers[1] = -45;
+
 					glFogf(GL_FOG_START, camr * 0.1f);
 					glFogf(GL_FOG_END, camr * 1.25f);
 				}
@@ -911,10 +947,10 @@ int main(int /*argc*/, char** /*argv*/)
 
 					// This will ensure that tile & poly bits are updated in tiled sample.
 					// これにより、タイルサンプルでタイルビットとポリビットが更新されます。
-					if (sample)
-						sample->handleSettings();
+					if (sample) sample->handleSettings();
 
 					ctx.resetLog();
+
 					if (sample && !sample->handleBuild())
 					{
 						ctx.dumpLog("Build log %s:", meshName.c_str());
@@ -922,8 +958,9 @@ int main(int /*argc*/, char** /*argv*/)
 
 					if (geom || sample)
 					{
-						const float* bmin = 0;
-						const float* bmax = 0;
+						const float* bmin{};
+						const float* bmax{};
+
 						if (geom)
 						{
 							bmin = geom->getNavMeshBoundsMin();
@@ -934,8 +971,7 @@ int main(int /*argc*/, char** /*argv*/)
 						// メッシュの境界に一致するようにカメラとフォグをリセットします。
 						if (bmin && bmax)
 						{
-							camr =
-								sqrtf(rcSqr(bmax[0] - bmin[0]) +
+							camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
 									rcSqr(bmax[1] - bmin[1]) +
 									rcSqr(bmax[2] - bmin[2])) / 2;
 
@@ -951,7 +987,7 @@ int main(int /*argc*/, char** /*argv*/)
 						glFogf(GL_FOG_END, camr * 1.25f);
 					}
 
-					// Do the tests.
+					// Do the tests. // テストを行います。
 					if (sample) test->doTests(sample->getNavMesh(), sample->getNavMeshQuery());
 				}
 			}
@@ -978,13 +1014,15 @@ int main(int /*argc*/, char** /*argv*/)
 			if (imguiBeginScrollArea("Tools", 10, 10, 250, height - 20, &toolsScroll))
 				mouseOverMenu = true;
 
-			if (sample)
-				sample->handleTools();
+			// Tool欄設定
+			if (sample) sample->handleTools();
 
 			imguiEndScrollArea();
 		}
 
 		// Marker // マーカー
+		// gluProject（オブジェクト座標系をウィンドウ座標系に変換）
+		// http://ja.manpages.org/gluproject/3
 		if (markerPositionSet &&
 			gluProject((GLdouble)markerPosition[0], (GLdouble)markerPosition[1], (GLdouble)markerPosition[2],
 				modelviewMatrix, projectionMatrix, viewport, &x, &y, &z))
@@ -993,14 +1031,17 @@ int main(int /*argc*/, char** /*argv*/)
 			glLineWidth(5.0f);
 			glColor4ub(240, 220, 0, 196);
 			glBegin(GL_LINE_LOOP);
-			const float r = 25.0f;
 
-			for (int i = 0; i < 20; ++i)
+			constexpr float Radius = 20.f;  // 半径
+			constexpr float Accuracy = 15.f; // 精度
+
+			for (int i = 0; i < Accuracy; ++i)
 			{
-				const float a = (float)i / 20.f * RC_PI * 2;
-				const float fx = (float)x + cosf(a) * r;
-				const float fy = (float)y + sinf(a) * r;
-				glVertex2f(fx, fy);
+				const float a = (float)i / Accuracy * RC_PI * 2;
+				const float fx = (float)x + cosf(a) * Radius;
+				const float fy = (float)y + sinf(a) * Radius;
+
+				glVertex2f(fx, fy); // 2D上に描画
 			}
 
 			glEnd();

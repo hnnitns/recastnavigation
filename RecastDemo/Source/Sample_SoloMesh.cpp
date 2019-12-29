@@ -95,7 +95,7 @@ void Sample_SoloMesh::handleSettings()
 
 	imguiSeparator();
 
-	char msg[64];
+	char msg[64]{};
 	snprintf(msg, 64, "Build Time: %.1fms", m_totalBuildTimeMs);
 	imguiLabel(msg);
 
@@ -140,76 +140,95 @@ void Sample_SoloMesh::handleTools()
 void Sample_SoloMesh::handleDebugMode()
 {
 	// Check which modes are valid.
-	bool valid[MAX_DRAWMODE];
-	for (int i = 0; i < MAX_DRAWMODE; ++i)
-		valid[i] = false;
+	// 有効なモードを確認します。
+	bool valid[MAX_DRAWMODE]{};
 
 	if (m_geom)
 	{
-		valid[DRAWMODE_NAVMESH] = m_navMesh != 0;
-		valid[DRAWMODE_NAVMESH_TRANS] = m_navMesh != 0;
-		valid[DRAWMODE_NAVMESH_BVTREE] = m_navMesh != 0;
-		valid[DRAWMODE_NAVMESH_NODES] = m_navQuery != 0;
-		valid[DRAWMODE_NAVMESH_INVIS] = m_navMesh != 0;
-		valid[DRAWMODE_MESH] = true;
-		valid[DRAWMODE_VOXELS] = m_solid != 0;
-		valid[DRAWMODE_VOXELS_WALKABLE] = m_solid != 0;
-		valid[DRAWMODE_COMPACT] = m_chf != 0;
-		valid[DRAWMODE_COMPACT_DISTANCE] = m_chf != 0;
-		valid[DRAWMODE_COMPACT_REGIONS] = m_chf != 0;
-		valid[DRAWMODE_REGION_CONNECTIONS] = m_cset != 0;
-		valid[DRAWMODE_RAW_CONTOURS] = m_cset != 0;
-		valid[DRAWMODE_BOTH_CONTOURS] = m_cset != 0;
-		valid[DRAWMODE_CONTOURS] = m_cset != 0;
-		valid[DRAWMODE_POLYMESH] = m_pmesh != 0;
-		valid[DRAWMODE_POLYMESH_DETAIL] = m_dmesh != 0;
+		valid[DRAWMODE_NAVMESH]            = m_navMesh  != 0;
+		valid[DRAWMODE_NAVMESH_TRANS]      = m_navMesh  != 0;
+		valid[DRAWMODE_NAVMESH_BVTREE]     = m_navMesh  != 0;
+		valid[DRAWMODE_NAVMESH_NODES]      = m_navQuery != 0;
+		valid[DRAWMODE_NAVMESH_INVIS]      = m_navMesh  != 0;
+		valid[DRAWMODE_MESH]               = true;
+		valid[DRAWMODE_VOXELS]             = m_solid    != 0;
+		valid[DRAWMODE_VOXELS_WALKABLE]    = m_solid    != 0;
+		valid[DRAWMODE_COMPACT]            = m_chf      != 0;
+		valid[DRAWMODE_COMPACT_DISTANCE]   = m_chf      != 0;
+		valid[DRAWMODE_COMPACT_REGIONS]    = m_chf      != 0;
+		valid[DRAWMODE_REGION_CONNECTIONS] = m_cset     != 0;
+		valid[DRAWMODE_RAW_CONTOURS]       = m_cset     != 0;
+		valid[DRAWMODE_BOTH_CONTOURS]      = m_cset     != 0;
+		valid[DRAWMODE_CONTOURS]           = m_cset     != 0;
+		valid[DRAWMODE_POLYMESH]           = m_pmesh    != 0;
+		valid[DRAWMODE_POLYMESH_DETAIL]    = m_dmesh    != 0;
 	}
 
-	int unavail = 0;
-	for (int i = 0; i < MAX_DRAWMODE; ++i)
-		if (!valid[i]) unavail++;
+	int unavail{};
 
-	if (unavail == MAX_DRAWMODE)
-		return;
+	for (int i = 0; i < MAX_DRAWMODE; ++i)
+	{
+		if (!valid[i]) unavail++;
+	}
+
+	if (unavail == MAX_DRAWMODE) return;
 
 	imguiLabel("Draw");
-	if (imguiCheck("Input Mesh", m_drawMode == DRAWMODE_MESH, valid[DRAWMODE_MESH]))
+
+	if (imguiCheck("Input Mesh", m_drawMode         == DRAWMODE_MESH, valid[DRAWMODE_MESH]))
 		m_drawMode = DRAWMODE_MESH;
-	if (imguiCheck("Navmesh", m_drawMode == DRAWMODE_NAVMESH, valid[DRAWMODE_NAVMESH]))
+
+	if (imguiCheck("Navmesh", m_drawMode            == DRAWMODE_NAVMESH, valid[DRAWMODE_NAVMESH]))
 		m_drawMode = DRAWMODE_NAVMESH;
-	if (imguiCheck("Navmesh Invis", m_drawMode == DRAWMODE_NAVMESH_INVIS, valid[DRAWMODE_NAVMESH_INVIS]))
+
+	if (imguiCheck("Navmesh Invis", m_drawMode      == DRAWMODE_NAVMESH_INVIS, valid[DRAWMODE_NAVMESH_INVIS]))
 		m_drawMode = DRAWMODE_NAVMESH_INVIS;
-	if (imguiCheck("Navmesh Trans", m_drawMode == DRAWMODE_NAVMESH_TRANS, valid[DRAWMODE_NAVMESH_TRANS]))
+
+	if (imguiCheck("Navmesh Trans", m_drawMode      == DRAWMODE_NAVMESH_TRANS, valid[DRAWMODE_NAVMESH_TRANS]))
 		m_drawMode = DRAWMODE_NAVMESH_TRANS;
-	if (imguiCheck("Navmesh BVTree", m_drawMode == DRAWMODE_NAVMESH_BVTREE, valid[DRAWMODE_NAVMESH_BVTREE]))
+
+	if (imguiCheck("Navmesh BVTree", m_drawMode     == DRAWMODE_NAVMESH_BVTREE, valid[DRAWMODE_NAVMESH_BVTREE]))
 		m_drawMode = DRAWMODE_NAVMESH_BVTREE;
-	if (imguiCheck("Navmesh Nodes", m_drawMode == DRAWMODE_NAVMESH_NODES, valid[DRAWMODE_NAVMESH_NODES]))
+
+	if (imguiCheck("Navmesh Nodes", m_drawMode      == DRAWMODE_NAVMESH_NODES, valid[DRAWMODE_NAVMESH_NODES]))
 		m_drawMode = DRAWMODE_NAVMESH_NODES;
-	if (imguiCheck("Voxels", m_drawMode == DRAWMODE_VOXELS, valid[DRAWMODE_VOXELS]))
+
+	if (imguiCheck("Voxels", m_drawMode             == DRAWMODE_VOXELS, valid[DRAWMODE_VOXELS]))
 		m_drawMode = DRAWMODE_VOXELS;
-	if (imguiCheck("Walkable Voxels", m_drawMode == DRAWMODE_VOXELS_WALKABLE, valid[DRAWMODE_VOXELS_WALKABLE]))
+
+	if (imguiCheck("Walkable Voxels", m_drawMode    == DRAWMODE_VOXELS_WALKABLE, valid[DRAWMODE_VOXELS_WALKABLE]))
 		m_drawMode = DRAWMODE_VOXELS_WALKABLE;
-	if (imguiCheck("Compact", m_drawMode == DRAWMODE_COMPACT, valid[DRAWMODE_COMPACT]))
+
+	if (imguiCheck("Compact", m_drawMode            == DRAWMODE_COMPACT, valid[DRAWMODE_COMPACT]))
 		m_drawMode = DRAWMODE_COMPACT;
-	if (imguiCheck("Compact Distance", m_drawMode == DRAWMODE_COMPACT_DISTANCE, valid[DRAWMODE_COMPACT_DISTANCE]))
+
+	if (imguiCheck("Compact Distance", m_drawMode   == DRAWMODE_COMPACT_DISTANCE, valid[DRAWMODE_COMPACT_DISTANCE]))
 		m_drawMode = DRAWMODE_COMPACT_DISTANCE;
-	if (imguiCheck("Compact Regions", m_drawMode == DRAWMODE_COMPACT_REGIONS, valid[DRAWMODE_COMPACT_REGIONS]))
+
+	if (imguiCheck("Compact Regions", m_drawMode    == DRAWMODE_COMPACT_REGIONS, valid[DRAWMODE_COMPACT_REGIONS]))
 		m_drawMode = DRAWMODE_COMPACT_REGIONS;
+
 	if (imguiCheck("Region Connections", m_drawMode == DRAWMODE_REGION_CONNECTIONS, valid[DRAWMODE_REGION_CONNECTIONS]))
 		m_drawMode = DRAWMODE_REGION_CONNECTIONS;
-	if (imguiCheck("Raw Contours", m_drawMode == DRAWMODE_RAW_CONTOURS, valid[DRAWMODE_RAW_CONTOURS]))
+
+	if (imguiCheck("Raw Contours", m_drawMode       == DRAWMODE_RAW_CONTOURS, valid[DRAWMODE_RAW_CONTOURS]))
 		m_drawMode = DRAWMODE_RAW_CONTOURS;
-	if (imguiCheck("Both Contours", m_drawMode == DRAWMODE_BOTH_CONTOURS, valid[DRAWMODE_BOTH_CONTOURS]))
+
+	if (imguiCheck("Both Contours", m_drawMode      == DRAWMODE_BOTH_CONTOURS, valid[DRAWMODE_BOTH_CONTOURS]))
 		m_drawMode = DRAWMODE_BOTH_CONTOURS;
-	if (imguiCheck("Contours", m_drawMode == DRAWMODE_CONTOURS, valid[DRAWMODE_CONTOURS]))
+
+	if (imguiCheck("Contours", m_drawMode           == DRAWMODE_CONTOURS, valid[DRAWMODE_CONTOURS]))
 		m_drawMode = DRAWMODE_CONTOURS;
-	if (imguiCheck("Poly Mesh", m_drawMode == DRAWMODE_POLYMESH, valid[DRAWMODE_POLYMESH]))
+
+	if (imguiCheck("Poly Mesh", m_drawMode          == DRAWMODE_POLYMESH, valid[DRAWMODE_POLYMESH]))
 		m_drawMode = DRAWMODE_POLYMESH;
-	if (imguiCheck("Poly Mesh Detail", m_drawMode == DRAWMODE_POLYMESH_DETAIL, valid[DRAWMODE_POLYMESH_DETAIL]))
+
+	if (imguiCheck("Poly Mesh Detail", m_drawMode   == DRAWMODE_POLYMESH_DETAIL, valid[DRAWMODE_POLYMESH_DETAIL]))
 		m_drawMode = DRAWMODE_POLYMESH_DETAIL;
 
 	if (unavail)
 	{
+		// [中間結果を保持]にチェックマークを付けて、デバッグモードオプションをさらに表示します。
 		imguiValue("Tick 'Keep Itermediate Results'");
 		imguiValue("to see more debug mode options.");
 	}

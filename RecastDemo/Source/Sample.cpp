@@ -216,11 +216,13 @@ void Sample::resetCommonSettings()
 
 void Sample::handleCommonSettings()
 {
-	// 分類：ラスタライズ
+	// 分類：ラスタライズ----------------------------------------------------------------------
 	imguiLabel("Rasterization");
+
 	imguiSlider("Cell Size"/* セルのサイズ */, &m_cellSize, 0.1f, 1.f, 0.01f);
 	imguiSlider("Cell Height"/* セルの高さ */, &m_cellHeight, 0.1f, 1.f, 0.01f);
 
+	// 地形メッシュが存在する
 	if (m_geom)
 	{
 		const float* bmin = m_geom->getNavMeshBoundsMin();
@@ -228,16 +230,18 @@ void Sample::handleCommonSettings()
 		int gw{}, gh{};
 		std::array<char, 64u> text{};
 
+		// グリットサイズの計算
 		rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
 
 		snprintf(text.data(), text.size(), "Voxels  %d x %d", gw, gh);
 		imguiValue(text.data());
 	}
 
-	// 分類：エージェント（経路探索を行う対象）情報---------------------------------------
+	// 分類：エージェント（経路探索を行う対象）情報---------------------------------------------
 	// ※ ナビメッシュの生成に影響を及ぼす
 	imguiSeparator();
 	imguiLabel("Agent");
+
 	imguiSlider("Height"/* 高さ */, &m_agentHeight, 0.1f, 5.0f, 0.1f);
 	imguiSlider("Radius"/* 半径 */, &m_agentRadius, 0.0f, 5.0f, 0.1f);
 	imguiSlider("Max Climb"/* 壁を登れる高さ */, &m_agentMaxClimb, 0.1f, 5.0f, 0.1f);
@@ -246,8 +250,10 @@ void Sample::handleCommonSettings()
 	// 分類：ナビメッシュ領域-------------------------------------------------------------------
 	imguiSeparator();
 	imguiLabel("Region");
+
 	// ナビメッシュ領域の最低サイズ（不必要に大きくすると必要な領域が削除される可能性がある）
 	imguiSlider("Min Region Size", &m_regionMinSize, 0.0f, 150.0f, 1.f);
+
 	// 付近のナビメッシュ領域とマージするサイズ（不必要に小さい領域を減らす為）(ただ、値を大きくすればするほど ナビメッシュ生成に時間がかかる)
 	imguiSlider("Merged Region Size", &m_regionMergeSize, 0.0f, 150.0f, 1.f);
 
@@ -255,16 +261,19 @@ void Sample::handleCommonSettings()
 	imguiSeparator();
 	imguiLabel("Partitioning");
 
+	// 分水界分割
 	if (imguiCheck("Watershed", m_partitionType == SAMPLE_PARTITION_WATERSHED))
 		m_partitionType = SAMPLE_PARTITION_WATERSHED;
 
+	// モノトーン分割
 	if (imguiCheck("Monotone", m_partitionType == SAMPLE_PARTITION_MONOTONE))
 		m_partitionType = SAMPLE_PARTITION_MONOTONE;
 
+	// レイヤー分割
 	if (imguiCheck("Layers", m_partitionType == SAMPLE_PARTITION_LAYERS))
 		m_partitionType = SAMPLE_PARTITION_LAYERS;
 
-	// 分類：歩行可能な面のフィルター --------------------------------------------------------------------
+	// 分類：歩行可能な面のフィルター ---------------------------------------------------------
 	// 不要なオーバーハングと、キャラが立つことができないフィルタスパンを削除 → いわゆるナビメッシュを綺麗にする機能
 	imguiSeparator();
 	imguiLabel("Filtering");
@@ -286,19 +295,22 @@ void Sample::handleCommonSettings()
 	imguiLabel("Polygonization");
 	/// 圧倒的語彙力不足！
 
-	/* メッシュの境界に沿った輪郭エッジの最大許容長(短くすればするほど端が「ガクガク」になる) */
+	// メッシュの境界に沿った輪郭エッジの最大許容長(短くすればするほど端が「ガクガク」になる)
 	imguiSlider("Max Edge Length", &m_edgeMaxLen, 0.0f, 50.0f, 1.f);
-	/* 輪郭のエッジが元の輪郭から逸脱する最大距離（ナビメッシュをどれだけ地形に合わせるか（短くすればするほど端が「カクカク」になる）） */
+
+	// 輪郭のエッジが元の輪郭から逸脱する最大距離（ナビメッシュをどれだけ地形に合わせるか（短くすればするほど端が「カクカク」になる））
 	imguiSlider("Max Edge Error", &m_edgeMaxError, 0.1f, 3.0f, 0.1f);
-	/* 輪郭からポリゴンへの変換時に生成する頂点の最大許可数（一定数を超えると全くナビメッシュが生成されなくなる）*/
+
+	// 輪郭からポリゴンへの変換時に生成する頂点の最大許可数（一定数を超えると全くナビメッシュが生成されなくなる）
 	imguiSlider("Verts Per Poly", &m_vertsPerPoly, 3.0f, 12.0f, 1.f);
 
 	// 分類：詳細メッシュ----------------------------------------------------------------------
 	imguiSeparator();
 	imguiLabel("Detail Mesh");
-	/* 地形をサンプリングするときに使用する距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※0だと生成途中でお亡くなりになるので注意 */
+	// 地形をサンプリングするときに使用する距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※0だと生成途中でお亡くなりになるので注意
 	imguiSlider("Sample Distance", &m_detailSampleDist, 0.1f, 16.0f, 1.f);
-	/* ナビメッシュ表面が地形データから逸脱する最大距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※多くするとナビメッシュから地形がはみ出てしまう*/
+
+	// ナビメッシュ表面が地形データから逸脱する最大距離(少なければ少ないほど生成時間が増加し、ナビメッシュが綺麗になる)※多くするとナビメッシュから地形がはみ出てしまう
 	imguiSlider("Max Sample Error", &m_detailSampleMaxError, 0.0f, 16.0f, 1.f);
 
 	imguiSeparator();

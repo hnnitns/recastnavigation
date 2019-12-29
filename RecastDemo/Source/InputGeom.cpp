@@ -131,14 +131,17 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 	if (m_mesh)
 	{
 		delete m_chunkyMesh;
-		m_chunkyMesh = 0;
 		delete m_mesh;
-		m_mesh = 0;
+
+		m_chunkyMesh = nullptr;
+		m_mesh = nullptr;
 	}
+
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 
 	m_mesh = new rcMeshLoaderObj;
+
 	if (!m_mesh)
 	{
 		ctx->log(RC_LOG_ERROR, "loadMesh: Out of memory 'm_mesh'."); // メモリー不足「m_mesh」
@@ -319,6 +322,7 @@ bool InputGeom::load(rcContext* ctx, const std::string& filepath)
 
 	if (extension == ".gset")
 		return loadGeomSet(ctx, filepath);
+
 	if (extension == ".obj")
 		return loadMesh(ctx, filepath);
 
@@ -485,13 +489,14 @@ bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 		q_max[1] = src[2] + (ray_vec[2]) * btmax;
 	}
 
-	int cid[512];
+	int cid[512]{};
 	// 入力セグメントとオーバーラップするチャンクインデックスを返す
 	const int ncid = rcGetChunksOverlappingSegment(m_chunkyMesh, p_min, q_max, cid, 512);
-	if (!ncid)
-		return false;
+
+	if (!ncid) return false;
 
 	tmin = 1.f;
+
 	bool hit = false;
 	const float* verts = m_mesh->getVerts();
 
@@ -505,6 +510,7 @@ bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 		for (int j = 0; j < ntris * 3; j += 3)
 		{
 			float t = 1;
+
 			// レイとポリゴンとの判定
 			if (intersectSegmentTriangle(src, dst,
 				&verts[tris[j] * 3],

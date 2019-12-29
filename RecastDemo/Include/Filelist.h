@@ -22,7 +22,10 @@
 #include <vector>
 #include <string>
 
+// ファイルの探索を行い、fileListに更に追加
 void scanDirectoryAppend(const std::string& path, const std::string& ext, std::vector<std::string>& fileList);
+
+// ファイルの探索を行い、fileListに新規追加
 void scanDirectory(const std::string& path, const std::string& ext, std::vector<std::string>& fileList);
 
 #endif // FILELIST_H

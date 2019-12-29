@@ -116,7 +116,8 @@ static char* parseRow(char* buf, char* bufEnd, char* row, int len)
 
 static int parseFace(char* row, int* data, int n, int vcnt)
 {
-	int j = 0;
+	int j{};
+
 	while (*row != '\0')
 	{
 		// Skip initial white space

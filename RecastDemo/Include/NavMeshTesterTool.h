@@ -107,6 +107,7 @@ public:
 	virtual void handleRender();
 	virtual void handleRenderOverlay(double* proj, double* model, int* view);
 
+	// Œo˜H’Tõ‚È‚Ç‚ğs‚¤
 	void recalc();
 	void drawAgent(const float* pos, float r, float h, float c, const unsigned int col);
 };

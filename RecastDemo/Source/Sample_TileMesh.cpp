@@ -734,7 +734,7 @@ bool Sample_TileMesh::handleBuild()
 	status = m_navMesh->init(&params);
 	if (dtStatusFailed(status))
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init navmesh."); // navmeshを初期化できませんでした。
+		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not init navmesh."); // ナビメッシュを初期化できませんでした。
 		return false;
 	}
 

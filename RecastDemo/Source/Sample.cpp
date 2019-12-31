@@ -144,9 +144,10 @@ void Sample::handleRender()
 		m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.f);
 
 	// Draw bounds // 境界を描く
-	const float* bmin = m_geom->getMeshBoundsMin();
-	const float* bmax = m_geom->getMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
+	const auto* bmin = m_geom->getMeshBoundsMin();
+	const auto* bmax = m_geom->getMeshBoundsMax();
+	duDebugDrawBoxWire(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), bmax->at(0), bmax->at(1), bmax->at(2),
+		duRGBA(255, 255, 255, 128), 1.f);
 }
 
 void Sample::handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/)
@@ -225,13 +226,13 @@ void Sample::handleCommonSettings()
 	// 地形メッシュが存在する
 	if (m_geom)
 	{
-		const float* bmin = m_geom->getNavMeshBoundsMin();
-		const float* bmax = m_geom->getNavMeshBoundsMax();
+		const auto* bmin = m_geom->getNavMeshBoundsMin();
+		const auto* bmax = m_geom->getNavMeshBoundsMax();
 		int gw{}, gh{};
 		std::array<char, 64u> text{};
 
 		// グリットサイズの計算
-		rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+		rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
 
 		snprintf(text.data(), text.size(), "Voxels  %d x %d", gw, gh);
 		imguiValue(text.data());

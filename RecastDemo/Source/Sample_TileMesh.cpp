@@ -361,9 +361,9 @@ void Sample_TileMesh::handleSettings()
 	{
 		char text[64];
 		int gw = 0, gh = 0;
-		const float* bmin = m_geom->getNavMeshBoundsMin();
-		const float* bmax = m_geom->getNavMeshBoundsMax();
-		rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+		const auto* bmin = m_geom->getNavMeshBoundsMin();
+		const auto* bmax = m_geom->getNavMeshBoundsMax();
+		rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
 		const int ts = (int)m_tileSize;
 		const int tw = (gw + ts - 1) / ts;
 		const int th = (gh + ts - 1) / ts;
@@ -545,10 +545,10 @@ void Sample_TileMesh::handleRender()
 
 	const float texScale = 1.f / (m_cellSize * 10.0f);
 
-	// Draw mesh
+	// Draw mesh // メッシュを描画
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
-		// Draw mesh
+		// Draw mesh // メッシュを描画
 		duDebugDrawTriMeshSlope(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
 			m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(),
 			m_agentMaxSlope, texScale);
@@ -557,18 +557,19 @@ void Sample_TileMesh::handleRender()
 
 	glDepthMask(GL_FALSE);
 
-	// Draw bounds
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
+	// Draw bounds // 境界を描く
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	duDebugDrawBoxWire(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), bmax->at(0), bmax->at(1), bmax->at(2),
+		duRGBA(255, 255, 255, 128), 1.f);
 
 	// Tiling grid.
 	int gw = 0, gh = 0;
-	rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
 	const int tw = (gw + (int)m_tileSize - 1) / (int)m_tileSize;
 	const int th = (gh + (int)m_tileSize - 1) / (int)m_tileSize;
 	const float s = m_tileSize * m_cellSize;
-	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
+	duDebugDrawGridXZ(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
 	// Draw active tile
 	duDebugDrawBoxWire(&m_dd, m_lastBuiltTileBmin[0], m_lastBuiltTileBmin[1], m_lastBuiltTileBmin[2],
@@ -723,7 +724,7 @@ bool Sample_TileMesh::handleBuild()
 	}
 
 	dtNavMeshParams params;
-	rcVcopy(params.orig, m_geom->getNavMeshBoundsMin());
+	rcVcopy(params.orig, m_geom->getNavMeshBoundsMin()->data());
 	params.tileWidth = m_tileSize * m_cellSize;
 	params.tileHeight = m_tileSize * m_cellSize;
 	params.maxTiles = m_maxTiles;
@@ -766,20 +767,20 @@ void Sample_TileMesh::buildTile(const float* pos)
 	if (!m_geom) return;
 	if (!m_navMesh) return;
 
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
 
 	const float ts = m_tileSize * m_cellSize;
-	const int tx = (int)((pos[0] - bmin[0]) / ts);
-	const int ty = (int)((pos[2] - bmin[2]) / ts);
+	const int tx = (int)((pos[0] - bmin->at(0)) / ts);
+	const int ty = (int)((pos[2] - bmin->at(2)) / ts);
 
-	m_lastBuiltTileBmin[0] = bmin[0] + tx * ts;
-	m_lastBuiltTileBmin[1] = bmin[1];
-	m_lastBuiltTileBmin[2] = bmin[2] + ty * ts;
+	m_lastBuiltTileBmin[0] = bmin->at(0) + tx * ts;
+	m_lastBuiltTileBmin[1] = bmin->at(1);
+	m_lastBuiltTileBmin[2] = bmin->at(2) + ty * ts;
 
-	m_lastBuiltTileBmax[0] = bmin[0] + (tx + 1) * ts;
-	m_lastBuiltTileBmax[1] = bmax[1];
-	m_lastBuiltTileBmax[2] = bmin[2] + (ty + 1) * ts;
+	m_lastBuiltTileBmax[0] = bmin->at(0) + (tx + 1) * ts;
+	m_lastBuiltTileBmax[1] = bmax->at(1);
+	m_lastBuiltTileBmax[2] = bmin->at(2) + (ty + 1) * ts;
 
 	m_tileCol = duRGBA(255, 255, 255, 64);
 
@@ -789,15 +790,18 @@ void Sample_TileMesh::buildTile(const float* pos)
 	unsigned char* data = buildTileMesh(tx, ty, m_lastBuiltTileBmin, m_lastBuiltTileBmax, dataSize);
 
 	// Remove any previous data (navmesh owns and deletes the data).
+	// 以前のデータを削除します（navmeshはデータを所有および削除します）。
 	m_navMesh->removeTile(m_navMesh->getTileRefAt(tx, ty, 0), 0, 0);
 
 	// Add tile, or leave the location empty.
+	// タイルを追加するか、場所を空のままにします。
 	if (data)
 	{
 		// Let the navmesh own the data.
+		// ナビメッシュにデータを所有させます。
 		dtStatus status = m_navMesh->addTile(data, dataSize, DT_TILE_FREE_DATA, 0, 0);
-		if (dtStatusFailed(status))
-			dtFree(data);
+
+		if (dtStatusFailed(status)) dtFree(data);
 	}
 
 	m_ctx->dumpLog("Build Tile (%d,%d):", tx, ty);
@@ -807,11 +811,11 @@ void Sample_TileMesh::getTilePos(const float* pos, int& tx, int& ty)
 {
 	if (!m_geom) return;
 
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
 	const float ts = m_tileSize * m_cellSize;
-	tx = (int)((pos[0] - bmin[0]) / ts);
-	ty = (int)((pos[2] - bmin[2]) / ts);
+
+	tx = (int)((pos[0] - bmin->at(0)) / ts);
+	ty = (int)((pos[2] - bmin->at(2)) / ts);
 }
 
 void Sample_TileMesh::removeTile(const float* pos)
@@ -819,20 +823,20 @@ void Sample_TileMesh::removeTile(const float* pos)
 	if (!m_geom) return;
 	if (!m_navMesh) return;
 
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
 
 	const float ts = m_tileSize * m_cellSize;
-	const int tx = (int)((pos[0] - bmin[0]) / ts);
-	const int ty = (int)((pos[2] - bmin[2]) / ts);
+	const int tx = (int)((pos[0] - bmin->at(0)) / ts);
+	const int ty = (int)((pos[2] - bmin->at(2)) / ts);
 
-	m_lastBuiltTileBmin[0] = bmin[0] + tx * ts;
-	m_lastBuiltTileBmin[1] = bmin[1];
-	m_lastBuiltTileBmin[2] = bmin[2] + ty * ts;
+	m_lastBuiltTileBmin[0] = bmin->at(0) + tx * ts;
+	m_lastBuiltTileBmin[1] = bmin->at(1);
+	m_lastBuiltTileBmin[2] = bmin->at(2) + ty * ts;
 
-	m_lastBuiltTileBmax[0] = bmin[0] + (tx + 1) * ts;
-	m_lastBuiltTileBmax[1] = bmax[1];
-	m_lastBuiltTileBmax[2] = bmin[2] + (ty + 1) * ts;
+	m_lastBuiltTileBmax[0] = bmin->at(0) + (tx + 1) * ts;
+	m_lastBuiltTileBmax[1] = bmax->at(1);
+	m_lastBuiltTileBmax[2] = bmin->at(2) + (ty + 1) * ts;
 
 	m_tileCol = duRGBA(128, 32, 16, 64);
 
@@ -844,11 +848,11 @@ void Sample_TileMesh::buildAllTiles()
 	if (!m_geom) return;
 	if (!m_navMesh) return;
 
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
 	int gw{}, gh{};
 
-	rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
 
 	const int ts = (int)m_tileSize;
 	const int tw = (gw + ts - 1) / ts;
@@ -863,13 +867,13 @@ void Sample_TileMesh::buildAllTiles()
 	{
 		for (int x = 0; x < tw; ++x)
 		{
-			m_lastBuiltTileBmin[0] = bmin[0] + x * tcs;
-			m_lastBuiltTileBmin[1] = bmin[1];
-			m_lastBuiltTileBmin[2] = bmin[2] + y * tcs;
+			m_lastBuiltTileBmin[0] = bmin->at(0) + x * tcs;
+			m_lastBuiltTileBmin[1] = bmin->at(1);
+			m_lastBuiltTileBmin[2] = bmin->at(2) + y * tcs;
 
-			m_lastBuiltTileBmax[0] = bmin[0] + (x + 1) * tcs;
-			m_lastBuiltTileBmax[1] = bmax[1];
-			m_lastBuiltTileBmax[2] = bmin[2] + (y + 1) * tcs;
+			m_lastBuiltTileBmax[0] = bmin->at(0) + (x + 1) * tcs;
+			m_lastBuiltTileBmax[1] = bmax->at(1);
+			m_lastBuiltTileBmax[2] = bmin->at(2) + (y + 1) * tcs;
 
 			int dataSize{};
 			unsigned char* data = buildTileMesh(x, y, m_lastBuiltTileBmin, m_lastBuiltTileBmax, dataSize);
@@ -901,10 +905,12 @@ void Sample_TileMesh::removeAllTiles()
 	if (!m_geom || !m_navMesh)
 		return;
 
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
-	int gw = 0, gh = 0;
-	rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	int gw{}, gh{};
+
+	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
+
 	const int ts = (int)m_tileSize;
 	const int tw = (gw + ts - 1) / ts;
 	const int th = (gh + ts - 1) / ts;
@@ -930,7 +936,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	const float* verts = m_geom->getMesh()->getVerts();
 	const int nverts = m_geom->getMesh()->getVertCount();
 	const int ntris = m_geom->getMesh()->getTriCount();
-	const rcChunkyTriMesh* chunkyMesh = m_geom->getChunkyMesh();
+	const auto& chunkyMesh = m_geom->getChunkyMesh();
 
 	// Init build configuration from GUI
 	// GUIからのビルド構成の初期化
@@ -1038,7 +1044,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	tbmax[1] = m_cfg.bmax[2];
 
 	int cid[512]{}; // TODO: Make grow when returning too many items. // 戻るアイテムが多すぎる場合はサイズを大きくさせる。
-	const int ncid = rcGetChunksOverlappingRect(chunkyMesh, tbmin, tbmax, cid, 512);
+	const int ncid = rcGetChunksOverlappingRect(chunkyMesh.get(), tbmin, tbmax, cid, 512);
 
 	if (!ncid) return nullptr;
 
@@ -1115,9 +1121,10 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	// (Optional) Mark areas.
 	//（オプション）エリアをマークします。
-	const ConvexVolume* vols = m_geom->getConvexVolumes();
+	const auto* vols = m_geom->getConvexVolumes();
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
-		rcMarkConvexPolyArea(m_ctx, vols[i].verts, vols[i].nverts, vols[i].hmin, vols[i].hmax, vols[i].areaMod, *m_chf);
+		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts, vols->at(i).hmin, vols->at(i).hmax,
+			vols->at(i).areaMod, *m_chf);
 
 	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
 	// There are 3 martitioning methods, each with some pros and cons:
@@ -1308,12 +1315,12 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		params.detailVertsCount = m_dmesh->nverts;
 		params.detailTris = m_dmesh->tris;
 		params.detailTriCount = m_dmesh->ntris;
-		params.offMeshConVerts = m_geom->getOffMeshConnectionVerts();
-		params.offMeshConRad = m_geom->getOffMeshConnectionRads();
-		params.offMeshConDir = m_geom->getOffMeshConnectionDirs();
-		params.offMeshConAreas = m_geom->getOffMeshConnectionAreas();
-		params.offMeshConFlags = m_geom->getOffMeshConnectionFlags();
-		params.offMeshConUserID = m_geom->getOffMeshConnectionId();
+		params.offMeshConVerts = m_geom->getOffMeshConnectionVerts()->data();
+		params.offMeshConRad = m_geom->getOffMeshConnectionRads()->data();
+		params.offMeshConDir = m_geom->getOffMeshConnectionDirs()->data();
+		params.offMeshConAreas = m_geom->getOffMeshConnectionAreas()->data();
+		params.offMeshConFlags = m_geom->getOffMeshConnectionFlags()->data();
+		params.offMeshConUserID = m_geom->getOffMeshConnectionId()->data();
 		params.offMeshConCount = m_geom->getOffMeshConnectionCount();
 		params.walkableHeight = m_agentHeight;
 		params.walkableRadius = m_agentRadius;

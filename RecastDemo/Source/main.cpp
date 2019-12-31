@@ -16,6 +16,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include <cstdio>
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -74,12 +78,16 @@ constexpr int g_nsamples = sizeof(g_samples) / sizeof(SampleItem);
 
 int main(int /*argc*/, char** /*argv*/)
 {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
 	// Init SDL
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 	{
 		printf("Could not initialise SDL.\nError: %s\n", SDL_GetError());
 		return -1;
 	}
+
+	//int* a = new int;
 
 	// Enable depth buffer.
 	// 深度バッファを有効にします。
@@ -271,8 +279,8 @@ int main(int /*argc*/, char** /*argv*/)
 								BuildSettings settings{}; // 保存用構造体
 
 								// コピー
-								rcVcopy(settings.navMeshBMin, geom->getNavMeshBoundsMin());
-								rcVcopy(settings.navMeshBMax, geom->getNavMeshBoundsMax());
+								settings.navMeshBMin = *geom->getNavMeshBoundsMin();
+								settings.navMeshBMax = *geom->getNavMeshBoundsMax();
 
 								// 保存したい設定の収集
 								sample->collectSettings(settings);
@@ -453,7 +461,7 @@ int main(int /*argc*/, char** /*argv*/)
 				// 通常時
 				else
 				{
-					float pos[3];
+					float pos[3]{};
 
 					// 実際の交点を計算
 					pos[0] = ray_start[0] + (ray_vec[0] * hit_dis);
@@ -505,7 +513,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		// Set the viewport. // ビューポートを設定します。
 		glViewport(0, 0, width, height);
-		GLint viewport[4];
+		GLint viewport[4]{};
 		glGetIntegerv(GL_VIEWPORT, viewport);
 
 		// Clear the screen // 画面をクリアします
@@ -756,25 +764,19 @@ int main(int /*argc*/, char** /*argv*/)
 
 			if (geom || sample)
 			{
-				const float* bmin{};
-				const float* bmax{};
-
-				if (geom)
-				{
-					bmin = geom->getNavMeshBoundsMin();
-					bmax = geom->getNavMeshBoundsMax();
-				}
+				const auto* bmin{ geom ? geom->getNavMeshBoundsMin() : nullptr };
+				const auto* bmax{ geom ? geom->getNavMeshBoundsMax() : nullptr };
 
 				// Reset camera and fog to match the mesh bounds.
 				// カメラとフォグをリセットして、メッシュの境界に一致させます。
 				if (bmin && bmax)
 				{
-					camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
-						rcSqr(bmax[1] - bmin[1]) +
-						rcSqr(bmax[2] - bmin[2])) / 2;
-					cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
-					cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
-					cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
+					camr = sqrtf(rcSqr(bmax->at(0) - bmin->at(0)) +
+						rcSqr(bmax->at(1) - bmin->at(1)) +
+						rcSqr(bmax->at(2) - bmin->at(2))) / 2.f;
+					cameraPos[0] = (bmax->at(0) + bmin->at(0)) / 2 + camr;
+					cameraPos[1] = (bmax->at(1) + bmin->at(1)) / 2 + camr;
+					cameraPos[2] = (bmax->at(2) + bmin->at(2)) / 2 + camr;
 					camr *= 3;
 				}
 
@@ -845,25 +847,21 @@ int main(int /*argc*/, char** /*argv*/)
 
 				if (geom || sample)
 				{
-					const float* bmin{};
-					const float* bmax{};
-
-					if (geom)
-					{
-						bmin = geom->getNavMeshBoundsMin();
-						bmax = geom->getNavMeshBoundsMax();
-					}
+					const auto* bmin{ geom ? geom->getNavMeshBoundsMin() : nullptr };
+					const auto* bmax{ geom ? geom->getNavMeshBoundsMax() : nullptr };
 
 					// Reset camera and fog to match the mesh bounds.
 					// メッシュの境界に一致するようにカメラとフォグをリセットします。
 					if (bmin && bmax)
 					{
-						camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
-							rcSqr(bmax[1] - bmin[1]) +
-							rcSqr(bmax[2] - bmin[2])) / 2;
-						cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
-						cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
-						cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
+						camr = sqrtf(rcSqr(bmax->at(0) - bmin->at(0)) +
+							rcSqr(bmax->at(1) - bmin->at(1)) +
+							rcSqr(bmax->at(2) - bmin->at(2))) / 2.f;
+
+						cameraPos[0] = (bmax->at(0) + bmin->at(0)) / 2 + camr;
+						cameraPos[1] = (bmax->at(1) + bmin->at(1)) / 2 + camr;
+						cameraPos[2] = (bmax->at(2) + bmin->at(2)) / 2 + camr;
+
 						camr *= 3;
 					}
 
@@ -958,26 +956,21 @@ int main(int /*argc*/, char** /*argv*/)
 
 					if (geom || sample)
 					{
-						const float* bmin{};
-						const float* bmax{};
-
-						if (geom)
-						{
-							bmin = geom->getNavMeshBoundsMin();
-							bmax = geom->getNavMeshBoundsMax();
-						}
+						const auto* bmin{ geom ? geom->getNavMeshBoundsMin() : nullptr };
+						const auto* bmax{ geom ? geom->getNavMeshBoundsMax() : nullptr };
 
 						// Reset camera and fog to match the mesh bounds.
 						// メッシュの境界に一致するようにカメラとフォグをリセットします。
 						if (bmin && bmax)
 						{
-							camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
-									rcSqr(bmax[1] - bmin[1]) +
-									rcSqr(bmax[2] - bmin[2])) / 2;
+							camr = sqrtf(rcSqr(bmax->at(0) - bmin->at(0)) +
+								rcSqr(bmax->at(1) - bmin->at(1)) +
+								rcSqr(bmax->at(2) - bmin->at(2))) / 2.f;
 
-							cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
-							cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
-							cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
+							cameraPos[0] = (bmax->at(0) + bmin->at(0)) / 2 + camr;
+							cameraPos[1] = (bmax->at(1) + bmin->at(1)) / 2 + camr;
+							cameraPos[2] = (bmax->at(2) + bmin->at(2)) / 2 + camr;
+
 							camr *= 3;
 						}
 
@@ -1058,6 +1051,8 @@ int main(int /*argc*/, char** /*argv*/)
 	// 終了処理
 	imguiRenderGLDestroy();
 	SDL_Quit();
+
+	_CrtDumpMemoryLeaks();
 
 	return 0;
 }

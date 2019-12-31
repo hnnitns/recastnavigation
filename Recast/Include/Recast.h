@@ -21,6 +21,8 @@
 
 #include <utility>
 #include <algorithm>
+#include <array>
+#include <memory>
 #include "RecastConfig.h"
 
 // The value of PI used by Recast.

@@ -82,27 +82,35 @@ void OffMeshConnectionTool::handleMenu()
 void OffMeshConnectionTool::handleClick(const float* /*s*/, const float* p, bool shift)
 {
 	if (!m_sample) return;
+
 	InputGeom* geom = m_sample->getInputGeom();
+
 	if (!geom) return;
 
 	if (shift)
 	{
 		// Delete
 		// Find nearest link end-point
+		// 最も近いリンクのエンドポイントを見つける
 		float nearestDist = FLT_MAX;
 		int nearestIndex = -1;
-		const float* verts = geom->getOffMeshConnectionVerts();
+
+		const auto* verts = geom->getOffMeshConnectionVerts();
+
 		for (int i = 0; i < geom->getOffMeshConnectionCount() * 2; ++i)
 		{
-			const float* v = &verts[i * 3];
-			float d = rcVdistSqr(p, v);
+			const auto* v = &verts[i * 3];
+			float d = rcVdistSqr(p, v->data());
+
 			if (d < nearestDist)
 			{
 				nearestDist = d;
-				nearestIndex = i / 2; // Each link has two vertices.
+				nearestIndex = i / 2; // Each link has two vertices. // 各リンクには2つの頂点があります。
 			}
 		}
+
 		// If end point close enough, delete it.
+		// エンドポイントが十分に近い場合は、削除します。
 		if (nearestIndex != -1 &&
 			sqrtf(nearestDist) < m_sample->getAgentRadius())
 		{

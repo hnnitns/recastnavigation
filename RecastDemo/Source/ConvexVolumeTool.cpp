@@ -161,23 +161,28 @@ void ConvexVolumeTool::handleMenu()
 void ConvexVolumeTool::handleClick(const float* /*s*/, const float* p, bool shift)
 {
 	if (!m_sample) return;
-	InputGeom* geom = m_sample->getInputGeom();
+
+	InputGeom* geom{ m_sample->getInputGeom() };
+
 	if (!geom) return;
 
 	if (shift)
 	{
 		// Delete
 		int nearestIndex = -1;
-		const ConvexVolume* vols = geom->getConvexVolumes();
+		const auto* vols = geom->getConvexVolumes();
+
 		for (int i = 0; i < geom->getConvexVolumeCount(); ++i)
 		{
-			if (pointInPoly(vols[i].nverts, vols[i].verts, p) &&
-				p[1] >= vols[i].hmin && p[1] <= vols[i].hmax)
+			if (pointInPoly(vols->at(i).nverts, vols->at(i).verts.data(), p) &&
+				p[1] >= vols->at(i).hmin && p[1] <= vols->at(i).hmax)
 			{
 				nearestIndex = i;
 			}
 		}
+
 		// If end point close enough, delete it.
+		// エンドポイントが十分に近い場合は、削除します。
 		if (nearestIndex != -1)
 		{
 			geom->deleteConvexVolume(nearestIndex);

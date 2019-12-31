@@ -112,7 +112,7 @@ static char* parseRow(char* buf, char* bufEnd, char* row, int len)
 }
 
 InputGeom::InputGeom() :
-	m_chunkyMesh(0),
+	m_chunkyMesh(nullptr),
 	m_mesh(0),
 	m_hasBuildSettings(false),
 	m_offMeshConCount(0),
@@ -122,7 +122,6 @@ InputGeom::InputGeom() :
 
 InputGeom::~InputGeom()
 {
-	delete m_chunkyMesh;
 	delete m_mesh;
 }
 
@@ -130,7 +129,6 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 {
 	if (m_mesh)
 	{
-		delete m_chunkyMesh;
 		delete m_mesh;
 
 		m_chunkyMesh = nullptr;
@@ -153,15 +151,16 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 		return false;
 	}
 
-	rcCalcBounds(m_mesh->getVerts(), m_mesh->getVertCount(), m_meshBMin, m_meshBMax);
+	rcCalcBounds(m_mesh->getVerts(), m_mesh->getVertCount(), m_meshBMin.data(), m_meshBMax.data());
 
-	m_chunkyMesh = new rcChunkyTriMesh;
+	m_chunkyMesh = std::make_unique<rcChunkyTriMesh>();
+
 	if (!m_chunkyMesh)
 	{
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Out of memory 'm_chunkyMesh'."); // メモリー不足「m_chunkyMesh」
 		return false;
 	}
-	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, m_chunkyMesh))
+	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, m_chunkyMesh.get()))
 	{
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Failed to build chunky mesh."); // チャンキーメッシュの構築に失敗しました
 		return false;
@@ -479,7 +478,7 @@ bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 
 		// Prune hit ray.
 		// スラブとレイとの判定
-		if (!isectSegAABB(src, dst, m_meshBMin, m_meshBMax, btmin, btmax))
+		if (!isectSegAABB(src, dst, m_meshBMin.data(), m_meshBMax.data(), btmin, btmax))
 			return false;
 
 		// スラブとレイの２交点（最大値、最小値）を求める
@@ -491,7 +490,7 @@ bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 
 	int cid[512]{};
 	// 入力セグメントとオーバーラップするチャンクインデックスを返す
-	const int ncid = rcGetChunksOverlappingSegment(m_chunkyMesh, p_min, q_max, cid, 512);
+	const int ncid = rcGetChunksOverlappingSegment(m_chunkyMesh.get(), p_min, q_max, cid, 512);
 
 	if (!ncid) return false;
 
@@ -547,10 +546,13 @@ void InputGeom::addOffMeshConnection(const float* spos, const float* epos, const
 void InputGeom::deleteOffMeshConnection(int i)
 {
 	m_offMeshConCount--;
+
 	float* src = &m_offMeshConVerts[m_offMeshConCount * 3 * 2];
 	float* dst = &m_offMeshConVerts[i * 3 * 2];
+
 	rcVcopy(&dst[0], &src[0]);
 	rcVcopy(&dst[3], &src[3]);
+
 	m_offMeshConRads[i] = m_offMeshConRads[m_offMeshConCount];
 	m_offMeshConDirs[i] = m_offMeshConDirs[m_offMeshConCount];
 	m_offMeshConAreas[i] = m_offMeshConAreas[m_offMeshConCount];
@@ -592,9 +594,12 @@ void InputGeom::addConvexVolume(const float* verts, const int nverts,
 	const float minh, const float maxh, rcAreaModification areaMod)
 {
 	if (m_volumeCount >= MAX_VOLUMES) return;
+
 	ConvexVolume* vol = &m_volumes[m_volumeCount++];
+
 	memset(vol, 0, sizeof(ConvexVolume));
-	memcpy(vol->verts, verts, sizeof(float) * 3 * nverts);
+	memcpy(&vol->verts, verts, sizeof(float) * 3 * nverts);
+
 	vol->hmin = minh;
 	vol->hmax = maxh;
 	vol->nverts = nverts;

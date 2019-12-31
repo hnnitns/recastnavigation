@@ -208,12 +208,12 @@ struct MeshProcess : public dtTileCacheMeshProcess
 		// Pass in off-mesh connections.
 		if (m_geom)
 		{
-			params->offMeshConVerts = m_geom->getOffMeshConnectionVerts();
-			params->offMeshConRad = m_geom->getOffMeshConnectionRads();
-			params->offMeshConDir = m_geom->getOffMeshConnectionDirs();
-			params->offMeshConAreas = m_geom->getOffMeshConnectionAreas();
-			params->offMeshConFlags = m_geom->getOffMeshConnectionFlags();
-			params->offMeshConUserID = m_geom->getOffMeshConnectionId();
+			params->offMeshConVerts = m_geom->getOffMeshConnectionVerts()->data();
+			params->offMeshConRad = m_geom->getOffMeshConnectionRads()->data();
+			params->offMeshConDir = m_geom->getOffMeshConnectionDirs()->data();
+			params->offMeshConAreas = m_geom->getOffMeshConnectionAreas()->data();
+			params->offMeshConFlags = m_geom->getOffMeshConnectionFlags()->data();
+			params->offMeshConUserID = m_geom->getOffMeshConnectionId()->data();
 			params->offMeshConCount = m_geom->getOffMeshConnectionCount();
 		}
 	}
@@ -277,7 +277,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 
 	const float* verts = m_geom->getMesh()->getVerts();
 	const int nverts = m_geom->getMesh()->getVertCount();
-	const rcChunkyTriMesh* chunkyMesh = m_geom->getChunkyMesh();
+	const auto& chunkyMesh = m_geom->getChunkyMesh();
 
 	// Tile bounds.
 	// タイル境界
@@ -332,7 +332,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	tbmax[1] = tcfg.bmax[2];
 
 	int cid[512]{}; // TODO: Make grow when returning too many items.  // 返品するアイテムが多すぎる場合は成長させます。
-	const int ncid = rcGetChunksOverlappingRect(chunkyMesh, tbmin, tbmax, cid, 512);
+	const int ncid = rcGetChunksOverlappingRect(chunkyMesh.get(), tbmin, tbmax, cid, 512);
 
 	if (!ncid) return 0; // empty
 
@@ -390,13 +390,13 @@ int Sample_TempObstacles::rasterizeTileLayers(
 
 	// (Optional) Mark areas.
 	//（オプション）エリアをマークします。
-	const ConvexVolume* vols{ m_geom->getConvexVolumes() };
+	const auto* vols{ m_geom->getConvexVolumes() };
 
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 	{
-		rcMarkConvexPolyArea(m_ctx, vols[i].verts, vols[i].nverts,
-			vols[i].hmin, vols[i].hmax,
-			vols[i].areaMod, *rc.chf);
+		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts,
+			vols->at(i).hmin, vols->at(i).hmax,
+			vols->at(i).areaMod, *rc.chf);
 	}
 
 	// Recastアロケーターを使用して、地形レイヤーセットを割り当てる
@@ -858,33 +858,41 @@ void Sample_TempObstacles::handleSettings()
 	imguiLabel("Tiling"/* タイル */);
 	imguiSlider("TileSize"/* タイルサイズ */, &m_tileSize, 16.0f, 128.0f, 8.0f);
 
-	int gridSize = 1;
+	int gridSize{ 1 };
 	if (m_geom)
 	{
-		const float* bmin = m_geom->getNavMeshBoundsMin();
-		const float* bmax = m_geom->getNavMeshBoundsMax();
-		char text[64];
-		int gw = 0, gh = 0;
-		rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+		const auto* bmin = m_geom->getNavMeshBoundsMin();
+		const auto* bmax = m_geom->getNavMeshBoundsMax();
+		std::array<char, 64> text{};
+		int gw{}, gh{};
+
+		rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
+
 		const int ts = (int)m_tileSize;
 		const int tw = (gw + ts - 1) / ts;
 		const int th = (gh + ts - 1) / ts;
-		snprintf(text, 64, "Tiles  %d x %d", tw, th);
-		imguiValue(text);
+
+		snprintf(text.data(), text.size(), "Tiles  %d x %d", tw, th);
+		imguiValue(text.data());
 
 		// Max tiles and max polys affect how the tile IDs are caculated.
 		// There are 22 bits available for identifying a tile and a polygon.
 		// 最大タイルと最大ポリープは、タイルIDの計算方法に影響します。
 		// タイルとポリゴンを識別するために利用可能な22ビットがあります。
 		int tileBits = rcMin((int)dtIlog2(dtNextPow2(tw * th * EXPECTED_LAYERS_PER_TILE)), 14);
+
 		if (tileBits > 14) tileBits = 14;
+
 		int polyBits = 22 - tileBits;
+
 		m_maxTiles = 1 << tileBits;
 		m_maxPolysPerTile = 1 << polyBits;
-		snprintf(text, 64, "Max Tiles  %d", m_maxTiles);
-		imguiValue(text);
-		snprintf(text, 64, "Max Polys  %d", m_maxPolysPerTile);
-		imguiValue(text);
+
+		snprintf(text.data(), text.size(), "Max Tiles  %d", m_maxTiles);
+		imguiValue(text.data());
+		snprintf(text.data(), text.size(), "Max Polys  %d", m_maxPolysPerTile);
+		imguiValue(text.data());
+
 		gridSize = tw * th;
 	}
 	else
@@ -896,21 +904,21 @@ void Sample_TempObstacles::handleSettings()
 	imguiSeparator();
 
 	imguiLabel("Tile Cache");
-	char msg[64];
+	std::array<char, 64> msg;
 
 	const float compressionRatio = (float)m_cacheCompressedSize / (float)(m_cacheRawSize + 1);
 
-	snprintf(msg, 64, "Layers  %d", m_cacheLayerCount);
-	imguiValue(msg);
-	snprintf(msg, 64, "Layers (per tile)  %.1f", (float)m_cacheLayerCount / (float)gridSize);
-	imguiValue(msg);
+	snprintf(msg.data(), msg.size(), "Layers  %d", m_cacheLayerCount);
+	imguiValue(msg.data());
+	snprintf(msg.data(), msg.size(), "Layers (per tile)  %.1f", (float)m_cacheLayerCount / (float)gridSize);
+	imguiValue(msg.data());
 
-	snprintf(msg, 64, "Memory  %.1f kB / %.1f kB (%.1f%%)", m_cacheCompressedSize / 1024.0f, m_cacheRawSize / 1024.0f, compressionRatio * 100.0f);
-	imguiValue(msg);
-	snprintf(msg, 64, "Navmesh Build Time  %.1f ms", m_cacheBuildTimeMs);
-	imguiValue(msg);
-	snprintf(msg, 64, "Build Peak Mem Usage  %.1f kB", m_cacheBuildMemUsage / 1024.0f);
-	imguiValue(msg);
+	snprintf(msg.data(), msg.size(), "Memory  %.1f kB / %.1f kB (%.1f%%)", m_cacheCompressedSize / 1024.0f, m_cacheRawSize / 1024.0f, compressionRatio * 100.0f);
+	imguiValue(msg.data());
+	snprintf(msg.data(), msg.size(), "Navmesh Build Time  %.1f ms", m_cacheBuildTimeMs);
+	imguiValue(msg.data());
+	snprintf(msg.data(), msg.size(), "Build Peak Mem Usage  %.1f kB", m_cacheBuildMemUsage / 1024.0f);
+	imguiValue(msg.data());
 
 	imguiSeparator();
 
@@ -1034,13 +1042,14 @@ void Sample_TempObstacles::handleRender()
 
 	const float texScale = 1.f / (m_cellSize * 10.0f);
 
-	// Draw mesh
+	// Draw mesh // メッシュを描画
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
-		// Draw mesh
+		// Draw mesh // メッシュを描画
 		duDebugDrawTriMeshSlope(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
 			m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(),
 			m_agentMaxSlope, texScale);
+
 		m_geom->drawOffMeshConnections(&m_dd);
 	}
 
@@ -1052,18 +1061,19 @@ void Sample_TempObstacles::handleRender()
 
 	glDepthMask(GL_FALSE);
 
-	// Draw bounds
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
+	// Draw bounds // 境界を描く
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	duDebugDrawBoxWire(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), bmax->at(0), bmax->at(1), bmax->at(2),
+		duRGBA(255, 255, 255, 128), 1.f);
 
-	// Tiling grid.
-	int gw = 0, gh = 0;
-	rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+	// Tiling grid. // タイルグリッド。
+	int gw{}, gh{};
+	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
 	const int tw = (gw + (int)m_tileSize - 1) / (int)m_tileSize;
 	const int th = (gh + (int)m_tileSize - 1) / (int)m_tileSize;
 	const float s = m_tileSize * m_cellSize;
-	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
+	duDebugDrawGridXZ(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
 	if (m_navMesh && m_navQuery &&
 		(m_drawMode == DRAWMODE_NAVMESH ||
@@ -1159,8 +1169,8 @@ void Sample_TempObstacles::handleMeshChanged(class InputGeom* geom)
 
 void Sample_TempObstacles::addTempObstacle(const float* pos)
 {
-	if (!m_tileCache)
-		return;
+	if (!m_tileCache) return;
+
 	float p[3];
 	dtVcopy(p, pos);
 	p[1] -= 0.5f;
@@ -1200,10 +1210,10 @@ bool Sample_TempObstacles::handleBuild()
 	m_tmproc->init(m_geom);
 
 	// Init cache // キャッシュの初期化
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
 	int gw = 0, gh = 0;
-	rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
+	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
 	const int ts = (int)m_tileSize;
 	const int tw = (gw + ts - 1) / ts;
 	const int th = (gh + ts - 1) / ts;
@@ -1228,14 +1238,14 @@ bool Sample_TempObstacles::handleBuild()
 	cfg.height                 = cfg.tileSize + cfg.borderSize * 2;
 	cfg.detailSampleDist       = m_detailSampleDist < 0.9f ? 0 : m_cellSize * m_detailSampleDist;
 	cfg.detailSampleMaxError   = m_cellHeight * m_detailSampleMaxError;
-	rcVcopy(cfg.bmin, bmin);
-	rcVcopy(cfg.bmax, bmax);
+	rcVcopy(cfg.bmin, bmin->data());
+	rcVcopy(cfg.bmax, bmax->data());
 
 	// Tile cache params.
 	// タイルキャッシュパラメータ。
 	dtTileCacheParams tcparams{};
 
-	rcVcopy(tcparams.orig, bmin);
+	rcVcopy(tcparams.orig, bmin->data());
 	tcparams.cs                     = m_cellSize;
 	tcparams.ch                     = m_cellHeight;
 	tcparams.width                  = (int)m_tileSize;
@@ -1276,7 +1286,7 @@ bool Sample_TempObstacles::handleBuild()
 
 	dtNavMeshParams params{};
 
-	rcVcopy(params.orig, bmin);
+	rcVcopy(params.orig, bmin->data());
 	params.tileWidth = m_tileSize * m_cellSize;
 	params.tileHeight = m_tileSize * m_cellSize;
 	params.maxTiles = m_maxTiles;
@@ -1377,11 +1387,11 @@ void Sample_TempObstacles::getTilePos(const float* pos, int& tx, int& ty)
 {
 	if (!m_geom) return;
 
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
 	const float ts = m_tileSize * m_cellSize;
-	tx = (int)((pos[0] - bmin[0]) / ts);
-	ty = (int)((pos[2] - bmin[2]) / ts);
+
+	tx = (int)((pos[0] - bmin->at(0)) / ts);
+	ty = (int)((pos[2] - bmin->at(2)) / ts);
 }
 
 constexpr int TILECACHESET_MAGIC = 'T' << 24 | 'S' << 16 | 'E' << 8 | 'T'; //'TSET';

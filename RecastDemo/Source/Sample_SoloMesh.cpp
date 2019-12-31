@@ -257,11 +257,14 @@ void Sample_SoloMesh::handleRender()
 	glDepthMask(GL_FALSE);
 
 	// Draw bounds
-	const float* bmin = m_geom->getNavMeshBoundsMin();
-	const float* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duRGBA(255, 255, 255, 128), 1.f);
+	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto* bmax = m_geom->getNavMeshBoundsMax();
+
+	duDebugDrawBoxWire(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), bmax->at(0), bmax->at(1), bmax->at(2),
+		duRGBA(255, 255, 255, 128), 1.f);
+
 	m_dd.begin(DU_DRAW_POINTS, 5.0f);
-	m_dd.vertex(bmin[0], bmin[1], bmin[2], duRGBA(255, 255, 255, 128));
+	m_dd.vertex(bmin->at(0), bmin->at(1), bmin->at(2), duRGBA(255, 255, 255, 128));
 	m_dd.end();
 
 	if (m_navMesh && m_navQuery &&
@@ -287,8 +290,10 @@ void Sample_SoloMesh::handleRender()
 
 	if (m_chf && m_drawMode == DRAWMODE_COMPACT_DISTANCE)
 		duDebugDrawCompactHeightfieldDistance(&m_dd, *m_chf);
+
 	if (m_chf && m_drawMode == DRAWMODE_COMPACT_REGIONS)
 		duDebugDrawCompactHeightfieldRegions(&m_dd, *m_chf);
+
 	if (m_solid && m_drawMode == DRAWMODE_VOXELS)
 	{
 		glEnable(GL_FOG);
@@ -383,8 +388,8 @@ bool Sample_SoloMesh::handleBuild()
 
 	cleanup();
 
-	const float* bmin{ m_geom->getNavMeshBoundsMin() };
-	const float* bmax{ m_geom->getNavMeshBoundsMax() };
+	const auto* bmin{ m_geom->getNavMeshBoundsMin() };
+	const auto* bmax{ m_geom->getNavMeshBoundsMax() };
 	const float* verts{ m_geom->getMesh()->getVerts() };
 	const int nverts{ m_geom->getMesh()->getVertCount() };
 	const int* tris{ m_geom->getMesh()->getTris() };
@@ -415,8 +420,8 @@ bool Sample_SoloMesh::handleBuild()
 	// ナビゲーションを構築するエリアを設定します。
 	// Here the bounds of the input mesh are used, but the area could be specified by an user defined box, etc.
 	// ここでは、入力メッシュの境界が使用されますが、領域はユーザー定義のボックスなどで指定できます。
-	rcVcopy(m_cfg.bmin, bmin); // コピー
-	rcVcopy(m_cfg.bmax, bmax); // コピー
+	rcVcopy(m_cfg.bmin, bmin->data()); // コピー
+	rcVcopy(m_cfg.bmax, bmax->data()); // コピー
 
 	// グリットサイズの計算
 	rcCalcGridSize(m_cfg.bmin, m_cfg.bmax, m_cfg.cs, &m_cfg.width, &m_cfg.height);
@@ -543,10 +548,10 @@ bool Sample_SoloMesh::handleBuild()
 
 	// (Optional) Mark areas.
 	// （オプション）エリアをマークします。
-	const ConvexVolume* vols = m_geom->getConvexVolumes(); // 凸ボリュームを取得
+	const auto* vols = m_geom->getConvexVolumes(); // 凸ボリュームを取得
 
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i) // 凸ボリューム数を取得
-		rcMarkConvexPolyArea(m_ctx, vols[i].verts, vols[i].nverts, vols[i].hmin, vols[i].hmax, vols[i].areaMod, *m_chf); // 凸多角形領域をマーク
+		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts, vols->at(i).hmin, vols->at(i).hmax, vols->at(i).areaMod, *m_chf); // 凸多角形領域をマーク
 
 	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
 	// There are 3 martitioning methods, each with some pros and cons:
@@ -754,12 +759,12 @@ bool Sample_SoloMesh::handleBuild()
 		params.detailVertsCount = m_dmesh->nverts;
 		params.detailTris = m_dmesh->tris;
 		params.detailTriCount = m_dmesh->ntris;
-		params.offMeshConVerts = m_geom->getOffMeshConnectionVerts();
-		params.offMeshConRad = m_geom->getOffMeshConnectionRads();
-		params.offMeshConDir = m_geom->getOffMeshConnectionDirs();
-		params.offMeshConAreas = m_geom->getOffMeshConnectionAreas();
-		params.offMeshConFlags = m_geom->getOffMeshConnectionFlags();
-		params.offMeshConUserID = m_geom->getOffMeshConnectionId();
+		params.offMeshConVerts = m_geom->getOffMeshConnectionVerts()->data();
+		params.offMeshConRad = m_geom->getOffMeshConnectionRads()->data();
+		params.offMeshConDir = m_geom->getOffMeshConnectionDirs()->data();
+		params.offMeshConAreas = m_geom->getOffMeshConnectionAreas()->data();
+		params.offMeshConFlags = m_geom->getOffMeshConnectionFlags()->data();
+		params.offMeshConUserID = m_geom->getOffMeshConnectionId()->data();
 		params.offMeshConCount = m_geom->getOffMeshConnectionCount();
 		params.walkableHeight = m_agentHeight;
 		params.walkableRadius = m_agentRadius;

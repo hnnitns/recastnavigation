@@ -251,6 +251,7 @@ void rcCalcBounds(const float* verts, int nv, float* bmin, float* bmax)
 	// 境界ボックスを計算します。
 	rcVcopy(bmin, verts);
 	rcVcopy(bmax, verts);
+
 	for (int i = 1; i < nv; ++i)
 	{
 		const float* v = &verts[i * 3];

@@ -17,10 +17,11 @@
 //
 
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
+#include <cmath>
+#include <cstdio>
+#include <cctype>
+#include <cstring>
+#include <vector>
 #include <algorithm>
 #include "Recast.h"
 #include "InputGeom.h"
@@ -113,24 +114,17 @@ static char* parseRow(char* buf, char* bufEnd, char* row, int len)
 
 InputGeom::InputGeom() :
 	m_chunkyMesh(nullptr),
-	m_mesh(0),
+	m_mesh(nullptr),
 	m_hasBuildSettings(false),
 	m_offMeshConCount(0),
 	m_volumeCount(0)
 {
 }
 
-InputGeom::~InputGeom()
-{
-	delete m_mesh;
-}
-
 bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 {
 	if (m_mesh)
 	{
-		delete m_mesh;
-
 		m_chunkyMesh = nullptr;
 		m_mesh = nullptr;
 	}
@@ -138,7 +132,7 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 
-	m_mesh = new rcMeshLoaderObj;
+	m_mesh = std::make_unique<rcMeshLoaderObj>();
 
 	if (!m_mesh)
 	{
@@ -171,7 +165,7 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 
 bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 {
-	char* buf = 0;
+	std::vector<char> buf;
 	FILE* fp = fopen(filepath.c_str(), "rb");
 	if (!fp)
 	{
@@ -194,39 +188,44 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 		fclose(fp);
 		return false;
 	}
-	buf = new char[bufSize];
-	if (!buf)
+
+	try
+	{
+		buf.resize(bufSize);
+	}
+	catch (const std::exception&)
 	{
 		fclose(fp);
 		return false;
 	}
-	size_t readLen = fread(buf, bufSize, 1, fp);
+
+	size_t readLen = fread(buf.data(), bufSize, 1, fp);
 	fclose(fp);
+
 	if (readLen != 1)
 	{
-		delete[] buf;
 		return false;
 	}
 
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
-	delete m_mesh;
-	m_mesh = 0;
+	m_mesh = nullptr;
 
-	char* src = buf;
-	char* srcEnd = buf + bufSize;
-	char row[512];
+	char* src = buf.data();
+	char* srcEnd = buf.data() + bufSize;
+	std::array<char, 512> row{};
+
 	while (src < srcEnd)
 	{
 		// Parse one row
 		// 1s‚ð‰ðÍ‚µ‚Ü‚·
 		row[0] = '\0';
-		src = parseRow(src, srcEnd, row, sizeof(row) / sizeof(char));
+		src = parseRow(src, srcEnd, row.data(), sizeof(row) / sizeof(char));
 
 		if (row[0] == 'f')
 		{
 			// File name.
-			const char* name = row + 1;
+			const char* name = row.data() + 1;
 
 			// Skip white spaces
 			while (*name && isspace(*name))
@@ -236,7 +235,6 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 			{
 				if (!loadMesh(ctx, name))
 				{
-					delete[] buf;
 					return false;
 				}
 			}
@@ -250,7 +248,7 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 				int bidir{}, area{}, flags{};
 				float rad{};
 
-				sscanf_s(row + 1, "%f %f %f  %f %f %f %f %d %d %d",
+				sscanf_s(row.data() + 1, "%f %f %f  %f %f %f %f %d %d %d",
 					&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags);
 
 				m_offMeshConRads[m_offMeshConCount] = rad;
@@ -266,13 +264,13 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 			if (m_volumeCount < MAX_VOLUMES)
 			{
 				ConvexVolume* vol = &m_volumes[m_volumeCount++];
-				sscanf_s(row + 1, "%d %c %c %f %f", &vol->nverts, &vol->areaMod.m_value, sizeof(vol->areaMod.m_value), &vol->areaMod.m_mask, sizeof(vol->areaMod.m_mask), &vol->hmin, &vol->hmax);
+				sscanf_s(row.data() + 1, "%d %c %c %f %f", &vol->nverts, &vol->areaMod.m_value, sizeof(vol->areaMod.m_value), &vol->areaMod.m_mask, sizeof(vol->areaMod.m_mask), &vol->hmin, &vol->hmax);
 
 				for (int i = 0; i < vol->nverts; ++i)
 				{
 					row[0] = '\0';
-					src = parseRow(src, srcEnd, row, sizeof(row) / sizeof(char));
-					sscanf_s(row, "%f %f %f", &vol->verts[i * 3 + 0], &vol->verts[i * 3 + 1], &vol->verts[i * 3 + 2]);
+					src = parseRow(src, srcEnd, row.data(), sizeof(row) / sizeof(char));
+					sscanf_s(row.data(), "%f %f %f", &vol->verts[i * 3 + 0], &vol->verts[i * 3 + 1], &vol->verts[i * 3 + 2]);
 				}
 			}
 		}
@@ -280,7 +278,7 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 		{
 			// Settings
 			m_hasBuildSettings = true;
-			sscanf_s(row + 1, "%f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
+			sscanf_s(row.data() + 1, "%f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
 				&m_buildSettings.cellSize,
 				&m_buildSettings.cellHeight,
 				&m_buildSettings.agentHeight,
@@ -304,8 +302,6 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 				&m_buildSettings.tileSize);
 		}
 	}
-
-	delete[] buf;
 
 	return true;
 }

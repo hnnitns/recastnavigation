@@ -56,25 +56,30 @@
 
 using std::string;
 using std::vector;
+using namespace std::string_literals;
 
-struct SampleItem
+namespace
 {
-	Sample* (*create)();
-	const string name;
-};
+	struct SampleItem
+	{
+		Sample* (*create)();
+		const string name;
+	};
 
-Sample* createSolo() { return new Sample_SoloMesh(); }
-Sample* createTile() { return new Sample_TileMesh(); }
-Sample* createTempObstacle() { return new Sample_TempObstacles(); }
-Sample* createDebug() { return new Sample_Debug(); }
+	Sample* createSolo() { return new Sample_SoloMesh(); }
+	Sample* createTile() { return new Sample_TileMesh(); }
+	Sample* createTempObstacle() { return new Sample_TempObstacles(); }
+	Sample* createDebug() { return new Sample_Debug(); }
 
-static SampleItem g_samples[] =
-{
-	{ createSolo, "Solo Mesh" },
-	{ createTile, "Tile Mesh" },
-	{ createTempObstacle, "Temp Obstacles" },
-};
-constexpr int g_nsamples = sizeof(g_samples) / sizeof(SampleItem);
+	std::array<SampleItem, 3> g_samples =
+	{{
+		{ createSolo, "Solo Mesh" },
+		{ createTile, "Tile Mesh" },
+		{ createTempObstacle, "Temp Obstacles" },
+	} };
+
+	constexpr int g_nsamples = sizeof(g_samples) / sizeof(SampleItem);
+}
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -105,13 +110,12 @@ int main(int /*argc*/, char** /*argv*/)
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
-	SDL_DisplayMode displayMode;
+	SDL_DisplayMode displayMode{};
 	SDL_GetCurrentDisplayMode(0, &displayMode);
 
-	bool presentationMode = false;
-	Uint32 flags = SDL_WINDOW_OPENGL;
-	int width;
-	int height;
+	bool presentationMode{ false };
+	Uint32 flags{ SDL_WINDOW_OPENGL };
+	int width{}, height{};
 
 	if (presentationMode)
 	{
@@ -123,13 +127,13 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 	else
 	{
-		float aspect = 16.0f / 9.0f;
+		float aspect{ 16.0f / 9.0f };
 		width = rcMin(displayMode.w, (int)(displayMode.h * aspect)) - 80;
 		height = displayMode.h - 80;
 	}
 
-	SDL_Window* window;
-	SDL_Renderer* renderer;
+	SDL_Window* window{};
+	SDL_Renderer* renderer{};
 	int errorCode = SDL_CreateWindowAndRenderer(width, height, flags, &window, &renderer);
 
 	if (errorCode != 0 || !window || !renderer)
@@ -146,41 +150,39 @@ int main(int /*argc*/, char** /*argv*/)
 	{
 		printf("Could not init GUI renderer.\n");
 		SDL_Quit();
+
 		return -1;
 	}
 
-	float t = 0.f;
-	float timeAcc = 0.f;
+	float t{};
+	float timeAcc{};
 	Uint32 prevFrameTime = SDL_GetTicks();
-	int mousePos[2] = { 0, 0 };
-	int origMousePos[2] = { 0, 0 }; // Used to compute mouse movement totals across frames. //フレーム全体のマウスの動きの合計を計算するために使用されます。
+	std::array<int, 2u> mousePos{},
+		origMousePos{}; // Used to compute mouse movement totals across frames. //フレーム全体のマウスの動きの合計を計算するために使用されます。
 
-	float cameraEulers[] = { 45, -45 };
-	float cameraPos[] = { 0, 0, 0 };
+	std::array<float, 2> cameraEulers{ 45, -45 };
+	std::array<float, 3> cameraPos{};
 	float camr = 1000;
-	float origCameraEulers[] = { 0, 0 }; // Used to compute rotational changes across frames. //フレーム全体の回転変化を計算するために使用されます。
+	std::array<float, 2> origCameraEulers{}; // Used to compute rotational changes across frames. //フレーム全体の回転変化を計算するために使用されます。
 
-	float moveFront = 0.f, moveBack = 0.f, moveLeft = 0.f, moveRight = 0.f, moveUp = 0.f, moveDown = 0.f;
+	float moveFront{}, moveBack{}, moveLeft{}, moveRight{}, moveUp{}, moveDown{};
 
-	float scrollZoom = 0;
-	bool rotate = false;
-	bool movedDuringRotate = false; //
-	float ray_start[3];
-	float ray_end[3];
-	bool mouseOverMenu = false; // ImGui上のウィンドウにマウスが存在する
+	float scrollZoom{};
+	bool rotate{};
+	bool movedDuringRotate{}; //
+	std::array<float, 3> ray_start{}, ray_end{};
+	bool mouseOverMenu{}; // ImGui上のウィンドウにマウスが存在する
 
 	bool showMenu = !presentationMode;
-	bool showLog = false;
+	bool showLog{};
 	bool showTools = true;
-	bool showLevels = false;
-	bool showSample = false;
-	bool showTestCases = false;
+	bool showLevels{};
+	bool showSample{};
+	bool showTestCases{};
 
 	// Window scroll positions.
 	// ウィンドウのスクロール位置。
-	int propScroll = 0;
-	int logScroll = 0;
-	int toolsScroll = 0;
+	int propScroll{}, logScroll{}, toolsScroll{};
 
 	string sampleName = "Choose Sample...";
 
@@ -188,8 +190,8 @@ int main(int /*argc*/, char** /*argv*/)
 	const string meshesFolder = "Meshes";
 	string meshName = "Choose Mesh...";
 
-	float markerPosition[3] = { 0, 0, 0 };
-	bool markerPositionSet = false;
+	std::array<float, 3> markerPosition{};
+	bool markerPositionSet{};
 
 	/// 流石に見える部分で生ポインタで扱いたくなかった
 	std::unique_ptr<InputGeom> geom;
@@ -201,24 +203,24 @@ int main(int /*argc*/, char** /*argv*/)
 	BuildContext ctx;
 
 	// Fog.
-	float fogColor[4] = { 0.32f, 0.31f, 0.30f, 1.f };
+	std::array<float, 4> fogColor{ 0.32f, 0.31f, 0.30f, 1.f };
 	glEnable(GL_FOG);
 	glFogi(GL_FOG_MODE, GL_LINEAR);
 	glFogf(GL_FOG_START, camr * 0.1f);
 	glFogf(GL_FOG_END, camr * 1.25f);
-	glFogfv(GL_FOG_COLOR, fogColor);
+	glFogfv(GL_FOG_COLOR, fogColor.data());
 
 	glEnable(GL_CULL_FACE);
 	glDepthFunc(GL_LEQUAL);
 
-	bool done = false;
+	bool done{};
 	while (!done)
 	{
 		/// Handle input events.
 		/// 入力イベントを処理します。
-		int mouseScroll = 0;              // マウスホイールの値
-		bool processHitTest = false;      // マウスの処理が行われた
-		bool processHitTestShift = false; // シフトの処理が行われた
+		int mouseScroll{};          // マウスホイールの値
+		bool processHitTest{};      // マウスの処理が行われた
+		bool processHitTestShift{}; // シフトの処理が行われた
 		SDL_Event event{};
 
 		// インプット系のアップデート
@@ -437,7 +439,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 			// マウスの指すレイと読み込まれたメッシュとの当たり判定
 			// ※ このエディタの場合はスタート地点やゴール地点をメッシュデータ上にマウスで配置するので、経路探索をこの中に持ってこれる
-			if (geom->raycastMesh(ray_start, ray_end, hit_dis))
+			if (geom->raycastMesh(ray_start.data(), ray_end.data(), hit_dis))
 			{
 				std::array<float, 3u> ray_vec{};
 
@@ -469,7 +471,7 @@ int main(int /*argc*/, char** /*argv*/)
 					pos[2] = ray_start[2] + (ray_vec[2] * hit_dis);
 
 					// 経路探索を行う
-					sample->handleClick(ray_start, pos, processHitTestShift);
+					sample->handleClick(ray_start.data(), pos, processHitTestShift);
 				}
 			}
 			else

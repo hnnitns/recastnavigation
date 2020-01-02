@@ -90,7 +90,7 @@ struct BuildSettings
 class InputGeom
 {
 	std::unique_ptr<rcChunkyTriMesh> m_chunkyMesh;
-	rcMeshLoaderObj* m_mesh;
+	std::unique_ptr<rcMeshLoaderObj> m_mesh;
 	std::array<float, 3> m_meshBMin, m_meshBMax; // メッシュデータの位置的な最大値、最小値
 	BuildSettings m_buildSettings;
 	bool m_hasBuildSettings;
@@ -119,14 +119,14 @@ class InputGeom
 	bool loadGeomSet(class rcContext* ctx, const std::string& filepath);
 public:
 	InputGeom();
-	~InputGeom();
+	~InputGeom() noexcept = default;
 
 	bool load(class rcContext* ctx, const std::string& filepath);
 	bool saveGeomSet(const BuildSettings* settings);
 
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。
-	const rcMeshLoaderObj* getMesh() const { return m_mesh; }
+	const auto& getMesh() const { return m_mesh; }
 	const auto* getMeshBoundsMin() const { return &m_meshBMin; } // メッシュ境界の最小値を取得
 	const auto* getMeshBoundsMax() const { return &m_meshBMax; } // メッシュ境界の最大値を取得
 	// ナビメッシュ境界の最小値を取得

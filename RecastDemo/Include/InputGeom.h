@@ -27,7 +27,9 @@ constexpr int MAX_CONVEXVOL_PTS = 12;
 
 struct ConvexVolume
 {
-	ConvexVolume() : areaMod(RC_AREA_FLAGS_MASK) {}
+	ConvexVolume()
+		: areaMod(RC_AREA_FLAGS_MASK), verts{}, hmin{}, hmax{}, nverts{}
+	{}
 
 	std::array<float, MAX_CONVEXVOL_PTS * 3> verts;
 	float hmin, hmax;
@@ -167,8 +169,10 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	InputGeom(const InputGeom&);
-	InputGeom& operator=(const InputGeom&);
+	InputGeom(const InputGeom&) = delete;
+	InputGeom(InputGeom&&) = delete;
+	InputGeom& operator=(const InputGeom&) = delete;
+	InputGeom& operator=(InputGeom&&) = delete;
 };
 
 #endif // INPUTGEOM_H

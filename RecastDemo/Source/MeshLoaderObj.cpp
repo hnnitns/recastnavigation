@@ -79,71 +79,74 @@ void rcMeshLoaderObj::addTriangle(int a, int b, int c, int& cap)
 	m_triCount++;
 }
 
-static char* parseRow(char* buf, char* bufEnd, char* row, int len)
+namespace
 {
-	bool start = true;
-	bool done = false;
-	int n = 0;
-	while (!done && buf < bufEnd)
+	char* parseRow(char* buf, char* bufEnd, char* row, int len)
 	{
-		char c = *buf;
-		buf++;
-		// multirow
-		switch (c)
+		bool start = true;
+		bool done = false;
+		int n = 0;
+		while (!done && buf < bufEnd)
 		{
-			case '\\':
-				break;
-			case '\n':
-				if (start) break;
-				done = true;
-				break;
-			case '\r':
-				break;
-			case '\t':
-			case ' ':
-				if (start) break;
-			default:
-				start = false;
-				row[n++] = c;
-				if (n >= len - 1)
+			char c = *buf;
+			buf++;
+			// multirow
+			switch (c)
+			{
+				case '\\':
+					break;
+				case '\n':
+					if (start) break;
 					done = true;
-				break;
+					break;
+				case '\r':
+					break;
+				case '\t':
+				case ' ':
+					if (start) break;
+				default:
+					start = false;
+					row[n++] = c;
+					if (n >= len - 1)
+						done = true;
+					break;
+			}
 		}
+		row[n] = '\0';
+		return buf;
 	}
-	row[n] = '\0';
-	return buf;
-}
 
-static int parseFace(char* row, int* data, int n, int vcnt)
-{
-	int j{};
-
-	while (*row != '\0')
+	int parseFace(char* row, int* data, int n, int vcnt)
 	{
-		// Skip initial white space
-		// 最初の空白をスキップします
-		while (*row != '\0' && (*row == ' ' || *row == '\t'))
-			row++;
+		int j{};
 
-		char* s = row;
-
-		// Find vertex delimiter and terminated the string there for conversion.
-		// 頂点区切り文字を見つけ、変換のためにそこで文字列を終了しました。
-		while (*row != '\0' && *row != ' ' && *row != '\t')
+		while (*row != '\0')
 		{
-			if (*row == '/') *row = '\0';
-			row++;
+			// Skip initial white space
+			// 最初の空白をスキップします
+			while (*row != '\0' && (*row == ' ' || *row == '\t'))
+				row++;
+
+			char* s = row;
+
+			// Find vertex delimiter and terminated the string there for conversion.
+			// 頂点区切り文字を見つけ、変換のためにそこで文字列を終了しました。
+			while (*row != '\0' && *row != ' ' && *row != '\t')
+			{
+				if (*row == '/') *row = '\0';
+				row++;
+			}
+
+			if (*s == '\0')
+				continue;
+
+			int vi = atoi(s);
+			data[j++] = vi < 0 ? vi + vcnt : vi - 1;
+
+			if (j >= n) return j;
 		}
-
-		if (*s == '\0')
-			continue;
-
-		int vi = atoi(s);
-		data[j++] = vi < 0 ? vi + vcnt : vi - 1;
-
-		if (j >= n) return j;
+		return j;
 	}
-	return j;
 }
 
 bool rcMeshLoaderObj::load(const std::string& filename)

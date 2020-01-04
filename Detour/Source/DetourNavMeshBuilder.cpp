@@ -28,244 +28,247 @@
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
 
-constexpr uint16_t MESH_NULL_IDX = (std::numeric_limits<uint16_t>::max)();
-
-struct BVItem
+namespace
 {
-	uint16_t bmin[3];
-	uint16_t bmax[3];
-	int i;
-};
+	constexpr uint16_t MESH_NULL_IDX = (std::numeric_limits<uint16_t>::max)();
 
-static int compareItemX(const void* va, const void* vb)
-{
-	const BVItem* a = (const BVItem*)va;
-	const BVItem* b = (const BVItem*)vb;
-	if (a->bmin[0] < b->bmin[0])
-		return -1;
-	if (a->bmin[0] > b->bmin[0])
-		return 1;
-	return 0;
-}
-
-static int compareItemY(const void* va, const void* vb)
-{
-	const BVItem* a = (const BVItem*)va;
-	const BVItem* b = (const BVItem*)vb;
-	if (a->bmin[1] < b->bmin[1])
-		return -1;
-	if (a->bmin[1] > b->bmin[1])
-		return 1;
-	return 0;
-}
-
-static int compareItemZ(const void* va, const void* vb)
-{
-	const BVItem* a = (const BVItem*)va;
-	const BVItem* b = (const BVItem*)vb;
-	if (a->bmin[2] < b->bmin[2])
-		return -1;
-	if (a->bmin[2] > b->bmin[2])
-		return 1;
-	return 0;
-}
-
-static void calcExtends(BVItem* items, const int /*nitems*/, const int imin, const int imax,
-	uint16_t* bmin, uint16_t* bmax)
-{
-	bmin[0] = items[imin].bmin[0];
-	bmin[1] = items[imin].bmin[1];
-	bmin[2] = items[imin].bmin[2];
-
-	bmax[0] = items[imin].bmax[0];
-	bmax[1] = items[imin].bmax[1];
-	bmax[2] = items[imin].bmax[2];
-
-	for (int i = imin + 1; i < imax; ++i)
+	struct BVItem
 	{
-		const BVItem& it = items[i];
-		if (it.bmin[0] < bmin[0]) bmin[0] = it.bmin[0];
-		if (it.bmin[1] < bmin[1]) bmin[1] = it.bmin[1];
-		if (it.bmin[2] < bmin[2]) bmin[2] = it.bmin[2];
-
-		if (it.bmax[0] > bmax[0]) bmax[0] = it.bmax[0];
-		if (it.bmax[1] > bmax[1]) bmax[1] = it.bmax[1];
-		if (it.bmax[2] > bmax[2]) bmax[2] = it.bmax[2];
-	}
-}
-
-inline int longestAxis(uint16_t x, uint16_t y, uint16_t z)
-{
-	int	axis = 0;
-	uint16_t maxVal = x;
-	if (y > maxVal)
-	{
-		axis = 1;
-		maxVal = y;
-	}
-	if (z > maxVal)
-	{
-		axis = 2;
-	}
-	return axis;
-}
-
-static void subdivide(BVItem* items, int nitems, int imin, int imax, int& curNode, dtBVNode* nodes)
-{
-	int inum = imax - imin;
-	int icur = curNode;
-
-	dtBVNode& node = nodes[curNode++];
-
-	if (inum == 1)
-	{
-		// Leaf
-		node.bmin[0] = items[imin].bmin[0];
-		node.bmin[1] = items[imin].bmin[1];
-		node.bmin[2] = items[imin].bmin[2];
-
-		node.bmax[0] = items[imin].bmax[0];
-		node.bmax[1] = items[imin].bmax[1];
-		node.bmax[2] = items[imin].bmax[2];
-
-		node.i = items[imin].i;
-	}
-	else
-	{
-		// Split
-		calcExtends(items, nitems, imin, imax, node.bmin, node.bmax);
-
-		int	axis = longestAxis(node.bmax[0] - node.bmin[0],
-			node.bmax[1] - node.bmin[1],
-			node.bmax[2] - node.bmin[2]);
-
-		if (axis == 0)
-		{
-			// Sort along x-axis
-			qsort(items + imin, inum, sizeof(BVItem), compareItemX);
-		}
-		else if (axis == 1)
-		{
-			// Sort along y-axis
-			qsort(items + imin, inum, sizeof(BVItem), compareItemY);
-		}
-		else
-		{
-			// Sort along z-axis
-			qsort(items + imin, inum, sizeof(BVItem), compareItemZ);
-		}
-
-		int isplit = imin + inum / 2;
-
-		// Left
-		subdivide(items, nitems, imin, isplit, curNode, nodes);
-		// Right
-		subdivide(items, nitems, isplit, imax, curNode, nodes);
-
-		int iescape = curNode - icur;
-		// Negative index means escape.
-		node.i = -iescape;
-	}
-}
-
-static int createBVTree(dtNavMeshCreateParams* params, dtBVNode* nodes, int /*nnodes*/)
-{
-	// Build tree
-	float quantFactor = 1 / params->cs;
-	BVItem* items = (BVItem*)dtAlloc(sizeof(BVItem) * params->polyCount, DT_ALLOC_TEMP);
-	for (int i = 0; i < params->polyCount; i++)
-	{
-		BVItem& it = items[i];
-		it.i = i;
-		// Calc polygon bounds. Use detail meshes if available.
-		if (params->detailMeshes)
-		{
-			int vb = (int)params->detailMeshes[i * 4 + 0];
-			int ndv = (int)params->detailMeshes[i * 4 + 1];
-			float bmin[3];
-			float bmax[3];
-
-			const float* dv = &params->detailVerts[vb * 3];
-			dtVcopy(bmin, dv);
-			dtVcopy(bmax, dv);
-
-			for (int j = 1; j < ndv; j++)
-			{
-				dtVmin(bmin, &dv[j * 3]);
-				dtVmax(bmax, &dv[j * 3]);
-			}
-
-			// BV-tree uses cs for all dimensions
-			it.bmin[0] = (uint16_t)dtClamp((int)((bmin[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
-			it.bmin[1] = (uint16_t)dtClamp((int)((bmin[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
-			it.bmin[2] = (uint16_t)dtClamp((int)((bmin[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
-
-			it.bmax[0] = (uint16_t)dtClamp((int)((bmax[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
-			it.bmax[1] = (uint16_t)dtClamp((int)((bmax[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
-			it.bmax[2] = (uint16_t)dtClamp((int)((bmax[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
-		}
-		else
-		{
-			const uint16_t* p = &params->polys[i * params->nvp * 2];
-			it.bmin[0] = it.bmax[0] = params->verts[p[0] * 3 + 0];
-			it.bmin[1] = it.bmax[1] = params->verts[p[0] * 3 + 1];
-			it.bmin[2] = it.bmax[2] = params->verts[p[0] * 3 + 2];
-
-			for (int j = 1; j < params->nvp; ++j)
-			{
-				if (p[j] == MESH_NULL_IDX) break;
-				uint16_t x = params->verts[p[j] * 3 + 0];
-				uint16_t y = params->verts[p[j] * 3 + 1];
-				uint16_t z = params->verts[p[j] * 3 + 2];
-
-				if (x < it.bmin[0]) it.bmin[0] = x;
-				if (y < it.bmin[1]) it.bmin[1] = y;
-				if (z < it.bmin[2]) it.bmin[2] = z;
-
-				if (x > it.bmax[0]) it.bmax[0] = x;
-				if (y > it.bmax[1]) it.bmax[1] = y;
-				if (z > it.bmax[2]) it.bmax[2] = z;
-			}
-			// Remap y
-			it.bmin[1] = (uint16_t)dtMathFloorf((float)it.bmin[1] * params->ch / params->cs);
-			it.bmax[1] = (uint16_t)dtMathCeilf((float)it.bmax[1] * params->ch / params->cs);
-		}
-	}
-
-	int curNode = 0;
-	subdivide(items, params->polyCount, 0, params->polyCount, curNode, nodes);
-
-	dtFree(items);
-
-	return curNode;
-}
-
-static unsigned char classifyOffMeshPoint(const float* pt, const float* bmin, const float* bmax)
-{
-	static const unsigned char XP = 1 << 0;
-	static const unsigned char ZP = 1 << 1;
-	static const unsigned char XM = 1 << 2;
-	static const unsigned char ZM = 1 << 3;
-
-	unsigned char outcode = 0;
-	outcode |= (pt[0] >= bmax[0]) ? XP : 0;
-	outcode |= (pt[2] >= bmax[2]) ? ZP : 0;
-	outcode |= (pt[0] < bmin[0]) ? XM : 0;
-	outcode |= (pt[2] < bmin[2]) ? ZM : 0;
-
-	switch (outcode)
-	{
-		case XP: return 0;
-		case XP | ZP: return 1;
-		case ZP: return 2;
-		case XM | ZP: return 3;
-		case XM: return 4;
-		case XM | ZM: return 5;
-		case ZM: return 6;
-		case XP | ZM: return 7;
+		uint16_t bmin[3];
+		uint16_t bmax[3];
+		int i;
 	};
 
-	return 0xff;
+	inline int compareItemX(const void* va, const void* vb)
+	{
+		const BVItem* a = (const BVItem*)va;
+		const BVItem* b = (const BVItem*)vb;
+		if (a->bmin[0] < b->bmin[0])
+			return -1;
+		if (a->bmin[0] > b->bmin[0])
+			return 1;
+		return 0;
+	}
+
+	inline int compareItemY(const void* va, const void* vb)
+	{
+		const BVItem* a = (const BVItem*)va;
+		const BVItem* b = (const BVItem*)vb;
+		if (a->bmin[1] < b->bmin[1])
+			return -1;
+		if (a->bmin[1] > b->bmin[1])
+			return 1;
+		return 0;
+	}
+
+	inline int compareItemZ(const void* va, const void* vb)
+	{
+		const BVItem* a = (const BVItem*)va;
+		const BVItem* b = (const BVItem*)vb;
+		if (a->bmin[2] < b->bmin[2])
+			return -1;
+		if (a->bmin[2] > b->bmin[2])
+			return 1;
+		return 0;
+	}
+
+	void calcExtends(BVItem* items, const int /*nitems*/, const int imin, const int imax,
+		uint16_t* bmin, uint16_t* bmax)
+	{
+		bmin[0] = items[imin].bmin[0];
+		bmin[1] = items[imin].bmin[1];
+		bmin[2] = items[imin].bmin[2];
+
+		bmax[0] = items[imin].bmax[0];
+		bmax[1] = items[imin].bmax[1];
+		bmax[2] = items[imin].bmax[2];
+
+		for (int i = imin + 1; i < imax; ++i)
+		{
+			const BVItem& it = items[i];
+			if (it.bmin[0] < bmin[0]) bmin[0] = it.bmin[0];
+			if (it.bmin[1] < bmin[1]) bmin[1] = it.bmin[1];
+			if (it.bmin[2] < bmin[2]) bmin[2] = it.bmin[2];
+
+			if (it.bmax[0] > bmax[0]) bmax[0] = it.bmax[0];
+			if (it.bmax[1] > bmax[1]) bmax[1] = it.bmax[1];
+			if (it.bmax[2] > bmax[2]) bmax[2] = it.bmax[2];
+		}
+	}
+
+	inline int longestAxis(uint16_t x, uint16_t y, uint16_t z)
+	{
+		int	axis = 0;
+		uint16_t maxVal = x;
+		if (y > maxVal)
+		{
+			axis = 1;
+			maxVal = y;
+		}
+		if (z > maxVal)
+		{
+			axis = 2;
+		}
+		return axis;
+	}
+
+	void subdivide(BVItem* items, int nitems, int imin, int imax, int& curNode, dtBVNode* nodes)
+	{
+		int inum = imax - imin;
+		int icur = curNode;
+
+		dtBVNode& node = nodes[curNode++];
+
+		if (inum == 1)
+		{
+			// Leaf
+			node.bmin[0] = items[imin].bmin[0];
+			node.bmin[1] = items[imin].bmin[1];
+			node.bmin[2] = items[imin].bmin[2];
+
+			node.bmax[0] = items[imin].bmax[0];
+			node.bmax[1] = items[imin].bmax[1];
+			node.bmax[2] = items[imin].bmax[2];
+
+			node.i = items[imin].i;
+		}
+		else
+		{
+			// Split
+			calcExtends(items, nitems, imin, imax, node.bmin, node.bmax);
+
+			int	axis = longestAxis(node.bmax[0] - node.bmin[0],
+				node.bmax[1] - node.bmin[1],
+				node.bmax[2] - node.bmin[2]);
+
+			if (axis == 0)
+			{
+				// Sort along x-axis
+				qsort(items + imin, inum, sizeof(BVItem), compareItemX);
+			}
+			else if (axis == 1)
+			{
+				// Sort along y-axis
+				qsort(items + imin, inum, sizeof(BVItem), compareItemY);
+			}
+			else
+			{
+				// Sort along z-axis
+				qsort(items + imin, inum, sizeof(BVItem), compareItemZ);
+			}
+
+			int isplit = imin + inum / 2;
+
+			// Left
+			subdivide(items, nitems, imin, isplit, curNode, nodes);
+			// Right
+			subdivide(items, nitems, isplit, imax, curNode, nodes);
+
+			int iescape = curNode - icur;
+			// Negative index means escape.
+			node.i = -iescape;
+		}
+	}
+
+	int createBVTree(dtNavMeshCreateParams* params, dtBVNode* nodes, int /*nnodes*/)
+	{
+		// Build tree
+		float quantFactor = 1 / params->cs;
+		BVItem* items = (BVItem*)dtAlloc(sizeof(BVItem) * params->polyCount, DT_ALLOC_TEMP);
+		for (int i = 0; i < params->polyCount; i++)
+		{
+			BVItem& it = items[i];
+			it.i = i;
+			// Calc polygon bounds. Use detail meshes if available.
+			if (params->detailMeshes)
+			{
+				int vb = (int)params->detailMeshes[i * 4 + 0];
+				int ndv = (int)params->detailMeshes[i * 4 + 1];
+				float bmin[3];
+				float bmax[3];
+
+				const float* dv = &params->detailVerts[vb * 3];
+				dtVcopy(bmin, dv);
+				dtVcopy(bmax, dv);
+
+				for (int j = 1; j < ndv; j++)
+				{
+					dtVmin(bmin, &dv[j * 3]);
+					dtVmax(bmax, &dv[j * 3]);
+				}
+
+				// BV-tree uses cs for all dimensions
+				it.bmin[0] = (uint16_t)dtClamp((int)((bmin[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
+				it.bmin[1] = (uint16_t)dtClamp((int)((bmin[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
+				it.bmin[2] = (uint16_t)dtClamp((int)((bmin[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
+
+				it.bmax[0] = (uint16_t)dtClamp((int)((bmax[0] - params->bmin[0]) * quantFactor), 0, 0xffff);
+				it.bmax[1] = (uint16_t)dtClamp((int)((bmax[1] - params->bmin[1]) * quantFactor), 0, 0xffff);
+				it.bmax[2] = (uint16_t)dtClamp((int)((bmax[2] - params->bmin[2]) * quantFactor), 0, 0xffff);
+			}
+			else
+			{
+				const uint16_t* p = &params->polys[i * params->nvp * 2];
+				it.bmin[0] = it.bmax[0] = params->verts[p[0] * 3 + 0];
+				it.bmin[1] = it.bmax[1] = params->verts[p[0] * 3 + 1];
+				it.bmin[2] = it.bmax[2] = params->verts[p[0] * 3 + 2];
+
+				for (int j = 1; j < params->nvp; ++j)
+				{
+					if (p[j] == MESH_NULL_IDX) break;
+					uint16_t x = params->verts[p[j] * 3 + 0];
+					uint16_t y = params->verts[p[j] * 3 + 1];
+					uint16_t z = params->verts[p[j] * 3 + 2];
+
+					if (x < it.bmin[0]) it.bmin[0] = x;
+					if (y < it.bmin[1]) it.bmin[1] = y;
+					if (z < it.bmin[2]) it.bmin[2] = z;
+
+					if (x > it.bmax[0]) it.bmax[0] = x;
+					if (y > it.bmax[1]) it.bmax[1] = y;
+					if (z > it.bmax[2]) it.bmax[2] = z;
+				}
+				// Remap y
+				it.bmin[1] = (uint16_t)dtMathFloorf((float)it.bmin[1] * params->ch / params->cs);
+				it.bmax[1] = (uint16_t)dtMathCeilf((float)it.bmax[1] * params->ch / params->cs);
+			}
+		}
+
+		int curNode = 0;
+		subdivide(items, params->polyCount, 0, params->polyCount, curNode, nodes);
+
+		dtFree(items);
+
+		return curNode;
+	}
+
+	unsigned char classifyOffMeshPoint(const float* pt, const float* bmin, const float* bmax)
+	{
+		static const unsigned char XP = 1 << 0;
+		static const unsigned char ZP = 1 << 1;
+		static const unsigned char XM = 1 << 2;
+		static const unsigned char ZM = 1 << 3;
+
+		unsigned char outcode = 0;
+		outcode |= (pt[0] >= bmax[0]) ? XP : 0;
+		outcode |= (pt[2] >= bmax[2]) ? ZP : 0;
+		outcode |= (pt[0] < bmin[0]) ? XM : 0;
+		outcode |= (pt[2] < bmin[2]) ? ZM : 0;
+
+		switch (outcode)
+		{
+			case XP: return 0;
+			case XP | ZP: return 1;
+			case ZP: return 2;
+			case XM | ZP: return 3;
+			case XM: return 4;
+			case XM | ZM: return 5;
+			case ZM: return 6;
+			case XP | ZM: return 7;
+		};
+
+		return 0xff;
+	}
 }
 
 // TODO: Better error handling. // ƒGƒ‰[ˆ—‚Ì‰ü‘PB

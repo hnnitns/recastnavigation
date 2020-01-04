@@ -131,68 +131,71 @@ public:
 	}
 };
 
-static void floodNavmesh(dtNavMesh* nav, NavmeshFlags* flags, dtPolyRef start, unsigned char flag)
+namespace
 {
-	// If already visited, skip.
-	// 既にアクセスしている場合はスキップします。
-	if (flags->getFlags(start))
-		return;
-
-	flags->setFlags(start, flag);
-
-	std::vector<dtPolyRef> openList;
-	openList.push_back(start);
-
-	while (openList.size())
+	void floodNavmesh(dtNavMesh* nav, NavmeshFlags* flags, dtPolyRef start, unsigned char flag)
 	{
-		const dtPolyRef ref = openList.back();
-		openList.pop_back();
+		// If already visited, skip.
+		// 既にアクセスしている場合はスキップします。
+		if (flags->getFlags(start))
+			return;
 
-		// Get current poly and tile.
-		// The API input has been cheked already, skip checking internal data.
-		// 現在のポリゴンとタイルを取得します。
-		// API入力は既にチェックされており、内部データのチェックをスキップします。
-		const dtMeshTile* tile = 0;
-		const dtPoly* poly = 0;
-		nav->getTileAndPolyByRefUnsafe(ref, &tile, &poly);
+		flags->setFlags(start, flag);
 
-		// Visit linked polygons.
-		// リンクされたポリゴンにアクセスします。
-		for (unsigned int i = poly->firstLink; i != DT_NULL_LINK; i = tile->links[i].next)
+		std::vector<dtPolyRef> openList;
+		openList.push_back(start);
+
+		while (openList.size())
 		{
-			const dtPolyRef neiRef = tile->links[i].ref;
+			const dtPolyRef ref = openList.back();
+			openList.pop_back();
 
-			// Skip invalid and already visited.
-			// 無効で既にアクセスしたものをスキップします。
-			if (!neiRef || flags->getFlags(neiRef))
-				continue;
+			// Get current poly and tile.
+			// The API input has been cheked already, skip checking internal data.
+			// 現在のポリゴンとタイルを取得します。
+			// API入力は既にチェックされており、内部データのチェックをスキップします。
+			const dtMeshTile* tile = 0;
+			const dtPoly* poly = 0;
+			nav->getTileAndPolyByRefUnsafe(ref, &tile, &poly);
 
-			// Mark as visited
-			// 訪問済みとしてマーク
-			flags->setFlags(neiRef, flag);
+			// Visit linked polygons.
+			// リンクされたポリゴンにアクセスします。
+			for (unsigned int i = poly->firstLink; i != DT_NULL_LINK; i = tile->links[i].next)
+			{
+				const dtPolyRef neiRef = tile->links[i].ref;
 
-			// Visit neighbours
-			// 隣人を訪問
-			openList.push_back(neiRef);
+				// Skip invalid and already visited.
+				// 無効で既にアクセスしたものをスキップします。
+				if (!neiRef || flags->getFlags(neiRef))
+					continue;
+
+				// Mark as visited
+				// 訪問済みとしてマーク
+				flags->setFlags(neiRef, flag);
+
+				// Visit neighbours
+				// 隣人を訪問
+				openList.push_back(neiRef);
+			}
 		}
 	}
-}
 
-static void disableUnvisitedPolys(dtNavMesh* nav, NavmeshFlags* flags)
-{
-	for (int i = 0; i < nav->getMaxTiles(); ++i)
+	void disableUnvisitedPolys(dtNavMesh* nav, NavmeshFlags* flags)
 	{
-		const dtMeshTile* tile = ((const dtNavMesh*)nav)->getTile(i);
-		if (!tile->header) continue;
-		const dtPolyRef base = nav->getPolyRefBase(tile);
-		for (int j = 0; j < tile->header->polyCount; ++j)
+		for (int i = 0; i < nav->getMaxTiles(); ++i)
 		{
-			const dtPolyRef ref = base | (unsigned int)j;
-			if (!flags->getFlags(ref))
+			const dtMeshTile* tile = ((const dtNavMesh*)nav)->getTile(i);
+			if (!tile->header) continue;
+			const dtPolyRef base = nav->getPolyRefBase(tile);
+			for (int j = 0; j < tile->header->polyCount; ++j)
 			{
-				unsigned short f = 0;
-				nav->getPolyFlags(ref, &f);
-				nav->setPolyFlags(ref, f | SAMPLE_POLYFLAGS_DISABLED);
+				const dtPolyRef ref = base | (unsigned int)j;
+				if (!flags->getFlags(ref))
+				{
+					unsigned short f = 0;
+					nav->getPolyFlags(ref, &f);
+					nav->setPolyFlags(ref, f | SAMPLE_POLYFLAGS_DISABLED);
+				}
 			}
 		}
 	}

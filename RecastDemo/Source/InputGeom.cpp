@@ -32,84 +32,134 @@
 #include "DetourNavMesh.h"
 #include "Sample.h"
 
-static bool intersectSegmentTriangle(const float* sp, const float* sq,
-	const float* a, const float* b, const float* c,
-	float& t)
+namespace
 {
-	float v, w;
-	float ab[3], ac[3], qp[3], ap[3], norm[3], e[3];
-	rcVsub(ab, b, a);
-	rcVsub(ac, c, a);
-	rcVsub(qp, sp, sq);
-
-	// Compute triangle normal. Can be precalculated or cached if
-	// intersecting multiple segments against the same triangle
-	// 三角形の法線を計算します。 同じ三角形に対して複数のセグメントを交差させる場合、事前計算またはキャッシュできます
-	rcVcross(norm, ab, ac);
-
-	// Compute denominator d. If d <= 0, segment is parallel to or points
-	// away from triangle, so exit early
-	// 分母dを計算します。 d <= 0の場合、セグメントは三角形に平行か、三角形から遠ざかるので、早く終了します
-	float d = rcVdot(qp, norm);
-	if (d <= 0.0f) return false;
-
-	// Compute intersection t value of pq with plane of triangle. A ray
-	// intersects iff 0 <= t. Segment intersects iff 0 <= t <= 1. Delay
-	// dividing by d until intersection has been found to pierce triangle
-	// 三角形の平面とのpqの交差t値を計算します。
-	// 0 <= tの場合、光線は交差します。 0 <= t <= 1の場合、セグメントは交差します。
-	// 交差点が三角形を突き抜けていることがわかるまで、dによる除算を遅らせます。
-	rcVsub(ap, sp, a);
-	t = rcVdot(ap, norm);
-	if (t < 0.0f) return false;
-	if (t > d) return false; // For segment; exclude this code line for a ray test セグメント; 光線テストのためにこのコード行を除外します
-
-	// Compute barycentric coordinate components and test if within bounds
-	// 重心座標成分を計算し、範囲内かどうかをテストします。
-	rcVcross(e, qp, ap);
-	v = rcVdot(ac, e);
-	if (v < 0.0f || v > d) return false;
-	w = -rcVdot(ab, e);
-	if (w < 0.0f || v + w > d) return false;
-
-	// Segment/ray intersects triangle. Perform delayed division
-	// セグメント/レイは三角形と交差します。 遅延除算を実行します。
-	t /= d;
-
-	return true;
-}
-
-static char* parseRow(char* buf, char* bufEnd, char* row, int len)
-{
-	bool start = true;
-	bool done = false;
-	int n = 0;
-	while (!done && buf < bufEnd)
+	bool intersectSegmentTriangle(const float* sp, const float* sq,
+		const float* a, const float* b, const float* c,
+		float& t)
 	{
-		char c = *buf;
-		buf++;
-		// multirow
-		switch (c)
-		{
-			case '\n':
-				if (start) break;
-				done = true;
-				break;
-			case '\r':
-				break;
-			case '\t':
-			case ' ':
-				if (start) break;
-			default:
-				start = false;
-				row[n++] = c;
-				if (n >= len - 1)
-					done = true;
-				break;
-		}
+		float v, w;
+		float ab[3], ac[3], qp[3], ap[3], norm[3], e[3];
+		rcVsub(ab, b, a);
+		rcVsub(ac, c, a);
+		rcVsub(qp, sp, sq);
+
+		// Compute triangle normal. Can be precalculated or cached if
+		// intersecting multiple segments against the same triangle
+		// 三角形の法線を計算します。 同じ三角形に対して複数のセグメントを交差させる場合、事前計算またはキャッシュできます
+		rcVcross(norm, ab, ac);
+
+		// Compute denominator d. If d <= 0, segment is parallel to or points
+		// away from triangle, so exit early
+		// 分母dを計算します。 d <= 0の場合、セグメントは三角形に平行か、三角形から遠ざかるので、早く終了します
+		float d = rcVdot(qp, norm);
+		if (d <= 0.0f) return false;
+
+		// Compute intersection t value of pq with plane of triangle. A ray
+		// intersects iff 0 <= t. Segment intersects iff 0 <= t <= 1. Delay
+		// dividing by d until intersection has been found to pierce triangle
+		// 三角形の平面とのpqの交差t値を計算します。
+		// 0 <= tの場合、光線は交差します。 0 <= t <= 1の場合、セグメントは交差します。
+		// 交差点が三角形を突き抜けていることがわかるまで、dによる除算を遅らせます。
+		rcVsub(ap, sp, a);
+		t = rcVdot(ap, norm);
+		if (t < 0.0f) return false;
+		if (t > d) return false; // For segment; exclude this code line for a ray test セグメント; 光線テストのためにこのコード行を除外します
+
+		// Compute barycentric coordinate components and test if within bounds
+		// 重心座標成分を計算し、範囲内かどうかをテストします。
+		rcVcross(e, qp, ap);
+		v = rcVdot(ac, e);
+		if (v < 0.0f || v > d) return false;
+		w = -rcVdot(ab, e);
+		if (w < 0.0f || v + w > d) return false;
+
+		// Segment/ray intersects triangle. Perform delayed division
+		// セグメント/レイは三角形と交差します。 遅延除算を実行します。
+		t /= d;
+
+		return true;
 	}
-	row[n] = '\0';
-	return buf;
+
+	char* parseRow(char* buf, char* bufEnd, char* row, int len)
+	{
+		bool start = true;
+		bool done = false;
+		int n = 0;
+		while (!done && buf < bufEnd)
+		{
+			char c = *buf;
+			buf++;
+			// multirow
+			switch (c)
+			{
+				case '\n':
+					if (start) break;
+					done = true;
+					break;
+				case '\r':
+					break;
+				case '\t':
+				case ' ':
+					if (start) break;
+				default:
+					start = false;
+					row[n++] = c;
+					if (n >= len - 1)
+						done = true;
+					break;
+			}
+		}
+		row[n] = '\0';
+		return buf;
+	}
+
+	// メッシュデータの全てを囲む四角とレイとの判定
+	bool isectSegAABB(const float* sp, const float* sq,
+		const float* amin, const float* amax,
+		float& tmin, float& tmax)
+	{
+		constexpr float EPS = 1e-6f;
+
+		float d[3];
+		d[0] = sq[0] - sp[0];
+		d[1] = sq[1] - sp[1];
+		d[2] = sq[2] - sp[2];
+
+		// 線上で最初のヒットを、-FLT_MAXに設定
+		tmin = 0.0;
+
+		// 光線が移動できる最大距離に設定（セグメント用）
+		tmax = 1.f;
+
+		// 3つのスラブすべて
+		for (int i = 0; i < 3; i++)
+		{
+			if (fabsf(d[i]) < EPS)
+			{
+				// 光線はスラブに平行か、原点がスラブ内にない場合はヒットなし
+				if (sp[i] < amin[i] || sp[i] > amax[i])
+					return false;
+			}
+			else
+			{
+				//スラブのニアおよびファープレーンとレイの交差t値を計算します
+				const float ood = 1.f / d[i];
+				float t1 = (amin[i] - sp[i]) * ood;
+				float t2 = (amax[i] - sp[i]) * ood;
+
+				// t1を近くの平面と交差させ、t2を遠くの平面と交差させる
+				if (t1 > t2) std::swap(t1, t2);
+				if (t1 > tmin) tmin = t1;
+				if (t2 < tmax) tmax = t2;
+
+				// スラブの交差点が無くなるとすぐに衝突なしで終了
+				if (tmin > tmax) return false;
+			}
+		}
+
+		return true;
+	}
 }
 
 InputGeom::InputGeom() :
@@ -405,53 +455,6 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 	}
 
 	fclose(fp);
-
-	return true;
-}
-
-// メッシュデータの全てを囲む四角とレイとの判定
-static bool isectSegAABB(const float* sp, const float* sq,
-	const float* amin, const float* amax,
-	float& tmin, float& tmax)
-{
-	constexpr float EPS = 1e-6f;
-
-	float d[3];
-	d[0] = sq[0] - sp[0];
-	d[1] = sq[1] - sp[1];
-	d[2] = sq[2] - sp[2];
-
-	// 線上で最初のヒットを、-FLT_MAXに設定
-	tmin = 0.0;
-
-	// 光線が移動できる最大距離に設定（セグメント用）
-	tmax = 1.f;
-
-	// 3つのスラブすべて
-	for (int i = 0; i < 3; i++)
-	{
-		if (fabsf(d[i]) < EPS)
-		{
-			// 光線はスラブに平行か、原点がスラブ内にない場合はヒットなし
-			if (sp[i] < amin[i] || sp[i] > amax[i])
-				return false;
-		}
-		else
-		{
-			//スラブのニアおよびファープレーンとレイの交差t値を計算します
-			const float ood = 1.f / d[i];
-			float t1 = (amin[i] - sp[i]) * ood;
-			float t2 = (amax[i] - sp[i]) * ood;
-
-			// t1を近くの平面と交差させ、t2を遠くの平面と交差させる
-			if (t1 > t2) std::swap(t1, t2);
-			if (t1 > tmin) tmin = t1;
-			if (t2 < tmax) tmax = t2;
-
-			// スラブの交差点が無くなるとすぐに衝突なしで終了
-			if (tmin > tmax) return false;
-		}
-	}
 
 	return true;
 }

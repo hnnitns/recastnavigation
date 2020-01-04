@@ -23,33 +23,36 @@
 #include "DetourTileCacheBuilder.h"
 #include <cstring>
 
-template<class T> class dtFixedArray
+namespace
 {
-	dtTileCacheAlloc* m_alloc;
-	T* m_ptr;
-	const int m_size;
-	inline void operator=(dtFixedArray<T>& p);
-public:
-	inline dtFixedArray(dtTileCacheAlloc* a, const int s) : m_alloc(a), m_ptr((T*)a->alloc(sizeof(T)* s)), m_size(s) {}
-	inline ~dtFixedArray() { if (m_alloc) m_alloc->free(m_ptr); }
-	inline operator T* () { return m_ptr; }
-	inline int size() const { return m_size; }
-};
+	template<class T> class dtFixedArray
+	{
+		dtTileCacheAlloc* m_alloc;
+		T* m_ptr;
+		const int m_size;
+		inline void operator=(dtFixedArray<T>& p);
+	public:
+		inline dtFixedArray(dtTileCacheAlloc* a, const int s) : m_alloc(a), m_ptr((T*)a->alloc(sizeof(T)* s)), m_size(s) {}
+		inline ~dtFixedArray() { if (m_alloc) m_alloc->free(m_ptr); }
+		inline operator T* () { return m_ptr; }
+		inline int size() const { return m_size; }
+	};
 
-inline int getDirOffsetX(int dir)
-{
-	const int offset[4] = { -1, 0, 1, 0, };
-	return offset[dir & 0x03];
+	inline int getDirOffsetX(int dir)
+	{
+		const int offset[4] = { -1, 0, 1, 0, };
+		return offset[dir & 0x03];
+	}
+
+	inline int getDirOffsetY(int dir)
+	{
+		const int offset[4] = { 0, 1, 0, -1 };
+		return offset[dir & 0x03];
+	}
+
+	constexpr int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
+	constexpr int MAX_REM_EDGES = 48;		// TODO: make this an expression.
 }
-
-inline int getDirOffsetY(int dir)
-{
-	const int offset[4] = { 0, 1, 0, -1 };
-	return offset[dir & 0x03];
-}
-
-static const int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
-static const int MAX_REM_EDGES = 48;		// TODO: make this an expression.
 
 dtTileCacheContourSet* dtAllocTileCacheContourSet(dtTileCacheAlloc* alloc)
 {

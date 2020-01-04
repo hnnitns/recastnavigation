@@ -23,138 +23,141 @@
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
 
-inline bool overlapBounds(const float* amin, const float* amax, const float* bmin, const float* bmax)
+namespace
 {
-	bool overlap = true;
-	overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
-	overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
-	overlap = (amin[2] > bmax[2] || amax[2] < bmin[2]) ? false : overlap;
-	return overlap;
-}
-
-inline bool overlapInterval(unsigned short amin, unsigned short amax,
-	unsigned short bmin, unsigned short bmax)
-{
-	if (amax < bmin) return false;
-	if (amin > bmax) return false;
-	return true;
-}
-
-static rcSpan* allocSpan(rcHeightfield& hf)
-{
-	// If running out of memory, allocate new page and update the freelist.
-	if (!hf.freelist || !hf.freelist->next)
+	inline bool overlapBounds(const float* amin, const float* amax, const float* bmin, const float* bmax)
 	{
-		// Create new page.
-		// Allocate memory for the new pool.
-		rcSpanPool* pool = (rcSpanPool*)rcAlloc(sizeof(rcSpanPool), RC_ALLOC_PERM);
-		if (!pool) return 0;
-
-		// Add the pool into the list of pools.
-		pool->next = hf.pools;
-		hf.pools = pool;
-		// Add new items to the free list.
-		rcSpan* freelist = hf.freelist;
-		rcSpan* head = &pool->items[0];
-		rcSpan* it = &pool->items[RC_SPANS_PER_POOL];
-		do
-		{
-			--it;
-			it->next = freelist;
-			freelist = it;
-		} while (it != head);
-		hf.freelist = it;
+		bool overlap = true;
+		overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
+		overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
+		overlap = (amin[2] > bmax[2] || amax[2] < bmin[2]) ? false : overlap;
+		return overlap;
 	}
 
-	// Pop item from in front of the free list.
-	rcSpan* it = hf.freelist;
-	hf.freelist = hf.freelist->next;
-	return it;
-}
-
-static void freeSpan(rcHeightfield& hf, rcSpan* ptr)
-{
-	if (!ptr) return;
-	// Add the node in front of the free list.
-	ptr->next = hf.freelist;
-	hf.freelist = ptr;
-}
-
-static bool addSpan(rcHeightfield& hf, const int x, const int y,
-	const unsigned short smin, const unsigned short smax,
-	const unsigned char area, const int flagMergeThr)
-{
-	int idx = x + y * hf.width;
-
-	rcSpan* s = allocSpan(hf);
-	if (!s)
-		return false;
-	s->smin = smin;
-	s->smax = smax;
-	s->area = area;
-	s->next = 0;
-
-	// Empty cell, add the first span.
-	// 空のセル、最初のスパンを追加します。
-	if (!hf.spans[idx])
+	inline bool overlapInterval(unsigned short amin, unsigned short amax,
+		unsigned short bmin, unsigned short bmax)
 	{
-		hf.spans[idx] = s;
+		if (amax < bmin) return false;
+		if (amin > bmax) return false;
 		return true;
 	}
 
-	rcSpan* prev{ nullptr };
-	rcSpan* cur = hf.spans[idx];
-
-	// Insert and merge spans.
-	// スパンを挿入してマージします。
-	while (cur)
+	rcSpan* allocSpan(rcHeightfield& hf)
 	{
-		if (cur->smin > s->smax)
+		// If running out of memory, allocate new page and update the freelist.
+		if (!hf.freelist || !hf.freelist->next)
 		{
-			// Current span is further than the new span, break.
-			// 現在のスパンは、新しいスパン、breakよりも遠い。
-			break;
+			// Create new page.
+			// Allocate memory for the new pool.
+			rcSpanPool* pool = (rcSpanPool*)rcAlloc(sizeof(rcSpanPool), RC_ALLOC_PERM);
+			if (!pool) return 0;
+
+			// Add the pool into the list of pools.
+			pool->next = hf.pools;
+			hf.pools = pool;
+			// Add new items to the free list.
+			rcSpan* freelist = hf.freelist;
+			rcSpan* head = &pool->items[0];
+			rcSpan* it = &pool->items[RC_SPANS_PER_POOL];
+			do
+			{
+				--it;
+				it->next = freelist;
+				freelist = it;
+			} while (it != head);
+			hf.freelist = it;
 		}
-		else if (cur->smax < s->smin)
+
+		// Pop item from in front of the free list.
+		rcSpan* it = hf.freelist;
+		hf.freelist = hf.freelist->next;
+		return it;
+	}
+
+	void freeSpan(rcHeightfield& hf, rcSpan* ptr)
+	{
+		if (!ptr) return;
+		// Add the node in front of the free list.
+		ptr->next = hf.freelist;
+		hf.freelist = ptr;
+	}
+
+	bool addSpan(rcHeightfield& hf, const int x, const int y,
+		const unsigned short smin, const unsigned short smax,
+		const unsigned char area, const int flagMergeThr)
+	{
+		int idx = x + y * hf.width;
+
+		rcSpan* s = allocSpan(hf);
+		if (!s)
+			return false;
+		s->smin = smin;
+		s->smax = smax;
+		s->area = area;
+		s->next = 0;
+
+		// Empty cell, add the first span.
+		// 空のセル、最初のスパンを追加します。
+		if (!hf.spans[idx])
 		{
-			// Current span is before the new span advance.
-			// 現在のスパンは、新しいスパンが進む前です。
-			prev = cur;
-			cur = cur->next;
+			hf.spans[idx] = s;
+			return true;
+		}
+
+		rcSpan* prev{ nullptr };
+		rcSpan* cur = hf.spans[idx];
+
+		// Insert and merge spans.
+		// スパンを挿入してマージします。
+		while (cur)
+		{
+			if (cur->smin > s->smax)
+			{
+				// Current span is further than the new span, break.
+				// 現在のスパンは、新しいスパン、breakよりも遠い。
+				break;
+			}
+			else if (cur->smax < s->smin)
+			{
+				// Current span is before the new span advance.
+				// 現在のスパンは、新しいスパンが進む前です。
+				prev = cur;
+				cur = cur->next;
+			}
+			else
+			{
+				// Merge spans. //スパンをマージします。
+				if (cur->smin < s->smin) s->smin = cur->smin;
+				if (cur->smax > s->smax) s->smax = cur->smax;
+
+				// Merge flags. //フラグをマージします。
+				if (rcAbs((int)s->smax - (int)cur->smax) <= flagMergeThr)
+					s->area = rcMax(s->area, cur->area);
+
+				// Remove current span. //現在のスパンを削除します。
+				rcSpan* next = cur->next;
+				freeSpan(hf, cur);
+
+				prev ? prev->next = next : hf.spans[idx] = next;
+
+				cur = next;
+			}
+		}
+
+		// Insert new span.
+		if (prev)
+		{
+			s->next = prev->next;
+			prev->next = s;
 		}
 		else
 		{
-			// Merge spans. //スパンをマージします。
-			if (cur->smin < s->smin) s->smin = cur->smin;
-			if (cur->smax > s->smax) s->smax = cur->smax;
-
-			// Merge flags. //フラグをマージします。
-			if (rcAbs((int)s->smax - (int)cur->smax) <= flagMergeThr)
-				s->area = rcMax(s->area, cur->area);
-
-			// Remove current span. //現在のスパンを削除します。
-			rcSpan* next = cur->next;
-			freeSpan(hf, cur);
-
-			prev ? prev->next = next : hf.spans[idx] = next;
-
-			cur = next;
+			s->next = hf.spans[idx];
+			hf.spans[idx] = s;
 		}
-	}
 
-	// Insert new span.
-	if (prev)
-	{
-		s->next = prev->next;
-		prev->next = s;
+		return true;
 	}
-	else
-	{
-		s->next = hf.spans[idx];
-		hf.spans[idx] = s;
-	}
-
-	return true;
 }
 
 /// @par

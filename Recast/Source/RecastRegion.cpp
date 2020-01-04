@@ -27,357 +27,182 @@
 #include "RecastAssert.h"
 #include <new>
 
-static void calculateDistanceField(rcCompactHeightfield& chf, unsigned short* src, unsigned short& maxDist)
+namespace
 {
-	const int w{ chf.width };
-	const int h{ chf.height };
-
-	// Init distance and points.
-	// 距離とポイントを初期化します。
-	for (int i = 0; i < chf.spanCount; ++i)
-		src[i] = 0xffff;
-
-	// Mark boundary cells.
-	// 境界セルをマークします。
-	for (int y = 0; y < h; ++y)
+	 void calculateDistanceField(rcCompactHeightfield& chf, unsigned short* src, unsigned short& maxDist)
 	{
-		for (int x = 0; x < w; ++x)
+		const int w{ chf.width };
+		const int h{ chf.height };
+
+		// Init distance and points.
+		// 距離とポイントを初期化します。
+		for (int i = 0; i < chf.spanCount; ++i)
+			src[i] = 0xffff;
+
+		// Mark boundary cells.
+		// 境界セルをマークします。
+		for (int y = 0; y < h; ++y)
 		{
-			const rcCompactCell& c{ chf.cells[x + y * w] };
-
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+			for (int x = 0; x < w; ++x)
 			{
-				const rcCompactSpan& s{ chf.spans[i] };
-				const unsigned char area{ chf.areas[i] };
+				const rcCompactCell& c{ chf.cells[x + y * w] };
 
-				int nc{ 0 };
-
-				for (int dir = 0; dir < 4; ++dir)
+				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 				{
-					if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+					const rcCompactSpan& s{ chf.spans[i] };
+					const unsigned char area{ chf.areas[i] };
+
+					int nc{ 0 };
+
+					for (int dir = 0; dir < 4; ++dir)
 					{
-						const int ax{ x + rcGetDirOffsetX(dir) };
-						const int ay{ y + rcGetDirOffsetY(dir) };
-						const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir) };
-
-						if (area == chf.areas[ai]) nc++;
-					}
-				}
-				if (nc != 4) src[i] = 0;
-			}
-		}
-	}
-
-	// Pass 1
-	for (int y = 0; y < h; ++y)
-	{
-		for (int x = 0; x < w; ++x)
-		{
-			const rcCompactCell& c{ chf.cells[x + y * w] };
-
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
-			{
-				const rcCompactSpan& s = chf.spans[i];
-
-				if (rcGetCon(s, 0) != RC_NOT_CONNECTED)
-				{
-					// (-1,0)
-					const int ax{ x + rcGetDirOffsetX(0) };
-					const int ay{ y + rcGetDirOffsetY(0) };
-					const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 0) };
-					const rcCompactSpan& as{ chf.spans[ai] };
-
-					if (src[ai] + 2 < src[i])
-						src[i] = src[ai] + 2;
-
-					// (-1,-1)
-					if (rcGetCon(as, 3) != RC_NOT_CONNECTED)
-					{
-						const int aax{ ax + rcGetDirOffsetX(3) };
-						const int aay{ ay + rcGetDirOffsetY(3) };
-						const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 3) };
-
-						if (src[aai] + 3 < src[i])
-							src[i] = src[aai] + 3;
-					}
-				}
-
-				if (rcGetCon(s, 3) != RC_NOT_CONNECTED)
-				{
-					// (0,-1)
-					const int ax{ x + rcGetDirOffsetX(3) };
-					const int ay{ y + rcGetDirOffsetY(3) };
-					const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 3) };
-					const rcCompactSpan& as{ chf.spans[ai] };
-
-					if (src[ai] + 2 < src[i])
-						src[i] = src[ai] + 2;
-
-					// (1,-1)
-					if (rcGetCon(as, 2) != RC_NOT_CONNECTED)
-					{
-						const int aax{ ax + rcGetDirOffsetX(2) };
-						const int aay{ ay + rcGetDirOffsetY(2) };
-						const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 2) };
-
-						if (src[aai] + 3 < src[i])
-							src[i] = src[aai] + 3;
-					}
-				}
-			}
-		}
-	}
-
-	// Pass 2
-	for (int y = h - 1; y >= 0; --y)
-	{
-		for (int x = w - 1; x >= 0; --x)
-		{
-			const rcCompactCell& c{ chf.cells[x + y * w] };
-
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
-			{
-				const rcCompactSpan& s{ chf.spans[i] };
-
-				if (rcGetCon(s, 2) != RC_NOT_CONNECTED)
-				{
-					// (1,0)
-					const int ax{ x + rcGetDirOffsetX(2) };
-					const int ay{ y + rcGetDirOffsetY(2) };
-					const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 2) };
-					const rcCompactSpan& as{ chf.spans[ai] };
-
-					if (src[ai] + 2 < src[i])
-						src[i] = src[ai] + 2;
-
-					// (1,1)
-					if (rcGetCon(as, 1) != RC_NOT_CONNECTED)
-					{
-						const int aax{ ax + rcGetDirOffsetX(1) };
-						const int aay{ ay + rcGetDirOffsetY(1) };
-						const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 1) };
-
-						if (src[aai] + 3 < src[i])
-							src[i] = src[aai] + 3;
-					}
-				}
-				if (rcGetCon(s, 1) != RC_NOT_CONNECTED)
-				{
-					// (0,1)
-					const int ax{ x + rcGetDirOffsetX(1) };
-					const int ay{ y + rcGetDirOffsetY(1) };
-					const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 1) };
-					const rcCompactSpan& as{ chf.spans[ai] };
-
-					if (src[ai] + 2 < src[i])
-						src[i] = src[ai] + 2;
-
-					// (-1,1)
-					if (rcGetCon(as, 0) != RC_NOT_CONNECTED)
-					{
-						const int aax{ ax + rcGetDirOffsetX(0) };
-						const int aay{ ay + rcGetDirOffsetY(0) };
-						const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 0) };
-
-						if (src[aai] + 3 < src[i])
-							src[i] = src[aai] + 3;
-					}
-				}
-			}
-		}
-	}
-
-	maxDist = 0;
-
-	for (int i = 0; i < chf.spanCount; ++i)
-		maxDist = rcMax(src[i], maxDist);
-}
-
-static unsigned short* boxBlur(rcCompactHeightfield& chf, int thr,
-	unsigned short* src, unsigned short* dst)
-{
-	const int w = chf.width;
-	const int h = chf.height;
-
-	thr *= 2;
-
-	for (int y = 0; y < h; ++y)
-	{
-		for (int x = 0; x < w; ++x)
-		{
-			const rcCompactCell& c = chf.cells[x + y * w];
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
-			{
-				const rcCompactSpan& s = chf.spans[i];
-				const unsigned short cd = src[i];
-				if (cd <= thr)
-				{
-					dst[i] = cd;
-					continue;
-				}
-
-				int d = (int)cd;
-				for (int dir = 0; dir < 4; ++dir)
-				{
-					if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
-					{
-						const int ax = x + rcGetDirOffsetX(dir);
-						const int ay = y + rcGetDirOffsetY(dir);
-						const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
-						d += (int)src[ai];
-
-						const rcCompactSpan& as = chf.spans[ai];
-						const int dir2 = (dir + 1) & 0x3;
-						if (rcGetCon(as, dir2) != RC_NOT_CONNECTED)
+						if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
 						{
-							const int ax2 = ax + rcGetDirOffsetX(dir2);
-							const int ay2 = ay + rcGetDirOffsetY(dir2);
-							const int ai2 = (int)chf.cells[ax2 + ay2 * w].index + rcGetCon(as, dir2);
-							d += (int)src[ai2];
-						}
-						else
-						{
-							d += cd;
+							const int ax{ x + rcGetDirOffsetX(dir) };
+							const int ay{ y + rcGetDirOffsetY(dir) };
+							const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir) };
+
+							if (area == chf.areas[ai]) nc++;
 						}
 					}
-					else
-					{
-						d += cd * 2;
-					}
+					if (nc != 4) src[i] = 0;
 				}
-				dst[i] = (unsigned short)((d + 5) / 9);
 			}
 		}
-	}
-	return dst;
-}
 
-static bool floodRegion(int x, int y, int i,
-	unsigned short level, unsigned short r,
-	rcCompactHeightfield& chf,
-	unsigned short* srcReg, unsigned short* srcDist,
-	rcIntArray& stack)
-{
-	const int w = chf.width;
-
-	const unsigned char area = chf.areas[i];
-
-	// Flood fill mark region.
-	// 塗りつぶしマーク領域。
-	stack.resize(0);
-	stack.push((int)x);
-	stack.push((int)y);
-	stack.push((int)i);
-	srcReg[i] = r;
-	srcDist[i] = 0;
-
-	unsigned short lev = level >= 2 ? level - 2 : 0;
-	int count = 0;
-
-	while (stack.size() > 0)
-	{
-		int ci = stack.pop();
-		int cy = stack.pop();
-		int cx = stack.pop();
-
-		const rcCompactSpan& cs = chf.spans[ci];
-
-		// Check if any of the neighbours already have a valid region set.
-		// ネイバーのいずれかに有効なリージョンセットが既にあるかどうかを確認します。
-		unsigned short ar = 0;
-		for (int dir = 0; dir < 4; ++dir)
+		// Pass 1
+		for (int y = 0; y < h; ++y)
 		{
-			// 8 connected
-			if (rcGetCon(cs, dir) != RC_NOT_CONNECTED)
+			for (int x = 0; x < w; ++x)
 			{
-				const int ax = cx + rcGetDirOffsetX(dir);
-				const int ay = cy + rcGetDirOffsetY(dir);
-				const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(cs, dir);
+				const rcCompactCell& c{ chf.cells[x + y * w] };
 
-				if (chf.areas[ai] != area) continue;
-
-				unsigned short nr = srcReg[ai];
-
-				// Do not take borders into account.
-				//境界線を考慮しないでください。
-				if (nr & RC_BORDER_REG)
-					continue;
-
-				if (nr != 0 && nr != r)
+				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 				{
-					ar = nr;
-					break;
-				}
+					const rcCompactSpan& s = chf.spans[i];
 
-				const rcCompactSpan& as = chf.spans[ai];
-
-				const int dir2 = (dir + 1) & 0x3;
-				if (rcGetCon(as, dir2) != RC_NOT_CONNECTED)
-				{
-					const int ax2 = ax + rcGetDirOffsetX(dir2);
-					const int ay2 = ay + rcGetDirOffsetY(dir2);
-					const int ai2 = (int)chf.cells[ax2 + ay2 * w].index + rcGetCon(as, dir2);
-					if (chf.areas[ai2] != area)
-						continue;
-					unsigned short nr2 = srcReg[ai2];
-					if (nr2 != 0 && nr2 != r)
+					if (rcGetCon(s, 0) != RC_NOT_CONNECTED)
 					{
-						ar = nr2;
-						break;
+						// (-1,0)
+						const int ax{ x + rcGetDirOffsetX(0) };
+						const int ay{ y + rcGetDirOffsetY(0) };
+						const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 0) };
+						const rcCompactSpan& as{ chf.spans[ai] };
+
+						if (src[ai] + 2 < src[i])
+							src[i] = src[ai] + 2;
+
+						// (-1,-1)
+						if (rcGetCon(as, 3) != RC_NOT_CONNECTED)
+						{
+							const int aax{ ax + rcGetDirOffsetX(3) };
+							const int aay{ ay + rcGetDirOffsetY(3) };
+							const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 3) };
+
+							if (src[aai] + 3 < src[i])
+								src[i] = src[aai] + 3;
+						}
+					}
+
+					if (rcGetCon(s, 3) != RC_NOT_CONNECTED)
+					{
+						// (0,-1)
+						const int ax{ x + rcGetDirOffsetX(3) };
+						const int ay{ y + rcGetDirOffsetY(3) };
+						const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 3) };
+						const rcCompactSpan& as{ chf.spans[ai] };
+
+						if (src[ai] + 2 < src[i])
+							src[i] = src[ai] + 2;
+
+						// (1,-1)
+						if (rcGetCon(as, 2) != RC_NOT_CONNECTED)
+						{
+							const int aax{ ax + rcGetDirOffsetX(2) };
+							const int aay{ ay + rcGetDirOffsetY(2) };
+							const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 2) };
+
+							if (src[aai] + 3 < src[i])
+								src[i] = src[aai] + 3;
+						}
 					}
 				}
 			}
 		}
-		if (ar != 0)
-		{
-			srcReg[ci] = 0;
-			continue;
-		}
 
-		count++;
-
-		// Expand neighbours.
-		// 近隣を展開します。
-		for (int dir = 0; dir < 4; ++dir)
+		// Pass 2
+		for (int y = h - 1; y >= 0; --y)
 		{
-			if (rcGetCon(cs, dir) != RC_NOT_CONNECTED)
+			for (int x = w - 1; x >= 0; --x)
 			{
-				const int ax = cx + rcGetDirOffsetX(dir);
-				const int ay = cy + rcGetDirOffsetY(dir);
-				const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(cs, dir);
+				const rcCompactCell& c{ chf.cells[x + y * w] };
 
-				if (chf.areas[ai] != area) continue;
-
-				if (chf.dist[ai] >= lev && srcReg[ai] == 0)
+				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 				{
-					srcReg[ai] = r;
-					srcDist[ai] = 0;
-					stack.push(ax);
-					stack.push(ay);
-					stack.push(ai);
+					const rcCompactSpan& s{ chf.spans[i] };
+
+					if (rcGetCon(s, 2) != RC_NOT_CONNECTED)
+					{
+						// (1,0)
+						const int ax{ x + rcGetDirOffsetX(2) };
+						const int ay{ y + rcGetDirOffsetY(2) };
+						const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 2) };
+						const rcCompactSpan& as{ chf.spans[ai] };
+
+						if (src[ai] + 2 < src[i])
+							src[i] = src[ai] + 2;
+
+						// (1,1)
+						if (rcGetCon(as, 1) != RC_NOT_CONNECTED)
+						{
+							const int aax{ ax + rcGetDirOffsetX(1) };
+							const int aay{ ay + rcGetDirOffsetY(1) };
+							const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 1) };
+
+							if (src[aai] + 3 < src[i])
+								src[i] = src[aai] + 3;
+						}
+					}
+					if (rcGetCon(s, 1) != RC_NOT_CONNECTED)
+					{
+						// (0,1)
+						const int ax{ x + rcGetDirOffsetX(1) };
+						const int ay{ y + rcGetDirOffsetY(1) };
+						const int ai{ (int)chf.cells[ax + ay * w].index + rcGetCon(s, 1) };
+						const rcCompactSpan& as{ chf.spans[ai] };
+
+						if (src[ai] + 2 < src[i])
+							src[i] = src[ai] + 2;
+
+						// (-1,1)
+						if (rcGetCon(as, 0) != RC_NOT_CONNECTED)
+						{
+							const int aax{ ax + rcGetDirOffsetX(0) };
+							const int aay{ ay + rcGetDirOffsetY(0) };
+							const int aai{ (int)chf.cells[aax + aay * w].index + rcGetCon(as, 0) };
+
+							if (src[aai] + 3 < src[i])
+								src[i] = src[aai] + 3;
+						}
+					}
 				}
 			}
 		}
+
+		maxDist = 0;
+
+		for (int i = 0; i < chf.spanCount; ++i)
+			maxDist = rcMax(src[i], maxDist);
 	}
 
-	return count > 0;
-}
-
-static unsigned short* expandRegions(int maxIter, unsigned short level,
-	rcCompactHeightfield& chf,
-	unsigned short* srcReg, unsigned short* srcDist,
-	unsigned short* dstReg, unsigned short* dstDist,
-	rcIntArray& stack,
-	bool fillStack)
-{
-	const int w = chf.width;
-	const int h = chf.height;
-
-	if (fillStack)
+	 unsigned short* boxBlur(rcCompactHeightfield& chf, int thr,
+		unsigned short* src, unsigned short* dst)
 	{
-		// Find cells revealed by the raised level.
-		// 上げられたレベルによって明らかにされたセルを見つけます。
-		stack.resize(0);
+		const int w = chf.width;
+		const int h = chf.height;
+
+		thr *= 2;
+
 		for (int y = 0; y < h; ++y)
 		{
 			for (int x = 0; x < w; ++x)
@@ -385,925 +210,1103 @@ static unsigned short* expandRegions(int maxIter, unsigned short level,
 				const rcCompactCell& c = chf.cells[x + y * w];
 				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
 				{
-					if (chf.dist[i] >= level && srcReg[i] == 0 && chf.areas[i] != RC_NULL_AREA)
+					const rcCompactSpan& s = chf.spans[i];
+					const unsigned short cd = src[i];
+					if (cd <= thr)
 					{
-						stack.push(x);
-						stack.push(y);
-						stack.push(i);
+						dst[i] = cd;
+						continue;
 					}
+
+					int d = (int)cd;
+					for (int dir = 0; dir < 4; ++dir)
+					{
+						if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+						{
+							const int ax = x + rcGetDirOffsetX(dir);
+							const int ay = y + rcGetDirOffsetY(dir);
+							const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
+							d += (int)src[ai];
+
+							const rcCompactSpan& as = chf.spans[ai];
+							const int dir2 = (dir + 1) & 0x3;
+							if (rcGetCon(as, dir2) != RC_NOT_CONNECTED)
+							{
+								const int ax2 = ax + rcGetDirOffsetX(dir2);
+								const int ay2 = ay + rcGetDirOffsetY(dir2);
+								const int ai2 = (int)chf.cells[ax2 + ay2 * w].index + rcGetCon(as, dir2);
+								d += (int)src[ai2];
+							}
+							else
+							{
+								d += cd;
+							}
+						}
+						else
+						{
+							d += cd * 2;
+						}
+					}
+					dst[i] = (unsigned short)((d + 5) / 9);
 				}
 			}
 		}
-	}
-	// use cells in the input stack
-	// 入力スタックでセルを使用します
-	else
-	{
-		// mark all cells which already have a region
-		// すでに領域があるすべてのセルをマークします
-		for (int j = 0; j < stack.size(); j += 3)
-		{
-			int i = stack[j + 2];
-			if (srcReg[i] != 0)
-				stack[j + 2] = -1;
-		}
+		return dst;
 	}
 
-	int iter = 0;
-
-	while (stack.size() > 0)
+	 bool floodRegion(int x, int y, int i,
+		unsigned short level, unsigned short r,
+		rcCompactHeightfield& chf,
+		unsigned short* srcReg, unsigned short* srcDist,
+		rcIntArray& stack)
 	{
-		int failed = 0;
+		const int w = chf.width;
 
-		memcpy(dstReg, srcReg, sizeof(unsigned short) * chf.spanCount);
-		memcpy(dstDist, srcDist, sizeof(unsigned short) * chf.spanCount);
+		const unsigned char area = chf.areas[i];
 
-		for (int j = 0; j < stack.size(); j += 3)
+		// Flood fill mark region.
+		// 塗りつぶしマーク領域。
+		stack.resize(0);
+		stack.push((int)x);
+		stack.push((int)y);
+		stack.push((int)i);
+		srcReg[i] = r;
+		srcDist[i] = 0;
+
+		unsigned short lev = level >= 2 ? level - 2 : 0;
+		int count = 0;
+
+		while (stack.size() > 0)
 		{
-			int x = stack[j + 0];
-			int y = stack[j + 1];
-			int i = stack[j + 2];
+			int ci = stack.pop();
+			int cy = stack.pop();
+			int cx = stack.pop();
 
-			if (i < 0)
+			const rcCompactSpan& cs = chf.spans[ci];
+
+			// Check if any of the neighbours already have a valid region set.
+			// ネイバーのいずれかに有効なリージョンセットが既にあるかどうかを確認します。
+			unsigned short ar = 0;
+			for (int dir = 0; dir < 4; ++dir)
 			{
-				failed++;
+				// 8 connected
+				if (rcGetCon(cs, dir) != RC_NOT_CONNECTED)
+				{
+					const int ax = cx + rcGetDirOffsetX(dir);
+					const int ay = cy + rcGetDirOffsetY(dir);
+					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(cs, dir);
+
+					if (chf.areas[ai] != area) continue;
+
+					unsigned short nr = srcReg[ai];
+
+					// Do not take borders into account.
+					//境界線を考慮しないでください。
+					if (nr & RC_BORDER_REG)
+						continue;
+
+					if (nr != 0 && nr != r)
+					{
+						ar = nr;
+						break;
+					}
+
+					const rcCompactSpan& as = chf.spans[ai];
+
+					const int dir2 = (dir + 1) & 0x3;
+					if (rcGetCon(as, dir2) != RC_NOT_CONNECTED)
+					{
+						const int ax2 = ax + rcGetDirOffsetX(dir2);
+						const int ay2 = ay + rcGetDirOffsetY(dir2);
+						const int ai2 = (int)chf.cells[ax2 + ay2 * w].index + rcGetCon(as, dir2);
+						if (chf.areas[ai2] != area)
+							continue;
+						unsigned short nr2 = srcReg[ai2];
+						if (nr2 != 0 && nr2 != r)
+						{
+							ar = nr2;
+							break;
+						}
+					}
+				}
+			}
+			if (ar != 0)
+			{
+				srcReg[ci] = 0;
 				continue;
 			}
 
-			unsigned short r = srcReg[i];
-			unsigned short d2 = 0xffff;
-			const unsigned char area = chf.areas[i];
-			const rcCompactSpan& s = chf.spans[i];
+			count++;
 
+			// Expand neighbours.
+			// 近隣を展開します。
 			for (int dir = 0; dir < 4; ++dir)
 			{
-				if (rcGetCon(s, dir) == RC_NOT_CONNECTED) continue;
-
-				const int ax = x + rcGetDirOffsetX(dir);
-				const int ay = y + rcGetDirOffsetY(dir);
-				const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
-
-				if (chf.areas[ai] != area) continue;
-
-				if (srcReg[ai] > 0 && (srcReg[ai] & RC_BORDER_REG) == 0)
+				if (rcGetCon(cs, dir) != RC_NOT_CONNECTED)
 				{
-					if ((int)srcDist[ai] + 2 < (int)d2)
+					const int ax = cx + rcGetDirOffsetX(dir);
+					const int ay = cy + rcGetDirOffsetY(dir);
+					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(cs, dir);
+
+					if (chf.areas[ai] != area) continue;
+
+					if (chf.dist[ai] >= lev && srcReg[ai] == 0)
 					{
-						r = srcReg[ai];
-						d2 = srcDist[ai] + 2;
+						srcReg[ai] = r;
+						srcDist[ai] = 0;
+						stack.push(ax);
+						stack.push(ay);
+						stack.push(ai);
 					}
 				}
 			}
+		}
 
-			if (r)
+		return count > 0;
+	}
+
+	 unsigned short* expandRegions(int maxIter, unsigned short level,
+		rcCompactHeightfield& chf,
+		unsigned short* srcReg, unsigned short* srcDist,
+		unsigned short* dstReg, unsigned short* dstDist,
+		rcIntArray& stack,
+		bool fillStack)
+	{
+		const int w = chf.width;
+		const int h = chf.height;
+
+		if (fillStack)
+		{
+			// Find cells revealed by the raised level.
+			// 上げられたレベルによって明らかにされたセルを見つけます。
+			stack.resize(0);
+			for (int y = 0; y < h; ++y)
 			{
-				stack[j + 2] = -1; // mark as used
-				dstReg[i] = r;
-				dstDist[i] = d2;
-			}
-
-			else
-			{
-				failed++;
-			}
-		}
-
-		// rcSwap source and dest.
-		rcSwap(srcReg, dstReg);
-		rcSwap(srcDist, dstDist);
-
-		if (failed * 3 == stack.size()) break;
-
-		if (level > 0)
-		{
-			++iter;
-
-			if (iter >= maxIter) break;
-		}
-	}
-
-	return srcReg;
-}
-
-static void sortCellsByLevel(unsigned short startLevel,
-	rcCompactHeightfield& chf,
-	unsigned short* srcReg,
-	unsigned int nbStacks, rcIntArray* stacks,
-	unsigned short loglevelsPerStack) // the levels per stack (2 in our case) as a bit shift スタックごとのレベル（この場合は2）をビットシフトとして
-{
-	const int w = chf.width;
-	const int h = chf.height;
-	startLevel = startLevel >> loglevelsPerStack;
-
-	for (unsigned int j = 0; j < nbStacks; ++j)
-		stacks[j].resize(0);
-
-	// put all cells in the level range into the appropriate stacks
-	// レベル範囲内のすべてのセルを適切なスタックに配置します
-	for (int y = 0; y < h; ++y)
-	{
-		for (int x = 0; x < w; ++x)
-		{
-			const rcCompactCell& c = chf.cells[x + y * w];
-
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
-			{
-				if (chf.areas[i] == RC_NULL_AREA || srcReg[i] != 0)
-					continue;
-
-				int level = chf.dist[i] >> loglevelsPerStack;
-				int sId = startLevel - level;
-				if (sId >= (int)nbStacks)
-					continue;
-				if (sId < 0)
-					sId = 0;
-
-				stacks[sId].push(x);
-				stacks[sId].push(y);
-				stacks[sId].push(i);
-			}
-		}
-	}
-}
-
-static void appendStacks(rcIntArray& srcStack, rcIntArray& dstStack,
-	unsigned short* srcReg)
-{
-	for (int j = 0; j < srcStack.size(); j += 3)
-	{
-		int i = srcStack[j + 2];
-		if ((i < 0) || (srcReg[i] != 0))
-			continue;
-		dstStack.push(srcStack[j]);
-		dstStack.push(srcStack[j + 1]);
-		dstStack.push(srcStack[j + 2]);
-	}
-}
-
-struct rcRegion
-{
-	inline rcRegion(unsigned short i) :
-		spanCount(0),
-		id(i),
-		areaType(0),
-		remap(false),
-		visited(false),
-		overlap(false),
-		connectsToBorder(false),
-		ymin(0xffff),
-		ymax(0)
-	{}
-
-	int spanCount;					// Number of spans belonging to this region //この領域に属するスパンの数
-	unsigned short id;				// ID of the region //領域のID
-	unsigned char areaType;			// Are type.　// タイプ
-	bool remap;
-	bool visited;
-	bool overlap;
-	bool connectsToBorder;
-	unsigned short ymin, ymax;
-	rcIntArray connections;
-	rcIntArray floors;
-};
-
-static void removeAdjacentNeighbours(rcRegion& reg)
-{
-	// Remove adjacent duplicates.
-	// 隣接する重複を削除します。
-	for (int i = 0; i < reg.connections.size() && reg.connections.size() > 1; )
-	{
-		int ni = (i + 1) % reg.connections.size();
-		if (reg.connections[i] == reg.connections[ni])
-		{
-			// Remove duplicate
-			// 重複を削除します
-			for (int j = i; j < reg.connections.size() - 1; ++j)
-				reg.connections[j] = reg.connections[j + 1];
-			reg.connections.pop();
-		}
-		else
-			++i;
-	}
-}
-
-static void replaceNeighbour(rcRegion& reg, unsigned short oldId, unsigned short newId)
-{
-	bool neiChanged = false;
-	for (int i = 0; i < reg.connections.size(); ++i)
-	{
-		if (reg.connections[i] == oldId)
-		{
-			reg.connections[i] = newId;
-			neiChanged = true;
-		}
-	}
-	for (int i = 0; i < reg.floors.size(); ++i)
-	{
-		if (reg.floors[i] == oldId)
-			reg.floors[i] = newId;
-	}
-	if (neiChanged)
-		removeAdjacentNeighbours(reg);
-}
-
-static bool canMergeWithRegion(const rcRegion& rega, const rcRegion& regb)
-{
-	if (rega.areaType != regb.areaType)
-		return false;
-	int n = 0;
-	for (int i = 0; i < rega.connections.size(); ++i)
-	{
-		if (rega.connections[i] == regb.id)
-			n++;
-	}
-	if (n > 1)
-		return false;
-	for (int i = 0; i < rega.floors.size(); ++i)
-	{
-		if (rega.floors[i] == regb.id)
-			return false;
-	}
-	return true;
-}
-
-static void addUniqueFloorRegion(rcRegion& reg, int n)
-{
-	for (int i = 0; i < reg.floors.size(); ++i)
-		if (reg.floors[i] == n)
-			return;
-	reg.floors.push(n);
-}
-
-static bool mergeRegions(rcRegion& rega, rcRegion& regb)
-{
-	unsigned short aid = rega.id;
-	unsigned short bid = regb.id;
-
-	// Duplicate current neighbourhood.
-	// 現在の周辺を複製します。
-	rcIntArray acon;
-	acon.resize(rega.connections.size());
-	for (int i = 0; i < rega.connections.size(); ++i)
-		acon[i] = rega.connections[i];
-	rcIntArray& bcon = regb.connections;
-
-	// Find insertion point on A.
-	// Aの挿入ポイントを見つけます
-	int insa = -1;
-	for (int i = 0; i < acon.size(); ++i)
-	{
-		if (acon[i] == bid)
-		{
-			insa = i;
-			break;
-		}
-	}
-	if (insa == -1)
-		return false;
-
-	// Find insertion point on B.
-	// Bの挿入ポイントを見つけます
-	int insb = -1;
-	for (int i = 0; i < bcon.size(); ++i)
-	{
-		if (bcon[i] == aid)
-		{
-			insb = i;
-			break;
-		}
-	}
-	if (insb == -1)
-		return false;
-
-	// Merge neighbours.
-	// 周辺とマージする
-	rega.connections.resize(0);
-	for (int i = 0, ni = acon.size(); i < ni - 1; ++i)
-		rega.connections.push(acon[(insa + 1 + i) % ni]);
-
-	for (int i = 0, ni = bcon.size(); i < ni - 1; ++i)
-		rega.connections.push(bcon[(insb + 1 + i) % ni]);
-
-	removeAdjacentNeighbours(rega);
-
-	for (int j = 0; j < regb.floors.size(); ++j)
-		addUniqueFloorRegion(rega, regb.floors[j]);
-	rega.spanCount += regb.spanCount;
-	regb.spanCount = 0;
-	regb.connections.resize(0);
-
-	return true;
-}
-
-static bool isRegionConnectedToBorder(const rcRegion& reg)
-{
-	// Region is connected to border if
-	// one of the neighbours is null id.
-	// リージョンは次の場合にボーダーに接続されます
-	// 近隣の1つがnull IDです。
-	for (int i = 0; i < reg.connections.size(); ++i)
-	{
-		if (reg.connections[i] == 0)
-			return true;
-	}
-	return false;
-}
-
-static bool isSolidEdge(rcCompactHeightfield& chf, unsigned short* srcReg,
-	int x, int y, int i, int dir)
-{
-	const rcCompactSpan& s = chf.spans[i];
-	unsigned short r = 0;
-	if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
-	{
-		const int ax = x + rcGetDirOffsetX(dir);
-		const int ay = y + rcGetDirOffsetY(dir);
-		const int ai = (int)chf.cells[ax + ay * chf.width].index + rcGetCon(s, dir);
-		r = srcReg[ai];
-	}
-	if (r == srcReg[i])
-		return false;
-	return true;
-}
-
-static void walkContour(int x, int y, int i, int dir,
-	rcCompactHeightfield& chf,
-	unsigned short* srcReg,
-	rcIntArray& cont)
-{
-	int startDir = dir;
-	int starti = i;
-
-	const rcCompactSpan& ss = chf.spans[i];
-	unsigned short curReg = 0;
-	if (rcGetCon(ss, dir) != RC_NOT_CONNECTED)
-	{
-		const int ax = x + rcGetDirOffsetX(dir);
-		const int ay = y + rcGetDirOffsetY(dir);
-		const int ai = (int)chf.cells[ax + ay * chf.width].index + rcGetCon(ss, dir);
-		curReg = srcReg[ai];
-	}
-	cont.push(curReg);
-
-	int iter = 0;
-	while (++iter < 40000)
-	{
-		const rcCompactSpan& s = chf.spans[i];
-
-		if (isSolidEdge(chf, srcReg, x, y, i, dir))
-		{
-			// Choose the edge corner
-			// エッジコーナーを選択します
-			unsigned short r = 0;
-			if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
-			{
-				const int ax = x + rcGetDirOffsetX(dir);
-				const int ay = y + rcGetDirOffsetY(dir);
-				const int ai = (int)chf.cells[ax + ay * chf.width].index + rcGetCon(s, dir);
-				r = srcReg[ai];
-			}
-			if (r != curReg)
-			{
-				curReg = r;
-				cont.push(curReg);
-			}
-
-			dir = (dir + 1) & 0x3;  // Rotate CW // 時計回り回る
-		}
-		else
-		{
-			int ni = -1;
-			const int nx = x + rcGetDirOffsetX(dir);
-			const int ny = y + rcGetDirOffsetY(dir);
-			if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
-			{
-				const rcCompactCell& nc = chf.cells[nx + ny * chf.width];
-				ni = (int)nc.index + rcGetCon(s, dir);
-			}
-			if (ni == -1)
-			{
-				// Should not happen.
-				// 起こるべきではありません。
-				return;
-			}
-			x = nx;
-			y = ny;
-			i = ni;
-			dir = (dir + 3) & 0x3;	// Rotate CCW // 反時計回り回る
-		}
-
-		if (starti == i && startDir == dir)
-		{
-			break;
-		}
-	}
-
-	// Remove adjacent duplicates.
-	// 隣接する重複を削除します。
-	if (cont.size() > 1)
-	{
-		for (int j = 0; j < cont.size(); )
-		{
-			int nj = (j + 1) % cont.size();
-			if (cont[j] == cont[nj])
-			{
-				for (int k = j; k < cont.size() - 1; ++k)
-					cont[k] = cont[k + 1];
-				cont.pop();
-			}
-			else
-				++j;
-		}
-	}
-}
-
-static bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRegionSize,
-	unsigned short& maxRegionId,
-	rcCompactHeightfield& chf,
-	unsigned short* srcReg, rcIntArray& overlaps)
-{
-	const int w = chf.width;
-	const int h = chf.height;
-
-	const int nreg = maxRegionId + 1;
-	rcRegion* regions = (rcRegion*)rcAlloc(sizeof(rcRegion) * nreg, RC_ALLOC_TEMP);
-	if (!regions)
-	{
-		ctx->log(RC_LOG_ERROR, "mergeAndFilterRegions: Out of memory 'regions' (%d).", nreg);
-		return false;
-	}
-
-	// Construct regions
-	// 領域を構築します
-	for (int i = 0; i < nreg; ++i)
-		new(&regions[i]) rcRegion((unsigned short)i);
-
-	// Find edge of a region and find connections around the contour.
-	// 領域のエッジを見つけ、輪郭の周りの接続を見つけます。
-	for (int y = 0; y < h; ++y)
-	{
-		for (int x = 0; x < w; ++x)
-		{
-			const rcCompactCell& c = chf.cells[x + y * w];
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
-			{
-				unsigned short r = srcReg[i];
-				if (r == 0 || r >= nreg)
-					continue;
-
-				rcRegion& reg = regions[r];
-				reg.spanCount++;
-
-				// Update floors.
-				// フロアを更新します。
-				for (int j = (int)c.index; j < ni; ++j)
+				for (int x = 0; x < w; ++x)
 				{
-					if (i == j) continue;
-					unsigned short floorId = srcReg[j];
-					if (floorId == 0 || floorId >= nreg)
-						continue;
-					if (floorId == r)
-						reg.overlap = true;
-					addUniqueFloorRegion(reg, floorId);
+					const rcCompactCell& c = chf.cells[x + y * w];
+					for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+					{
+						if (chf.dist[i] >= level && srcReg[i] == 0 && chf.areas[i] != RC_NULL_AREA)
+						{
+							stack.push(x);
+							stack.push(y);
+							stack.push(i);
+						}
+					}
+				}
+			}
+		}
+		// use cells in the input stack
+		// 入力スタックでセルを使用します
+		else
+		{
+			// mark all cells which already have a region
+			// すでに領域があるすべてのセルをマークします
+			for (int j = 0; j < stack.size(); j += 3)
+			{
+				int i = stack[j + 2];
+				if (srcReg[i] != 0)
+					stack[j + 2] = -1;
+			}
+		}
+
+		int iter = 0;
+
+		while (stack.size() > 0)
+		{
+			int failed = 0;
+
+			memcpy(dstReg, srcReg, sizeof(unsigned short) * chf.spanCount);
+			memcpy(dstDist, srcDist, sizeof(unsigned short) * chf.spanCount);
+
+			for (int j = 0; j < stack.size(); j += 3)
+			{
+				int x = stack[j + 0];
+				int y = stack[j + 1];
+				int i = stack[j + 2];
+
+				if (i < 0)
+				{
+					failed++;
+					continue;
 				}
 
-				// Have found contour
-				// 輪郭を見つけました
-				if (reg.connections.size() > 0)
-					continue;
+				unsigned short r = srcReg[i];
+				unsigned short d2 = 0xffff;
+				const unsigned char area = chf.areas[i];
+				const rcCompactSpan& s = chf.spans[i];
 
-				reg.areaType = chf.areas[i];
-
-				// Check if this cell is next to a border.
-				// このセルが境界線の隣にあるかどうかを確認します。
-				int ndir = -1;
 				for (int dir = 0; dir < 4; ++dir)
 				{
-					if (isSolidEdge(chf, srcReg, x, y, i, dir))
+					if (rcGetCon(s, dir) == RC_NOT_CONNECTED) continue;
+
+					const int ax = x + rcGetDirOffsetX(dir);
+					const int ay = y + rcGetDirOffsetY(dir);
+					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
+
+					if (chf.areas[ai] != area) continue;
+
+					if (srcReg[ai] > 0 && (srcReg[ai] & RC_BORDER_REG) == 0)
 					{
-						ndir = dir;
-						break;
+						if ((int)srcDist[ai] + 2 < (int)d2)
+						{
+							r = srcReg[ai];
+							d2 = srcDist[ai] + 2;
+						}
 					}
 				}
 
-				if (ndir != -1)
+				if (r)
 				{
-					// The cell is at border.
-					// Walk around the contour to find all the neighbours.
-					// セルは境界にあります。
-					// 輪郭を歩き回り、すべての隣人を見つけます。
-					walkContour(x, y, i, ndir, chf, srcReg, reg.connections);
+					stack[j + 2] = -1; // mark as used
+					dstReg[i] = r;
+					dstDist[i] = d2;
+				}
+
+				else
+				{
+					failed++;
+				}
+			}
+
+			// rcSwap source and dest.
+			rcSwap(srcReg, dstReg);
+			rcSwap(srcDist, dstDist);
+
+			if (failed * 3 == stack.size()) break;
+
+			if (level > 0)
+			{
+				++iter;
+
+				if (iter >= maxIter) break;
+			}
+		}
+
+		return srcReg;
+	}
+
+	 void sortCellsByLevel(unsigned short startLevel,
+		rcCompactHeightfield& chf,
+		unsigned short* srcReg,
+		unsigned int nbStacks, rcIntArray* stacks,
+		unsigned short loglevelsPerStack) // the levels per stack (2 in our case) as a bit shift スタックごとのレベル（この場合は2）をビットシフトとして
+	{
+		const int w = chf.width;
+		const int h = chf.height;
+		startLevel = startLevel >> loglevelsPerStack;
+
+		for (unsigned int j = 0; j < nbStacks; ++j)
+			stacks[j].resize(0);
+
+		// put all cells in the level range into the appropriate stacks
+		// レベル範囲内のすべてのセルを適切なスタックに配置します
+		for (int y = 0; y < h; ++y)
+		{
+			for (int x = 0; x < w; ++x)
+			{
+				const rcCompactCell& c = chf.cells[x + y * w];
+
+				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+				{
+					if (chf.areas[i] == RC_NULL_AREA || srcReg[i] != 0)
+						continue;
+
+					int level = chf.dist[i] >> loglevelsPerStack;
+					int sId = startLevel - level;
+					if (sId >= (int)nbStacks)
+						continue;
+					if (sId < 0)
+						sId = 0;
+
+					stacks[sId].push(x);
+					stacks[sId].push(y);
+					stacks[sId].push(i);
 				}
 			}
 		}
 	}
 
-	// Remove too small regions.
-	// 小さすぎる領域を削除します。
-	rcIntArray stack(32);
-	rcIntArray trace(32);
-	for (int i = 0; i < nreg; ++i)
+	 void appendStacks(rcIntArray& srcStack, rcIntArray& dstStack,
+		unsigned short* srcReg)
 	{
-		rcRegion& reg = regions[i];
-		if (reg.id == 0 || (reg.id & RC_BORDER_REG))
-			continue;
-		if (reg.spanCount == 0)
-			continue;
-		if (reg.visited)
-			continue;
-
-		// Count the total size of all the connected regions.
-		// Also keep track of the regions connects to a tile border.
-		// 接続されているすべての領域の合計サイズをカウントします。
-		// また、タイル境界に接続する領域を追跡します。
-		bool connectsToBorder = false;
-		int spanCount = 0;
-		stack.resize(0);
-		trace.resize(0);
-
-		reg.visited = true;
-		stack.push(i);
-
-		while (stack.size())
+		for (int j = 0; j < srcStack.size(); j += 3)
 		{
-			// Pop
-			int ri = stack.pop();
+			int i = srcStack[j + 2];
+			if ((i < 0) || (srcReg[i] != 0))
+				continue;
+			dstStack.push(srcStack[j]);
+			dstStack.push(srcStack[j + 1]);
+			dstStack.push(srcStack[j + 2]);
+		}
+	}
 
-			rcRegion& creg = regions[ri];
+	struct rcRegion
+	{
+		inline rcRegion(unsigned short i) :
+			spanCount(0),
+			id(i),
+			areaType(0),
+			remap(false),
+			visited(false),
+			overlap(false),
+			connectsToBorder(false),
+			ymin(0xffff),
+			ymax(0)
+		{}
 
-			spanCount += creg.spanCount;
-			trace.push(ri);
+		int spanCount;					// Number of spans belonging to this region //この領域に属するスパンの数
+		unsigned short id;				// ID of the region //領域のID
+		unsigned char areaType;			// Are type.　// タイプ
+		bool remap;
+		bool visited;
+		bool overlap;
+		bool connectsToBorder;
+		unsigned short ymin, ymax;
+		rcIntArray connections;
+		rcIntArray floors;
+	};
 
-			for (int j = 0; j < creg.connections.size(); ++j)
+	 void removeAdjacentNeighbours(rcRegion& reg)
+	{
+		// Remove adjacent duplicates.
+		// 隣接する重複を削除します。
+		for (int i = 0; i < reg.connections.size() && reg.connections.size() > 1; )
+		{
+			int ni = (i + 1) % reg.connections.size();
+			if (reg.connections[i] == reg.connections[ni])
 			{
-				if (creg.connections[j] & RC_BORDER_REG)
+				// Remove duplicate
+				// 重複を削除します
+				for (int j = i; j < reg.connections.size() - 1; ++j)
+					reg.connections[j] = reg.connections[j + 1];
+				reg.connections.pop();
+			}
+			else
+				++i;
+		}
+	}
+
+	 void replaceNeighbour(rcRegion& reg, unsigned short oldId, unsigned short newId)
+	{
+		bool neiChanged = false;
+		for (int i = 0; i < reg.connections.size(); ++i)
+		{
+			if (reg.connections[i] == oldId)
+			{
+				reg.connections[i] = newId;
+				neiChanged = true;
+			}
+		}
+		for (int i = 0; i < reg.floors.size(); ++i)
+		{
+			if (reg.floors[i] == oldId)
+				reg.floors[i] = newId;
+		}
+		if (neiChanged)
+			removeAdjacentNeighbours(reg);
+	}
+
+	 bool canMergeWithRegion(const rcRegion& rega, const rcRegion& regb)
+	{
+		if (rega.areaType != regb.areaType)
+			return false;
+		int n = 0;
+		for (int i = 0; i < rega.connections.size(); ++i)
+		{
+			if (rega.connections[i] == regb.id)
+				n++;
+		}
+		if (n > 1)
+			return false;
+		for (int i = 0; i < rega.floors.size(); ++i)
+		{
+			if (rega.floors[i] == regb.id)
+				return false;
+		}
+		return true;
+	}
+
+	 void addUniqueFloorRegion(rcRegion& reg, int n)
+	{
+		for (int i = 0; i < reg.floors.size(); ++i)
+			if (reg.floors[i] == n)
+				return;
+		reg.floors.push(n);
+	}
+
+	 bool mergeRegions(rcRegion& rega, rcRegion& regb)
+	{
+		unsigned short aid = rega.id;
+		unsigned short bid = regb.id;
+
+		// Duplicate current neighbourhood.
+		// 現在の周辺を複製します。
+		rcIntArray acon;
+		acon.resize(rega.connections.size());
+		for (int i = 0; i < rega.connections.size(); ++i)
+			acon[i] = rega.connections[i];
+		rcIntArray& bcon = regb.connections;
+
+		// Find insertion point on A.
+		// Aの挿入ポイントを見つけます
+		int insa = -1;
+		for (int i = 0; i < acon.size(); ++i)
+		{
+			if (acon[i] == bid)
+			{
+				insa = i;
+				break;
+			}
+		}
+		if (insa == -1)
+			return false;
+
+		// Find insertion point on B.
+		// Bの挿入ポイントを見つけます
+		int insb = -1;
+		for (int i = 0; i < bcon.size(); ++i)
+		{
+			if (bcon[i] == aid)
+			{
+				insb = i;
+				break;
+			}
+		}
+		if (insb == -1)
+			return false;
+
+		// Merge neighbours.
+		// 周辺とマージする
+		rega.connections.resize(0);
+		for (int i = 0, ni = acon.size(); i < ni - 1; ++i)
+			rega.connections.push(acon[(insa + 1 + i) % ni]);
+
+		for (int i = 0, ni = bcon.size(); i < ni - 1; ++i)
+			rega.connections.push(bcon[(insb + 1 + i) % ni]);
+
+		removeAdjacentNeighbours(rega);
+
+		for (int j = 0; j < regb.floors.size(); ++j)
+			addUniqueFloorRegion(rega, regb.floors[j]);
+		rega.spanCount += regb.spanCount;
+		regb.spanCount = 0;
+		regb.connections.resize(0);
+
+		return true;
+	}
+
+	 bool isRegionConnectedToBorder(const rcRegion& reg)
+	{
+		// Region is connected to border if
+		// one of the neighbours is null id.
+		// リージョンは次の場合にボーダーに接続されます
+		// 近隣の1つがnull IDです。
+		for (int i = 0; i < reg.connections.size(); ++i)
+		{
+			if (reg.connections[i] == 0)
+				return true;
+		}
+		return false;
+	}
+
+	 bool isSolidEdge(rcCompactHeightfield& chf, unsigned short* srcReg,
+		int x, int y, int i, int dir)
+	{
+		const rcCompactSpan& s = chf.spans[i];
+		unsigned short r = 0;
+		if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+		{
+			const int ax = x + rcGetDirOffsetX(dir);
+			const int ay = y + rcGetDirOffsetY(dir);
+			const int ai = (int)chf.cells[ax + ay * chf.width].index + rcGetCon(s, dir);
+			r = srcReg[ai];
+		}
+		if (r == srcReg[i])
+			return false;
+		return true;
+	}
+
+	 void walkContour(int x, int y, int i, int dir,
+		rcCompactHeightfield& chf,
+		unsigned short* srcReg,
+		rcIntArray& cont)
+	{
+		int startDir = dir;
+		int starti = i;
+
+		const rcCompactSpan& ss = chf.spans[i];
+		unsigned short curReg = 0;
+		if (rcGetCon(ss, dir) != RC_NOT_CONNECTED)
+		{
+			const int ax = x + rcGetDirOffsetX(dir);
+			const int ay = y + rcGetDirOffsetY(dir);
+			const int ai = (int)chf.cells[ax + ay * chf.width].index + rcGetCon(ss, dir);
+			curReg = srcReg[ai];
+		}
+		cont.push(curReg);
+
+		int iter = 0;
+		while (++iter < 40000)
+		{
+			const rcCompactSpan& s = chf.spans[i];
+
+			if (isSolidEdge(chf, srcReg, x, y, i, dir))
+			{
+				// Choose the edge corner
+				// エッジコーナーを選択します
+				unsigned short r = 0;
+				if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
 				{
-					connectsToBorder = true;
-					continue;
+					const int ax = x + rcGetDirOffsetX(dir);
+					const int ay = y + rcGetDirOffsetY(dir);
+					const int ai = (int)chf.cells[ax + ay * chf.width].index + rcGetCon(s, dir);
+					r = srcReg[ai];
 				}
-				rcRegion& neireg = regions[creg.connections[j]];
-				if (neireg.visited)
-					continue;
-				if (neireg.id == 0 || (neireg.id & RC_BORDER_REG))
-					continue;
-				// Visit
-				stack.push(neireg.id);
-				neireg.visited = true;
+				if (r != curReg)
+				{
+					curReg = r;
+					cont.push(curReg);
+				}
+
+				dir = (dir + 1) & 0x3;  // Rotate CW // 時計回り回る
+			}
+			else
+			{
+				int ni = -1;
+				const int nx = x + rcGetDirOffsetX(dir);
+				const int ny = y + rcGetDirOffsetY(dir);
+				if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+				{
+					const rcCompactCell& nc = chf.cells[nx + ny * chf.width];
+					ni = (int)nc.index + rcGetCon(s, dir);
+				}
+				if (ni == -1)
+				{
+					// Should not happen.
+					// 起こるべきではありません。
+					return;
+				}
+				x = nx;
+				y = ny;
+				i = ni;
+				dir = (dir + 3) & 0x3;	// Rotate CCW // 反時計回り回る
+			}
+
+			if (starti == i && startDir == dir)
+			{
+				break;
 			}
 		}
 
-		// If the accumulated regions size is too small, remove it.
-		// Do not remove areas which connect to tile borders
-		// as their size cannot be estimated correctly and removing them
-		// can potentially remove necessary areas.
-		// 蓄積された領域のサイズが小さすぎる場合は、削除します。
-		// サイズを正しく推定できないため、タイルの境界に接続する領域を削除しないでください。
-		// 削除すると、必要な領域が削除される可能性があります。
-		if (spanCount < minRegionArea && !connectsToBorder)
+		// Remove adjacent duplicates.
+		// 隣接する重複を削除します。
+		if (cont.size() > 1)
 		{
-			// Kill all visited regions.
-			// 訪問したすべてのリージョンを強制終了します。
-			for (int j = 0; j < trace.size(); ++j)
+			for (int j = 0; j < cont.size(); )
 			{
-				regions[trace[j]].spanCount = 0;
-				regions[trace[j]].id = 0;
+				int nj = (j + 1) % cont.size();
+				if (cont[j] == cont[nj])
+				{
+					for (int k = j; k < cont.size() - 1; ++k)
+						cont[k] = cont[k + 1];
+					cont.pop();
+				}
+				else
+					++j;
 			}
 		}
 	}
 
-	// Merge too small regions to neighbour regions.
-	// 小さすぎる領域を隣接する領域にマージします。
-	int mergeCount = 0;
-	do
+	 bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRegionSize,
+		unsigned short& maxRegionId,
+		rcCompactHeightfield& chf,
+		unsigned short* srcReg, rcIntArray& overlaps)
 	{
-		mergeCount = 0;
+		const int w = chf.width;
+		const int h = chf.height;
+
+		const int nreg = maxRegionId + 1;
+		rcRegion* regions = (rcRegion*)rcAlloc(sizeof(rcRegion) * nreg, RC_ALLOC_TEMP);
+		if (!regions)
+		{
+			ctx->log(RC_LOG_ERROR, "mergeAndFilterRegions: Out of memory 'regions' (%d).", nreg);
+			return false;
+		}
+
+		// Construct regions
+		// 領域を構築します
+		for (int i = 0; i < nreg; ++i)
+			new(&regions[i]) rcRegion((unsigned short)i);
+
+		// Find edge of a region and find connections around the contour.
+		// 領域のエッジを見つけ、輪郭の周りの接続を見つけます。
+		for (int y = 0; y < h; ++y)
+		{
+			for (int x = 0; x < w; ++x)
+			{
+				const rcCompactCell& c = chf.cells[x + y * w];
+				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+				{
+					unsigned short r = srcReg[i];
+					if (r == 0 || r >= nreg)
+						continue;
+
+					rcRegion& reg = regions[r];
+					reg.spanCount++;
+
+					// Update floors.
+					// フロアを更新します。
+					for (int j = (int)c.index; j < ni; ++j)
+					{
+						if (i == j) continue;
+						unsigned short floorId = srcReg[j];
+						if (floorId == 0 || floorId >= nreg)
+							continue;
+						if (floorId == r)
+							reg.overlap = true;
+						addUniqueFloorRegion(reg, floorId);
+					}
+
+					// Have found contour
+					// 輪郭を見つけました
+					if (reg.connections.size() > 0)
+						continue;
+
+					reg.areaType = chf.areas[i];
+
+					// Check if this cell is next to a border.
+					// このセルが境界線の隣にあるかどうかを確認します。
+					int ndir = -1;
+					for (int dir = 0; dir < 4; ++dir)
+					{
+						if (isSolidEdge(chf, srcReg, x, y, i, dir))
+						{
+							ndir = dir;
+							break;
+						}
+					}
+
+					if (ndir != -1)
+					{
+						// The cell is at border.
+						// Walk around the contour to find all the neighbours.
+						// セルは境界にあります。
+						// 輪郭を歩き回り、すべての隣人を見つけます。
+						walkContour(x, y, i, ndir, chf, srcReg, reg.connections);
+					}
+				}
+			}
+		}
+
+		// Remove too small regions.
+		// 小さすぎる領域を削除します。
+		rcIntArray stack(32);
+		rcIntArray trace(32);
 		for (int i = 0; i < nreg; ++i)
 		{
 			rcRegion& reg = regions[i];
 			if (reg.id == 0 || (reg.id & RC_BORDER_REG))
 				continue;
-			if (reg.overlap)
-				continue;
 			if (reg.spanCount == 0)
 				continue;
-
-			// Check to see if the region should be merged.
-			// 領域をマージする必要があるかどうかを確認します。
-			if (reg.spanCount > mergeRegionSize&& isRegionConnectedToBorder(reg))
+			if (reg.visited)
 				continue;
 
-			// Small region with more than 1 connection.
-			// Or region which is not connected to a border at all.
-			// Find smallest neighbour region that connects to this one.
-			// 複数の接続がある小さな領域。
-			// または境界にまったく接続されていない地域。
-			// これに接続する最小の隣接領域を見つけます。
-			int smallest = 0xfffffff;
-			unsigned short mergeId = reg.id;
-			for (int j = 0; j < reg.connections.size(); ++j)
+			// Count the total size of all the connected regions.
+			// Also keep track of the regions connects to a tile border.
+			// 接続されているすべての領域の合計サイズをカウントします。
+			// また、タイル境界に接続する領域を追跡します。
+			bool connectsToBorder = false;
+			int spanCount = 0;
+			stack.resize(0);
+			trace.resize(0);
+
+			reg.visited = true;
+			stack.push(i);
+
+			while (stack.size())
 			{
-				if (reg.connections[j] & RC_BORDER_REG) continue;
-				rcRegion& mreg = regions[reg.connections[j]];
-				if (mreg.id == 0 || (mreg.id & RC_BORDER_REG) || mreg.overlap) continue;
-				if (mreg.spanCount < smallest &&
-					canMergeWithRegion(reg, mreg) &&
-					canMergeWithRegion(mreg, reg))
+				// Pop
+				int ri = stack.pop();
+
+				rcRegion& creg = regions[ri];
+
+				spanCount += creg.spanCount;
+				trace.push(ri);
+
+				for (int j = 0; j < creg.connections.size(); ++j)
 				{
-					smallest = mreg.spanCount;
-					mergeId = mreg.id;
+					if (creg.connections[j] & RC_BORDER_REG)
+					{
+						connectsToBorder = true;
+						continue;
+					}
+					rcRegion& neireg = regions[creg.connections[j]];
+					if (neireg.visited)
+						continue;
+					if (neireg.id == 0 || (neireg.id & RC_BORDER_REG))
+						continue;
+					// Visit
+					stack.push(neireg.id);
+					neireg.visited = true;
 				}
 			}
 
-			// Found new id.
-			// 新しいIDが見つかりました。
-			if (mergeId != reg.id)
+			// If the accumulated regions size is too small, remove it.
+			// Do not remove areas which connect to tile borders
+			// as their size cannot be estimated correctly and removing them
+			// can potentially remove necessary areas.
+			// 蓄積された領域のサイズが小さすぎる場合は、削除します。
+			// サイズを正しく推定できないため、タイルの境界に接続する領域を削除しないでください。
+			// 削除すると、必要な領域が削除される可能性があります。
+			if (spanCount < minRegionArea && !connectsToBorder)
 			{
-				unsigned short oldId = reg.id;
-				rcRegion& target = regions[mergeId];
-
-				// Merge neighbours.
-				// 周辺とマージします。
-				if (mergeRegions(target, reg))
+				// Kill all visited regions.
+				// 訪問したすべてのリージョンを強制終了します。
+				for (int j = 0; j < trace.size(); ++j)
 				{
-					// Fixup regions pointing to current region.
-					// 現在の領域を指す修正領域。
-					for (int j = 0; j < nreg; ++j)
-					{
-						if (regions[j].id == 0 || (regions[j].id & RC_BORDER_REG)) continue;
-
-						// If another region was already merged into current region
-						// change the nid of the previous region too.
-						// 別の領域がすでに現在の領域にマージされている場合、前の領域のIDも変更します。
-						if (regions[j].id == oldId)
-							regions[j].id = mergeId;
-
-						// Replace the current region with the new one if the
-						// current regions is neighbour.
-						// 現在の領域が隣接している場合、現在の領域を新しい領域に置き換えます。
-						replaceNeighbour(regions[j], oldId, mergeId);
-					}
-					mergeCount++;
+					regions[trace[j]].spanCount = 0;
+					regions[trace[j]].id = 0;
 				}
 			}
 		}
-	} while (mergeCount > 0);
 
-	// Compress region Ids.
-	// リージョンIDを圧縮します。
-	for (int i = 0; i < nreg; ++i)
-	{
-		regions[i].remap = false;
-		if (regions[i].id == 0) continue;       // Skip nil regions. //ゼロ領域をスキップします。
-		if (regions[i].id & RC_BORDER_REG) continue;    // Skip external regions. //外部領域をスキップします。
-		regions[i].remap = true;
-	}
-
-	unsigned short regIdGen = 0;
-	for (int i = 0; i < nreg; ++i)
-	{
-		if (!regions[i].remap)
-			continue;
-		unsigned short oldId = regions[i].id;
-		unsigned short newId = ++regIdGen;
-		for (int j = i; j < nreg; ++j)
+		// Merge too small regions to neighbour regions.
+		// 小さすぎる領域を隣接する領域にマージします。
+		int mergeCount = 0;
+		do
 		{
-			if (regions[j].id == oldId)
+			mergeCount = 0;
+			for (int i = 0; i < nreg; ++i)
 			{
-				regions[j].id = newId;
-				regions[j].remap = false;
-			}
-		}
-	}
-	maxRegionId = regIdGen;
-
-	// Remap regions.
-	// 領域を再マップします。
-	for (int i = 0; i < chf.spanCount; ++i)
-	{
-		if ((srcReg[i] & RC_BORDER_REG) == 0)
-			srcReg[i] = regions[srcReg[i]].id;
-	}
-
-	// Return regions that we found to be overlapping.
-	// 重複していることがわかった領域を返します。
-	for (int i = 0; i < nreg; ++i)
-		if (regions[i].overlap)
-			overlaps.push(regions[i].id);
-
-	for (int i = 0; i < nreg; ++i)
-		regions[i].~rcRegion();
-	rcFree(regions);
-
-	return true;
-}
-
-static void addUniqueConnection(rcRegion& reg, int n)
-{
-	for (int i = 0; i < reg.connections.size(); ++i)
-		if (reg.connections[i] == n)
-			return;
-	reg.connections.push(n);
-}
-
-static bool mergeAndFilterLayerRegions(rcContext* ctx, int minRegionArea,
-	unsigned short& maxRegionId,
-	rcCompactHeightfield& chf,
-	unsigned short* srcReg, rcIntArray& /*overlaps*/)
-{
-	const int w = chf.width;
-	const int h = chf.height;
-
-	const int nreg = maxRegionId + 1;
-	rcRegion* regions = (rcRegion*)rcAlloc(sizeof(rcRegion) * nreg, RC_ALLOC_TEMP);
-	if (!regions)
-	{
-		ctx->log(RC_LOG_ERROR, "mergeAndFilterLayerRegions: Out of memory 'regions' (%d).", nreg);
-		return false;
-	}
-
-	// Construct regions
-	for (int i = 0; i < nreg; ++i)
-		new(&regions[i]) rcRegion((unsigned short)i);
-
-	// Find region neighbours and overlapping regions.
-	rcIntArray lregs(32);
-	for (int y = 0; y < h; ++y)
-	{
-		for (int x = 0; x < w; ++x)
-		{
-			const rcCompactCell& c = chf.cells[x + y * w];
-
-			lregs.resize(0);
-
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
-			{
-				const rcCompactSpan& s = chf.spans[i];
-				const unsigned short ri = srcReg[i];
-				if (ri == 0 || ri >= nreg) continue;
-				rcRegion& reg = regions[ri];
-
-				reg.spanCount++;
-
-				reg.ymin = rcMin(reg.ymin, s.y);
-				reg.ymax = rcMax(reg.ymax, s.y);
-
-				// Collect all region layers.
-				lregs.push(ri);
-
-				// Update neighbours
-				for (int dir = 0; dir < 4; ++dir)
-				{
-					if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
-					{
-						const int ax = x + rcGetDirOffsetX(dir);
-						const int ay = y + rcGetDirOffsetY(dir);
-						const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
-						const unsigned short rai = srcReg[ai];
-						if (rai > 0 && rai < nreg && rai != ri)
-							addUniqueConnection(reg, rai);
-						if (rai & RC_BORDER_REG)
-							reg.connectsToBorder = true;
-					}
-				}
-			}
-
-			// Update overlapping regions.
-			for (int i = 0; i < lregs.size() - 1; ++i)
-			{
-				for (int j = i + 1; j < lregs.size(); ++j)
-				{
-					if (lregs[i] != lregs[j])
-					{
-						rcRegion& ri = regions[lregs[i]];
-						rcRegion& rj = regions[lregs[j]];
-						addUniqueFloorRegion(ri, lregs[j]);
-						addUniqueFloorRegion(rj, lregs[i]);
-					}
-				}
-			}
-		}
-	}
-
-	// Create 2D layers from regions.
-	unsigned short layerId = 1;
-
-	for (int i = 0; i < nreg; ++i)
-		regions[i].id = 0;
-
-	// Merge montone regions to create non-overlapping areas.
-	rcIntArray stack(32);
-	for (int i = 1; i < nreg; ++i)
-	{
-		rcRegion& root = regions[i];
-		// Skip already visited.
-		if (root.id != 0)
-			continue;
-
-		// Start search.
-		root.id = layerId;
-
-		stack.resize(0);
-		stack.push(i);
-
-		while (stack.size() > 0)
-		{
-			// Pop front
-			rcRegion& reg = regions[stack[0]];
-			for (int j = 0; j < stack.size() - 1; ++j)
-				stack[j] = stack[j + 1];
-			stack.resize(stack.size() - 1);
-
-			const int ncons = (int)reg.connections.size();
-			for (int j = 0; j < ncons; ++j)
-			{
-				const int nei = reg.connections[j];
-				rcRegion& regn = regions[nei];
-				// Skip already visited.
-				if (regn.id != 0)
+				rcRegion& reg = regions[i];
+				if (reg.id == 0 || (reg.id & RC_BORDER_REG))
 					continue;
-				// Skip if the neighbour is overlapping root region.
-				bool overlap = false;
-				for (int k = 0; k < root.floors.size(); k++)
-				{
-					if (root.floors[k] == nei)
-					{
-						overlap = true;
-						break;
-					}
-				}
-				if (overlap)
+				if (reg.overlap)
+					continue;
+				if (reg.spanCount == 0)
 					continue;
 
-				// Deepen
-				stack.push(nei);
+				// Check to see if the region should be merged.
+				// 領域をマージする必要があるかどうかを確認します。
+				if (reg.spanCount > mergeRegionSize&& isRegionConnectedToBorder(reg))
+					continue;
 
-				// Mark layer id
-				regn.id = layerId;
-				// Merge current layers to root.
-				for (int k = 0; k < regn.floors.size(); ++k)
-					addUniqueFloorRegion(root, regn.floors[k]);
-				root.ymin = rcMin(root.ymin, regn.ymin);
-				root.ymax = rcMax(root.ymax, regn.ymax);
-				root.spanCount += regn.spanCount;
-				regn.spanCount = 0;
-				root.connectsToBorder = root.connectsToBorder || regn.connectsToBorder;
+				// Small region with more than 1 connection.
+				// Or region which is not connected to a border at all.
+				// Find smallest neighbour region that connects to this one.
+				// 複数の接続がある小さな領域。
+				// または境界にまったく接続されていない地域。
+				// これに接続する最小の隣接領域を見つけます。
+				int smallest = 0xfffffff;
+				unsigned short mergeId = reg.id;
+				for (int j = 0; j < reg.connections.size(); ++j)
+				{
+					if (reg.connections[j] & RC_BORDER_REG) continue;
+					rcRegion& mreg = regions[reg.connections[j]];
+					if (mreg.id == 0 || (mreg.id & RC_BORDER_REG) || mreg.overlap) continue;
+					if (mreg.spanCount < smallest &&
+						canMergeWithRegion(reg, mreg) &&
+						canMergeWithRegion(mreg, reg))
+					{
+						smallest = mreg.spanCount;
+						mergeId = mreg.id;
+					}
+				}
+
+				// Found new id.
+				// 新しいIDが見つかりました。
+				if (mergeId != reg.id)
+				{
+					unsigned short oldId = reg.id;
+					rcRegion& target = regions[mergeId];
+
+					// Merge neighbours.
+					// 周辺とマージします。
+					if (mergeRegions(target, reg))
+					{
+						// Fixup regions pointing to current region.
+						// 現在の領域を指す修正領域。
+						for (int j = 0; j < nreg; ++j)
+						{
+							if (regions[j].id == 0 || (regions[j].id & RC_BORDER_REG)) continue;
+
+							// If another region was already merged into current region
+							// change the nid of the previous region too.
+							// 別の領域がすでに現在の領域にマージされている場合、前の領域のIDも変更します。
+							if (regions[j].id == oldId)
+								regions[j].id = mergeId;
+
+							// Replace the current region with the new one if the
+							// current regions is neighbour.
+							// 現在の領域が隣接している場合、現在の領域を新しい領域に置き換えます。
+							replaceNeighbour(regions[j], oldId, mergeId);
+						}
+						mergeCount++;
+					}
+				}
 			}
+		} while (mergeCount > 0);
+
+		// Compress region Ids.
+		// リージョンIDを圧縮します。
+		for (int i = 0; i < nreg; ++i)
+		{
+			regions[i].remap = false;
+			if (regions[i].id == 0) continue;       // Skip nil regions. //ゼロ領域をスキップします。
+			if (regions[i].id & RC_BORDER_REG) continue;    // Skip external regions. //外部領域をスキップします。
+			regions[i].remap = true;
 		}
 
-		layerId++;
-	}
-
-	// Remove small regions
-	for (int i = 0; i < nreg; ++i)
-	{
-		if (regions[i].spanCount > 0 && regions[i].spanCount < minRegionArea && !regions[i].connectsToBorder)
+		unsigned short regIdGen = 0;
+		for (int i = 0; i < nreg; ++i)
 		{
-			unsigned short reg = regions[i].id;
-			for (int j = 0; j < nreg; ++j)
-				if (regions[j].id == reg)
-					regions[j].id = 0;
-		}
-	}
-
-	// Compress region Ids.
-	for (int i = 0; i < nreg; ++i)
-	{
-		regions[i].remap = false;
-		if (regions[i].id == 0) continue;				// Skip nil regions.
-		if (regions[i].id & RC_BORDER_REG) continue;    // Skip external regions.
-		regions[i].remap = true;
-	}
-
-	unsigned short regIdGen = 0;
-	for (int i = 0; i < nreg; ++i)
-	{
-		if (!regions[i].remap)
-			continue;
-		unsigned short oldId = regions[i].id;
-		unsigned short newId = ++regIdGen;
-		for (int j = i; j < nreg; ++j)
-		{
-			if (regions[j].id == oldId)
+			if (!regions[i].remap)
+				continue;
+			unsigned short oldId = regions[i].id;
+			unsigned short newId = ++regIdGen;
+			for (int j = i; j < nreg; ++j)
 			{
-				regions[j].id = newId;
-				regions[j].remap = false;
+				if (regions[j].id == oldId)
+				{
+					regions[j].id = newId;
+					regions[j].remap = false;
+				}
 			}
 		}
-	}
-	maxRegionId = regIdGen;
+		maxRegionId = regIdGen;
 
-	// Remap regions.
-	for (int i = 0; i < chf.spanCount; ++i)
+		// Remap regions.
+		// 領域を再マップします。
+		for (int i = 0; i < chf.spanCount; ++i)
+		{
+			if ((srcReg[i] & RC_BORDER_REG) == 0)
+				srcReg[i] = regions[srcReg[i]].id;
+		}
+
+		// Return regions that we found to be overlapping.
+		// 重複していることがわかった領域を返します。
+		for (int i = 0; i < nreg; ++i)
+			if (regions[i].overlap)
+				overlaps.push(regions[i].id);
+
+		for (int i = 0; i < nreg; ++i)
+			regions[i].~rcRegion();
+		rcFree(regions);
+
+		return true;
+	}
+
+	 void addUniqueConnection(rcRegion& reg, int n)
 	{
-		if ((srcReg[i] & RC_BORDER_REG) == 0)
-			srcReg[i] = regions[srcReg[i]].id;
+		for (int i = 0; i < reg.connections.size(); ++i)
+			if (reg.connections[i] == n)
+				return;
+		reg.connections.push(n);
 	}
 
-	for (int i = 0; i < nreg; ++i)
-		regions[i].~rcRegion();
-	rcFree(regions);
+	 bool mergeAndFilterLayerRegions(rcContext* ctx, int minRegionArea,
+		unsigned short& maxRegionId,
+		rcCompactHeightfield& chf,
+		unsigned short* srcReg, rcIntArray& /*overlaps*/)
+	{
+		const int w = chf.width;
+		const int h = chf.height;
 
-	return true;
+		const int nreg = maxRegionId + 1;
+		rcRegion* regions = (rcRegion*)rcAlloc(sizeof(rcRegion) * nreg, RC_ALLOC_TEMP);
+		if (!regions)
+		{
+			ctx->log(RC_LOG_ERROR, "mergeAndFilterLayerRegions: Out of memory 'regions' (%d).", nreg);
+			return false;
+		}
+
+		// Construct regions
+		for (int i = 0; i < nreg; ++i)
+			new(&regions[i]) rcRegion((unsigned short)i);
+
+		// Find region neighbours and overlapping regions.
+		rcIntArray lregs(32);
+		for (int y = 0; y < h; ++y)
+		{
+			for (int x = 0; x < w; ++x)
+			{
+				const rcCompactCell& c = chf.cells[x + y * w];
+
+				lregs.resize(0);
+
+				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+				{
+					const rcCompactSpan& s = chf.spans[i];
+					const unsigned short ri = srcReg[i];
+					if (ri == 0 || ri >= nreg) continue;
+					rcRegion& reg = regions[ri];
+
+					reg.spanCount++;
+
+					reg.ymin = rcMin(reg.ymin, s.y);
+					reg.ymax = rcMax(reg.ymax, s.y);
+
+					// Collect all region layers.
+					lregs.push(ri);
+
+					// Update neighbours
+					for (int dir = 0; dir < 4; ++dir)
+					{
+						if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+						{
+							const int ax = x + rcGetDirOffsetX(dir);
+							const int ay = y + rcGetDirOffsetY(dir);
+							const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
+							const unsigned short rai = srcReg[ai];
+							if (rai > 0 && rai < nreg && rai != ri)
+								addUniqueConnection(reg, rai);
+							if (rai & RC_BORDER_REG)
+								reg.connectsToBorder = true;
+						}
+					}
+				}
+
+				// Update overlapping regions.
+				for (int i = 0; i < lregs.size() - 1; ++i)
+				{
+					for (int j = i + 1; j < lregs.size(); ++j)
+					{
+						if (lregs[i] != lregs[j])
+						{
+							rcRegion& ri = regions[lregs[i]];
+							rcRegion& rj = regions[lregs[j]];
+							addUniqueFloorRegion(ri, lregs[j]);
+							addUniqueFloorRegion(rj, lregs[i]);
+						}
+					}
+				}
+			}
+		}
+
+		// Create 2D layers from regions.
+		unsigned short layerId = 1;
+
+		for (int i = 0; i < nreg; ++i)
+			regions[i].id = 0;
+
+		// Merge montone regions to create non-overlapping areas.
+		rcIntArray stack(32);
+		for (int i = 1; i < nreg; ++i)
+		{
+			rcRegion& root = regions[i];
+			// Skip already visited.
+			if (root.id != 0)
+				continue;
+
+			// Start search.
+			root.id = layerId;
+
+			stack.resize(0);
+			stack.push(i);
+
+			while (stack.size() > 0)
+			{
+				// Pop front
+				rcRegion& reg = regions[stack[0]];
+				for (int j = 0; j < stack.size() - 1; ++j)
+					stack[j] = stack[j + 1];
+				stack.resize(stack.size() - 1);
+
+				const int ncons = (int)reg.connections.size();
+				for (int j = 0; j < ncons; ++j)
+				{
+					const int nei = reg.connections[j];
+					rcRegion& regn = regions[nei];
+					// Skip already visited.
+					if (regn.id != 0)
+						continue;
+					// Skip if the neighbour is overlapping root region.
+					bool overlap = false;
+					for (int k = 0; k < root.floors.size(); k++)
+					{
+						if (root.floors[k] == nei)
+						{
+							overlap = true;
+							break;
+						}
+					}
+					if (overlap)
+						continue;
+
+					// Deepen
+					stack.push(nei);
+
+					// Mark layer id
+					regn.id = layerId;
+					// Merge current layers to root.
+					for (int k = 0; k < regn.floors.size(); ++k)
+						addUniqueFloorRegion(root, regn.floors[k]);
+					root.ymin = rcMin(root.ymin, regn.ymin);
+					root.ymax = rcMax(root.ymax, regn.ymax);
+					root.spanCount += regn.spanCount;
+					regn.spanCount = 0;
+					root.connectsToBorder = root.connectsToBorder || regn.connectsToBorder;
+				}
+			}
+
+			layerId++;
+		}
+
+		// Remove small regions
+		for (int i = 0; i < nreg; ++i)
+		{
+			if (regions[i].spanCount > 0 && regions[i].spanCount < minRegionArea && !regions[i].connectsToBorder)
+			{
+				unsigned short reg = regions[i].id;
+				for (int j = 0; j < nreg; ++j)
+					if (regions[j].id == reg)
+						regions[j].id = 0;
+			}
+		}
+
+		// Compress region Ids.
+		for (int i = 0; i < nreg; ++i)
+		{
+			regions[i].remap = false;
+			if (regions[i].id == 0) continue;				// Skip nil regions.
+			if (regions[i].id & RC_BORDER_REG) continue;    // Skip external regions.
+			regions[i].remap = true;
+		}
+
+		unsigned short regIdGen = 0;
+		for (int i = 0; i < nreg; ++i)
+		{
+			if (!regions[i].remap)
+				continue;
+			unsigned short oldId = regions[i].id;
+			unsigned short newId = ++regIdGen;
+			for (int j = i; j < nreg; ++j)
+			{
+				if (regions[j].id == oldId)
+				{
+					regions[j].id = newId;
+					regions[j].remap = false;
+				}
+			}
+		}
+		maxRegionId = regIdGen;
+
+		// Remap regions.
+		for (int i = 0; i < chf.spanCount; ++i)
+		{
+			if ((srcReg[i] & RC_BORDER_REG) == 0)
+				srcReg[i] = regions[srcReg[i]].id;
+		}
+
+		for (int i = 0; i < nreg; ++i)
+			regions[i].~rcRegion();
+		rcFree(regions);
+
+		return true;
+	}
 }
 
 // @par

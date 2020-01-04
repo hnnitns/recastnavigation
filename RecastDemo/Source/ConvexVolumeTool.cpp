@@ -36,72 +36,81 @@
 #endif
 
 // Quick and dirty convex hull.
+//速くて汚い凸包。
 
-// Returns true if 'c' is left of line 'a'-'b'.
-inline bool left(const float* a, const float* b, const float* c)
+namespace
 {
-	const float u1 = b[0] - a[0];
-	const float v1 = b[2] - a[2];
-	const float u2 = c[0] - a[0];
-	const float v2 = c[2] - a[2];
-	return u1 * v2 - v1 * u2 < 0;
-}
-
-// Returns true if 'a' is more lower-left than 'b'.
-inline bool cmppt(const float* a, const float* b)
-{
-	if (a[0] < b[0]) return true;
-	if (a[0] > b[0]) return false;
-	if (a[2] < b[2]) return true;
-	if (a[2] > b[2]) return false;
-	return false;
-}
-// Calculates convex hull on xz-plane of points on 'pts',
-// stores the indices of the resulting hull in 'out' and
-// returns number of points on hull.
-static int convexhull(const float* pts, int npts, int* out)
-{
-	// Find lower-leftmost point.
-	int hull = 0;
-	for (int i = 1; i < npts; ++i)
-		if (cmppt(&pts[i * 3], &pts[hull * 3]))
-			hull = i;
-	// Gift wrap hull.
-	int endpt = 0;
-	int i = 0;
-	do
+	// Returns true if 'c' is left of line 'a'-'b'.
+	// 'c'が行 'a'-'b'の左にある場合、trueを返します。
+	inline constexpr bool left(const float* a, const float* b, const float* c)
 	{
-		out[i++] = hull;
-		endpt = 0;
-		for (int j = 1; j < npts; ++j)
-			if (hull == endpt || left(&pts[hull * 3], &pts[endpt * 3], &pts[j * 3]))
-				endpt = j;
-		hull = endpt;
-	} while (endpt != out[0]);
-
-	return i;
-}
-
-static int pointInPoly(int nvert, const float* verts, const float* p)
-{
-	int i, j, c = 0;
-	for (i = 0, j = nvert - 1; i < nvert; j = i++)
-	{
-		const float* vi = &verts[i * 3];
-		const float* vj = &verts[j * 3];
-		if (((vi[2] > p[2]) != (vj[2] > p[2])) &&
-			(p[0] < (vj[0] - vi[0]) * (p[2] - vi[2]) / (vj[2] - vi[2]) + vi[0]))
-			c = !c;
+		const float u1 = b[0] - a[0];
+		const float v1 = b[2] - a[2];
+		const float u2 = c[0] - a[0];
+		const float v2 = c[2] - a[2];
+		return u1 * v2 - v1 * u2 < 0;
 	}
-	return c;
+
+	// Returns true if 'a' is more lower-left than 'b'.
+	// 'a'が 'b'よりも左下の場合、trueを返します。
+	inline constexpr bool cmppt(const float* a, const float* b)
+	{
+		if (a[0] < b[0]) return true;
+		if (a[0] > b[0]) return false;
+		if (a[2] < b[2]) return true;
+		if (a[2] > b[2]) return false;
+		return false;
+	}
+
+	// Calculates convex hull on xz-plane of points on 'pts',
+	// 'pts'上の点のxz平面上の凸包を計算し、
+	// stores the indices of the resulting hull in 'out' and returns number of points on hull.
+	// 結果のハルのインデックスを 'out'に格納し、ハル上の点の数を返します。
+	int convexhull(const float* pts, int npts, int* out)
+	{
+		// Find lower-leftmost point.
+		int hull = 0;
+		for (int i = 1; i < npts; ++i)
+			if (cmppt(&pts[i * 3], &pts[hull * 3]))
+				hull = i;
+		// Gift wrap hull.
+		int endpt = 0;
+		int i = 0;
+		do
+		{
+			out[i++] = hull;
+			endpt = 0;
+			for (int j = 1; j < npts; ++j)
+				if (hull == endpt || left(&pts[hull * 3], &pts[endpt * 3], &pts[j * 3]))
+					endpt = j;
+			hull = endpt;
+		} while (endpt != out[0]);
+
+		return i;
+	}
+
+	int pointInPoly(int nvert, const float* verts, const float* p)
+	{
+		int i, j, c = 0;
+		for (i = 0, j = nvert - 1; i < nvert; j = i++)
+		{
+			const float* vi = &verts[i * 3];
+			const float* vj = &verts[j * 3];
+			if (((vi[2] > p[2]) != (vj[2] > p[2])) &&
+				(p[0] < (vj[0] - vi[0]) * (p[2] - vi[2]) / (vj[2] - vi[2]) + vi[0]))
+				c = !c;
+		}
+		return c;
+	}
+
+	rcAreaModification const SAMPLE_AREAMOD_WATER(SAMPLE_POLYAREA_TYPE_WATER, SAMPLE_POLYAREA_TYPE_MASK);
+	rcAreaModification const SAMPLE_AREAMOD_ROAD(SAMPLE_POLYAREA_TYPE_ROAD, SAMPLE_POLYAREA_TYPE_MASK);
+	rcAreaModification const SAMPLE_AREAMOD_GRASS(SAMPLE_POLYAREA_TYPE_GRASS, SAMPLE_POLYAREA_TYPE_MASK);
+	rcAreaModification const SAMPLE_AREAMOD_DOOR(SAMPLE_POLYAREA_FLAG_DOOR, SAMPLE_POLYAREA_FLAG_DOOR);
+	rcAreaModification const SAMPLE_AREAMOD_JUMP(SAMPLE_POLYAREA_FLAG_JUMP, SAMPLE_POLYAREA_FLAG_JUMP);
 }
 
 rcAreaModification const SAMPLE_AREAMOD_GROUND(SAMPLE_POLYAREA_TYPE_GROUND, SAMPLE_POLYAREA_TYPE_MASK);
-static rcAreaModification const SAMPLE_AREAMOD_WATER(SAMPLE_POLYAREA_TYPE_WATER, SAMPLE_POLYAREA_TYPE_MASK);
-static rcAreaModification const SAMPLE_AREAMOD_ROAD(SAMPLE_POLYAREA_TYPE_ROAD, SAMPLE_POLYAREA_TYPE_MASK);
-static rcAreaModification const SAMPLE_AREAMOD_GRASS(SAMPLE_POLYAREA_TYPE_GRASS, SAMPLE_POLYAREA_TYPE_MASK);
-static rcAreaModification const SAMPLE_AREAMOD_DOOR(SAMPLE_POLYAREA_FLAG_DOOR, SAMPLE_POLYAREA_FLAG_DOOR);
-static rcAreaModification const SAMPLE_AREAMOD_JUMP(SAMPLE_POLYAREA_FLAG_JUMP, SAMPLE_POLYAREA_FLAG_JUMP);
 
 ConvexVolumeTool::ConvexVolumeTool() :
 	m_sample(0),

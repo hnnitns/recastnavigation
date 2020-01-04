@@ -40,9 +40,12 @@ unsigned int duDebugDraw::areaToCol(unsigned int area)
 	}
 }
 
-inline int bit(int a, int b)
+namespace
 {
-	return (a & (1 << b)) >> b;
+	inline int bit(int a, int b)
+	{
+		return (a & (1 << b)) >> b;
+	}
 }
 
 unsigned int duIntToCol(int i, int a)

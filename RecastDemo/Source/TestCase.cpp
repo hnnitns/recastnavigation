@@ -54,45 +54,48 @@ TestCase::~TestCase()
 	}
 }
 
-static char* parseRow(char* buf, char* bufEnd, char* row, int len)
+namespace
 {
-	bool start = true;
-	bool done = false;
-	int n = 0;
-	while (!done && buf < bufEnd)
+	char* parseRow(char* buf, char* bufEnd, char* row, int len)
 	{
-		char c = *buf;
-		buf++;
-		// multirow
-		switch (c)
+		bool start = true;
+		bool done = false;
+		int n = 0;
+		while (!done && buf < bufEnd)
 		{
-			case '\n':
-				if (start) break;
-				done = true;
-				break;
-			case '\r':
-				break;
-			case '\t':
-			case ' ':
-				if (start) break;
-			default:
-				start = false;
-				row[n++] = c;
-				if (n >= len - 1)
+			char c = *buf;
+			buf++;
+			// multirow
+			switch (c)
+			{
+				case '\n':
+					if (start) break;
 					done = true;
-				break;
+					break;
+				case '\r':
+					break;
+				case '\t':
+				case ' ':
+					if (start) break;
+				default:
+					start = false;
+					row[n++] = c;
+					if (n >= len - 1)
+						done = true;
+					break;
+			}
 		}
+		row[n] = '\0';
+		return buf;
 	}
-	row[n] = '\0';
-	return buf;
-}
 
-static void copyName(std::string& dst, const char* src)
-{
-	// Skip white spaces
-	while (*src && isspace(*src))
-		src++;
-	dst = src;
+	void copyName(std::string& dst, const char* src)
+	{
+		// Skip white spaces
+		while (*src && isspace(*src))
+			src++;
+		dst = src;
+	}
 }
 
 bool TestCase::load(const std::string& filePath)

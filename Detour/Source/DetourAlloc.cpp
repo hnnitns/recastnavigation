@@ -19,18 +19,21 @@
 #include <cstdlib>
 #include "DetourAlloc.h"
 
-static void* dtAllocDefault(size_t size, dtAllocHint)
+namespace
 {
-	return malloc(size);
-}
+	inline void* dtAllocDefault(size_t size, dtAllocHint)
+	{
+		return malloc(size);
+	}
 
-static void dtFreeDefault(void* ptr)
-{
-	free(ptr);
-}
+	inline void dtFreeDefault(void* ptr)
+	{
+		free(ptr);
+	}
 
-static dtAllocFunc* sAllocFunc = dtAllocDefault;
-static dtFreeFunc* sFreeFunc = dtFreeDefault;
+	dtAllocFunc* sAllocFunc = dtAllocDefault;
+	dtFreeFunc* sFreeFunc = dtFreeDefault;
+}
 
 void dtAllocSetCustom(dtAllocFunc* allocFunc, dtFreeFunc* freeFunc)
 {

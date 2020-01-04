@@ -21,18 +21,21 @@
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
 
-static void* rcAllocDefault(size_t size, rcAllocHint)
+namespace
 {
-	return malloc(size);
-}
+	inline void* rcAllocDefault(size_t size, rcAllocHint)
+	{
+		return malloc(size);
+	}
 
-static void rcFreeDefault(void* ptr)
-{
-	free(ptr);
-}
+	inline void rcFreeDefault(void* ptr)
+	{
+		free(ptr);
+	}
 
-static rcAllocFunc* sRecastAllocFunc = rcAllocDefault;
-static rcFreeFunc* sRecastFreeFunc = rcFreeDefault;
+	rcAllocFunc* sRecastAllocFunc = rcAllocDefault;
+	rcFreeFunc* sRecastFreeFunc = rcFreeDefault;
+}
 
 // @see rcAlloc, rcFree
 void rcAllocSetCustom(rcAllocFunc* allocFunc, rcFreeFunc* freeFunc)

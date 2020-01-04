@@ -26,60 +26,63 @@
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
 
-// Must be 255 or smaller (not 256) because layer IDs are stored as a byte where 255 is a special value.
-// レイヤーIDは255が特別な値であるバイトとして保存されるため、255以下（256ではない）でなければなりません。
-constexpr int RC_MAX_LAYERS = 63;
-constexpr int RC_MAX_NEIS = 16;
-
-struct rcLayerRegion
+namespace
 {
-	unsigned char layers[RC_MAX_LAYERS];
-	unsigned char neis[RC_MAX_NEIS];
-	unsigned short ymin, ymax;
-	unsigned char layerId;	// Layer ID // レイヤーID
-	unsigned char nlayers;	// Layer count // レイヤー数
-	unsigned char nneis;	// Neighbour count // 隣接カウント
-	// Flag indicating if the region is the base of merged regions.
-	// リージョンがマージされたリージョンのベースであるかどうかを示すフラグ。
-	unsigned char base;
-};
+	// Must be 255 or smaller (not 256) because layer IDs are stored as a byte where 255 is a special value.
+	// レイヤーIDは255が特別な値であるバイトとして保存されるため、255以下（256ではない）でなければなりません。
+	constexpr int RC_MAX_LAYERS = 63;
+	constexpr int RC_MAX_NEIS = 16;
 
-static inline bool contains(const unsigned char* a, const unsigned char an, const unsigned char v)
-{
-	const int n = (int)an;
-
-	for (int i = 0; i < n; ++i)
+	struct rcLayerRegion
 	{
-		if (a[i] == v) return true;
+		unsigned char layers[RC_MAX_LAYERS];
+		unsigned char neis[RC_MAX_NEIS];
+		unsigned short ymin, ymax;
+		unsigned char layerId;	// Layer ID // レイヤーID
+		unsigned char nlayers;	// Layer count // レイヤー数
+		unsigned char nneis;	// Neighbour count // 隣接カウント
+		// Flag indicating if the region is the base of merged regions.
+		// リージョンがマージされたリージョンのベースであるかどうかを示すフラグ。
+		unsigned char base;
+	};
+
+	inline bool contains(const unsigned char* a, const unsigned char an, const unsigned char v)
+	{
+		const int n = (int)an;
+
+		for (int i = 0; i < n; ++i)
+		{
+			if (a[i] == v) return true;
+		}
+
+		return false;
 	}
 
-	return false;
+	inline bool addUnique(unsigned char* a, unsigned char& an, int anMax, unsigned char v)
+	{
+		if (contains(a, an, v)) return true;
+
+		if ((int)an >= anMax) return false;
+
+		a[an] = v;
+		an++;
+
+		return true;
+	}
+
+	inline bool overlapRange(const unsigned short amin, const unsigned short amax,
+		const unsigned short bmin, const unsigned short bmax)
+	{
+		return (amin > bmax || amax < bmin) ? false : true;
+	}
+
+	struct rcLayerSweepSpan
+	{
+		unsigned short ns;	// number samples // サンプル数
+		unsigned char id;	// region id      // 領域ID
+		unsigned char nei;	// neighbour id   // 隣ID
+	};
 }
-
-static inline bool addUnique(unsigned char* a, unsigned char& an, int anMax, unsigned char v)
-{
-	if (contains(a, an, v)) return true;
-
-	if ((int)an >= anMax) return false;
-
-	a[an] = v;
-	an++;
-
-	return true;
-}
-
-inline bool overlapRange(const unsigned short amin, const unsigned short amax,
-	const unsigned short bmin, const unsigned short bmax)
-{
-	return (amin > bmax || amax < bmin) ? false : true;
-}
-
-struct rcLayerSweepSpan
-{
-	unsigned short ns;	// number samples // サンプル数
-	unsigned char id;	// region id      // 領域ID
-	unsigned char nei;	// neighbour id   // 隣ID
-};
 
 /// @par
 ///

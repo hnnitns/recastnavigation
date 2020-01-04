@@ -21,124 +21,170 @@
 #include <cstdlib>
 #include <cmath>
 
-struct BoundsItem
+namespace
 {
-	float bmin[2];
-	float bmax[2];
-	int i;
-};
-
-static int compareItemX(const void* va, const void* vb)
-{
-	const BoundsItem* a = (const BoundsItem*)va;
-	const BoundsItem* b = (const BoundsItem*)vb;
-	if (a->bmin[0] < b->bmin[0])
-		return -1;
-	if (a->bmin[0] > b->bmin[0])
-		return 1;
-	return 0;
-}
-
-static int compareItemY(const void* va, const void* vb)
-{
-	const BoundsItem* a = (const BoundsItem*)va;
-	const BoundsItem* b = (const BoundsItem*)vb;
-	if (a->bmin[1] < b->bmin[1])
-		return -1;
-	if (a->bmin[1] > b->bmin[1])
-		return 1;
-	return 0;
-}
-
-static void calcExtends(const BoundsItem* items, const int /*nitems*/,
-	const int imin, const int imax,
-	std::array<float, 2>& bmin, std::array<float, 2>& bmax)
-{
-	bmin[0] = items[imin].bmin[0];
-	bmin[1] = items[imin].bmin[1];
-
-	bmax[0] = items[imin].bmax[0];
-	bmax[1] = items[imin].bmax[1];
-
-	for (int i = imin + 1; i < imax; ++i)
+	struct BoundsItem
 	{
-		const BoundsItem& it = items[i];
-		if (it.bmin[0] < bmin[0]) bmin[0] = it.bmin[0];
-		if (it.bmin[1] < bmin[1]) bmin[1] = it.bmin[1];
+		float bmin[2];
+		float bmax[2];
+		int i;
+	};
 
-		if (it.bmax[0] > bmax[0]) bmax[0] = it.bmax[0];
-		if (it.bmax[1] > bmax[1]) bmax[1] = it.bmax[1];
+	inline int compareItemX(const void* va, const void* vb)
+	{
+		const BoundsItem* a = (const BoundsItem*)va;
+		const BoundsItem* b = (const BoundsItem*)vb;
+		if (a->bmin[0] < b->bmin[0])
+			return -1;
+		if (a->bmin[0] > b->bmin[0])
+			return 1;
+		return 0;
 	}
-}
 
-inline int longestAxis(float x, float y)
-{
-	return y > x ? 1 : 0;
-}
-
-static void subdivide(BoundsItem* items, int nitems, int imin, int imax, int trisPerChunk,
-	int& curNode, rcChunkyTriMeshNode* nodes, const int maxNodes,
-	int& curTri, int* outTris, const int* inTris)
-{
-	int inum = imax - imin;
-	int icur = curNode;
-
-	if (curNode > maxNodes)
-		return;
-
-	rcChunkyTriMeshNode& node = nodes[curNode++];
-
-	if (inum <= trisPerChunk)
+	inline int compareItemY(const void* va, const void* vb)
 	{
-		// Leaf
-		calcExtends(items, nitems, imin, imax, node.bmin, node.bmax);
+		const BoundsItem* a = (const BoundsItem*)va;
+		const BoundsItem* b = (const BoundsItem*)vb;
+		if (a->bmin[1] < b->bmin[1])
+			return -1;
+		if (a->bmin[1] > b->bmin[1])
+			return 1;
+		return 0;
+	}
 
-		// Copy triangles.
-		node.i = curTri;
-		node.n = inum;
+	void calcExtends(const BoundsItem* items, const int /*nitems*/,
+		const int imin, const int imax,
+		std::array<float, 2>& bmin, std::array<float, 2>& bmax)
+	{
+		bmin[0] = items[imin].bmin[0];
+		bmin[1] = items[imin].bmin[1];
 
-		for (int i = imin; i < imax; ++i)
+		bmax[0] = items[imin].bmax[0];
+		bmax[1] = items[imin].bmax[1];
+
+		for (int i = imin + 1; i < imax; ++i)
 		{
-			const int* src = &inTris[items[i].i * 3];
-			int* dst = &outTris[curTri * 3];
-			curTri++;
-			dst[0] = src[0];
-			dst[1] = src[1];
-			dst[2] = src[2];
+			const BoundsItem& it = items[i];
+			if (it.bmin[0] < bmin[0]) bmin[0] = it.bmin[0];
+			if (it.bmin[1] < bmin[1]) bmin[1] = it.bmin[1];
+
+			if (it.bmax[0] > bmax[0]) bmax[0] = it.bmax[0];
+			if (it.bmax[1] > bmax[1]) bmax[1] = it.bmax[1];
 		}
 	}
-	else
+
+	inline constexpr int longestAxis(float x, float y)
 	{
-		// Split
-		calcExtends(items, nitems, imin, imax, node.bmin, node.bmax);
+		return y > x ? 1 : 0;
+	}
 
-		int	axis = longestAxis(node.bmax[0] - node.bmin[0],
-			node.bmax[1] - node.bmin[1]);
+	void subdivide(BoundsItem* items, int nitems, int imin, int imax, int trisPerChunk,
+		int& curNode, rcChunkyTriMeshNode* nodes, const int maxNodes,
+		int& curTri, int* outTris, const int* inTris)
+	{
+		int inum = imax - imin;
+		int icur = curNode;
 
-		if (axis == 0)
+		if (curNode > maxNodes)
+			return;
+
+		rcChunkyTriMeshNode& node = nodes[curNode++];
+
+		if (inum <= trisPerChunk)
 		{
-			// Sort along x-axis
-			// X軸に沿って並べ替え
-			qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemX);
+			// Leaf
+			calcExtends(items, nitems, imin, imax, node.bmin, node.bmax);
+
+			// Copy triangles.
+			node.i = curTri;
+			node.n = inum;
+
+			for (int i = imin; i < imax; ++i)
+			{
+				const int* src = &inTris[items[i].i * 3];
+				int* dst = &outTris[curTri * 3];
+				curTri++;
+				dst[0] = src[0];
+				dst[1] = src[1];
+				dst[2] = src[2];
+			}
 		}
-		else if (axis == 1)
+		else
 		{
-			// Sort along y-axis
-			// y軸に沿って並べ替え
-			qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemY);
+			// Split
+			calcExtends(items, nitems, imin, imax, node.bmin, node.bmax);
+
+			int	axis = longestAxis(node.bmax[0] - node.bmin[0],
+				node.bmax[1] - node.bmin[1]);
+
+			if (axis == 0)
+			{
+				// Sort along x-axis
+				// X軸に沿って並べ替え
+				qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemX);
+			}
+			else if (axis == 1)
+			{
+				// Sort along y-axis
+				// y軸に沿って並べ替え
+				qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemY);
+			}
+
+			int isplit = imin + inum / 2;
+
+			// Left
+			subdivide(items, nitems, imin, isplit, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, inTris);
+			// Right
+			subdivide(items, nitems, isplit, imax, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, inTris);
+
+			int iescape = curNode - icur;
+			// Negative index means escape.
+			// 負のインデックスはエスケープを意味します。
+			node.i = -iescape;
 		}
+	}
 
-		int isplit = imin + inum / 2;
+	bool checkOverlapSegment(const float p[2], const float q[2],
+		const std::array<float, 2>& bmin, const std::array<float, 2>& bmax)
+	{
+		constexpr float EPSILON = 1e-6f;
 
-		// Left
-		subdivide(items, nitems, imin, isplit, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, inTris);
-		// Right
-		subdivide(items, nitems, isplit, imax, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, inTris);
+		float tmin = 0;
+		float tmax = 1;
+		float d[2];
+		d[0] = q[0] - p[0];
+		d[1] = q[1] - p[1];
 
-		int iescape = curNode - icur;
-		// Negative index means escape.
-		// 負のインデックスはエスケープを意味します。
-		node.i = -iescape;
+		for (int i = 0; i < 2; i++)
+		{
+			if (fabsf(d[i]) < EPSILON)
+			{
+				// Ray is parallel to slab. No hit if origin not within slab
+				if (p[i] < bmin[i] || p[i] > bmax[i])
+					return false;
+			}
+			else
+			{
+				// Compute intersection t value of ray with near and far plane of slab
+				float ood = 1.f / d[i];
+				float t1 = (bmin[i] - p[i]) * ood;
+				float t2 = (bmax[i] - p[i]) * ood;
+				if (t1 > t2) { float tmp = t1; t1 = t2; t2 = tmp; }
+				if (t1 > tmin) tmin = t1;
+				if (t2 < tmax) tmax = t2;
+				if (tmin > tmax) return false;
+			}
+		}
+		return true;
+	}
+
+	inline constexpr bool checkOverlapRect(const float amin[2], const float amax[2],
+		const std::array<float, 2>& bmin, const std::array<float, 2>& bmax)
+	{
+		bool overlap = true;
+		overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
+		overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
+		return overlap;
 	}
 }
 
@@ -207,15 +253,6 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int t
 	return true;
 }
 
-inline bool checkOverlapRect(const float amin[2], const float amax[2],
-	const std::array<float, 2>& bmin, const std::array<float, 2>& bmax)
-{
-	bool overlap = true;
-	overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
-	overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
-	return overlap;
-}
-
 // チャンクの重複する四角形を取得
 int rcGetChunksOverlappingRect(const rcChunkyTriMesh* cm,
 	float bmin[2], float bmax[2],
@@ -250,40 +287,6 @@ int rcGetChunksOverlappingRect(const rcChunkyTriMesh* cm,
 	}
 
 	return n;
-}
-
-static bool checkOverlapSegment(const float p[2], const float q[2],
-	const std::array<float, 2>& bmin, const std::array<float, 2>& bmax)
-{
-	constexpr float EPSILON = 1e-6f;
-
-	float tmin = 0;
-	float tmax = 1;
-	float d[2];
-	d[0] = q[0] - p[0];
-	d[1] = q[1] - p[1];
-
-	for (int i = 0; i < 2; i++)
-	{
-		if (fabsf(d[i]) < EPSILON)
-		{
-			// Ray is parallel to slab. No hit if origin not within slab
-			if (p[i] < bmin[i] || p[i] > bmax[i])
-				return false;
-		}
-		else
-		{
-			// Compute intersection t value of ray with near and far plane of slab
-			float ood = 1.f / d[i];
-			float t1 = (bmin[i] - p[i]) * ood;
-			float t2 = (bmax[i] - p[i]) * ood;
-			if (t1 > t2) { float tmp = t1; t1 = t2; t2 = tmp; }
-			if (t1 > tmin) tmin = t1;
-			if (t2 < tmax) tmax = t2;
-			if (tmin > tmax) return false;
-		}
-	}
-	return true;
 }
 
 int rcGetChunksOverlappingSegment(const rcChunkyTriMesh* cm,

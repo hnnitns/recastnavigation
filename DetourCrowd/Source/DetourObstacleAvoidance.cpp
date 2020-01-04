@@ -25,46 +25,49 @@
 #include <cfloat>
 #include <new>
 
-static const float DT_PI = 3.14159265f;
-
-static int sweepCircleCircle(const float* c0, const float r0, const float* v,
-	const float* c1, const float r1,
-	float& tmin, float& tmax)
+namespace
 {
-	static const float EPS = 0.0001f;
-	float s[3];
-	dtVsub(s, c1, c0);
-	float r = r0 + r1;
-	float c = dtVdot2D(s, s) - r * r;
-	float a = dtVdot2D(v, v);
-	if (a < EPS) return 0;	// not moving
+	constexpr float DT_PI = 3.14159265f;
 
-	// Overlap, calc time to exit.
-	float b = dtVdot2D(v, s);
-	float d = b * b - a * c;
-	if (d < 0.0f) return 0; // no intersection.
-	a = 1.f / a;
-	const float rd = dtMathSqrtf(d);
-	tmin = (b - rd) * a;
-	tmax = (b + rd) * a;
-	return 1;
-}
+	int sweepCircleCircle(const float* c0, const float r0, const float* v,
+		const float* c1, const float r1,
+		float& tmin, float& tmax)
+	{
+		static const float EPS = 0.0001f;
+		float s[3];
+		dtVsub(s, c1, c0);
+		float r = r0 + r1;
+		float c = dtVdot2D(s, s) - r * r;
+		float a = dtVdot2D(v, v);
+		if (a < EPS) return 0;	// not moving
 
-static int isectRaySeg(const float* ap, const float* u,
-	const float* bp, const float* bq,
-	float& t)
-{
-	float v[3], w[3];
-	dtVsub(v, bq, bp);
-	dtVsub(w, ap, bp);
-	float d = dtVperp2D(u, v);
-	if (dtMathFabsf(d) < 1e-6f) return 0;
-	d = 1.f / d;
-	t = dtVperp2D(v, w) * d;
-	if (t < 0 || t > 1) return 0;
-	float s = dtVperp2D(u, w) * d;
-	if (s < 0 || s > 1) return 0;
-	return 1;
+		// Overlap, calc time to exit.
+		float b = dtVdot2D(v, s);
+		float d = b * b - a * c;
+		if (d < 0.0f) return 0; // no intersection.
+		a = 1.f / a;
+		const float rd = dtMathSqrtf(d);
+		tmin = (b - rd) * a;
+		tmax = (b + rd) * a;
+		return 1;
+	}
+
+	int isectRaySeg(const float* ap, const float* u,
+		const float* bp, const float* bq,
+		float& t)
+	{
+		float v[3], w[3];
+		dtVsub(v, bq, bp);
+		dtVsub(w, ap, bp);
+		float d = dtVperp2D(u, v);
+		if (dtMathFabsf(d) < 1e-6f) return 0;
+		d = 1.f / d;
+		t = dtVperp2D(v, w) * d;
+		if (t < 0 || t > 1) return 0;
+		float s = dtVperp2D(u, w) * d;
+		if (s < 0 || s > 1) return 0;
+		return 1;
+	}
 }
 
 dtObstacleAvoidanceDebugData* dtAllocObstacleAvoidanceDebugData()

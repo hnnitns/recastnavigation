@@ -43,71 +43,82 @@
 #	define snprintf _snprintf
 #endif
 
-static bool isectSegAABB(const float* sp, const float* sq,
-	const float* amin, const float* amax,
-	float& tmin, float& tmax)
+namespace
 {
-	constexpr float EPS = 1e-6f;
-
-	float d[3];
-	dtVsub(d, sq, sp);
-
-	// set to -FLT_MAX to get first hit on line
-	// 線上で最初のヒットを、-FLT_MAXに設定
-	tmin = 0;
-
-	// set to max distance ray can travel (for segment)
-	// 光線が移動できる最大距離に設定（セグメント用）
-	tmax = FLT_MAX;
-
-	// For all three slabs
-	// 3つのスラブすべて
-	for (int i = 0; i < 3; i++)
+	bool isectSegAABB(const float* sp, const float* sq,
+		const float* amin, const float* amax,
+		float& tmin, float& tmax)
 	{
-		if (fabsf(d[i]) < EPS)
+		constexpr float EPS = 1e-6f;
+
+		float d[3];
+		dtVsub(d, sq, sp);
+
+		// set to -FLT_MAX to get first hit on line
+		// 線上で最初のヒットを、-FLT_MAXに設定
+		tmin = 0;
+
+		// set to max distance ray can travel (for segment)
+		// 光線が移動できる最大距離に設定（セグメント用）
+		tmax = FLT_MAX;
+
+		// For all three slabs
+		// 3つのスラブすべて
+		for (int i = 0; i < 3; i++)
 		{
-			// Ray is parallel to slab. No hit if origin not within slab
-			// 光線はスラブに平行。 原点がスラブ内にない場合はヒットなし
-			if (sp[i] < amin[i] || sp[i] > amax[i])
-				return false;
+			if (fabsf(d[i]) < EPS)
+			{
+				// Ray is parallel to slab. No hit if origin not within slab
+				// 光線はスラブに平行。 原点がスラブ内にない場合はヒットなし
+				if (sp[i] < amin[i] || sp[i] > amax[i])
+					return false;
+			}
+			else
+			{
+				// Compute intersection t value of ray with near and far plane of slab
+				// スラブの近いおよび遠い平面とレイの交差t値を計算
+				const float ood = 1.f / d[i];
+				float t1 = (amin[i] - sp[i]) * ood;
+				float t2 = (amax[i] - sp[i]) * ood;
+
+				// Make t1 be intersection with near plane, t2 with far plane
+				// t1を近くの平面と交差させ、t2を遠くの平面と交差させる
+				if (t1 > t2) dtSwap(t1, t2);
+
+				// Compute the intersection of slab intersections intervals
+				// スラブの交差間隔との交差を計算
+				if (t1 > tmin) tmin = t1;
+				if (t2 < tmax) tmax = t2;
+
+				// Exit with no collision as soon as slab intersection becomes empty
+				// スラブの交差点が無くなるとすぐに衝突なしで終了
+				if (tmin > tmax) return false;
+			}
 		}
-		else
-		{
-			// Compute intersection t value of ray with near and far plane of slab
-			// スラブの近いおよび遠い平面とレイの交差t値を計算
-			const float ood = 1.f / d[i];
-			float t1 = (amin[i] - sp[i]) * ood;
-			float t2 = (amax[i] - sp[i]) * ood;
 
-			// Make t1 be intersection with near plane, t2 with far plane
-			// t1を近くの平面と交差させ、t2を遠くの平面と交差させる
-			if (t1 > t2) dtSwap(t1, t2);
-
-			// Compute the intersection of slab intersections intervals
-			// スラブの交差間隔との交差を計算
-			if (t1 > tmin) tmin = t1;
-			if (t2 < tmax) tmax = t2;
-
-			// Exit with no collision as soon as slab intersection becomes empty
-			// スラブの交差点が無くなるとすぐに衝突なしで終了
-			if (tmin > tmax) return false;
-		}
+		return true;
 	}
 
-	return true;
-}
+	inline void getAgentBounds(const dtCrowdAgent* ag, float* bmin, float* bmax)
+	{
+		const float* p = ag->npos;
+		const float r = ag->params.radius;
+		const float h = ag->params.height;
+		bmin[0] = p[0] - r;
+		bmin[1] = p[1];
+		bmin[2] = p[2] - r;
+		bmax[0] = p[0] + r;
+		bmax[1] = p[1] + h;
+		bmax[2] = p[2] + r;
+	}
 
-static void getAgentBounds(const dtCrowdAgent* ag, float* bmin, float* bmax)
-{
-	const float* p = ag->npos;
-	const float r = ag->params.radius;
-	const float h = ag->params.height;
-	bmin[0] = p[0] - r;
-	bmin[1] = p[1];
-	bmin[2] = p[2] - r;
-	bmax[0] = p[0] + r;
-	bmax[1] = p[1] + h;
-	bmax[2] = p[2] + r;
+	inline void calcVel(float* vel, const float* pos, const float* tgt, const float speed)
+	{
+		dtVsub(vel, tgt, pos);
+		vel[1] = 0.0;
+		dtVnormalize(vel);
+		dtVscale(vel, vel, speed);
+	}
 }
 
 CrowdToolState::CrowdToolState() :
@@ -707,14 +718,6 @@ void CrowdToolState::removeAgent(const int idx)
 void CrowdToolState::hilightAgent(const int idx)
 {
 	m_agentDebug.idx = idx;
-}
-
-static void calcVel(float* vel, const float* pos, const float* tgt, const float speed)
-{
-	dtVsub(vel, tgt, pos);
-	vel[1] = 0.0;
-	dtVnormalize(vel);
-	dtVscale(vel, vel, speed);
 }
 
 void CrowdToolState::setMoveTarget(const float* p, bool adjust)

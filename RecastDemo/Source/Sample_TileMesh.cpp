@@ -46,129 +46,133 @@
 #	define snprintf _snprintf
 #endif
 
-inline unsigned int nextPow2(unsigned int v)
+namespace
 {
-	v--;
-	v |= v >> 1;
-	v |= v >> 2;
-	v |= v >> 4;
-	v |= v >> 8;
-	v |= v >> 16;
-	v++;
-	return v;
-}
-
-inline unsigned int ilog2(unsigned int v)
-{
-	unsigned int r;
-	unsigned int shift;
-	r = (v > 0xffff) << 4; v >>= r;
-	shift = (v > 0xff) << 3; v >>= shift; r |= shift;
-	shift = (v > 0xf) << 2; v >>= shift; r |= shift;
-	shift = (v > 0x3) << 1; v >>= shift; r |= shift;
-	r |= (v >> 1);
-	return r;
-}
-
-class NavMeshTileTool : public SampleTool
-{
-	Sample_TileMesh* m_sample;
-	float m_hitPos[3];
-	bool m_hitPosSet;
-
-public:
-
-	NavMeshTileTool() :
-		m_sample(0),
-		m_hitPosSet(false)
+	inline unsigned int nextPow2(unsigned int v)
 	{
-		m_hitPos[0] = m_hitPos[1] = m_hitPos[2] = 0;
+		v--;
+		v |= v >> 1;
+		v |= v >> 2;
+		v |= v >> 4;
+		v |= v >> 8;
+		v |= v >> 16;
+		v++;
+		return v;
 	}
 
-	virtual ~NavMeshTileTool()
+	inline unsigned int ilog2(unsigned int v)
 	{
+		unsigned int r{}, shift{};
+
+		r = (v > 0xffff) << 4; v >>= r;
+		shift = (v > 0xff) << 3; v >>= shift; r |= shift;
+		shift = (v > 0xf) << 2; v >>= shift; r |= shift;
+		shift = (v > 0x3) << 1; v >>= shift; r |= shift;
+		r |= (v >> 1);
+
+		return r;
 	}
 
-	virtual int type() { return TOOL_TILE_EDIT; }
-
-	virtual void init(Sample* sample)
+	class NavMeshTileTool : public SampleTool
 	{
-		m_sample = (Sample_TileMesh*)sample;
-	}
+		Sample_TileMesh* m_sample;
+		float m_hitPos[3];
+		bool m_hitPosSet;
 
-	virtual void reset() {}
+	public:
 
-	virtual void handleMenu()
-	{
-		imguiLabel("Create Tiles");
-		if (imguiButton("Create All"))
+		NavMeshTileTool() :
+			m_sample(0),
+			m_hitPosSet(false)
 		{
+			m_hitPos[0] = m_hitPos[1] = m_hitPos[2] = 0;
+		}
+
+		virtual ~NavMeshTileTool()
+		{
+		}
+
+		virtual int type() { return TOOL_TILE_EDIT; }
+
+		virtual void init(Sample* sample)
+		{
+			m_sample = (Sample_TileMesh*)sample;
+		}
+
+		virtual void reset() {}
+
+		virtual void handleMenu()
+		{
+			imguiLabel("Create Tiles");
+			if (imguiButton("Create All"))
+			{
+				if (m_sample)
+					m_sample->buildAllTiles();
+			}
+			if (imguiButton("Remove All"))
+			{
+				if (m_sample)
+					m_sample->removeAllTiles();
+			}
+		}
+
+		virtual void handleClick(const float* /*s*/, const float* p, bool shift)
+		{
+			m_hitPosSet = true;
+			rcVcopy(m_hitPos, p);
 			if (m_sample)
-				m_sample->buildAllTiles();
+			{
+				if (shift)
+					m_sample->removeTile(m_hitPos);
+				else
+					m_sample->buildTile(m_hitPos);
+			}
 		}
-		if (imguiButton("Remove All"))
+
+		virtual void handleToggle() {}
+
+		virtual void handleStep() {}
+
+		virtual void handleUpdate(const float /*dt*/) {}
+
+		virtual void handleRender()
 		{
-			if (m_sample)
-				m_sample->removeAllTiles();
+			if (m_hitPosSet)
+			{
+				const float s = m_sample->getAgentRadius();
+				glColor4ub(0, 0, 0, 128);
+				glLineWidth(2.0f);
+				glBegin(GL_LINES);
+				glVertex3f(m_hitPos[0] - s, m_hitPos[1] + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0] + s, m_hitPos[1] + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0], m_hitPos[1] - s + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0], m_hitPos[1] + s + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] - s);
+				glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] + s);
+				glEnd();
+				glLineWidth(1.f);
+			}
 		}
-	}
 
-	virtual void handleClick(const float* /*s*/, const float* p, bool shift)
-	{
-		m_hitPosSet = true;
-		rcVcopy(m_hitPos, p);
-		if (m_sample)
+		virtual void handleRenderOverlay(double* proj, double* model, int* view)
 		{
-			if (shift)
-				m_sample->removeTile(m_hitPos);
-			else
-				m_sample->buildTile(m_hitPos);
+			GLdouble x, y, z;
+			if (m_hitPosSet && gluProject((GLdouble)m_hitPos[0], (GLdouble)m_hitPos[1], (GLdouble)m_hitPos[2],
+				model, proj, view, &x, &y, &z))
+			{
+				int tx = 0, ty = 0;
+				m_sample->getTilePos(m_hitPos, tx, ty);
+				char text[32];
+				snprintf(text, 32, "(%d,%d)", tx, ty);
+				imguiDrawText((int)x, (int)y - 25, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 220));
+			}
+
+			// Tool help
+			const int h = view[3];
+			imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Rebuild hit tile.  Shift+LMB: Clear hit tile.", imguiRGBA(255, 255, 255, 192));
 		}
-	}
-
-	virtual void handleToggle() {}
-
-	virtual void handleStep() {}
-
-	virtual void handleUpdate(const float /*dt*/) {}
-
-	virtual void handleRender()
-	{
-		if (m_hitPosSet)
-		{
-			const float s = m_sample->getAgentRadius();
-			glColor4ub(0, 0, 0, 128);
-			glLineWidth(2.0f);
-			glBegin(GL_LINES);
-			glVertex3f(m_hitPos[0] - s, m_hitPos[1] + 0.1f, m_hitPos[2]);
-			glVertex3f(m_hitPos[0] + s, m_hitPos[1] + 0.1f, m_hitPos[2]);
-			glVertex3f(m_hitPos[0], m_hitPos[1] - s + 0.1f, m_hitPos[2]);
-			glVertex3f(m_hitPos[0], m_hitPos[1] + s + 0.1f, m_hitPos[2]);
-			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] - s);
-			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] + s);
-			glEnd();
-			glLineWidth(1.f);
-		}
-	}
-
-	virtual void handleRenderOverlay(double* proj, double* model, int* view)
-	{
-		GLdouble x, y, z;
-		if (m_hitPosSet && gluProject((GLdouble)m_hitPos[0], (GLdouble)m_hitPos[1], (GLdouble)m_hitPos[2],
-			model, proj, view, &x, &y, &z))
-		{
-			int tx = 0, ty = 0;
-			m_sample->getTilePos(m_hitPos, tx, ty);
-			char text[32];
-			snprintf(text, 32, "(%d,%d)", tx, ty);
-			imguiDrawText((int)x, (int)y - 25, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 220));
-		}
-
-		// Tool help
-		const int h = view[3];
-		imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Rebuild hit tile.  Shift+LMB: Clear hit tile.", imguiRGBA(255, 255, 255, 192));
-	}
-};
+	};
+}
 
 Sample_TileMesh::Sample_TileMesh() :
 	m_keepInterResults(false),

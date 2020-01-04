@@ -30,15 +30,18 @@ duFileIO::~duFileIO()
 	// Empty
 }
 
-static void ioprintf(duFileIO* io, const char* format, ...)
+namespace
 {
-	char line[256];
-	va_list ap;
-	va_start(ap, format);
-	const int n = vsnprintf(line, sizeof(line), format, ap);
-	va_end(ap);
-	if (n > 0)
-		io->write(line, sizeof(char) * n);
+	static inline void ioprintf(duFileIO* io, const char* format, ...)
+	{
+		char line[256];
+		va_list ap;
+		va_start(ap, format);
+		const int n = vsnprintf(line, sizeof(line), format, ap);
+		va_end(ap);
+		if (n > 0)
+			io->write(line, sizeof(char) * n);
+	}
 }
 
 bool duDumpPolyMeshToObj(rcPolyMesh& pmesh, duFileIO* io)

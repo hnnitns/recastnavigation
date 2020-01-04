@@ -40,9 +40,12 @@ void dtFreeProximityGrid(dtProximityGrid* ptr)
 	dtFree(ptr);
 }
 
-inline int hashPos2(int x, int y, int n)
+namespace
 {
-	return ((x * 73856093) ^ (y * 19349663)) & (n - 1);
+	inline int hashPos2(int x, int y, int n)
+	{
+		return ((x * 73856093) ^ (y * 19349663)) & (n - 1);
+	}
 }
 
 dtProximityGrid::dtProximityGrid() :

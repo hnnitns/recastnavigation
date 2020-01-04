@@ -53,65 +53,70 @@
 #	define snprintf _snprintf
 #endif
 
-// This value specifies how many layers (or "floors") each navmesh tile is expected to have.
-//この値は、各navmeshタイルに必要なレイヤー（または「フロア」）の数を指定します。
-constexpr int EXPECTED_LAYERS_PER_TILE = 4;
-
-static bool isectSegAABB(const float* sp, const float* sq,
-	const float* amin, const float* amax,
-	float& tmin, float& tmax)
+namespace
 {
-	constexpr float EPS = 1e-6f;
+	// This value specifies how many layers (or "floors") each navmesh tile is expected to have.
+	//この値は、各navmeshタイルに必要なレイヤー（または「フロア」）の数を指定します。
+	constexpr int EXPECTED_LAYERS_PER_TILE = 4;
 
-	float d[3];
-	rcVsub(d, sq, sp);
-	tmin = 0;  // set to -FLT_MAX to get first hit on line
-	// -FLT_MAXに設定して、線上で最初のヒットを取得します
-	tmax = FLT_MAX;		// set to max distance ray can travel (for segment)
-	// 光線が移動できる最大距離に設定します（セグメント用）
-
-	// For all three slabs
-	// 3つのスラブすべて
-	for (int i = 0; i < 3; i++)
+	bool isectSegAABB(const float* sp, const float* sq,
+		const float* amin, const float* amax,
+		float& tmin, float& tmax)
 	{
-		if (fabsf(d[i]) < EPS)
+		constexpr float EPS = 1e-6f;
+
+		float d[3];
+		rcVsub(d, sq, sp);
+		tmin = 0;  // set to -FLT_MAX to get first hit on line
+		// -FLT_MAXに設定して、線上で最初のヒットを取得します
+		tmax = FLT_MAX;		// set to max distance ray can travel (for segment)
+		// 光線が移動できる最大距離に設定します（セグメント用）
+
+		// For all three slabs
+		// 3つのスラブすべて
+		for (int i = 0; i < 3; i++)
 		{
-			// Ray is parallel to slab. No hit if origin not within slab
-			// 光線はスラブに平行です。 原点がスラブ内にない場合はヒットなし
-			if (sp[i] < amin[i] || sp[i] > amax[i])
-				return false;
+			if (fabsf(d[i]) < EPS)
+			{
+				// Ray is parallel to slab. No hit if origin not within slab
+				// 光線はスラブに平行です。 原点がスラブ内にない場合はヒットなし
+				if (sp[i] < amin[i] || sp[i] > amax[i])
+					return false;
+			}
+			else
+			{
+				// Compute intersection t value of ray with near and far plane of slab
+				//スラブのニアおよびファープレーンとレイの交差t値を計算します
+				const float ood = 1.f / d[i];
+				float t1 = (amin[i] - sp[i]) * ood;
+				float t2 = (amax[i] - sp[i]) * ood;
+
+				// Make t1 be intersection with near plane, t2 with far plane
+				// t1を近くの平面と交差させ、t2を遠くの平面と交差させます
+				if (t1 > t2) rcSwap(t1, t2);
+
+				// Compute the intersection of slab intersections intervals
+				// スラブの交差間隔との交差を計算
+				if (t1 > tmin) tmin = t1;
+				if (t2 < tmax) tmax = t2;
+
+				// Exit with no collision as soon as slab intersection becomes empty
+				// スラブの交差点が無くなるとすぐに衝突なしで終了
+				if (tmin > tmax) return false;
+			}
 		}
-		else
-		{
-			// Compute intersection t value of ray with near and far plane of slab
-			//スラブのニアおよびファープレーンとレイの交差t値を計算します
-			const float ood = 1.f / d[i];
-			float t1 = (amin[i] - sp[i]) * ood;
-			float t2 = (amax[i] - sp[i]) * ood;
 
-			// Make t1 be intersection with near plane, t2 with far plane
-			// t1を近くの平面と交差させ、t2を遠くの平面と交差させます
-			if (t1 > t2) rcSwap(t1, t2);
-
-			// Compute the intersection of slab intersections intervals
-			// スラブの交差間隔との交差を計算
-			if (t1 > tmin) tmin = t1;
-			if (t2 < tmax) tmax = t2;
-
-			// Exit with no collision as soon as slab intersection becomes empty
-			// スラブの交差点が無くなるとすぐに衝突なしで終了
-			if (tmin > tmax) return false;
-		}
+		return true;
 	}
 
-	return true;
-}
+	inline constexpr int calcLayerBufferSize(const int gridWidth, const int gridHeight)
+	{
+		constexpr int headerSize = dtAlign4(sizeof(dtTileCacheLayerHeader));
+		const int gridSize = gridWidth * gridHeight;
+		return headerSize + gridSize * 4;
+	}
 
-static int calcLayerBufferSize(const int gridWidth, const int gridHeight)
-{
-	const int headerSize = dtAlign4(sizeof(dtTileCacheLayerHeader));
-	const int gridSize = gridWidth * gridHeight;
-	return headerSize + gridSize * 4;
+	constexpr int MAX_LAYERS = 32;
 }
 
 struct FastLZCompressor : public dtTileCacheCompressor
@@ -218,8 +223,6 @@ struct MeshProcess : public dtTileCacheMeshProcess
 		}
 	}
 };
-
-constexpr int MAX_LAYERS = 32;
 
 struct TileCacheData
 {
@@ -1221,23 +1224,23 @@ bool Sample_TempObstacles::handleBuild()
 	// Generation params. //生成パラメーター。
 	rcConfig cfg{};
 
-	cfg.cs                     = m_cellSize;
-	cfg.ch                     = m_cellHeight;
-	cfg.walkableSlopeAngle     = m_agentMaxSlope;
-	cfg.walkableHeight         = (int)ceilf(m_agentHeight / cfg.ch);
-	cfg.walkableClimb          = (int)floorf(m_agentMaxClimb / cfg.ch);
-	cfg.walkableRadius         = (int)ceilf(m_agentRadius / cfg.cs);
-	cfg.maxEdgeLen             = (int)(m_edgeMaxLen / m_cellSize);
+	cfg.cs = m_cellSize;
+	cfg.ch = m_cellHeight;
+	cfg.walkableSlopeAngle = m_agentMaxSlope;
+	cfg.walkableHeight = (int)ceilf(m_agentHeight / cfg.ch);
+	cfg.walkableClimb = (int)floorf(m_agentMaxClimb / cfg.ch);
+	cfg.walkableRadius = (int)ceilf(m_agentRadius / cfg.cs);
+	cfg.maxEdgeLen = (int)(m_edgeMaxLen / m_cellSize);
 	cfg.maxSimplificationError = m_edgeMaxError;
-	cfg.minRegionArea          = (int)rcSqr(m_regionMinSize);	// Note: area = size * size
-	cfg.mergeRegionArea        = (int)rcSqr(m_regionMergeSize);	// Note: area = size * size
-	cfg.maxVertsPerPoly        = (int)m_vertsPerPoly;
-	cfg.tileSize               = (int)m_tileSize;
-	cfg.borderSize             = cfg.walkableRadius + 3; // Reserve enough padding. // 十分なパディングを予約します。
-	cfg.width                  = cfg.tileSize + cfg.borderSize * 2;
-	cfg.height                 = cfg.tileSize + cfg.borderSize * 2;
-	cfg.detailSampleDist       = m_detailSampleDist < 0.9f ? 0 : m_cellSize * m_detailSampleDist;
-	cfg.detailSampleMaxError   = m_cellHeight * m_detailSampleMaxError;
+	cfg.minRegionArea = (int)rcSqr(m_regionMinSize);	// Note: area = size * size
+	cfg.mergeRegionArea = (int)rcSqr(m_regionMergeSize);	// Note: area = size * size
+	cfg.maxVertsPerPoly = (int)m_vertsPerPoly;
+	cfg.tileSize = (int)m_tileSize;
+	cfg.borderSize = cfg.walkableRadius + 3; // Reserve enough padding. // 十分なパディングを予約します。
+	cfg.width = cfg.tileSize + cfg.borderSize * 2;
+	cfg.height = cfg.tileSize + cfg.borderSize * 2;
+	cfg.detailSampleDist = m_detailSampleDist < 0.9f ? 0 : m_cellSize * m_detailSampleDist;
+	cfg.detailSampleMaxError = m_cellHeight * m_detailSampleMaxError;
 	rcVcopy(cfg.bmin, bmin->data());
 	rcVcopy(cfg.bmax, bmax->data());
 
@@ -1246,16 +1249,16 @@ bool Sample_TempObstacles::handleBuild()
 	dtTileCacheParams tcparams{};
 
 	rcVcopy(tcparams.orig, bmin->data());
-	tcparams.cs                     = m_cellSize;
-	tcparams.ch                     = m_cellHeight;
-	tcparams.width                  = (int)m_tileSize;
-	tcparams.height                 = (int)m_tileSize;
-	tcparams.walkableHeight         = m_agentHeight;
-	tcparams.walkableRadius         = m_agentRadius;
-	tcparams.walkableClimb          = m_agentMaxClimb;
+	tcparams.cs = m_cellSize;
+	tcparams.ch = m_cellHeight;
+	tcparams.width = (int)m_tileSize;
+	tcparams.height = (int)m_tileSize;
+	tcparams.walkableHeight = m_agentHeight;
+	tcparams.walkableRadius = m_agentRadius;
+	tcparams.walkableClimb = m_agentMaxClimb;
 	tcparams.maxSimplificationError = m_edgeMaxError;
-	tcparams.maxTiles               = tw * th * EXPECTED_LAYERS_PER_TILE;
-	tcparams.maxObstacles           = 128;
+	tcparams.maxTiles = tw * th * EXPECTED_LAYERS_PER_TILE;
+	tcparams.maxObstacles = 128;
 
 	dtFreeTileCache(m_tileCache);
 

@@ -27,110 +27,113 @@
 #include "DetourAssert.h"
 #include <new>
 
-inline bool overlapSlabs(const float* amin, const float* amax,
-	const float* bmin, const float* bmax,
-	const float px, const float py)
+namespace
 {
-	// Check for horizontal overlap.
-	// The segment is shrunken a little so that slabs which touch
-	// at end points are not connected.
-	const float minx = dtMax(amin[0] + px, bmin[0] + px);
-	const float maxx = dtMin(amax[0] - px, bmax[0] - px);
-	if (minx > maxx)
+	inline bool overlapSlabs(const float* amin, const float* amax,
+		const float* bmin, const float* bmax,
+		const float px, const float py)
+	{
+		// Check for horizontal overlap.
+		// The segment is shrunken a little so that slabs which touch
+		// at end points are not connected.
+		const float minx = dtMax(amin[0] + px, bmin[0] + px);
+		const float maxx = dtMin(amax[0] - px, bmax[0] - px);
+		if (minx > maxx)
+			return false;
+
+		// Check vertical overlap.
+		const float ad = (amax[1] - amin[1]) / (amax[0] - amin[0]);
+		const float ak = amin[1] - ad * amin[0];
+		const float bd = (bmax[1] - bmin[1]) / (bmax[0] - bmin[0]);
+		const float bk = bmin[1] - bd * bmin[0];
+		const float aminy = ad * minx + ak;
+		const float amaxy = ad * maxx + ak;
+		const float bminy = bd * minx + bk;
+		const float bmaxy = bd * maxx + bk;
+		const float dmin = bminy - aminy;
+		const float dmax = bmaxy - amaxy;
+
+		// Crossing segments always overlap.
+		if (dmin * dmax < 0)
+			return true;
+
+		// Check for overlap at endpoints.
+		const float thr = dtSqr(py * 2);
+		if (dmin * dmin <= thr || dmax * dmax <= thr)
+			return true;
+
 		return false;
+	}
 
-	// Check vertical overlap.
-	const float ad = (amax[1] - amin[1]) / (amax[0] - amin[0]);
-	const float ak = amin[1] - ad * amin[0];
-	const float bd = (bmax[1] - bmin[1]) / (bmax[0] - bmin[0]);
-	const float bk = bmin[1] - bd * bmin[0];
-	const float aminy = ad * minx + ak;
-	const float amaxy = ad * maxx + ak;
-	const float bminy = bd * minx + bk;
-	const float bmaxy = bd * maxx + bk;
-	const float dmin = bminy - aminy;
-	const float dmax = bmaxy - amaxy;
-
-	// Crossing segments always overlap.
-	if (dmin * dmax < 0)
-		return true;
-
-	// Check for overlap at endpoints.
-	const float thr = dtSqr(py * 2);
-	if (dmin * dmin <= thr || dmax * dmax <= thr)
-		return true;
-
-	return false;
-}
-
-static float getSlabCoord(const float* va, const int side)
-{
-	if (side == 0 || side == 4)
-		return va[0];
-	else if (side == 2 || side == 6)
-		return va[2];
-	return 0;
-}
-
-static void calcSlabEndPoints(const float* va, const float* vb, float* bmin, float* bmax, const int side)
-{
-	if (side == 0 || side == 4)
+	float getSlabCoord(const float* va, const int side)
 	{
-		if (va[2] < vb[2])
+		if (side == 0 || side == 4)
+			return va[0];
+		else if (side == 2 || side == 6)
+			return va[2];
+		return 0;
+	}
+
+	void calcSlabEndPoints(const float* va, const float* vb, float* bmin, float* bmax, const int side)
+	{
+		if (side == 0 || side == 4)
 		{
-			bmin[0] = va[2];
-			bmin[1] = va[1];
-			bmax[0] = vb[2];
-			bmax[1] = vb[1];
+			if (va[2] < vb[2])
+			{
+				bmin[0] = va[2];
+				bmin[1] = va[1];
+				bmax[0] = vb[2];
+				bmax[1] = vb[1];
+			}
+			else
+			{
+				bmin[0] = vb[2];
+				bmin[1] = vb[1];
+				bmax[0] = va[2];
+				bmax[1] = va[1];
+			}
 		}
-		else
+		else if (side == 2 || side == 6)
 		{
-			bmin[0] = vb[2];
-			bmin[1] = vb[1];
-			bmax[0] = va[2];
-			bmax[1] = va[1];
+			if (va[0] < vb[0])
+			{
+				bmin[0] = va[0];
+				bmin[1] = va[1];
+				bmax[0] = vb[0];
+				bmax[1] = vb[1];
+			}
+			else
+			{
+				bmin[0] = vb[0];
+				bmin[1] = vb[1];
+				bmax[0] = va[0];
+				bmax[1] = va[1];
+			}
 		}
 	}
-	else if (side == 2 || side == 6)
+
+	inline int computeTileHash(int x, int y, const int mask)
 	{
-		if (va[0] < vb[0])
-		{
-			bmin[0] = va[0];
-			bmin[1] = va[1];
-			bmax[0] = vb[0];
-			bmax[1] = vb[1];
-		}
-		else
-		{
-			bmin[0] = vb[0];
-			bmin[1] = vb[1];
-			bmax[0] = va[0];
-			bmax[1] = va[1];
-		}
+		const unsigned int h1 = 0x8da6b343; // Large multiplicative constants; // ‘å‚«‚Èæ–@’è”B
+		const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes  // ‚±‚±‚Å”CˆÓ‚É‘I‘ð‚³‚ê‚½‘f”
+		unsigned int n = h1 * x + h2 * y;
+		return (int)(n & mask);
 	}
-}
 
-inline int computeTileHash(int x, int y, const int mask)
-{
-	const unsigned int h1 = 0x8da6b343; // Large multiplicative constants; // ‘å‚«‚Èæ–@’è”B
-	const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes  // ‚±‚±‚Å”CˆÓ‚É‘I‘ð‚³‚ê‚½‘f”
-	unsigned int n = h1 * x + h2 * y;
-	return (int)(n & mask);
-}
+	inline unsigned int allocLink(dtMeshTile* tile)
+	{
+		if (tile->linksFreeList == DT_NULL_LINK)
+			return DT_NULL_LINK;
+		unsigned int link = tile->linksFreeList;
+		tile->linksFreeList = tile->links[link].next;
+		return link;
+	}
 
-inline unsigned int allocLink(dtMeshTile* tile)
-{
-	if (tile->linksFreeList == DT_NULL_LINK)
-		return DT_NULL_LINK;
-	unsigned int link = tile->linksFreeList;
-	tile->linksFreeList = tile->links[link].next;
-	return link;
-}
-
-inline void freeLink(dtMeshTile* tile, unsigned int link)
-{
-	tile->links[link].next = tile->linksFreeList;
-	tile->linksFreeList = link;
+	inline void freeLink(dtMeshTile* tile, unsigned int link)
+	{
+		tile->links[link].next = tile->linksFreeList;
+		tile->linksFreeList = link;
+	}
 }
 
 dtNavMesh* dtAllocNavMesh()

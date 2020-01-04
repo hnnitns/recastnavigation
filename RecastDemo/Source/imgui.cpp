@@ -28,9 +28,10 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static const unsigned TEXT_POOL_SIZE = 50000;
+constexpr unsigned TEXT_POOL_SIZE = 50000;
 static char g_textPool[TEXT_POOL_SIZE];
 static unsigned g_textPoolSize = 0;
+
 static const char* allocText(const char* text)
 {
 	unsigned len = strlen(text) + 1;
@@ -42,7 +43,7 @@ static const char* allocText(const char* text)
 	return dst;
 }
 
-static const unsigned GFXCMD_QUEUE_SIZE = 5000;
+constexpr unsigned GFXCMD_QUEUE_SIZE = 5000;
 static imguiGfxCmd g_gfxCmdQueue[GFXCMD_QUEUE_SIZE];
 static unsigned g_gfxCmdQueueSize = 0;
 

@@ -19,10 +19,11 @@
 #ifndef CHUNKYTRIMESH_H
 #define CHUNKYTRIMESH_H
 
+#include <array>
+
 struct rcChunkyTriMeshNode
 {
-	float bmin[2];
-	float bmax[2];
+	std::array<float, 2> bmin, bmax;
 	int i;
 	int n;
 };

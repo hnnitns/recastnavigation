@@ -52,7 +52,7 @@ static int compareItemY(const void* va, const void* vb)
 
 static void calcExtends(const BoundsItem* items, const int /*nitems*/,
 	const int imin, const int imax,
-	float* bmin, float* bmax)
+	std::array<float, 2>& bmin, std::array<float, 2>& bmax)
 {
 	bmin[0] = items[imin].bmin[0];
 	bmin[1] = items[imin].bmin[1];
@@ -208,7 +208,7 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int t
 }
 
 inline bool checkOverlapRect(const float amin[2], const float amax[2],
-	const float bmin[2], const float bmax[2])
+	const std::array<float, 2>& bmin, const std::array<float, 2>& bmax)
 {
 	bool overlap = true;
 	overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
@@ -253,7 +253,7 @@ int rcGetChunksOverlappingRect(const rcChunkyTriMesh* cm,
 }
 
 static bool checkOverlapSegment(const float p[2], const float q[2],
-	const float bmin[2], const float bmax[2])
+	const std::array<float, 2>& bmin, const std::array<float, 2>& bmax)
 {
 	constexpr float EPSILON = 1e-6f;
 

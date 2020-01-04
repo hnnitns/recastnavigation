@@ -750,37 +750,29 @@ namespace
 	{
 		const rcContourHole* a = (const rcContourHole*)va;
 		const rcContourHole* b = (const rcContourHole*)vb;
+
 		if (a->minx == b->minx)
 		{
-			if (a->minz < b->minz)
-				return -1;
-			if (a->minz > b->minz)
-				return 1;
+			return (a->minz > b->minz) - (a->minz < b->minz);
 		}
 		else
 		{
-			if (a->minx < b->minx)
-				return -1;
-			if (a->minx > b->minx)
-				return 1;
+			return (a->minx > b->minx) - (a->minx < b->minx);
 		}
-		return 0;
 	}
 
 	inline int compareDiagDist(const void* va, const void* vb)
 	{
 		const rcPotentialDiagonal* a = (const rcPotentialDiagonal*)va;
 		const rcPotentialDiagonal* b = (const rcPotentialDiagonal*)vb;
-		if (a->dist < b->dist)
-			return -1;
-		if (a->dist > b->dist)
-			return 1;
-		return 0;
+
+		return (a->dist > b->dist) - (a->dist < b->dist);
 	}
 
 	void mergeRegionHoles(rcContext* ctx, rcContourRegion& region)
 	{
 		// Sort holes from left to right.
+		// 穴を左から右に並べ替えます。
 		for (int i = 0; i < region.nholes; i++)
 			findLeftMostVertex(region.holes[i].contour, &region.holes[i].minx, &region.holes[i].minz, &region.holes[i].leftmost);
 
@@ -791,8 +783,10 @@ namespace
 			maxVerts += region.holes[i].contour->nverts;
 
 		rcScopedDelete<rcPotentialDiagonal> diags((rcPotentialDiagonal*)rcAlloc(sizeof(rcPotentialDiagonal) * maxVerts, RC_ALLOC_TEMP));
+
 		if (!diags)
 		{
+			// 診断の割り当てに失敗しました。
 			ctx->log(RC_LOG_WARNING, "mergeRegionHoles: Failed to allocated diags %d.", maxVerts);
 			return;
 		}
@@ -800,6 +794,7 @@ namespace
 		rcContour* outline = region.outline;
 
 		// Merge holes into the outline one by one.
+		// 穴を1つずつアウトラインに結合します。
 		for (int i = 0; i < region.nholes; i++)
 		{
 			rcContour* hole = region.holes[i].contour;
@@ -809,7 +804,9 @@ namespace
 			for (int iter = 0; iter < hole->nverts; iter++)
 			{
 				// Find potential diagonals.
+				// 潜在的な対角線を見つけます。
 				// The 'best' vertex must be in the cone described by 3 cosequtive vertices of the outline.
+				//「最適な」頂点は、アウトラインの3つの連続した頂点によって記述される円錐内になければなりません。
 				// ..o j-1
 				//   |
 				//   |   * best
@@ -829,10 +826,13 @@ namespace
 						ndiags++;
 					}
 				}
+
 				// Sort potential diagonals by distance, we want to make the connection as short as possible.
+				// 潜在的な対角線を距離で並べ替えます。接続をできるだけ短くしたいです。
 				qsort(diags, ndiags, sizeof(rcPotentialDiagonal), compareDiagDist);
 
 				// Find a diagonal that is not intersecting the outline not the remaining holes.
+				// 残りの穴ではなく、アウトラインと交差しない対角線を見つけます。
 				index = -1;
 				for (int j = 0; j < ndiags; j++)
 				{
@@ -846,20 +846,25 @@ namespace
 						break;
 					}
 				}
+
 				// If found non-intersecting diagonal, stop looking.
-				if (index != -1)
-					break;
+				// 交差しない対角線が見つかった場合、検索を停止します。
+				if (index != -1) break;
+
 				// All the potential diagonals for the current vertex were intersecting, try next vertex.
+				// 現在の頂点のすべての潜在的な対角線が交差していたので、次の頂点を試してください。
 				bestVertex = (bestVertex + 1) % hole->nverts;
 			}
 
 			if (index == -1)
 			{
+				// マージポイントが見つかりませんでした。
 				ctx->log(RC_LOG_WARNING, "mergeHoles: Failed to find merge points for %p and %p.", region.outline, hole);
 				continue;
 			}
 			if (!mergeContours(*region.outline, *hole, index, bestVertex))
 			{
+				// 輪郭のマージに失敗しました。
 				ctx->log(RC_LOG_WARNING, "mergeHoles: Failed to merge contours %p and %p.", region.outline, hole);
 				continue;
 			}

@@ -20,13 +20,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <array>
+#include <vector>
+#include <algorithm>
 
 namespace
 {
 	struct BoundsItem
 	{
-		float bmin[2];
-		float bmax[2];
+		std::array<float, 2> bmin, bmax;
 		int i;
 	};
 
@@ -34,25 +36,19 @@ namespace
 	{
 		const BoundsItem* a = (const BoundsItem*)va;
 		const BoundsItem* b = (const BoundsItem*)vb;
-		if (a->bmin[0] < b->bmin[0])
-			return -1;
-		if (a->bmin[0] > b->bmin[0])
-			return 1;
-		return 0;
+
+		return (a->bmin[0] > b->bmin[0]) - (a->bmin[0] < b->bmin[0]);
 	}
 
 	inline int compareItemY(const void* va, const void* vb)
 	{
 		const BoundsItem* a = (const BoundsItem*)va;
 		const BoundsItem* b = (const BoundsItem*)vb;
-		if (a->bmin[1] < b->bmin[1])
-			return -1;
-		if (a->bmin[1] > b->bmin[1])
-			return 1;
-		return 0;
+
+		return (a->bmin[1] > b->bmin[1]) - (a->bmin[1] < b->bmin[1]);
 	}
 
-	void calcExtends(const BoundsItem* items, const int /*nitems*/,
+	void calcExtends(const std::vector<BoundsItem>& items, [[maybe_unused]]const int nitems,
 		const int imin, const int imax,
 		std::array<float, 2>& bmin, std::array<float, 2>& bmax)
 	{
@@ -65,6 +61,7 @@ namespace
 		for (int i = imin + 1; i < imax; ++i)
 		{
 			const BoundsItem& it = items[i];
+
 			if (it.bmin[0] < bmin[0]) bmin[0] = it.bmin[0];
 			if (it.bmin[1] < bmin[1]) bmin[1] = it.bmin[1];
 
@@ -78,7 +75,7 @@ namespace
 		return y > x ? 1 : 0;
 	}
 
-	void subdivide(BoundsItem* items, int nitems, int imin, int imax, int trisPerChunk,
+	void subdivide(std::vector<BoundsItem>& items, int nitems, int imin, int imax, int trisPerChunk,
 		int& curNode, rcChunkyTriMeshNode* nodes, const int maxNodes,
 		int& curTri, int* outTris, const int* inTris)
 	{
@@ -121,13 +118,13 @@ namespace
 			{
 				// Sort along x-axis
 				// X²‚É‰ˆ‚Á‚Ä•À‚×‘Ö‚¦
-				qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemX);
+				qsort(items.data() + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemX);
 			}
 			else if (axis == 1)
 			{
 				// Sort along y-axis
 				// y²‚É‰ˆ‚Á‚Ä•À‚×‘Ö‚¦
-				qsort(items + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemY);
+				qsort(items.data() + imin, static_cast<size_t>(inum), sizeof(BoundsItem), compareItemY);
 			}
 
 			int isplit = imin + inum / 2;
@@ -204,9 +201,9 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int t
 
 	// Build tree
 	// ƒcƒŠ[‚ğ\’z‚µ‚Ü‚·
-	BoundsItem* items = new BoundsItem[ntris];
-	if (!items)
-		return false;
+	std::vector<BoundsItem> items(ntris);
+
+	if (items.empty())	return false;
 
 	for (int i = 0; i < ntris; i++)
 	{
@@ -228,11 +225,9 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int t
 		}
 	}
 
-	int curTri = 0;
-	int curNode = 0;
-	subdivide(items, ntris, 0, ntris, trisPerChunk, curNode, cm->nodes, nchunks * 4, curTri, cm->tris, tris);
+	int curTri{}, curNode{};
 
-	delete[] items;
+	subdivide(items, ntris, 0, ntris, trisPerChunk, curNode, cm->nodes, nchunks * 4, curTri, cm->tris, tris);
 
 	cm->nnodes = curNode;
 

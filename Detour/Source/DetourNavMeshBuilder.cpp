@@ -21,6 +21,8 @@
 #include <cstring>
 #include <limits>  // std::numeric_limitsのため
 #include <cstdint> // uint16_tのため
+#include <array>
+#include <vector>
 #include "DetourNavMesh.h"
 #include "DetourCommon.h"
 #include "DetourMath.h"
@@ -34,8 +36,7 @@ namespace
 
 	struct BVItem
 	{
-		uint16_t bmin[3];
-		uint16_t bmax[3];
+		std::array<uint16_t, 3> bmin, bmax;
 		int i;
 	};
 
@@ -43,36 +44,27 @@ namespace
 	{
 		const BVItem* a = (const BVItem*)va;
 		const BVItem* b = (const BVItem*)vb;
-		if (a->bmin[0] < b->bmin[0])
-			return -1;
-		if (a->bmin[0] > b->bmin[0])
-			return 1;
-		return 0;
+
+		return (a->bmin[0] > b->bmin[0]) - (a->bmin[0] < b->bmin[0]);
 	}
 
 	inline int compareItemY(const void* va, const void* vb)
 	{
 		const BVItem* a = (const BVItem*)va;
 		const BVItem* b = (const BVItem*)vb;
-		if (a->bmin[1] < b->bmin[1])
-			return -1;
-		if (a->bmin[1] > b->bmin[1])
-			return 1;
-		return 0;
+
+		return (a->bmin[1] > b->bmin[1]) - (a->bmin[1] < b->bmin[1]);
 	}
 
 	inline int compareItemZ(const void* va, const void* vb)
 	{
 		const BVItem* a = (const BVItem*)va;
 		const BVItem* b = (const BVItem*)vb;
-		if (a->bmin[2] < b->bmin[2])
-			return -1;
-		if (a->bmin[2] > b->bmin[2])
-			return 1;
-		return 0;
+
+		return (a->bmin[2] > b->bmin[2]) - (a->bmin[2] < b->bmin[2]);
 	}
 
-	void calcExtends(BVItem* items, const int /*nitems*/, const int imin, const int imax,
+	void calcExtends(const std::vector<BVItem>& items, const int /*nitems*/, const int imin, const int imax,
 		uint16_t* bmin, uint16_t* bmax)
 	{
 		bmin[0] = items[imin].bmin[0];
@@ -112,7 +104,7 @@ namespace
 		return axis;
 	}
 
-	void subdivide(BVItem* items, int nitems, int imin, int imax, int& curNode, dtBVNode* nodes)
+	void subdivide(std::vector<BVItem>& items, int nitems, int imin, int imax, int& curNode, dtBVNode* nodes)
 	{
 		int inum = imax - imin;
 		int icur = curNode;
@@ -144,17 +136,17 @@ namespace
 			if (axis == 0)
 			{
 				// Sort along x-axis
-				qsort(items + imin, inum, sizeof(BVItem), compareItemX);
+				qsort(items.data() + imin, inum, sizeof(BVItem), compareItemX);
 			}
 			else if (axis == 1)
 			{
 				// Sort along y-axis
-				qsort(items + imin, inum, sizeof(BVItem), compareItemY);
+				qsort(items.data() + imin, inum, sizeof(BVItem), compareItemY);
 			}
 			else
 			{
 				// Sort along z-axis
-				qsort(items + imin, inum, sizeof(BVItem), compareItemZ);
+				qsort(items.data() + imin, inum, sizeof(BVItem), compareItemZ);
 			}
 
 			int isplit = imin + inum / 2;
@@ -174,12 +166,15 @@ namespace
 	{
 		// Build tree
 		float quantFactor = 1 / params->cs;
-		BVItem* items = (BVItem*)dtAlloc(sizeof(BVItem) * params->polyCount, DT_ALLOC_TEMP);
+
+		std::vector<BVItem> items(params->polyCount);
+
 		for (int i = 0; i < params->polyCount; i++)
 		{
 			BVItem& it = items[i];
 			it.i = i;
 			// Calc polygon bounds. Use detail meshes if available.
+			// ポリゴンの境界を計算します。 可能であれば詳細メッシュを使用します。
 			if (params->detailMeshes)
 			{
 				int vb = (int)params->detailMeshes[i * 4 + 0];
@@ -236,8 +231,6 @@ namespace
 
 		int curNode = 0;
 		subdivide(items, params->polyCount, 0, params->polyCount, curNode, nodes);
-
-		dtFree(items);
 
 		return curNode;
 	}

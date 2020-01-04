@@ -49,13 +49,13 @@ namespace
 	constexpr float PI = 3.14159265f;
 
 	constexpr unsigned TEMP_COORD_COUNT = 100;
-	float g_tempCoords[TEMP_COORD_COUNT * 2];
-	float g_tempNormals[TEMP_COORD_COUNT * 2];
+	std::array<float, TEMP_COORD_COUNT * 2> g_tempCoords;
+	std::array<float, TEMP_COORD_COUNT * 2> g_tempNormals;
 
 	constexpr int CIRCLE_VERTS = 8 * 4;
-	float g_circleVerts[CIRCLE_VERTS * 2];
+	std::array<float, CIRCLE_VERTS * 2> g_circleVerts;
 
-	stbtt_bakedchar g_cdata[96]; // ASCII 32..126 is 95 glyphs
+	std::array<stbtt_bakedchar, 96> g_cdata; // ASCII 32..126 is 95 glyphs
 	GLuint g_ftex{};
 
 	inline constexpr uint8_t RGBA(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a)
@@ -168,7 +168,7 @@ namespace
 	{
 		const unsigned n = CIRCLE_VERTS / 4;
 		float verts[(n + 1) * 4 * 2];
-		const float* cverts = g_circleVerts;
+		const auto& cverts = g_circleVerts;
 		float* v = verts;
 
 		for (unsigned i = 0; i <= n; ++i)
@@ -291,7 +291,7 @@ bool imguiRenderGLInit(const char* fontpath)
 		return false;
 	}
 
-	stbtt_BakeFontBitmap(ttfBuffer, 0, 15.0f, bmap, 512, 512, 32, 96, g_cdata);
+	stbtt_BakeFontBitmap(ttfBuffer, 0, 15.0f, bmap, 512, 512, 32, 96, g_cdata.data());
 
 	// can free ttf_buffer at this point
 	glGenTextures(1, &g_ftex);
@@ -375,9 +375,9 @@ namespace
 		if (!text) return;
 
 		if (align == IMGUI_ALIGN_CENTER)
-			x -= getTextLength(g_cdata, text) / 2;
+			x -= getTextLength(g_cdata.data(), text) / 2;
 		else if (align == IMGUI_ALIGN_RIGHT)
-			x -= getTextLength(g_cdata, text);
+			x -= getTextLength(g_cdata.data(), text);
 
 		glColor4ub(col & 0xff, (col >> 8) & 0xff, (col >> 16) & 0xff, (col >> 24) & 0xff);
 
@@ -407,7 +407,7 @@ namespace
 			else if (c >= 32 && c < 128)
 			{
 				stbtt_aligned_quad q;
-				getBakedQuad(g_cdata, 512, 512, c - 32, &x, &y, &q);
+				getBakedQuad(g_cdata.data(), 512, 512, c - 32, &x, &y, &q);
 
 				glTexCoord2f(q.s0, q.t0);
 				glVertex2f(q.x0, q.y0);

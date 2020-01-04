@@ -16,9 +16,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <limits>  // std::numeric_limits‚Ì‚½‚ß
 #include <cstdint> // uint16_t‚Ì‚½‚ß
 #include "DetourNavMesh.h"

@@ -16,12 +16,12 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <float.h>
+#include <cfloat>
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
 #include "Recast.h"
 #include "RecastAlloc.h"
 #include "RecastAssert.h"

@@ -21,7 +21,7 @@
 #include "DetourStatus.h"
 #include "DetourAssert.h"
 #include "DetourTileCacheBuilder.h"
-#include <string.h>
+#include <cstring>
 
 template<class T> class dtFixedArray
 {

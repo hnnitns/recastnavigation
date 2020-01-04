@@ -19,7 +19,7 @@
 #ifndef DETOURALLOCATOR_H
 #define DETOURALLOCATOR_H
 
-#include <stddef.h>
+#include <cstddef>
 
 // Provides hint values to the memory allocator on how long the memory is expected to be used.
 // メモリの使用が予想される期間に関するヒント値をメモリアロケータに提供します。

@@ -17,7 +17,7 @@
 //
 
 #define _USE_MATH_DEFINES
-#include <string.h>
+#include <cstring>
 #include "DebugDraw.h"
 #include "DetourMath.h"
 #include "DetourNavMesh.h"

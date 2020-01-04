@@ -1,7 +1,7 @@
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
-#include <stdarg.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdarg>
 #include "SampleInterfaces.h"
 #include "Recast.h"
 #include "RecastDebugDraw.h"

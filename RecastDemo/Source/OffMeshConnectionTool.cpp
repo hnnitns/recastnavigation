@@ -17,14 +17,14 @@
 //
 
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <float.h>
+#include <cmath>
+#include <cstdio>
+#include <string>
+#include <cfloat>
 #include "SDL.h"
 #include "SDL_opengl.h"
 #ifdef __APPLE__
-#	include <OpenGL/glu.h>
+#	include <OpenGL/glu>
 #else
 #	include <GL/glu.h>
 #endif

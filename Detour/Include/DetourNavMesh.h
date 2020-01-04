@@ -27,7 +27,7 @@
 // TODO: figure out a multiplatform version of uint64_t
 // - maybe: https://code.google.com/p/msinttypes/
 // - or: http://www.azillionmonkeys.com/qed/pstdint.h
-#include <stdint.h>
+#include <stdint>
 #endif
 
 // A handle to a polygon within a navigation mesh tile.

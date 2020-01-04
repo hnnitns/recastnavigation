@@ -21,8 +21,8 @@
 #include "DetourMath.h"
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
-#include <string.h>
-#include <float.h>
+#include <cstring>
+#include <cfloat>
 #include <new>
 
 static const float DT_PI = 3.14159265f;

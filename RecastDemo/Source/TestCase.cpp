@@ -16,10 +16,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <math.h>
+#include <cstdio>
+#include <cctype>
+#include <string>
+#include <cmath>
 #include "TestCase.h"
 #include "DetourNavMesh.h"
 #include "DetourNavMeshQuery.h"
@@ -27,7 +27,7 @@
 #include "SDL.h"
 #include "SDL_opengl.h"
 #ifdef __APPLE__
-#	include <OpenGL/glu.h>
+#	include <OpenGL/glu>
 #else
 #	include <GL/glu.h>
 #endif

@@ -7,7 +7,7 @@ Members in this module are wrappers around the standard math library
 #ifndef DETOURMATH_H
 #define DETOURMATH_H
 
-#include <math.h>
+#include <cmath>
 
 inline float dtMathFabsf(float x) { return fabsf(x); }
 inline float dtMathSqrtf(float x) { return sqrtf(x); }

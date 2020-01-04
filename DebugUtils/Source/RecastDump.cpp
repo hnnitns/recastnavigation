@@ -17,10 +17,10 @@
 //
 
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdarg>
+#include <cstring>
 #include "Recast.h"
 #include "RecastAlloc.h"
 #include "RecastDump.h"

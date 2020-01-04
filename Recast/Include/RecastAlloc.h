@@ -19,7 +19,7 @@
 #ifndef RECASTALLOC_H
 #define RECASTALLOC_H
 
-#include <stddef.h>
+#include <cstddef>
 
 // Provides hint values to the memory allocator on how long the memory is expected to be used.
 // メモリが使用されると予想される期間に関するヒントをメモリアロケータに提供します。

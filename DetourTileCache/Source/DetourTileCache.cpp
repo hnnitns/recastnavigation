@@ -6,7 +6,7 @@
 #include "DetourMath.h"
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
-#include <string.h>
+#include <cstring>
 #include <new>
 
 dtTileCache* dtAllocTileCache()

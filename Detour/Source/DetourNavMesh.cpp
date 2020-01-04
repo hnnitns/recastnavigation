@@ -16,9 +16,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <float.h>
-#include <string.h>
-#include <stdio.h>
+#include <cfloat>
+#include <cstring>
+#include <cstdio>
 #include "DetourNavMesh.h"
 #include "DetourNode.h"
 #include "DetourCommon.h"

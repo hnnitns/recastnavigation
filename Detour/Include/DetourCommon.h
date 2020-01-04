@@ -20,7 +20,7 @@
 #define DETOURCOMMON_H
 
 #include "DetourMath.h"
-#include <stddef.h>
+#include <cstddef>
 
 /**
 @defgroup detour Detour

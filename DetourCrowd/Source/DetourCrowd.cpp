@@ -17,9 +17,9 @@
 //
 
 #define _USE_MATH_DEFINES
-#include <string.h>
-#include <float.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cfloat>
+#include <cstdlib>
 #include <new>
 #include "DetourCrowd.h"
 #include "DetourNavMesh.h"

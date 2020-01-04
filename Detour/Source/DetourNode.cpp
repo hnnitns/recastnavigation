@@ -20,7 +20,7 @@
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
 #include "DetourCommon.h"
-#include <string.h>
+#include <cstring>
 
 #ifdef DT_POLYREF64
 // From Thomas Wang, https://gist.github.com/badboy/6267743

@@ -22,7 +22,7 @@
 #ifdef WIN32
 #	include <io.h>
 #else
-#	include <dirent.h>
+#	include <dirent>
 #	include <cstring>
 #endif
 

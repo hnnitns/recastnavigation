@@ -42,7 +42,7 @@ int getPerfTimeUsec(const TimeVal duration)
 
 // Linux, BSD, OSX
 
-#include <sys/time.h>
+#include <sys/time>
 
 TimeVal getPerfTime()
 {

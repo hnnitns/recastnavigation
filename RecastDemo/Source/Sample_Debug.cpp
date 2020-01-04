@@ -17,8 +17,8 @@
 //
 
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 #include "Sample_Debug.h"
 #include "InputGeom.h"
 #include "Recast.h"

@@ -17,11 +17,11 @@
 //
 
 #include "MeshLoaderObj.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 rcMeshLoaderObj::rcMeshLoaderObj() :
 	m_scale(1.f),

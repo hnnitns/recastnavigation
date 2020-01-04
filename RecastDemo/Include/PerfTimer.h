@@ -20,7 +20,7 @@
 #define PERFTIMER_H
 
 #ifdef __GNUC__
-#include <stdint.h>
+#include <stdint>
 typedef int64_t TimeVal;
 #else
 typedef __int64 TimeVal;

@@ -17,7 +17,7 @@
 //
 
 #define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
+#include <cstdlib>
 #include <crtdbg.h>
 
 #include <cstdio>
@@ -27,7 +27,7 @@
 #include "SDL.h"
 #include "SDL_opengl.h"
 #ifdef __APPLE__
-#	include <OpenGL/glu.h>
+#	include <OpenGL/glu>
 #else
 #	include <GL/glu.h>
 #endif

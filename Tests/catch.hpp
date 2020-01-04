@@ -567,7 +567,7 @@ namespace Catch {
 
 #include <memory>
 #include <vector>
-#include <stdlib.h>
+#include <cstdlib>
 
 namespace Catch {
 	class TestCase;
@@ -1488,7 +1488,7 @@ namespace Catch {
 // #included from: catch_objc_arc.hpp
 #define TWOBLUECUBES_CATCH_OBJC_ARC_HPP_INCLUDED
 
-#import <Foundation/Foundation.h>
+#import <Foundation/Foundation>
 
 #ifdef __has_feature
 #define CATCH_ARC_ENABLED __has_feature(objc_arc)
@@ -2243,7 +2243,7 @@ namespace Catch {
 #ifdef CATCH_PLATFORM_WINDOWS
 typedef unsigned long long uint64_t;
 #else
-#include <stdint.h>
+#include <stdint>
 #endif
 
 namespace Catch {
@@ -2295,7 +2295,7 @@ namespace Catch {
 #include <iterator>
 #include <vector>
 #include <string>
-#include <stdlib.h>
+#include <cstdlib>
 
 namespace Catch {
 	template<typename T>
@@ -2846,7 +2846,7 @@ namespace Catch {
 // #included from: internal/catch_objc.hpp
 #define TWOBLUECUBES_CATCH_OBJC_HPP_INCLUDED
 
-#import <objc/runtime.h>
+#import <objc/runtime>
 
 #include <string>
 
@@ -2972,7 +2972,7 @@ namespace Catch {
 					}
 				};
 
-				struct StartsWith : StringHolder<StartsWith> {
+				struct StartsWith : StringHolder<StartsWi> {
 					StartsWith(NSString* substr) : StringHolder(substr) {}
 
 					virtual bool match(ExpressionType const& str) const {
@@ -2984,7 +2984,7 @@ namespace Catch {
 						return "starts with: " + Catch::toString(m_substr);
 					}
 				};
-				struct EndsWith : StringHolder<EndsWith> {
+				struct EndsWith : StringHolder<EndsWi> {
 					EndsWith(NSString* substr) : StringHolder(substr) {}
 
 					virtual bool match(ExpressionType const& str) const {
@@ -5023,7 +5023,7 @@ namespace Catch {
 #include <string>
 #include <ostream>
 #include <map>
-#include <assert.h>
+#include <cassert>
 
 namespace Catch
 {
@@ -5440,7 +5440,7 @@ namespace Catch {
 
 #include <map>
 #include <string>
-#include <assert.h>
+#include <cassert>
 #include <vector>
 
 namespace Catch {
@@ -5771,7 +5771,7 @@ namespace Catch {
 
 #else // Not Windows - assumed to be POSIX compatible //////////////////////////
 
-#include <signal.h>
+#include <signal>
 
 namespace Catch {
 	struct SignalDefs { int id; const char* name; };
@@ -6176,7 +6176,7 @@ namespace Catch {
 }
 
 #include <fstream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <limits>
 
 namespace Catch {
@@ -6964,7 +6964,7 @@ namespace Catch {
 #endif
 
 #ifdef __AFXDLL
-#include <AfxWin.h>
+#include <AfxWin>
 #else
 #include <windows.h>
 #endif
@@ -7030,7 +7030,7 @@ namespace Catch {
 
 #elif defined( CATCH_CONFIG_COLOUR_ANSI ) //////////////////////////////////////
 
-#include <unistd.h>
+#include <unistd>
 
 namespace Catch {
 	namespace {
@@ -7637,7 +7637,7 @@ namespace Catch
 #ifdef CATCH_PLATFORM_WINDOWS
 #include <windows.h>
 #else
-#include <sys/time.h>
+#include <sys/time>
 #endif
 
 namespace Catch {
@@ -7824,11 +7824,11 @@ namespace Catch {
 
 #ifdef CATCH_PLATFORM_MAC
 
-#include <assert.h>
-#include <stdbool.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/sysctl.h>
+#include <assert>
+#include <stdbool>
+#include <sys/types>
+#include <unistd>
+#include <sys/sysctl>
 
 namespace Catch {
 	// The following function is taken directly from the following technical note:
@@ -9194,7 +9194,7 @@ namespace Catch {
 // #included from: ../reporters/catch_reporter_junit.hpp
 #define TWOBLUECUBES_CATCH_REPORTER_JUNIT_HPP_INCLUDED
 
-#include <assert.h>
+#include <cassert>
 
 namespace Catch {
 	class JunitReporter : public CumulativeReporterBase {

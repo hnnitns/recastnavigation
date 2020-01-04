@@ -16,10 +16,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 #include "imgui.h"
 
 #ifdef WIN32

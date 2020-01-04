@@ -1,7 +1,7 @@
 #include "ValueHistory.h"
 #include "imgui.h"
-#include <string.h>
-#include <stdio.h>
+#include <string>
+#include <cstdio>
 
 #ifdef WIN32
 #	define snprintf _snprintf

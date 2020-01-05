@@ -76,7 +76,7 @@ namespace
 	}
 
 	void subdivide(std::vector<BoundsItem>& items, int nitems, int imin, int imax, int trisPerChunk,
-		int& curNode, rcChunkyTriMeshNode* nodes, const int maxNodes,
+		int& curNode, std::vector<rcChunkyTriMeshNode>& nodes, const int maxNodes,
 		int& curTri, int* outTris, const int* inTris)
 	{
 		int inum = imax - imin;
@@ -189,9 +189,14 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int t
 {
 	int nchunks = (ntris + trisPerChunk - 1) / trisPerChunk;
 
-	cm->nodes = new rcChunkyTriMeshNode[nchunks * 4];
-	if (!cm->nodes)
+	try
+	{
+		cm->nodes.resize(nchunks * 4);
+	}
+	catch (const std::exception&)
+	{
 		return false;
+	}
 
 	cm->tris = new int[ntris * 3];
 	if (!cm->tris)
@@ -201,9 +206,16 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int t
 
 	// Build tree
 	// ƒcƒŠ[‚ğ\’z‚µ‚Ü‚·
-	std::vector<BoundsItem> items(ntris);
+	std::vector<BoundsItem> items;
 
-	if (items.empty())	return false;
+	try
+	{
+		items.resize(ntris);
+	}
+	catch (const std::exception&)
+	{
+		return false;
+	}
 
 	for (int i = 0; i < ntris; i++)
 	{

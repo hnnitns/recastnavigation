@@ -77,7 +77,7 @@ namespace
 
 	void subdivide(std::vector<BoundsItem>& items, int nitems, int imin, int imax, int trisPerChunk,
 		int& curNode, std::vector<rcChunkyTriMeshNode>& nodes, const int maxNodes,
-		int& curTri, int* outTris, const int* inTris)
+		int& curTri, std::vector<int>& outTris, const int* inTris)
 	{
 		int inum = imax - imin;
 		int icur = curNode;
@@ -98,12 +98,17 @@ namespace
 
 			for (int i = imin; i < imax; ++i)
 			{
-				const int* src = &inTris[items[i].i * 3];
-				int* dst = &outTris[curTri * 3];
+				const size_t in_index{ items[i].i * 3u };
+				const size_t out_index{ curTri * 3u };
+
+				const int* src = &inTris[in_index];
+
 				curTri++;
-				dst[0] = src[0];
-				dst[1] = src[1];
-				dst[2] = src[2];
+
+				for (size_t j = 0; j < 3u; j++)
+				{
+					outTris[out_index + j] = src[j];
+				}
 			}
 		}
 		else
@@ -192,15 +197,12 @@ bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int t
 	try
 	{
 		cm->nodes.resize(nchunks * 4);
+		cm->tris.resize(ntris * 3);
 	}
 	catch (const std::exception&)
 	{
 		return false;
 	}
-
-	cm->tris = new int[ntris * 3];
-	if (!cm->tris)
-		return false;
 
 	cm->ntris = ntris;
 

@@ -31,19 +31,21 @@ struct rcChunkyTriMeshNode
 
 struct rcChunkyTriMesh
 {
-	inline rcChunkyTriMesh() : nnodes(0), tris(0), ntris(0), maxTrisPerChunk(0) {};
-	inline ~rcChunkyTriMesh() { delete[] tris; }
+	inline rcChunkyTriMesh() : nnodes(0), ntris(0), maxTrisPerChunk(0) {};
+	inline ~rcChunkyTriMesh() noexcept = default;
 
 	std::vector<rcChunkyTriMeshNode> nodes;
 	int nnodes;
-	int* tris;
+	std::vector<int> tris;
 	int ntris;
 	int maxTrisPerChunk;
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	rcChunkyTriMesh(const rcChunkyTriMesh&);
+	rcChunkyTriMesh(rcChunkyTriMesh&&);
 	rcChunkyTriMesh& operator=(const rcChunkyTriMesh&);
+	rcChunkyTriMesh& operator=(rcChunkyTriMesh&&);
 };
 
 // Creates partitioned triangle mesh (AABB tree), where each node contains at max trisPerChunk triangles.

@@ -227,13 +227,13 @@ void Sample::handleCommonSettings()
 	// 地形メッシュが存在する
 	if (m_geom)
 	{
-		const auto* bmin = m_geom->getNavMeshBoundsMin();
-		const auto* bmax = m_geom->getNavMeshBoundsMax();
+		const auto& bmin = m_geom->getNavMeshBoundsMin();
+		const auto& bmax = m_geom->getNavMeshBoundsMax();
 		int gw{}, gh{};
 		std::array<char, 64u> text{};
 
 		// グリットサイズの計算
-		rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
+		rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
 
 		snprintf(text.data(), text.size(), "Voxels  %d x %d", gw, gh);
 		imguiValue(text.data());

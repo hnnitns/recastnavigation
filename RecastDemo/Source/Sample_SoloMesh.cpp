@@ -257,14 +257,14 @@ void Sample_SoloMesh::handleRender()
 	glDepthMask(GL_FALSE);
 
 	// Draw bounds
-	const auto* bmin = m_geom->getNavMeshBoundsMin();
-	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmax = m_geom->getNavMeshBoundsMax();
 
-	duDebugDrawBoxWire(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), bmax->at(0), bmax->at(1), bmax->at(2),
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2],
 		duRGBA(255, 255, 255, 128), 1.f);
 
 	m_dd.begin(DU_DRAW_POINTS, 5.0f);
-	m_dd.vertex(bmin->at(0), bmin->at(1), bmin->at(2), duRGBA(255, 255, 255, 128));
+	m_dd.vertex(bmin[0], bmin[1], bmin[2], duRGBA(255, 255, 255, 128));
 	m_dd.end();
 
 	if (m_navMesh && m_navQuery &&
@@ -388,8 +388,8 @@ bool Sample_SoloMesh::handleBuild()
 
 	cleanup();
 
-	const auto* bmin{ m_geom->getNavMeshBoundsMin() };
-	const auto* bmax{ m_geom->getNavMeshBoundsMax() };
+	const auto& bmin{ m_geom->getNavMeshBoundsMin() };
+	const auto& bmax{ m_geom->getNavMeshBoundsMax() };
 	const float* verts{ m_geom->getMesh()->getVerts() };
 	const int nverts{ m_geom->getMesh()->getVertCount() };
 	const int* tris{ m_geom->getMesh()->getTris() };
@@ -420,8 +420,8 @@ bool Sample_SoloMesh::handleBuild()
 	// ナビゲーションを構築するエリアを設定します。
 	// Here the bounds of the input mesh are used, but the area could be specified by an user defined box, etc.
 	// ここでは、入力メッシュの境界が使用されますが、領域はユーザー定義のボックスなどで指定できます。
-	rcVcopy(m_cfg.bmin, bmin->data()); // コピー
-	rcVcopy(m_cfg.bmax, bmax->data()); // コピー
+	rcVcopy(m_cfg.bmin, bmin.data()); // コピー
+	rcVcopy(m_cfg.bmax, bmax.data()); // コピー
 
 	// グリットサイズの計算
 	rcCalcGridSize(m_cfg.bmin, m_cfg.bmax, m_cfg.cs, &m_cfg.width, &m_cfg.height);

@@ -22,6 +22,7 @@
 #include "ChunkyTriMesh.h"
 #include "MeshLoaderObj.h"
 #include "Recast.h"
+#include <optional>
 
 constexpr int MAX_CONVEXVOL_PTS = 12;
 
@@ -132,9 +133,9 @@ public:
 	const auto& getMeshBoundsMin() const { return m_meshBMin; } // メッシュ境界の最小値を取得
 	const auto& getMeshBoundsMax() const { return m_meshBMax; } // メッシュ境界の最大値を取得
 	// ナビメッシュ境界の最小値を取得
-	const auto* getNavMeshBoundsMin() const { return m_hasBuildSettings ? &m_buildSettings.navMeshBMin : &m_meshBMin; }
+	const auto& getNavMeshBoundsMin() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMin : m_meshBMin; }
 	// ナビメッシュ境界の最大値を取得
-	const auto* getNavMeshBoundsMax() const { return m_hasBuildSettings ? &m_buildSettings.navMeshBMax : &m_meshBMax; }
+	const auto& getNavMeshBoundsMax() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMax : m_meshBMax; }
 	const auto& getChunkyMesh() const { return m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_hasBuildSettings ? &m_buildSettings : nullptr; }
 

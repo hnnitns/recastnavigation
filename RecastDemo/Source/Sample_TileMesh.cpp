@@ -364,13 +364,16 @@ void Sample_TileMesh::handleSettings()
 	if (m_geom)
 	{
 		char text[64];
-		int gw = 0, gh = 0;
-		const auto* bmin = m_geom->getNavMeshBoundsMin();
-		const auto* bmax = m_geom->getNavMeshBoundsMax();
-		rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
+		int gw{}, gh{};
+		const auto& bmin = m_geom->getNavMeshBoundsMin();
+		const auto& bmax = m_geom->getNavMeshBoundsMax();
+
+		rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
+
 		const int ts = (int)m_tileSize;
 		const int tw = (gw + ts - 1) / ts;
 		const int th = (gh + ts - 1) / ts;
+
 		snprintf(text, 64, "Tiles  %d x %d", tw, th);
 		imguiValue(text);
 
@@ -562,18 +565,18 @@ void Sample_TileMesh::handleRender()
 	glDepthMask(GL_FALSE);
 
 	// Draw bounds // ‹«ŠE‚ð•`‚­
-	const auto* bmin = m_geom->getNavMeshBoundsMin();
-	const auto* bmax = m_geom->getNavMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), bmax->at(0), bmax->at(1), bmax->at(2),
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmax = m_geom->getNavMeshBoundsMax();
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2],
 		duRGBA(255, 255, 255, 128), 1.f);
 
 	// Tiling grid.
 	int gw = 0, gh = 0;
-	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
+	rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
 	const int tw = (gw + (int)m_tileSize - 1) / (int)m_tileSize;
 	const int th = (gh + (int)m_tileSize - 1) / (int)m_tileSize;
 	const float s = m_tileSize * m_cellSize;
-	duDebugDrawGridXZ(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
+	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
 	// Draw active tile
 	duDebugDrawBoxWire(&m_dd, m_lastBuiltTileBmin[0], m_lastBuiltTileBmin[1], m_lastBuiltTileBmin[2],
@@ -728,7 +731,7 @@ bool Sample_TileMesh::handleBuild()
 	}
 
 	dtNavMeshParams params;
-	rcVcopy(params.orig, m_geom->getNavMeshBoundsMin()->data());
+	rcVcopy(params.orig, m_geom->getNavMeshBoundsMin().data());
 	params.tileWidth = m_tileSize * m_cellSize;
 	params.tileHeight = m_tileSize * m_cellSize;
 	params.maxTiles = m_maxTiles;
@@ -771,20 +774,20 @@ void Sample_TileMesh::buildTile(const float* pos)
 	if (!m_geom) return;
 	if (!m_navMesh) return;
 
-	const auto* bmin = m_geom->getNavMeshBoundsMin();
-	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmax = m_geom->getNavMeshBoundsMax();
 
 	const float ts = m_tileSize * m_cellSize;
-	const int tx = (int)((pos[0] - bmin->at(0)) / ts);
-	const int ty = (int)((pos[2] - bmin->at(2)) / ts);
+	const int tx = (int)((pos[0] - bmin[0]) / ts);
+	const int ty = (int)((pos[2] - bmin[2]) / ts);
 
-	m_lastBuiltTileBmin[0] = bmin->at(0) + tx * ts;
-	m_lastBuiltTileBmin[1] = bmin->at(1);
-	m_lastBuiltTileBmin[2] = bmin->at(2) + ty * ts;
+	m_lastBuiltTileBmin[0] = bmin[0] + tx * ts;
+	m_lastBuiltTileBmin[1] = bmin[1];
+	m_lastBuiltTileBmin[2] = bmin[2] + ty * ts;
 
-	m_lastBuiltTileBmax[0] = bmin->at(0) + (tx + 1) * ts;
-	m_lastBuiltTileBmax[1] = bmax->at(1);
-	m_lastBuiltTileBmax[2] = bmin->at(2) + (ty + 1) * ts;
+	m_lastBuiltTileBmax[0] = bmin[0] + (tx + 1) * ts;
+	m_lastBuiltTileBmax[1] = bmax[1];
+	m_lastBuiltTileBmax[2] = bmin[2] + (ty + 1) * ts;
 
 	m_tileCol = duRGBA(255, 255, 255, 64);
 
@@ -815,11 +818,11 @@ void Sample_TileMesh::getTilePos(const float* pos, int& tx, int& ty)
 {
 	if (!m_geom) return;
 
-	const auto* bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
 	const float ts = m_tileSize * m_cellSize;
 
-	tx = (int)((pos[0] - bmin->at(0)) / ts);
-	ty = (int)((pos[2] - bmin->at(2)) / ts);
+	tx = (int)((pos[0] - bmin[0]) / ts);
+	ty = (int)((pos[2] - bmin[2]) / ts);
 }
 
 void Sample_TileMesh::removeTile(const float* pos)
@@ -827,20 +830,20 @@ void Sample_TileMesh::removeTile(const float* pos)
 	if (!m_geom) return;
 	if (!m_navMesh) return;
 
-	const auto* bmin = m_geom->getNavMeshBoundsMin();
-	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmax = m_geom->getNavMeshBoundsMax();
 
 	const float ts = m_tileSize * m_cellSize;
-	const int tx = (int)((pos[0] - bmin->at(0)) / ts);
-	const int ty = (int)((pos[2] - bmin->at(2)) / ts);
+	const int tx = (int)((pos[0] - bmin[0]) / ts);
+	const int ty = (int)((pos[2] - bmin[2]) / ts);
 
-	m_lastBuiltTileBmin[0] = bmin->at(0) + tx * ts;
-	m_lastBuiltTileBmin[1] = bmin->at(1);
-	m_lastBuiltTileBmin[2] = bmin->at(2) + ty * ts;
+	m_lastBuiltTileBmin[0] = bmin[0] + tx * ts;
+	m_lastBuiltTileBmin[1] = bmin[1];
+	m_lastBuiltTileBmin[2] = bmin[2] + ty * ts;
 
-	m_lastBuiltTileBmax[0] = bmin->at(0) + (tx + 1) * ts;
-	m_lastBuiltTileBmax[1] = bmax->at(1);
-	m_lastBuiltTileBmax[2] = bmin->at(2) + (ty + 1) * ts;
+	m_lastBuiltTileBmax[0] = bmin[0] + (tx + 1) * ts;
+	m_lastBuiltTileBmax[1] = bmax[1];
+	m_lastBuiltTileBmax[2] = bmin[2] + (ty + 1) * ts;
 
 	m_tileCol = duRGBA(128, 32, 16, 64);
 
@@ -852,11 +855,11 @@ void Sample_TileMesh::buildAllTiles()
 	if (!m_geom) return;
 	if (!m_navMesh) return;
 
-	const auto* bmin = m_geom->getNavMeshBoundsMin();
-	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmax = m_geom->getNavMeshBoundsMax();
 	int gw{}, gh{};
 
-	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
+	rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
 
 	const int ts = (int)m_tileSize;
 	const int tw = (gw + ts - 1) / ts;
@@ -871,13 +874,13 @@ void Sample_TileMesh::buildAllTiles()
 	{
 		for (int x = 0; x < tw; ++x)
 		{
-			m_lastBuiltTileBmin[0] = bmin->at(0) + x * tcs;
-			m_lastBuiltTileBmin[1] = bmin->at(1);
-			m_lastBuiltTileBmin[2] = bmin->at(2) + y * tcs;
+			m_lastBuiltTileBmin[0] = bmin[0] + x * tcs;
+			m_lastBuiltTileBmin[1] = bmin[1];
+			m_lastBuiltTileBmin[2] = bmin[2] + y * tcs;
 
-			m_lastBuiltTileBmax[0] = bmin->at(0) + (x + 1) * tcs;
-			m_lastBuiltTileBmax[1] = bmax->at(1);
-			m_lastBuiltTileBmax[2] = bmin->at(2) + (y + 1) * tcs;
+			m_lastBuiltTileBmax[0] = bmin[0] + (x + 1) * tcs;
+			m_lastBuiltTileBmax[1] = bmax[1];
+			m_lastBuiltTileBmax[2] = bmin[2] + (y + 1) * tcs;
 
 			int dataSize{};
 			unsigned char* data = buildTileMesh(x, y, m_lastBuiltTileBmin, m_lastBuiltTileBmax, dataSize);
@@ -909,11 +912,11 @@ void Sample_TileMesh::removeAllTiles()
 	if (!m_geom || !m_navMesh)
 		return;
 
-	const auto* bmin = m_geom->getNavMeshBoundsMin();
-	const auto* bmax = m_geom->getNavMeshBoundsMax();
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmax = m_geom->getNavMeshBoundsMax();
 	int gw{}, gh{};
 
-	rcCalcGridSize(bmin->data(), bmax->data(), m_cellSize, &gw, &gh);
+	rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
 
 	const int ts = (int)m_tileSize;
 	const int tw = (gw + ts - 1) / ts;

@@ -72,7 +72,7 @@ namespace
 	Sample* createDebug() { return new Sample_Debug(); }
 
 	std::array<SampleItem, 3> g_samples =
-	{{
+	{ {
 		{ createSolo, "Solo Mesh" },
 		{ createTile, "Tile Mesh" },
 		{ createTempObstacle, "Temp Obstacles" },
@@ -281,8 +281,8 @@ int main(int /*argc*/, char** /*argv*/)
 								BuildSettings settings{}; // 保存用構造体
 
 								// コピー
-								settings.navMeshBMin = *geom->getNavMeshBoundsMin();
-								settings.navMeshBMax = *geom->getNavMeshBoundsMax();
+								settings.navMeshBMin = geom->getNavMeshBoundsMin();
+								settings.navMeshBMax = geom->getNavMeshBoundsMax();
 
 								// 保存したい設定の収集
 								sample->collectSettings(settings);
@@ -766,19 +766,19 @@ int main(int /*argc*/, char** /*argv*/)
 
 			if (geom || sample)
 			{
-				const auto* bmin{ geom ? geom->getNavMeshBoundsMin() : nullptr };
-				const auto* bmax{ geom ? geom->getNavMeshBoundsMax() : nullptr };
-
-				// Reset camera and fog to match the mesh bounds.
-				// カメラとフォグをリセットして、メッシュの境界に一致させます。
-				if (bmin && bmax)
+				if (geom)
 				{
-					camr = sqrtf(rcSqr(bmax->at(0) - bmin->at(0)) +
-						rcSqr(bmax->at(1) - bmin->at(1)) +
-						rcSqr(bmax->at(2) - bmin->at(2))) / 2.f;
-					cameraPos[0] = (bmax->at(0) + bmin->at(0)) / 2 + camr;
-					cameraPos[1] = (bmax->at(1) + bmin->at(1)) / 2 + camr;
-					cameraPos[2] = (bmax->at(2) + bmin->at(2)) / 2 + camr;
+					const auto& bmin{ geom->getNavMeshBoundsMin() };
+					const auto& bmax{ geom->getNavMeshBoundsMax() };
+
+					// Reset camera and fog to match the mesh bounds.
+					// カメラとフォグをリセットして、メッシュの境界に一致させます。
+					camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
+						rcSqr(bmax[1] - bmin[1]) +
+						rcSqr(bmax[2] - bmin[2])) / 2.f;
+					cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
+					cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
+					cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
 					camr *= 3;
 				}
 
@@ -849,20 +849,20 @@ int main(int /*argc*/, char** /*argv*/)
 
 				if (geom || sample)
 				{
-					const auto* bmin{ geom ? geom->getNavMeshBoundsMin() : nullptr };
-					const auto* bmax{ geom ? geom->getNavMeshBoundsMax() : nullptr };
-
-					// Reset camera and fog to match the mesh bounds.
-					// メッシュの境界に一致するようにカメラとフォグをリセットします。
-					if (bmin && bmax)
+					if (geom)
 					{
-						camr = sqrtf(rcSqr(bmax->at(0) - bmin->at(0)) +
-							rcSqr(bmax->at(1) - bmin->at(1)) +
-							rcSqr(bmax->at(2) - bmin->at(2))) / 2.f;
+						const auto& bmin{ geom->getNavMeshBoundsMin() };
+						const auto& bmax{ geom->getNavMeshBoundsMax() };
 
-						cameraPos[0] = (bmax->at(0) + bmin->at(0)) / 2 + camr;
-						cameraPos[1] = (bmax->at(1) + bmin->at(1)) / 2 + camr;
-						cameraPos[2] = (bmax->at(2) + bmin->at(2)) / 2 + camr;
+						// Reset camera and fog to match the mesh bounds.
+						// メッシュの境界に一致するようにカメラとフォグをリセットします。
+						camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
+							rcSqr(bmax[1] - bmin[1]) +
+							rcSqr(bmax[2] - bmin[2])) / 2.f;
+
+						cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
+						cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
+						cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
 
 						camr *= 3;
 					}
@@ -958,20 +958,20 @@ int main(int /*argc*/, char** /*argv*/)
 
 					if (geom || sample)
 					{
-						const auto* bmin{ geom ? geom->getNavMeshBoundsMin() : nullptr };
-						const auto* bmax{ geom ? geom->getNavMeshBoundsMax() : nullptr };
-
-						// Reset camera and fog to match the mesh bounds.
-						// メッシュの境界に一致するようにカメラとフォグをリセットします。
-						if (bmin && bmax)
+						if (geom)
 						{
-							camr = sqrtf(rcSqr(bmax->at(0) - bmin->at(0)) +
-								rcSqr(bmax->at(1) - bmin->at(1)) +
-								rcSqr(bmax->at(2) - bmin->at(2))) / 2.f;
+							const auto& bmin{ geom->getNavMeshBoundsMin() };
+							const auto& bmax{ geom->getNavMeshBoundsMax() };
 
-							cameraPos[0] = (bmax->at(0) + bmin->at(0)) / 2 + camr;
-							cameraPos[1] = (bmax->at(1) + bmin->at(1)) / 2 + camr;
-							cameraPos[2] = (bmax->at(2) + bmin->at(2)) / 2 + camr;
+							// Reset camera and fog to match the mesh bounds.
+							// メッシュの境界に一致するようにカメラとフォグをリセットします。
+							camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
+								rcSqr(bmax[1] - bmin[1]) +
+								rcSqr(bmax[2] - bmin[2])) / 2.f;
+
+							cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
+							cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
+							cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
 
 							camr *= 3;
 						}

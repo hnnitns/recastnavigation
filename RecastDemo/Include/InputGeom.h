@@ -129,8 +129,8 @@ public:
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。
 	const auto& getMesh() const { return m_mesh; }
-	const auto* getMeshBoundsMin() const { return &m_meshBMin; } // メッシュ境界の最小値を取得
-	const auto* getMeshBoundsMax() const { return &m_meshBMax; } // メッシュ境界の最大値を取得
+	const auto& getMeshBoundsMin() const { return m_meshBMin; } // メッシュ境界の最小値を取得
+	const auto& getMeshBoundsMax() const { return m_meshBMax; } // メッシュ境界の最大値を取得
 	// ナビメッシュ境界の最小値を取得
 	const auto* getNavMeshBoundsMin() const { return m_hasBuildSettings ? &m_buildSettings.navMeshBMin : &m_meshBMin; }
 	// ナビメッシュ境界の最大値を取得

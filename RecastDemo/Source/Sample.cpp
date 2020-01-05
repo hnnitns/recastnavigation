@@ -143,11 +143,12 @@ void Sample::handleRender()
 	duDebugDrawTriMesh(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
 		m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.f);
 
-	// Draw bounds // ‹«ŠE‚ð•`‚­
-	const auto* bmin = m_geom->getMeshBoundsMin();
-	const auto* bmax = m_geom->getMeshBoundsMax();
-	duDebugDrawBoxWire(&m_dd, bmin->at(0), bmin->at(1), bmin->at(2), bmax->at(0), bmax->at(1), bmax->at(2),
-		duRGBA(255, 255, 255, 128), 1.f);
+	/// Draw bounds // ‹«ŠE‚ð•`‚­
+	constexpr auto Color{ duRGBA(255, 255, 255, 128) };
+	const auto& bmin = m_geom->getMeshBoundsMin();
+	const auto& bmax = m_geom->getMeshBoundsMax();
+
+	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], Color, 1.f);
 }
 
 void Sample::handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/)

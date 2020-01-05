@@ -213,12 +213,12 @@ struct MeshProcess : public dtTileCacheMeshProcess
 		// Pass in off-mesh connections.
 		if (m_geom)
 		{
-			params->offMeshConVerts = m_geom->getOffMeshConnectionVerts()->data();
-			params->offMeshConRad = m_geom->getOffMeshConnectionRads()->data();
-			params->offMeshConDir = m_geom->getOffMeshConnectionDirs()->data();
-			params->offMeshConAreas = m_geom->getOffMeshConnectionAreas()->data();
-			params->offMeshConFlags = m_geom->getOffMeshConnectionFlags()->data();
-			params->offMeshConUserID = m_geom->getOffMeshConnectionId()->data();
+			params->offMeshConVerts = m_geom->getOffMeshConnectionVerts().data();
+			params->offMeshConRad = m_geom->getOffMeshConnectionRads().data();
+			params->offMeshConDir = m_geom->getOffMeshConnectionDirs().data();
+			params->offMeshConAreas = m_geom->getOffMeshConnectionAreas().data();
+			params->offMeshConFlags = m_geom->getOffMeshConnectionFlags().data();
+			params->offMeshConUserID = m_geom->getOffMeshConnectionId().data();
 			params->offMeshConCount = m_geom->getOffMeshConnectionCount();
 		}
 	}

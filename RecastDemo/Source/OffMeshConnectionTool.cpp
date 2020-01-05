@@ -92,15 +92,14 @@ void OffMeshConnectionTool::handleClick(const float* /*s*/, const float* p, bool
 		// Delete
 		// Find nearest link end-point
 		// 最も近いリンクのエンドポイントを見つける
-		float nearestDist = FLT_MAX;
+		float nearestDist = (std::numeric_limits<float>::max)();
 		int nearestIndex = -1;
 
-		const auto* verts = geom->getOffMeshConnectionVerts();
+		const auto& verts = geom->getOffMeshConnectionVerts();
 
 		for (int i = 0; i < geom->getOffMeshConnectionCount() * 2; ++i)
 		{
-			const auto* v = &verts[i * 3];
-			float d = rcVdistSqr(p, v->data());
+			float d = rcVdistSqr(p, &verts[i * 3]);
 
 			if (d < nearestDist)
 			{

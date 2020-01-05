@@ -146,12 +146,12 @@ public:
 	// @name Off-Mesh connections. // オフメッシュ接続。
 	//@{
 	int getOffMeshConnectionCount() const { return m_offMeshConCount; }
-	const auto* getOffMeshConnectionVerts() const { return &m_offMeshConVerts; }
-	const auto* getOffMeshConnectionRads() const { return &m_offMeshConRads; }
-	const auto* getOffMeshConnectionDirs() const { return &m_offMeshConDirs; }
-	const auto* getOffMeshConnectionAreas() const { return &m_offMeshConAreas; }
-	const auto* getOffMeshConnectionFlags() const { return &m_offMeshConFlags; }
-	const auto* getOffMeshConnectionId() const { return &m_offMeshConId; }
+	const auto& getOffMeshConnectionVerts() const { return m_offMeshConVerts; }
+	const auto& getOffMeshConnectionRads() const { return m_offMeshConRads; }
+	const auto& getOffMeshConnectionDirs() const { return m_offMeshConDirs; }
+	const auto& getOffMeshConnectionAreas() const { return m_offMeshConAreas; }
+	const auto& getOffMeshConnectionFlags() const { return m_offMeshConFlags; }
+	const auto& getOffMeshConnectionId() const { return m_offMeshConId; }
 	void addOffMeshConnection(const float* spos, const float* epos, const float rad,
 		unsigned char bidir, unsigned char area, unsigned short flags);
 	void deleteOffMeshConnection(int i);

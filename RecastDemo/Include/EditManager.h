@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "Vector3.h"
 #include "SampleInterfaces.h"
 
 class EditManager
@@ -24,6 +25,8 @@ public:
 
 private:
 	bool InputUpdate();
+	void CameraUpdate(const float dt);
+	void SystemUpdate(const float dt);
 
 private:
 	struct SDL_Window* window{};
@@ -76,4 +79,6 @@ private:
 	bool processHitTestShift{}; // シフトの処理が行われた
 	union SDL_Event event;
 	uint8_t mouseButtonMask{};
+	double modelviewMatrix[16];
+	double projectionMatrix[16];
 };

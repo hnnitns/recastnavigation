@@ -156,7 +156,6 @@ bool EditManager::Update()
 
 	// Hit test mesh.
 	// テストメッシュをヒットします。
-
 	// マウスの左ボタン・右ボタンを離した瞬間、メッシュデータが存在し、サンプルも選択している状態
 	if (processHitTest && geom && sample)
 	{
@@ -227,99 +226,11 @@ bool EditManager::Update()
 		simIter++;
 	}
 
-	// Clamp the framerate so that we do not hog all the CPU.
-	// すべてのCPUを占有しないように、フレームレートをクランプします。
-	constexpr float MIN_FRAME_TIME = 1.f / 40.f;
-	if (dt < MIN_FRAME_TIME)
-	{
-		int ms = static_cast<int>((MIN_FRAME_TIME - dt) * 1000.f);
-
-		if (ms > 10) ms = 10;
-		if (ms >= 0) SDL_Delay(ms);
-	}
-
-	// Set the viewport. // ビューポートを設定します。
-	glViewport(0, 0, screen_size.x, screen_size.y);
-	GLint viewport[4]{};
-	glGetIntegerv(GL_VIEWPORT, viewport);
-
-	// Clear the screen // 画面をクリアします
-	glClearColor(0.3f, 0.3f, 0.32f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glDisable(GL_TEXTURE_2D);
-	glEnable(GL_DEPTH_TEST);
-
-	// Compute the projection matrix.
-	// 投影行列を計算します。
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(50.f, (float)screen_size.x / (float)screen_size.y, 1.f, camr);
-	GLdouble projectionMatrix[16];
-	glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
-
-	// Compute the modelview matrix.
-	// モデルビュー行列を計算します。
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glRotatef(cameraEulers[0], 1, 0, 0);
-	glRotatef(cameraEulers[1], 0, 1, 0);
-	glTranslatef(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
-	GLdouble modelviewMatrix[16];
-	glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
-
-	// Get hit ray position and direction.
-	// マウスのレイの開始地点を計算
-	GLdouble x, y, z;
-	gluUnProject(mousePos[0], mousePos[1], 0.f, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
-	ray_start[0] = (float)x;
-	ray_start[1] = (float)y;
-	ray_start[2] = (float)z;
-
-	// マウスのレイの終了地点を計算
-	gluUnProject(mousePos[0], mousePos[1], 1.f, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
-	ray_end[0] = (float)x;
-	ray_end[1] = (float)y;
-	ray_end[2] = (float)z;
+	SystemUpdate(dt);
 
 	// Handle keyboard movement.
 	// キーボードの動きを処理します。
-	const Uint8* keystate = SDL_GetKeyboardState(nullptr);
-
-	moveFront = rcClamp(
-		moveFront + dt * 4 * ((keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP]) ? 1 : -1), 0.f, 1.f);
-	moveLeft = rcClamp(
-		moveLeft + dt * 4 * ((keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT]) ? 1 : -1), 0.f, 1.f);
-	moveBack = rcClamp(
-		moveBack + dt * 4 * ((keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN]) ? 1 : -1), 0.f, 1.f);
-	moveRight = rcClamp(
-		moveRight + dt * 4 * ((keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT]) ? 1 : -1), 0.f, 1.f);
-	moveUp = rcClamp(
-		moveUp + dt * 4 * ((keystate[SDL_SCANCODE_Q] || keystate[SDL_SCANCODE_PAGEUP]) ? 1 : -1), 0.f, 1.f);
-	moveDown = rcClamp(
-		moveDown + dt * 4 * ((keystate[SDL_SCANCODE_E] || keystate[SDL_SCANCODE_PAGEDOWN]) ? 1 : -1), 0.f, 1.f);
-
-	float keybSpeed = 22.0f;
-
-	if (SDL_GetModState() & KMOD_SHIFT)
-	{
-		keybSpeed *= 4.0f;
-	}
-
-	float movex = (moveRight - moveLeft) * keybSpeed * dt;
-	float movey = (moveBack - moveFront) * keybSpeed * dt + scrollZoom * 2.0f;
-	scrollZoom = 0;
-
-	cameraPos[0] += movex * (float)modelviewMatrix[0];
-	cameraPos[1] += movex * (float)modelviewMatrix[4];
-	cameraPos[2] += movex * (float)modelviewMatrix[8];
-
-	cameraPos[0] += movey * (float)modelviewMatrix[2];
-	cameraPos[1] += movey * (float)modelviewMatrix[6];
-	cameraPos[2] += movey * (float)modelviewMatrix[10];
-
-	cameraPos[1] += (moveUp - moveDown) * keybSpeed * dt;
+	CameraUpdate(dt);
 
 	glEnable(GL_FOG);
 
@@ -341,6 +252,9 @@ bool EditManager::Update()
 	mouseOverMenu = false;
 
 	imguiBeginFrame(mousePos[0], mousePos[1], mouseButtonMask, mouseScroll);
+
+	GLint viewport[4]{};
+	glGetIntegerv(GL_VIEWPORT, viewport);
 
 	if (sample)
 		sample->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport);
@@ -749,6 +663,8 @@ bool EditManager::Update()
 	// Marker // マーカー
 	// gluProject（オブジェクト座標系をウィンドウ座標系に変換）
 	// http://ja.manpages.org/gluproject/3
+	GLdouble x{}, y{}, z{};
+
 	if (markerPositionSet &&
 		gluProject((GLdouble)markerPosition[0], (GLdouble)markerPosition[1], (GLdouble)markerPosition[2],
 			modelviewMatrix, projectionMatrix, viewport, &x, &y, &z))
@@ -996,4 +912,100 @@ bool EditManager::InputUpdate()
 		mouseButtonMask |= IMGUI_MBUT_RIGHT;
 
 	return true;
+}
+
+void EditManager::CameraUpdate(const float dt)
+{
+	const Uint8* keystate = SDL_GetKeyboardState(nullptr);
+
+	moveFront = rcClamp(
+		moveFront + dt * 4 * ((keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP]) ? 1 : -1), 0.f, 1.f);
+	moveLeft = rcClamp(
+		moveLeft + dt * 4 * ((keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT]) ? 1 : -1), 0.f, 1.f);
+	moveBack = rcClamp(
+		moveBack + dt * 4 * ((keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN]) ? 1 : -1), 0.f, 1.f);
+	moveRight = rcClamp(
+		moveRight + dt * 4 * ((keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT]) ? 1 : -1), 0.f, 1.f);
+	moveUp = rcClamp(
+		moveUp + dt * 4 * ((keystate[SDL_SCANCODE_Q] || keystate[SDL_SCANCODE_PAGEUP]) ? 1 : -1), 0.f, 1.f);
+	moveDown = rcClamp(
+		moveDown + dt * 4 * ((keystate[SDL_SCANCODE_E] || keystate[SDL_SCANCODE_PAGEDOWN]) ? 1 : -1), 0.f, 1.f);
+
+	float keybSpeed = 22.0f;
+
+	if (SDL_GetModState() & KMOD_SHIFT)
+	{
+		keybSpeed *= 4.0f;
+	}
+
+	float movex = (moveRight - moveLeft) * keybSpeed * dt;
+	float movey = (moveBack - moveFront) * keybSpeed * dt + scrollZoom * 2.0f;
+	scrollZoom = 0;
+
+	cameraPos[0] += movex * (float)modelviewMatrix[0];
+	cameraPos[1] += movex * (float)modelviewMatrix[4];
+	cameraPos[2] += movex * (float)modelviewMatrix[8];
+
+	cameraPos[0] += movey * (float)modelviewMatrix[2];
+	cameraPos[1] += movey * (float)modelviewMatrix[6];
+	cameraPos[2] += movey * (float)modelviewMatrix[10];
+
+	cameraPos[1] += (moveUp - moveDown) * keybSpeed * dt;
+}
+
+void EditManager::SystemUpdate(const float dt)
+{
+	// Clamp the framerate so that we do not hog all the CPU.
+	// すべてのCPUを占有しないように、フレームレートをクランプします。
+	constexpr float MIN_FRAME_TIME = 1.f / 40.f;
+	if (dt < MIN_FRAME_TIME)
+	{
+		int ms = static_cast<int>((MIN_FRAME_TIME - dt) * 1000.f);
+
+		if (ms > 10) ms = 10;
+		if (ms >= 0) SDL_Delay(ms);
+	}
+
+	// Set the viewport. // ビューポートを設定します。
+	glViewport(0, 0, screen_size.x, screen_size.y);
+	GLint viewport[4]{};
+	glGetIntegerv(GL_VIEWPORT, viewport);
+
+	// Clear the screen // 画面をクリアします
+	glClearColor(0.3f, 0.3f, 0.32f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable(GL_TEXTURE_2D);
+	glEnable(GL_DEPTH_TEST);
+
+	// Compute the projection matrix.
+	// 投影行列を計算します。
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(50.f, (float)screen_size.x / (float)screen_size.y, 1.f, camr);
+	glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
+
+	// Compute the modelview matrix.
+	// モデルビュー行列を計算します。
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glRotatef(cameraEulers[0], 1, 0, 0);
+	glRotatef(cameraEulers[1], 0, 1, 0);
+	glTranslatef(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
+	glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
+
+	// Get hit ray position and direction.
+	// マウスのレイの開始地点を計算
+	GLdouble x{}, y{}, z{};
+	gluUnProject(mousePos[0], mousePos[1], 0.f, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
+	ray_start[0] = (float)x;
+	ray_start[1] = (float)y;
+	ray_start[2] = (float)z;
+
+	// マウスのレイの終了地点を計算
+	gluUnProject(mousePos[0], mousePos[1], 1.f, modelviewMatrix, projectionMatrix, viewport, &x, &y, &z);
+	ray_end[0] = (float)x;
+	ray_end[1] = (float)y;
+	ray_end[2] = (float)z;
 }

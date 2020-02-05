@@ -23,6 +23,9 @@ public:
 	void UnInit();
 
 private:
+	bool InputUpdate();
+
+private:
 	struct SDL_Window* window{};
 	bool presentationMode{};
 	DirectX::XMINT2 screen_size{};
@@ -67,4 +70,10 @@ private:
 	std::unique_ptr<class TestCase> test;
 
 	class BuildContext ctx{};
+
+	int mouseScroll{};          // マウスホイールの値
+	bool processHitTest{};      // マウスの処理が行われた
+	bool processHitTestShift{}; // シフトの処理が行われた
+	union SDL_Event event;
+	uint8_t mouseButtonMask{};
 };

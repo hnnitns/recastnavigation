@@ -145,210 +145,8 @@ bool EditManager::Update()
 {
 	/// Handle input events.
 	/// 入力イベントを処理します。
-	int mouseScroll{};          // マウスホイールの値
-	bool processHitTest{};      // マウスの処理が行われた
-	bool processHitTestShift{}; // シフトの処理が行われた
-	SDL_Event event{};
-
 	// インプット系のアップデート
-	while (SDL_PollEvent(&event))
-	{
-		switch (event.type)
-		{
-			// キーを押した瞬間
-			case SDL_KEYDOWN:
-			{
-				// Handle any key presses here.
-				// ここでキーの押下を処理します。
-				switch (event.key.keysym.sym)
-				{
-					// 終了
-					case SDLK_ESCAPE:
-					{
-						return false;
-						break;
-					}
-					// テストを行う
-					case SDLK_t:
-					{
-						showLevels = false;
-						showSample = false;
-						showTestCases = true;
-						scanDirectory(testCasesFolder, ".txt", files); // ファイルのスキャンして、一覧をfilesに保存
-
-						break;
-					}
-					// ImGuiの表示非表示
-					case SDLK_TAB:
-					{
-						showMenu = !showMenu;
-						break;
-					}
-					// パスの追跡処理を行う
-					case SDLK_SPACE:
-					{
-						if (sample) sample->handleToggle();
-
-						break;
-					}
-					// 群衆AI時で１フレーム進む
-					case SDLK_1:
-					{
-						if (sample) sample->handleStep();
-
-						break;
-					}
-					// ナビメッシュ設定のファイル書き出し
-					case SDLK_9:
-					{
-						if (sample && geom)
-						{
-							std::string savePath = meshesFolder + "/";
-
-							BuildSettings settings{}; // 保存用構造体
-
-							// コピー
-							settings.navMeshBMin = geom->getNavMeshBoundsMin();
-							settings.navMeshBMax = geom->getNavMeshBoundsMax();
-
-							// 保存したい設定の収集
-							sample->collectSettings(settings);
-
-							// 保存を実行
-							geom->saveGeomSet(&settings);
-						}
-						break;
-					}
-				}
-				break;
-			}
-			// マウスホイール
-			case SDL_MOUSEWHEEL:
-			{
-				if (event.wheel.y < 0)
-				{
-					// wheel down // ホイールダウン
-
-					// ImGuiウィンドウ上で操作
-					if (mouseOverMenu)
-					{
-						mouseScroll++;
-					}
-					// 通常
-					else
-					{
-						scrollZoom += 1.f;
-					}
-				}
-				else
-				{
-					// ImGuiウィンドウ上で操作
-					if (mouseOverMenu)
-					{
-						mouseScroll--;
-					}
-					// 通常
-					else
-					{
-						scrollZoom -= 1.f;
-					}
-				}
-
-				break;
-			}
-			// マウスのボタンを押した瞬間
-			case SDL_MOUSEBUTTONDOWN:
-			{
-				// 右ボタンでImGuiウィンドウ外
-				if (event.button.button == SDL_BUTTON_RIGHT && !mouseOverMenu)
-				{
-					// Rotate view // ビューを回転
-					rotate = true;
-					movedDuringRotate = false;
-					origMousePos[0] = mousePos[0];
-					origMousePos[1] = mousePos[1];
-					origCameraEulers[0] = cameraEulers[0];
-					origCameraEulers[1] = cameraEulers[1];
-				}
-
-				break;
-			}
-			// マウスのボタンから離した瞬間
-			case SDL_MOUSEBUTTONUP:
-			{
-				// Handle mouse clicks here.
-				//　ここでマウスクリックを処理します。
-				switch (event.button.button)
-				{
-					case SDL_BUTTON_RIGHT:
-					{
-						rotate = false;
-
-						// ImGuiウィンドウ外でマウスを動かしていない
-						if (!(mouseOverMenu || movedDuringRotate))
-						{
-							processHitTest = true;
-							processHitTestShift = true;
-						}
-
-						break;
-					}
-					case SDL_BUTTON_LEFT:
-					{
-						// ImGuiウィンドウ外
-						if (!mouseOverMenu)
-						{
-							processHitTest = true;
-							processHitTestShift = (SDL_GetModState() & KMOD_SHIFT) ? true : false;
-						}
-
-						break;
-					}
-				}
-
-				break;
-			}
-			// マウスを動かしている
-			case SDL_MOUSEMOTION:
-			{
-				mousePos[0] = event.motion.x;
-				mousePos[1] = screen_size.y - 1 - event.motion.y;
-
-				if (rotate)
-				{
-					int dx = mousePos[0] - origMousePos[0];
-					int dy = mousePos[1] - origMousePos[1];
-
-					cameraEulers[0] = origCameraEulers[0] - dy * 0.25f;
-					cameraEulers[1] = origCameraEulers[1] + dx * 0.25f;
-
-					if (dx * dx + dy * dy > 3 * 3)
-					{
-						movedDuringRotate = true;
-					}
-				}
-
-				break;
-			}
-			// 終了
-			case SDL_QUIT:
-			{
-				return false;
-				break;
-			}
-			default:
-				break;
-		}
-	}
-
-	// マウス
-	unsigned char mouseButtonMask{};
-
-	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
-		mouseButtonMask |= IMGUI_MBUT_LEFT;
-
-	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_RMASK)
-		mouseButtonMask |= IMGUI_MBUT_RIGHT;
+	if (!InputUpdate())	return false;
 
 	Uint32 time = SDL_GetTicks();
 	float dt = (time - prevFrameTime) / 1000.f;
@@ -729,6 +527,7 @@ bool EditManager::Update()
 	if (showLevels)
 	{
 		static int levelScroll;
+
 		if (imguiBeginScrollArea("Choose Level", screen_size.x - 10 - 250 - 10 - 200, screen_size.y - 10 - 450, 200, 450, &levelScroll))
 			mouseOverMenu = true;
 
@@ -814,7 +613,8 @@ bool EditManager::Update()
 	// Test cases // テスト画面
 	if (showTestCases)
 	{
-		static int testScroll = 0;
+		static int testScroll{};
+
 		if (imguiBeginScrollArea("Choose Test To Run", screen_size.x - 10 - 250 - 10 - 200, screen_size.y - 10 - 450, 200, 450, &testScroll))
 			mouseOverMenu = true;
 
@@ -824,9 +624,7 @@ bool EditManager::Update()
 		for (auto fileIter = files.begin(); fileIter != filesEnd; ++fileIter)
 		{
 			if (imguiItem(fileIter->c_str()))
-			{
 				testToLoad = fileIter;
-			}
 		}
 
 		if (testToLoad != filesEnd)
@@ -840,19 +638,19 @@ bool EditManager::Update()
 				if (!test->load(path)) test = nullptr;
 
 				// Create sample
-				Sample* newSample{};
+				std::unique_ptr<Sample> newSample;
 
 				for (auto& g_sample : g_samples)
 				{
 					if (g_sample.name == test->getSampleName())
 					{
-						newSample = g_sample.create();
-						if (newSample)
-							sampleName = g_sample.name;
+						newSample.reset(g_sample.create());
+
+						if (newSample) sampleName = g_sample.name;
 					}
 				}
 
-				sample.reset(newSample);
+				sample = std::move(newSample);
 
 				if (sample)
 				{
@@ -937,7 +735,7 @@ bool EditManager::Update()
 
 	// Left column tools menu // 左列ツールメニュー
 	// 左のウィンドウ画面（Tools）
-	if (!showTestCases && showTools && showMenu) // && geom && sample)
+	if (!showTestCases && showTools && showMenu && geom && sample)
 	{
 		if (imguiBeginScrollArea("Tools", 10, 10, 250, screen_size.y - 20, &toolsScroll))
 			mouseOverMenu = true;
@@ -989,4 +787,213 @@ void EditManager::UnInit()
 {
 	imguiRenderGLDestroy();
 	SDL_Quit();
+}
+
+bool EditManager::InputUpdate()
+{
+	// 初期化
+	mouseButtonMask = {};
+	mouseScroll = {};
+	processHitTest = {};
+	processHitTestShift = {};
+	event = {};
+
+	while (SDL_PollEvent(&event))
+	{
+		switch (event.type)
+		{
+			// キーを押した瞬間
+			case SDL_KEYDOWN:
+			{
+				// Handle any key presses here.
+				// ここでキーの押下を処理します。
+				switch (event.key.keysym.sym)
+				{
+					// 終了
+					case SDLK_ESCAPE:
+					{
+						return false;
+						break;
+					}
+					// テストを行う
+					case SDLK_t:
+					{
+						showLevels = false;
+						showSample = false;
+						showTestCases = true;
+						scanDirectory(testCasesFolder, ".txt", files); // ファイルのスキャンして、一覧をfilesに保存
+
+						break;
+					}
+					// ImGuiの表示非表示
+					case SDLK_TAB:
+					{
+						showMenu = !showMenu;
+						break;
+					}
+					// パスの追跡処理を行う
+					case SDLK_SPACE:
+					{
+						if (sample) sample->handleToggle();
+
+						break;
+					}
+					// 群衆AI時で１フレーム進む
+					case SDLK_1:
+					{
+						if (sample) sample->handleStep();
+
+						break;
+					}
+					// ナビメッシュ設定のファイル書き出し
+					case SDLK_9:
+					{
+						if (sample && geom)
+						{
+							std::string savePath = meshesFolder + "/";
+
+							BuildSettings settings{}; // 保存用構造体
+
+							// コピー
+							settings.navMeshBMin = geom->getNavMeshBoundsMin();
+							settings.navMeshBMax = geom->getNavMeshBoundsMax();
+
+							// 保存したい設定の収集
+							sample->collectSettings(settings);
+
+							// 保存を実行
+							geom->saveGeomSet(&settings);
+						}
+						break;
+					}
+				}
+				break;
+			}
+			// マウスホイール
+			case SDL_MOUSEWHEEL:
+			{
+				if (event.wheel.y < 0)
+				{
+					// wheel down // ホイールダウン
+
+					// ImGuiウィンドウ上で操作
+					if (mouseOverMenu)
+					{
+						mouseScroll++;
+					}
+					// 通常
+					else
+					{
+						scrollZoom += 1.f;
+					}
+				}
+				else
+				{
+					// ImGuiウィンドウ上で操作
+					if (mouseOverMenu)
+					{
+						mouseScroll--;
+					}
+					// 通常
+					else
+					{
+						scrollZoom -= 1.f;
+					}
+				}
+
+				break;
+			}
+			// マウスのボタンを押した瞬間
+			case SDL_MOUSEBUTTONDOWN:
+			{
+				// 右ボタンでImGuiウィンドウ外
+				if (event.button.button == SDL_BUTTON_RIGHT && !mouseOverMenu)
+				{
+					// Rotate view // ビューを回転
+					rotate = true;
+					movedDuringRotate = false;
+					origMousePos[0] = mousePos[0];
+					origMousePos[1] = mousePos[1];
+					origCameraEulers[0] = cameraEulers[0];
+					origCameraEulers[1] = cameraEulers[1];
+				}
+
+				break;
+			}
+			// マウスのボタンから離した瞬間
+			case SDL_MOUSEBUTTONUP:
+			{
+				// Handle mouse clicks here.
+				//　ここでマウスクリックを処理します。
+				switch (event.button.button)
+				{
+					case SDL_BUTTON_RIGHT:
+					{
+						rotate = false;
+
+						// ImGuiウィンドウ外でマウスを動かしていない
+						if (!(mouseOverMenu || movedDuringRotate))
+						{
+							processHitTest = true;
+							processHitTestShift = true;
+						}
+
+						break;
+					}
+					case SDL_BUTTON_LEFT:
+					{
+						// ImGuiウィンドウ外
+						if (!mouseOverMenu)
+						{
+							processHitTest = true;
+							processHitTestShift = (SDL_GetModState() & KMOD_SHIFT) ? true : false;
+						}
+
+						break;
+					}
+				}
+
+				break;
+			}
+			// マウスを動かしている
+			case SDL_MOUSEMOTION:
+			{
+				mousePos[0] = event.motion.x;
+				mousePos[1] = screen_size.y - 1 - event.motion.y;
+
+				if (rotate)
+				{
+					int dx = mousePos[0] - origMousePos[0];
+					int dy = mousePos[1] - origMousePos[1];
+
+					cameraEulers[0] = origCameraEulers[0] - dy * 0.25f;
+					cameraEulers[1] = origCameraEulers[1] + dx * 0.25f;
+
+					if (dx * dx + dy * dy > 3 * 3)
+					{
+						movedDuringRotate = true;
+					}
+				}
+
+				break;
+			}
+			// 終了
+			case SDL_QUIT:
+			{
+				return false;
+				break;
+			}
+			default:
+				break;
+		}
+	}
+
+	// マウス
+	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
+		mouseButtonMask |= IMGUI_MBUT_LEFT;
+
+	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_RMASK)
+		mouseButtonMask |= IMGUI_MBUT_RIGHT;
+
+	return true;
 }

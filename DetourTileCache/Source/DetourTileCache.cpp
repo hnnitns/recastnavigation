@@ -380,7 +380,7 @@ dtStatus dtTileCache::addObstacle(const float* pos, const float radius, const fl
 	ob->salt = salt;
 	ob->state = DT_OBSTACLE_PROCESSING;
 	ob->type = DT_OBSTACLE_CYLINDER;
-	dtVcopy(ob->cylinder.pos, pos);
+	dtVcopy(ob->cylinder.pos.data(), pos);
 	ob->cylinder.radius = radius;
 	ob->cylinder.height = height;
 
@@ -415,8 +415,8 @@ dtStatus dtTileCache::addBoxObstacle(const float* bmin, const float* bmax, dtObs
 	ob->salt = salt;
 	ob->state = DT_OBSTACLE_PROCESSING;
 	ob->type = DT_OBSTACLE_BOX;
-	dtVcopy(ob->box.bmin, bmin);
-	dtVcopy(ob->box.bmax, bmax);
+	dtVcopy(ob->box.bmin.data(), bmin);
+	dtVcopy(ob->box.bmax.data(), bmax);
 
 	ObstacleRequest* req = &m_reqs[m_nreqs++];
 	memset(req, 0, sizeof(ObstacleRequest));
@@ -774,7 +774,7 @@ void dtTileCache::getObstacleBounds(const struct dtTileCacheObstacle* ob, float*
 	}
 	else if (ob->type == DT_OBSTACLE_BOX)
 	{
-		dtVcopy(bmin, ob->box.bmin);
-		dtVcopy(bmax, ob->box.bmax);
+		dtVcopy(bmin, ob->box.bmin.data());
+		dtVcopy(bmax, ob->box.bmax.data());
 	}
 }

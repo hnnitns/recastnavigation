@@ -1252,7 +1252,7 @@ bool Sample_TempObstacles::handleBuild()
 	// タイルキャッシュパラメータ。
 	dtTileCacheParams tcparams{};
 
-	rcVcopy(tcparams.orig, bmin.data());
+	tcparams.orig = bmin;
 	tcparams.cs = m_cellSize;
 	tcparams.ch = m_cellHeight;
 	tcparams.width = (int)m_tileSize;

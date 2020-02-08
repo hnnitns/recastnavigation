@@ -126,11 +126,11 @@ void dtFreeTileCachePolyMesh(dtTileCacheAlloc* alloc, dtTileCachePolyMesh* lmesh
 
 dtStatus dtMarkCylinderArea(
 	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
-	const float* pos, const float radius, const float height, const uint8_t areaId);
+	const std::array<float, 3>& pos, const float radius, const float height, const uint8_t areaId);
 
 dtStatus dtMarkBoxArea(
 	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
-	const float* bmin, const float* bmax, const uint8_t areaId);
+	const std::array<float, 3>& bmin, const std::array<float, 3>& bmax, const uint8_t areaId);
 
 dtStatus dtBuildTileCacheRegions(dtTileCacheAlloc* alloc,
 	dtTileCacheLayer& layer,

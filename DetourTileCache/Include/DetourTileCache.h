@@ -1,11 +1,12 @@
 #ifndef DETOURTILECACHE_H
 #define DETOURTILECACHE_H
 
+#include <array>
 #include "DetourStatus.h"
 
-typedef unsigned int dtObstacleRef;
+typedef uint32_t dtObstacleRef;
 
-typedef unsigned int dtCompressedTileRef;
+typedef uint32_t dtCompressedTileRef;
 
 // Flags for addTile // addTileのフラグ
 enum dtCompressedTileFlags
@@ -17,13 +18,13 @@ enum dtCompressedTileFlags
 
 struct dtCompressedTile
 {
-	unsigned int salt; // Counter describing modifications to the tile. // タイルの変更を説明するカウンター。
+	uint32_t salt; // Counter describing modifications to the tile. // タイルの変更を説明するカウンター。
 	struct dtTileCacheLayerHeader* header;
-	unsigned char* compressed;
+	uint8_t* compressed;
 	int compressedSize;
-	unsigned char* data;
+	uint8_t* data;
 	int dataSize;
-	unsigned int flags;
+	uint32_t flags;
 	dtCompressedTile* next;
 };
 
@@ -43,15 +44,14 @@ enum ObstacleType
 
 struct dtObstacleCylinder
 {
-	float pos[3];
+	std::array<float, 3> pos;
 	float radius;
 	float height;
 };
 
 struct dtObstacleBox
 {
-	float bmin[3];
-	float bmax[3];
+	std::array<float, 3> bmin, bmax;
 };
 
 constexpr int DT_MAX_TOUCHED_TILES = 8;
@@ -66,17 +66,17 @@ struct dtTileCacheObstacle
 
 	dtCompressedTileRef touched[DT_MAX_TOUCHED_TILES];
 	dtCompressedTileRef pending[DT_MAX_TOUCHED_TILES];
-	unsigned short salt;
-	unsigned char type;
-	unsigned char state;
-	unsigned char ntouched;
-	unsigned char npending;
+	uint16_t salt;
+	uint8_t type;
+	uint8_t state;
+	uint8_t ntouched;
+	uint8_t npending;
 	dtTileCacheObstacle* next;
 };
 
 struct dtTileCacheParams
 {
-	float orig[3];
+	std::array<float, 3> orig;
 	float cs, ch;
 	int width, height;
 	float walkableHeight;
@@ -92,7 +92,7 @@ struct dtTileCacheMeshProcess
 	virtual ~dtTileCacheMeshProcess() { }
 
 	virtual void process(struct dtNavMeshCreateParams* params,
-		unsigned char* polyAreas, unsigned short* polyFlags) = 0;
+		uint8_t* polyAreas, uint16_t* polyFlags) = 0;
 };
 
 class dtTileCache
@@ -126,9 +126,9 @@ public:
 	dtCompressedTileRef getTileRef(const dtCompressedTile* tile) const;
 	const dtCompressedTile* getTileByRef(dtCompressedTileRef ref) const;
 
-	dtStatus addTile(unsigned char* data, const int dataSize, unsigned char flags, dtCompressedTileRef* result);
+	dtStatus addTile(uint8_t* data, const int dataSize, uint8_t flags, dtCompressedTileRef* result);
 
-	dtStatus removeTile(dtCompressedTileRef ref, unsigned char** data, int* dataSize);
+	dtStatus removeTile(dtCompressedTileRef ref, uint8_t** data, int* dataSize);
 
 	dtStatus addObstacle(const float* pos, const float radius, const float height, dtObstacleRef* result);
 	dtStatus addBoxObstacle(const float* bmin, const float* bmax, dtObstacleRef* result);
@@ -162,48 +162,48 @@ public:
 
 	// Encodes a tile id.
 	// タイルIDをエンコードします。
-	inline dtCompressedTileRef encodeTileId(unsigned int salt, unsigned int it) const
+	inline dtCompressedTileRef encodeTileId(uint32_t salt, uint32_t it) const
 	{
 		return ((dtCompressedTileRef)salt << m_tileBits) | (dtCompressedTileRef)it;
 	}
 
 	// Decodes a tile salt.
 	// タイルソルトをデコードします。
-	inline unsigned int decodeTileIdSalt(dtCompressedTileRef ref) const
+	inline uint32_t decodeTileIdSalt(dtCompressedTileRef ref) const
 	{
 		const dtCompressedTileRef saltMask = ((dtCompressedTileRef)1 << m_saltBits) - 1;
-		return (unsigned int)((ref >> m_tileBits)& saltMask);
+		return (uint32_t)((ref >> m_tileBits)& saltMask);
 	}
 
 	// Decodes a tile id.
 	// タイルIDをデコードします。
-	inline unsigned int decodeTileIdTile(dtCompressedTileRef ref) const
+	inline uint32_t decodeTileIdTile(dtCompressedTileRef ref) const
 	{
 		const dtCompressedTileRef tileMask = ((dtCompressedTileRef)1 << m_tileBits) - 1;
-		return (unsigned int)(ref & tileMask);
+		return (uint32_t)(ref & tileMask);
 	}
 
 	// Encodes an obstacle id.
 	// 障害物IDをエンコードします。
-	inline dtObstacleRef encodeObstacleId(unsigned int salt, unsigned int it) const
+	inline dtObstacleRef encodeObstacleId(uint32_t salt, uint32_t it) const
 	{
 		return ((dtObstacleRef)salt << 16) | (dtObstacleRef)it;
 	}
 
 	// Decodes an obstacle salt.
 	// 障害物ソルトをデコードします。
-	inline unsigned int decodeObstacleIdSalt(dtObstacleRef ref) const
+	inline uint32_t decodeObstacleIdSalt(dtObstacleRef ref) const
 	{
 		const dtObstacleRef saltMask = ((dtObstacleRef)1 << 16) - 1;
-		return (unsigned int)((ref >> 16)& saltMask);
+		return (uint32_t)((ref >> 16)& saltMask);
 	}
 
 	// Decodes an obstacle id.
 	// 障害物IDをデコードします。
-	inline unsigned int decodeObstacleIdObstacle(dtObstacleRef ref) const
+	inline uint32_t decodeObstacleIdObstacle(dtObstacleRef ref) const
 	{
 		const dtObstacleRef tileMask = ((dtObstacleRef)1 << 16) - 1;
-		return (unsigned int)(ref & tileMask);
+		return (uint32_t)(ref & tileMask);
 	}
 
 private:
@@ -230,8 +230,8 @@ private:
 	dtCompressedTile* m_nextFreeTile; // Freelist of tiles. // タイルのフリーリスト。
 	dtCompressedTile* m_tiles;		  // List of tiles.     // タイルのリスト。
 
-	unsigned int m_saltBits; // Number of salt bits in the tile ID. // タイルIDのソルトビットの数。
-	unsigned int m_tileBits; // Number of tile bits in the tile ID. // タイルIDのタイルビット数。
+	uint32_t m_saltBits; // Number of salt bits in the tile ID. // タイルIDのソルトビットの数。
+	uint32_t m_tileBits; // Number of tile bits in the tile ID. // タイルIDのタイルビット数。
 
 	dtTileCacheParams m_params;
 

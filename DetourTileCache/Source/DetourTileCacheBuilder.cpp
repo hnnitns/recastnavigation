@@ -1930,22 +1930,22 @@ dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
 
 dtStatus dtMarkCylinderArea(
 	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
-	const float* pos, const float radius, const float height, const uint8_t areaId)
+	const std::array<float, 3>& pos, const float radius, const float height, const uint8_t areaId)
 {
-	std::array<float, 3> bmin, bmax;
+	std::array<float, 3> bmin{}, bmax{};
+
 	bmin[0] = pos[0] - radius;
 	bmin[1] = pos[1];
 	bmin[2] = pos[2] - radius;
 	bmax[0] = pos[0] + radius;
 	bmax[1] = pos[1] + height;
 	bmax[2] = pos[2] + radius;
-	const float r2 = dtSqr(radius / cs + 0.5f);
 
+	const float r2 = dtSqr(radius / cs + 0.5f);
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
 	const float ics = 1.f / cs;
 	const float ich = 1.f / ch;
-
 	const float px = (pos[0] - orig[0]) * ics;
 	const float pz = (pos[2] - orig[2]) * ics;
 
@@ -1986,7 +1986,7 @@ dtStatus dtMarkCylinderArea(
 
 dtStatus dtMarkBoxArea(
 	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
-	const float* bmin, const float* bmax, const uint8_t areaId)
+	const std::array<float, 3>& bmin, const std::array<float, 3>& bmax, const uint8_t areaId)
 {
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
@@ -2015,8 +2015,10 @@ dtStatus dtMarkBoxArea(
 		for (int x = minx; x <= maxx; ++x)
 		{
 			const int y = layer.heights[x + z * w];
+
 			if (y < miny || y > maxy)
 				continue;
+
 			layer.areas[x + z * w] = areaId;
 		}
 	}

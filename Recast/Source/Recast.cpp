@@ -415,8 +415,8 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 	chf.walkableHeight = walkableHeight;
 	chf.walkableClimb = walkableClimb;
 	chf.maxRegions = 0;
-	rcVcopy(chf.bmin, hf.bmin.data()); // コピー
-	rcVcopy(chf.bmax, hf.bmax.data()); // コピー
+	chf.bmin = hf.bmin;
+	chf.bmax = hf.bmax;
 	chf.bmax[1] += walkableHeight * hf.ch;
 	chf.cs = hf.cs;
 	chf.ch = hf.ch;

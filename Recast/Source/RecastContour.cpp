@@ -902,8 +902,8 @@ bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
 
 	rcScopedTimer timer(ctx, RC_TIMER_BUILD_CONTOURS);
 
-	rcVcopy(cset.bmin, chf.bmin);
-	rcVcopy(cset.bmax, chf.bmax);
+	rcVcopy(cset.bmin, chf.bmin.data());
+	rcVcopy(cset.bmax, chf.bmax.data());
 	if (borderSize > 0)
 	{
 		// If the heightfield was build with bordersize, remove the offset.

@@ -289,8 +289,8 @@ bool duDumpCompactHeightfield(struct rcCompactHeightfield& chf, duFileIO* io)
 	io->write(&chf.maxDistance, sizeof(chf.maxDistance));
 	io->write(&chf.maxRegions, sizeof(chf.maxRegions));
 
-	io->write(chf.bmin, sizeof(chf.bmin));
-	io->write(chf.bmax, sizeof(chf.bmax));
+	io->write(chf.bmin.data(), sizeof(chf.bmin));
+	io->write(chf.bmax.data(), sizeof(chf.bmax));
 
 	io->write(&chf.cs, sizeof(chf.cs));
 	io->write(&chf.ch, sizeof(chf.ch));
@@ -356,8 +356,8 @@ bool duReadCompactHeightfield(struct rcCompactHeightfield& chf, duFileIO* io)
 	io->read(&chf.maxDistance, sizeof(chf.maxDistance));
 	io->read(&chf.maxRegions, sizeof(chf.maxRegions));
 
-	io->read(chf.bmin, sizeof(chf.bmin));
-	io->read(chf.bmax, sizeof(chf.bmax));
+	io->read(chf.bmin.data(), sizeof(chf.bmin));
+	io->read(chf.bmax.data(), sizeof(chf.bmax));
 
 	io->read(&chf.cs, sizeof(chf.cs));
 	io->read(&chf.ch, sizeof(chf.ch));

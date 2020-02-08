@@ -501,11 +501,11 @@ struct rcCompactHeightfield
 
 	// The minimum bounds in world space. [(x, y, z)]
 	// ワールド空間の最小境界。[（x、y、z）]
-	float bmin[3];
+	std::array<float, 3> bmin;
 
 	// The maximum bounds in world space. [(x, y, z)]
 	// ワールド空間の最大境界。[（x、y、z）]
-	float bmax[3];
+	std::array<float, 3> bmax;
 
 	// The size of each cell. (On the xz-plane.)
 	// 各セルのサイズ。（xz平面上。）

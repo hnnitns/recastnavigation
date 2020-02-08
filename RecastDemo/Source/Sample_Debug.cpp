@@ -327,10 +327,10 @@ const float* Sample_Debug::getBoundsMin()
 	if (m_cset)
 		return m_cset->bmin;
 	if (m_chf)
-		return m_chf->bmin;
+		return m_chf->bmin.data();
 	if (m_navMesh)
 		return m_bmin;
-	return 0;
+	return nullptr;
 }
 
 const float* Sample_Debug::getBoundsMax()
@@ -338,10 +338,10 @@ const float* Sample_Debug::getBoundsMax()
 	if (m_cset)
 		return m_cset->bmax;
 	if (m_chf)
-		return m_chf->bmax;
+		return m_chf->bmax.data();
 	if (m_navMesh)
 		return m_bmax;
-	return 0;
+	return nullptr;
 }
 
 void Sample_Debug::handleClick(const float* s, const float* p, bool shift)

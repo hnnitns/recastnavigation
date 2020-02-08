@@ -225,7 +225,7 @@ dtNavMesh::~dtNavMesh()
 dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 {
 	memcpy(&m_params, params, sizeof(dtNavMeshParams));
-	dtVcopy(m_orig, params->orig);
+	dtVcopy(m_orig, params->orig.data());
 	m_tileWidth = params->tileWidth;
 	m_tileHeight = params->tileHeight;
 
@@ -282,7 +282,8 @@ dtStatus dtNavMesh::init(unsigned char* data, const int dataSize, const int flag
 		return DT_FAILURE | DT_WRONG_VERSION;
 
 	dtNavMeshParams params{};
-	dtVcopy(params.orig, header->bmin.data());
+
+	params.orig = header->bmin;
 	params.tileWidth = header->bmax[0] - header->bmin[0];
 	params.tileHeight = header->bmax[2] - header->bmin[2];
 	params.maxTiles = 1;

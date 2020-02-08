@@ -445,8 +445,8 @@ struct dtMeshTile
 	int flags;								//< Tile flags. (See: #dtTileFlags)
 	dtMeshTile* next;						//< The next free tile, or the next tile in the spatial grid.
 private:
-	dtMeshTile(const dtMeshTile&);
-	dtMeshTile& operator=(const dtMeshTile&);
+	dtMeshTile(const dtMeshTile&) = delete;
+	dtMeshTile& operator=(const dtMeshTile&) = delete;
 };
 
 // Configuration parameters used to define multi-tile navigation meshes.
@@ -455,7 +455,7 @@ private:
 // @ingroup detour
 struct dtNavMeshParams
 {
-	float orig[3];					//< The world space origin of the navigation mesh's tile space. [(x, y, z)]
+	std::array<float, 3> orig;		//< The world space origin of the navigation mesh's tile space. [(x, y, z)]
 	float tileWidth;				//< The width of each tile. (Along the x-axis.)
 	float tileHeight;				//< The height of each tile. (Along the z-axis.)
 	int maxTiles;					//< The maximum number of tiles the navigation mesh can contain.

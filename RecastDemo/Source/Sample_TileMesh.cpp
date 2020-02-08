@@ -730,8 +730,9 @@ bool Sample_TileMesh::handleBuild()
 		return false;
 	}
 
-	dtNavMeshParams params;
-	rcVcopy(params.orig, m_geom->getNavMeshBoundsMin().data());
+	dtNavMeshParams params{};
+
+	params.orig = m_geom->getNavMeshBoundsMin();
 	params.tileWidth = m_tileSize * m_cellSize;
 	params.tileHeight = m_tileSize * m_cellSize;
 	params.maxTiles = m_maxTiles;

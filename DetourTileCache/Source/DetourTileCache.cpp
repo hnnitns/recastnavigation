@@ -37,9 +37,9 @@ namespace
 
 	inline int computeTileHash(int x, int y, const int mask)
 	{
-		const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
-		const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
-		unsigned int n = h1 * x + h2 * y;
+		const uint32_t h1 = 0x8da6b343; // Large multiplicative constants;
+		const uint32_t h2 = 0xd8163841; // here arbitrarily chosen primes
+		uint32_t n = h1 * x + h2 * y;
 		return (int)(n & mask);
 	}
 
@@ -80,7 +80,7 @@ dtTileCache::dtTileCache() :
 	m_nupdate(0)
 {
 	memset(&m_params, 0, sizeof(m_params));
-	memset(m_reqs, 0, sizeof(ObstacleRequest) * MAX_REQUESTS);
+	m_reqs.fill({});
 }
 
 dtTileCache::~dtTileCache()
@@ -107,8 +107,8 @@ const dtCompressedTile* dtTileCache::getTileByRef(dtCompressedTileRef ref) const
 {
 	if (!ref)
 		return 0;
-	unsigned int tileIndex = decodeTileIdTile(ref);
-	unsigned int tileSalt = decodeTileIdSalt(ref);
+	uint32_t tileIndex = decodeTileIdTile(ref);
+	uint32_t tileSalt = decodeTileIdSalt(ref);
 	if ((int)tileIndex >= m_params.maxTiles)
 		return 0;
 	const dtCompressedTile* tile = &m_tiles[tileIndex];
@@ -171,11 +171,11 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 
 	// Init ID generator values.
 	// Init IDジェネレーターの値。
-	m_tileBits = dtIlog2(dtNextPow2((unsigned int)m_params.maxTiles));
+	m_tileBits = dtIlog2(dtNextPow2((uint32_t)m_params.maxTiles));
 
 	// Only allow 31 salt bits, since the salt mask is calculated using 32bit uint and it will overflow.
 	// ソルトマスクは32ビットuintを使用して計算され、オーバーフローするため、31ソルトビットのみを許可します。
-	m_saltBits = dtMin((unsigned int)31, 32 - m_tileBits);
+	m_saltBits = dtMin((uint32_t)31, 32 - m_tileBits);
 
 	if (m_saltBits < 10) return DT_FAILURE | DT_INVALID_PARAM;
 
@@ -226,14 +226,14 @@ dtCompressedTile* dtTileCache::getTileAt(const int tx, const int ty, const int t
 dtCompressedTileRef dtTileCache::getTileRef(const dtCompressedTile* tile) const
 {
 	if (!tile) return 0;
-	const unsigned int it = (unsigned int)(tile - m_tiles);
+	const uint32_t it = (uint32_t)(tile - m_tiles);
 	return (dtCompressedTileRef)encodeTileId(tile->salt, it);
 }
 
 dtObstacleRef dtTileCache::getObstacleRef(const dtTileCacheObstacle* ob) const
 {
 	if (!ob) return 0;
-	const unsigned int idx = (unsigned int)(ob - m_obstacles);
+	const uint32_t idx = (uint32_t)(ob - m_obstacles);
 	return encodeObstacleId(ob->salt, idx);
 }
 
@@ -241,17 +241,17 @@ const dtTileCacheObstacle* dtTileCache::getObstacleByRef(dtObstacleRef ref)
 {
 	if (!ref)
 		return 0;
-	unsigned int idx = decodeObstacleIdObstacle(ref);
+	uint32_t idx = decodeObstacleIdObstacle(ref);
 	if ((int)idx >= m_params.maxObstacles)
 		return 0;
 	const dtTileCacheObstacle* ob = &m_obstacles[idx];
-	unsigned int salt = decodeObstacleIdSalt(ref);
+	uint32_t salt = decodeObstacleIdSalt(ref);
 	if (ob->salt != salt)
 		return 0;
 	return ob;
 }
 
-dtStatus dtTileCache::addTile(unsigned char* data, const int dataSize, unsigned char flags, dtCompressedTileRef* result)
+dtStatus dtTileCache::addTile(uint8_t* data, const int dataSize, uint8_t flags, dtCompressedTileRef* result)
 {
 	// Make sure the data is in right format.
 	dtTileCacheLayerHeader* header = (dtTileCacheLayerHeader*)data;
@@ -297,12 +297,12 @@ dtStatus dtTileCache::addTile(unsigned char* data, const int dataSize, unsigned 
 	return DT_SUCCESS;
 }
 
-dtStatus dtTileCache::removeTile(dtCompressedTileRef ref, unsigned char** data, int* dataSize)
+dtStatus dtTileCache::removeTile(dtCompressedTileRef ref, uint8_t** data, int* dataSize)
 {
 	if (!ref)
 		return DT_FAILURE | DT_INVALID_PARAM;
-	unsigned int tileIndex = decodeTileIdTile(ref);
-	unsigned int tileSalt = decodeTileIdSalt(ref);
+	uint32_t tileIndex = decodeTileIdTile(ref);
+	uint32_t tileSalt = decodeTileIdSalt(ref);
 	if ((int)tileIndex >= m_params.maxTiles)
 		return DT_FAILURE | DT_INVALID_PARAM;
 	dtCompressedTile* tile = &m_tiles[tileIndex];
@@ -487,21 +487,21 @@ dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 	return DT_SUCCESS;
 }
 
-dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
+dtStatus dtTileCache::update([[maybe_unused]]const float dt, dtNavMesh* navmesh,
 	bool* upToDate)
 {
 	if (m_nupdate == 0)
 	{
-		// Process requests.
+		// Process requests. // リクエストを処理します。
 		for (int i = 0; i < m_nreqs; ++i)
 		{
 			ObstacleRequest* req = &m_reqs[i];
 
-			unsigned int idx = decodeObstacleIdObstacle(req->ref);
+			uint32_t idx = decodeObstacleIdObstacle(req->ref);
 			if ((int)idx >= m_params.maxObstacles)
 				continue;
 			dtTileCacheObstacle* ob = &m_obstacles[idx];
-			unsigned int salt = decodeObstacleIdSalt(req->ref);
+			uint32_t salt = decodeObstacleIdSalt(req->ref);
 			if (ob->salt != salt)
 				continue;
 
@@ -514,8 +514,9 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 
 				int ntouched = 0;
 				queryTiles(bmin, bmax, &ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
-				ob->ntouched = (unsigned char)ntouched;
+				ob->ntouched = (uint8_t)ntouched;
 				// Add tiles to update list.
+				// 更新リストにタイルを追加します。
 				ob->npending = 0;
 				for (int j = 0; j < ob->ntouched; ++j)
 				{
@@ -554,23 +555,24 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 	}
 
 	dtStatus status = DT_SUCCESS;
-	// Process updates
+	// Process updates // 更新を処理します
 	if (m_nupdate)
 	{
-		// Build mesh
+		// Build mesh // メッシュを構築
 		const dtCompressedTileRef ref = m_update[0];
 		status = buildNavMeshTile(ref, navmesh);
 		m_nupdate--;
 		if (m_nupdate > 0)
 			memmove(m_update.data(), m_update.data() + 1, m_nupdate * sizeof(dtCompressedTileRef));
 
-		// Update obstacle states.
+		// Update obstacle states. //障害状態を更新します。
 		for (int i = 0; i < m_params.maxObstacles; ++i)
 		{
 			dtTileCacheObstacle* ob = &m_obstacles[i];
 			if (ob->state == DT_OBSTACLE_PROCESSING || ob->state == DT_OBSTACLE_REMOVING)
 			{
 				// Remove handled tile from pending list.
+				// 処理中のタイルを保留リストから削除します。
 				for (int j = 0; j < (int)ob->npending; j++)
 				{
 					if (ob->pending[j] == ref)
@@ -582,7 +584,8 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				}
 
 				// If all pending tiles processed, change state.
-				if (ob->npending == 0)
+				// すべての保留中のタイルが処理された場合、状態を変更します。
+				if (ob->npending == 0u)
 				{
 					if (ob->state == DT_OBSTACLE_PROCESSING)
 					{
@@ -592,10 +595,12 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 					{
 						ob->state = DT_OBSTACLE_EMPTY;
 						// Update salt, salt should never be zero.
+						// ソルトを更新します。ソルトはゼロであってはなりません。
 						ob->salt = (ob->salt + 1) & ((1 << 16) - 1);
 						if (ob->salt == 0)
 							ob->salt++;
 						// Return obstacle to free list.
+						// 障害物をフリーリストに戻します。
 						ob->next = m_nextFreeObstacle;
 						m_nextFreeObstacle = ob;
 					}
@@ -604,8 +609,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 		}
 	}
 
-	if (upToDate)
-		*upToDate = m_nupdate == 0 && m_nreqs == 0;
+	if (upToDate) *upToDate = m_nupdate == 0 && m_nreqs == 0;
 
 	return status;
 }
@@ -632,13 +636,13 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	dtAssert(m_talloc);
 	dtAssert(m_tcomp);
 
-	unsigned int idx = decodeTileIdTile(ref);
+	uint32_t idx = decodeTileIdTile(ref);
 
-	if (idx > (unsigned int)m_params.maxTiles)
+	if (idx > (uint32_t)m_params.maxTiles)
 		return DT_FAILURE | DT_INVALID_PARAM;
 
 	const dtCompressedTile* tile = &m_tiles[idx];
-	unsigned int salt = decodeTileIdSalt(ref);
+	uint32_t salt = decodeTileIdSalt(ref);
 
 	if (tile->salt != salt)
 		return DT_FAILURE | DT_INVALID_PARAM;
@@ -660,6 +664,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		const dtTileCacheObstacle* ob = &m_obstacles[i];
 		if (ob->state == DT_OBSTACLE_EMPTY || ob->state == DT_OBSTACLE_REMOVING)
 			continue;
+
 		if (contains(ob->touched, ob->ntouched, ref))
 		{
 			if (ob->type == DT_OBSTACLE_CYLINDER)
@@ -675,7 +680,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		}
 	}
 
-	// Build navmesh
+	// Build navmesh // ナビメッシュの構成
 	status = dtBuildTileCacheRegions(m_talloc, *bc.layer, walkableClimbVx);
 	if (dtStatusFailed(status))
 		return status;
@@ -696,9 +701,11 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		return status;
 
 	// Early out if the mesh tile is empty.
+	// メッシュタイルが空の場合は早めに。
 	if (!bc.lmesh->npolys)
 	{
 		// Remove existing tile.
+		// 既存のタイルを削除します。
 		navmesh->removeTile(navmesh->getTileRefAt(tile->header->tx, tile->header->ty, tile->header->tlayer), 0, 0);
 		return DT_SUCCESS;
 	}
@@ -727,18 +734,21 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	if (m_tmproc)
 		m_tmproc->process(&params, bc.lmesh->areas, bc.lmesh->flags);
 
-	unsigned char* navData = 0;
+	uint8_t* navData = 0;
 	int navDataSize = 0;
 	if (!dtCreateNavMeshData(&params, &navData, &navDataSize))
 		return DT_FAILURE;
 
 	// Remove existing tile.
+	// 既存のタイルを削除します。
 	navmesh->removeTile(navmesh->getTileRefAt(tile->header->tx, tile->header->ty, tile->header->tlayer), 0, 0);
 
 	// Add new tile, or leave the location empty.
+	// 新しいタイルを追加するか、場所を空のままにします。
 	if (navData)
 	{
 		// Let the navmesh own the data.
+		// ナビメッシュにデータを所有させます。
 		status = navmesh->addTile(navData, navDataSize, DT_TILE_FREE_DATA, 0, 0);
 		if (dtStatusFailed(status))
 		{

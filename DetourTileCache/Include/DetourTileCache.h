@@ -243,7 +243,7 @@ private:
 	dtTileCacheObstacle* m_nextFreeObstacle;
 
 	static constexpr int MAX_REQUESTS = 64;
-	ObstacleRequest m_reqs[MAX_REQUESTS];
+	std::array<ObstacleRequest, MAX_REQUESTS> m_reqs;
 	int m_nreqs;
 
 	static constexpr int MAX_UPDATE = 64;

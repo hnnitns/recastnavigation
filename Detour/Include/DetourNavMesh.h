@@ -290,59 +290,128 @@ struct dtBVNode
 };
 
 // Defines an navigation mesh off-mesh connection within a dtMeshTile object.
+// dtMeshTileオブジェクト内のナビゲーションメッシュオフメッシュ接続を定義します。
 // An off-mesh connection is a user defined traversable connection made up to two vertices.
+// オフメッシュ接続は、最大2つの頂点で構成されるユーザー定義の通過可能な接続です。
 struct dtOffMeshConnection
 {
 	// The endpoints of the connection. [(ax, ay, az, bx, by, bz)]
-	float pos[6];
+	// 接続のエンドポイント。 [（ax、ay、az、bx、by、bz）]
+	std::array<float, 6> pos;
 
 	// The radius of the endpoints. [Limit: >= 0]
+	// エンドポイントの半径。 [制限：> = 0]
 	float rad;
 
 	// The polygon reference of the connection within the tile.
+	// タイル内の接続のポリゴン参照。
 	uint16_t poly;
 
 	// Link flags.
-	// @note These are not the connection's user defined flags. Those are assigned via the
-	// connection's dtPoly definition. These are link flags used for internal purposes.
+	// リンクフラグ。
+	// @note These are not the connection's user defined flags.
+	//  @noteこれらは、接続のユーザー定義フラグではありません。
+	// Those are assigned via the connection's dtPoly definition. These are link flags used for internal purposes.
+	// これらは、接続のdtPoly定義を介して割り当てられます。 これらは内部目的で使用されるリンクフラグです。
 	uint8_t flags;
 
 	// End point side.
+	// 終点側。
 	uint8_t side;
 
 	// The id of the offmesh connection. (User assigned when the navigation mesh is built.)
+	// オフメッシュ接続のID。 （ナビゲーションメッシュの構築時に割り当てられるユーザー。）
 	uint32_t userId;
 };
 
 // Provides high level information related to a dtMeshTile object.
+// dtMeshTileオブジェクトに関連する高レベルの情報を提供します。
 // @ingroup detour
 struct dtMeshHeader
 {
-	int magic;				//< Tile magic number. (Used to identify the data format.)
-	int version;			//< Tile data format version number.
-	int x;					//< The x-position of the tile within the dtNavMesh tile grid. (x, y, layer)
-	int y;					//< The y-position of the tile within the dtNavMesh tile grid. (x, y, layer)
-	int layer;				//< The layer of the tile within the dtNavMesh tile grid. (x, y, layer)
-	uint32_t userId;	//< The user defined id of the tile.
-	int polyCount;			//< The number of polygons in the tile.
-	int vertCount;			//< The number of vertices in the tile.
-	int maxLinkCount;		//< The number of allocated links.
-	int detailMeshCount;	//< The number of sub-meshes in the detail mesh.
+	//< Tile magic number. (Used to identify the data format.)
+	// タイルのマジックナンバー。 （データ形式を識別するために使用されます。）
+	int magic;
+
+	//< Tile data format version number.
+	// タイルデータ形式のバージョン番号。
+	int version;
+
+	//< The x-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+	// dtNavMeshタイルグリッド内のタイルのx位置。 （x、y、レイヤー）
+	int x;
+
+	//< The y-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+	// dtNavMeshタイルグリッド内のタイルのy位置。 （x、y、レイヤー）
+	int y;
+
+	//< The layer of the tile within the dtNavMesh tile grid. (x, y, layer)
+	// dtNavMeshタイルグリッド内のタイルのレイヤー。 （x、y、レイヤー）
+	int layer;
+
+	//< The user defined id of the tile.
+	// タイルのユーザー定義ID。
+	uint32_t userId;
+
+	//< The number of polygons in the tile.
+	// タイル内のポリゴンの数。
+	int polyCount;
+
+	//< The number of vertices in the tile.
+	// タイル内の頂点の数。
+	int vertCount;
+
+	//< The number of allocated links.
+	// 割り当てられたリンクの数。
+	int maxLinkCount;
+
+	//< The number of sub-meshes in the detail mesh.
+	// 詳細メッシュのサブメッシュの数。
+	int detailMeshCount;
 
 	// The number of unique vertices in the detail mesh. (In addition to the polygon vertices.)
+	// 詳細メッシュ内の一意の頂点の数。 （ポリゴンの頂点に加えて。）
 	int detailVertCount;
 
-	int detailTriCount;			//< The number of triangles in the detail mesh.
-	int bvNodeCount;			//< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
-	int offMeshConCount;		//< The number of off-mesh connections.
-	int offMeshBase;			//< The index of the first polygon which is an off-mesh connection.
-	float walkableHeight;		//< The height of the agents using the tile.
-	float walkableRadius;		//< The radius of the agents using the tile.
-	float walkableClimb;		//< The maximum climb height of the agents using the tile.
-	float bmin[3];				//< The minimum bounds of the tile's AABB. [(x, y, z)]
-	float bmax[3];				//< The maximum bounds of the tile's AABB. [(x, y, z)]
+	//< The number of triangles in the detail mesh.
+	// 詳細メッシュの三角形の数。
+	int detailTriCount;
+
+	//< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
+	// 境界ボリュームノードの数。 （バウンディングボリュームが無効な場合はゼロ。）
+	int bvNodeCount;
+
+	//< The number of off-mesh connections.
+	// オフメッシュ接続の数。
+	int offMeshConCount;
+
+	//< The index of the first polygon which is an off-mesh connection.
+	// メッシュ外の接続である最初のポリゴンのインデックス。
+	int offMeshBase;
+
+	//< The height of the agents using the tile.
+	// タイルを使用するエージェントの高さ。
+	float walkableHeight;
+
+	//< The radius of the agents using the tile.
+	// タイルを使用するエージェントの半径。
+	float walkableRadius;
+
+	//< The maximum climb height of the agents using the tile.
+	// タイルを使用するエージェントの最大上昇高度。
+	float walkableClimb;
+
+	//< The minimum bounds of the tile's AABB. [(x, y, z)]
+	// タイルのAABBの最小境界。 [（x、y、z）]
+	std::array<float, 3> bmin;
+
+	//< The maximum bounds of the tile's AABB. [(x, y, z)]
+	// タイルのAABBの最大境界。 [（x、y、z）]
+	std::array<float, 3> bmax;
+
 
 	// The bounding volume quantization factor.
+	// 境界ボリュームの量子化係数
 	float bvQuantFactor;
 };
 

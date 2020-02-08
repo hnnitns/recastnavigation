@@ -880,8 +880,8 @@ void dtNavMeshQuery::queryPolygonsInTile(const dtMeshTile* tile, const float* qm
 	{
 		const dtBVNode* node = &tile->bvTree[0];
 		const dtBVNode* end = &tile->bvTree[tile->header->bvNodeCount];
-		const float* tbmin = tile->header->bmin;
-		const float* tbmax = tile->header->bmax;
+		const auto& tbmin = tile->header->bmin;
+		const auto& tbmax = tile->header->bmax;
 		const float qfac = tile->header->bvQuantFactor;
 
 		// Calculate quantized box

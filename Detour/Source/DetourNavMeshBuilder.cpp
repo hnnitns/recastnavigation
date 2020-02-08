@@ -507,10 +507,8 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	header->polyCount = totPolyCount;
 	header->vertCount = totVertCount;
 	header->maxLinkCount = maxLinkCount;
-
-	dtVcopy(header->bmin, params->bmin.data());
-	dtVcopy(header->bmax, params->bmax.data());
-
+	header->bmin = params->bmin;
+	header->bmax = params->bmax;
 	header->detailMeshCount = params->polyCount;
 	header->detailVertCount = uniqueDetailVertCount;
 	header->detailTriCount = detailTriCount;

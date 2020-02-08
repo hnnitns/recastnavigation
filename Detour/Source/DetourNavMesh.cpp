@@ -281,8 +281,8 @@ dtStatus dtNavMesh::init(unsigned char* data, const int dataSize, const int flag
 	if (header->version != DT_NAVMESH_VERSION)
 		return DT_FAILURE | DT_WRONG_VERSION;
 
-	dtNavMeshParams params;
-	dtVcopy(params.orig, header->bmin);
+	dtNavMeshParams params{};
+	dtVcopy(params.orig, header->bmin.data());
 	params.tileWidth = header->bmax[0] - header->bmin[0];
 	params.tileHeight = header->bmax[2] - header->bmin[2];
 	params.maxTiles = 1;
@@ -757,8 +757,8 @@ int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, co
 	{
 		const dtBVNode* node = &tile->bvTree[0];
 		const dtBVNode* end = &tile->bvTree[tile->header->bvNodeCount];
-		const float* tbmin = tile->header->bmin;
-		const float* tbmax = tile->header->bmax;
+		const auto& tbmin = tile->header->bmin;
+		const auto& tbmax = tile->header->bmax;
 		const float qfac = tile->header->bvQuantFactor;
 
 		// Calculate quantized box

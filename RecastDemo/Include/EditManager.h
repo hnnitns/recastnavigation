@@ -27,6 +27,12 @@ private:
 	bool InputUpdate();
 	void CameraUpdate(const float dt);
 	void SystemUpdate(const float dt);
+	void HandleUpdate(const float dt, const uint32_t time);
+	void PropertiesUpdate();
+	void SampleSelect();
+	void MeshSelect();
+	void TestUpdate();
+	void HandleDraw();
 
 private:
 	struct SDL_Window* window{};

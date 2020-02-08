@@ -358,15 +358,15 @@ struct rcSpan
 {
 	// The lower limit of the span. [Limit: < #smax]
 	// スパンの下限。[制限：<#smax]
-	unsigned int smin : RC_SPAN_HEIGHT_BITS;
+	uint32_t smin : RC_SPAN_HEIGHT_BITS;
 
 	// The upper limit of the span. [Limit: <= #RC_SPAN_MAX_HEIGHT]
 	// スパンの上限。[制限：<= #RC_SPAN_MAX_HEIGHT]
-	unsigned int smax : RC_SPAN_HEIGHT_BITS;
+	uint32_t smax : RC_SPAN_HEIGHT_BITS;
 
 	// The area id assigned to the span.
 	// スパンに割り当てられたエリアID。
-	unsigned int area : 6;
+	uint32_t area : 6;
 
 	// The next span higher up in column.
 	// 列の上の次のスパン。
@@ -437,8 +437,8 @@ private:
 // コンパクトな地形のセル列のコンテンツに関する情報を提供します。
 struct rcCompactCell
 {
-	unsigned int index : 24;	// Index to the first span in the column. // 列の最初のスパンへのインデックス。
-	unsigned int count : 8;		// Number of spans in the column. // 列内のスパンの数。
+	uint32_t index : 24;	// Index to the first span in the column. // 列の最初のスパンへのインデックス。
+	uint32_t count : 8;		// Number of spans in the column. // 列内のスパンの数。
 };
 
 // Represents a span of unobstructed space within a compact heightfield.
@@ -447,19 +447,19 @@ struct rcCompactSpan
 {
 	// The lower extent of the span. (Measured from the heightfield's base.)
 	// スパンの下限。（ハイトフィールドのベースから測定。）
-	unsigned short y;
+	uint16_t y;
 
 	// The id of the region the span belongs to. (Or zero if not in a region.)
 	// スパンが属する領域のID。（または、地域にない場合はゼロ。）
-	unsigned short reg;
+	uint16_t reg;
 
 	// Packed neighbor connection data.
 	// パックされたネイバー接続データ。
-	unsigned int con : 24;
+	uint32_t con : 24;
 
 	// The height of the span.  (Measured from #y.)
 	// スパンの高さ。（#yから測定）
-	unsigned int h : 8;
+	uint32_t h : 8;
 };
 
 // 遮られていない空間を表すコンパクトで静的な地形。
@@ -493,11 +493,11 @@ struct rcCompactHeightfield
 
 	// The maximum distance value of any span within the field.
 	// フィールド内の任意のスパンの最大距離値
-	unsigned short maxDistance;
+	uint16_t maxDistance;
 
 	// The maximum region id of any span within the field.
 	// フィールド内の任意のスパンの最大領域ID
-	unsigned short maxRegions;
+	uint16_t maxRegions;
 
 	// The minimum bounds in world space. [(x, y, z)]
 	// ワールド空間の最小境界。[（x、y、z）]
@@ -525,11 +525,11 @@ struct rcCompactHeightfield
 
 	// Array containing border distance data. [Size: #spanCount]
 	// 境界距離データを含む配列
-	unsigned short* dist;
+	uint16_t* dist;
 
 	// Array containing area id data. [Size: #spanCount]
 	// エリアIDデータを含む配列
-	unsigned char* areas;
+	uint8_t* areas;
 };
 
 // Represents a heightfield layer within a layer set.
@@ -587,15 +587,15 @@ struct rcHeightfieldLayer
 
 	// The heightfield. [Size: width * height]
 	// 地形。[サイズ：幅 * 高さ]
-	unsigned char* heights;
+	uint8_t* heights;
 
 	// Area ids. [Size: Same as #heights]
 	// エリアID。[サイズ：#heightsと同じ]
-	unsigned char* areas;
+	uint8_t* areas;
 
 	// Packed neighbor connection information. [Size: Same as #heights]
 	// パックされたネイバー接続情報。[サイズ：#heightsと同じ]
-	unsigned char* cons;
+	uint8_t* cons;
 };
 
 // Represents a set of heightfield layers.
@@ -630,11 +630,11 @@ struct rcContour
 
 	// The region id of the contour.
 	// 輪郭の領域ID。
-	unsigned short reg;
+	uint16_t reg;
 
 	// The area id of the contour.
 	// 輪郭のエリアID。
-	unsigned char area;
+	uint8_t area;
 };
 
 // Represents a group of related contours.
@@ -690,23 +690,23 @@ struct rcPolyMesh
 {
 	// The mesh vertices. [Form: (x, y, z) * #nverts]
 	// メッシュの頂点。[形式：（x、y、z）* #nverts]
-	unsigned short* verts;
+	uint16_t* verts;
 
 	// Polygon and neighbor data. [Length: #maxpolys * 2 * #nvp]
 	// ポリゴンと近傍データ。[長さ：#maxpolys * 2 * #nvp]
-	unsigned short* polys;
+	uint16_t* polys;
 
 	// The region id assigned to each polygon. [Length: #maxpolys]
 	// 各ポリゴンに割り当てられたリージョンID。[長さ：#maxpolys]
-	unsigned short* regs;
+	uint16_t* regs;
 
 	// The user defined flags for each polygon. [Length: #maxpolys]
 	// 各ポリゴンのユーザー定義フラグ。[長さ：#maxpolys]
-	unsigned short* flags;
+	uint16_t* flags;
 
 	// The area id assigned to each polygon. [Length: #maxpolys]
 	// 各ポリゴンに割り当てられたエリアID。[長さ：#maxpolys]
-	unsigned char* areas;
+	uint8_t* areas;
 
 	// The number of vertices.
 	// 頂点の数。
@@ -757,7 +757,7 @@ struct rcPolyMeshDetail
 {
 	// The sub-mesh data. [Size: 4*#nmeshes]
 	// サブメッシュデータ。[サイズ：4 *＃nmeshes]
-	unsigned int* meshes;
+	uint32_t* meshes;
 
 	// The mesh vertices. [Size: 3*#nverts]
 	// メッシュの頂点。[サイズ：3 *＃nverts]
@@ -765,7 +765,7 @@ struct rcPolyMeshDetail
 
 	// The mesh triangles. [Size: 4*#ntris]
 	// メッシュの三角形。[サイズ：4 *＃ntris]
-	unsigned char* tris;
+	uint8_t* tris;
 
 	// The number of sub-meshes defined by #meshes.
 	// #meshesで定義されたサブメッシュの数。
@@ -780,7 +780,7 @@ struct rcPolyMeshDetail
 	int ntris;
 };
 
-constexpr unsigned char RC_AREA_FLAGS_MASK = 0x3F;
+constexpr uint8_t RC_AREA_FLAGS_MASK = 0x3F;
 
 // @ingroup recast
 class rcAreaModification
@@ -790,21 +790,21 @@ public:
 	// マスクは使用可能なすべてのビットに設定されます。つまり、値は完全に適用されます
 	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
 	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
-	rcAreaModification(unsigned char value);
+	rcAreaModification(uint8_t value);
 	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
 	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
 	//  @param[in] mask	Bitwise mask used when applying value. [Limit: <= #RC_AREA_FLAGS_MASK]
 	//  @param [in] mask値を適用するときに使用されるビット単位のマスク。 [制限：<= #RC_AREA_FLAGS_MASK]
-	rcAreaModification(unsigned char value, unsigned char mask);
+	rcAreaModification(uint8_t value, uint8_t mask);
 	rcAreaModification(const rcAreaModification& other);
 	void operator = (const rcAreaModification& other);
 	bool operator == (const rcAreaModification& other) const;
 	bool operator != (const rcAreaModification& other) const;
-	void apply(unsigned char& area) const;
-	unsigned char getMaskedValue() const;
+	void apply(uint8_t& area) const;
+	uint8_t getMaskedValue() const;
 
-	unsigned char m_value;	// Value to apply to target area id // ターゲットエリアIDに適用する値
-	unsigned char m_mask;	// Bitwise mask used when applying value to target area id //ターゲットエリアIDに値を適用するときに使用されるビット単位のマスク
+	uint8_t m_value;	// Value to apply to target area id // ターゲットエリアIDに適用する値
+	uint8_t m_mask;	// Bitwise mask used when applying value to target area id //ターゲットエリアIDに値を適用するときに使用されるビット単位のマスク
 };
 
 // @name Allocation Functions
@@ -917,7 +917,7 @@ void rcFreePolyMeshDetail(rcPolyMeshDetail* dmesh);
 // (Used during the region and contour build process.)
 //（領域および輪郭の構築プロセス中に使用されます。）
 // @see rcCompactSpan::reg
-constexpr unsigned short RC_BORDER_REG = 0x8000;
+constexpr uint16_t RC_BORDER_REG = 0x8000;
 
 // Polygon touches multiple regions.
 // ポリゴンは複数の領域に接触します。
@@ -927,7 +927,7 @@ constexpr unsigned short RC_BORDER_REG = 0x8000;
 // (Used during the polymesh and detail polymesh build processes)
 //（polymeshおよび詳細polymeshビルドプロセス中に使用）
 // @see rcPolyMesh::regs
-constexpr unsigned short RC_MULTIPLE_REGS = 0;
+constexpr uint16_t RC_MULTIPLE_REGS = 0;
 
 // Border vertex flag.
 // 境界頂点フラグ。
@@ -977,20 +977,20 @@ constexpr int RC_CONTOUR_REG_MASK = 0xffff;
 // @note This does not necessarily indicate an error.
 // これは必ずしもエラーを示しているわけではありません。
 // @see rcPolyMesh::polys
-constexpr unsigned short RC_MESH_NULL_IDX = 0xffff;
+constexpr uint16_t RC_MESH_NULL_IDX = 0xffff;
 
 // Represents the null area. // nullエリアを表します。
 // When a data element is given this value it is considered to no longer be
 // assigned to a usable area.  (E.g. It is unwalkable.)
 //データ要素にこの値が与えられると、使用可能な領域に割り当てられなくなったと見なされます。(例：歩行不能）
-constexpr unsigned char RC_NULL_AREA = 0;
+constexpr uint8_t RC_NULL_AREA = 0;
 
 // The default area id used to indicate a walkable polygon.
 // This is also the maximum allowed area id, and the only non-null area id
 // recognized by some steps in the build process.
 // デフォルトの領域は、歩行可能なポリゴンを示すために使用されます。
 // これは、許可される最大エリアIDであり、ビルドプロセスのいくつかのステップで認識される唯一の非ヌルエリアIDです。
-constexpr unsigned char RC_WALKABLE_AREA = 63;
+constexpr uint8_t RC_WALKABLE_AREA = 63;
 
 // The value returned by #rcGetCon if the specified direction is not connected
 // to another span. (Has no neighbor.)
@@ -1393,7 +1393,7 @@ bool rcCreateHeightfield(rcContext* ctx, rcHeightfield& hf, int width, int heigh
 //	適用するエリアの変更。
 // 歩行可能な三角形をマーク
 void rcMarkWalkableTriangles(rcContext* ctx, const float walkableSlopeAngle, const float* verts, int nv,
-	const int* tris, int nt, unsigned char* areas, rcAreaModification areaMod);
+	const int* tris, int nt, uint8_t* areas, rcAreaModification areaMod);
 
 // Modifies the area id of all triangles with a slope greater than or equal to the specified value.
 //  @ingroup recast
@@ -1406,7 +1406,7 @@ void rcMarkWalkableTriangles(rcContext* ctx, const float walkableSlopeAngle, con
 //  @param[in]		nt					The number of triangles.
 //  @param[out]	areas				The triangle area ids. [Length: >= @p nt]
 void rcClearUnwalkableTriangles(rcContext* ctx, const float walkableSlopeAngle, const float* verts, int nv,
-	const int* tris, int nt, unsigned char* areas);
+	const int* tris, int nt, uint8_t* areas);
 
 // Adds a span to the specified heightfield.
 //	指定された高さフィールドにスパンを追加します。
@@ -1430,8 +1430,8 @@ void rcClearUnwalkableTriangles(rcContext* ctx, const float walkableSlopeAngle, 
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
 bool rcAddSpan(rcContext* ctx, rcHeightfield& hf, const int x, const int y,
-	const unsigned short smin, const unsigned short smax,
-	const unsigned char area, const int flagMergeThr);
+	const uint16_t smin, const uint16_t smax,
+	const uint8_t area, const int flagMergeThr);
 
 // Rasterizes a triangle into the specified heightfield.
 //  @ingroup recast
@@ -1445,7 +1445,7 @@ bool rcAddSpan(rcContext* ctx, rcHeightfield& hf, const int x, const int y,
 //  								[Limit: >= 0] [Units: vx]
 //  @returns True if the operation completed successfully.
 bool rcRasterizeTriangle(rcContext* ctx, const float* v0, const float* v1, const float* v2,
-	const unsigned char area, rcHeightfield& solid,
+	const uint8_t area, rcHeightfield& solid,
 	const int flagMergeThr = 1);
 
 // Rasterizes an indexed triangle mesh into the specified heightfield.
@@ -1471,7 +1471,7 @@ bool rcRasterizeTriangle(rcContext* ctx, const float* v0, const float* v1, const
 //	操作が正常に完了した場合はtrue。
 // 三角形のラスタライズ
 bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int nv,
-	const int* tris, const unsigned char* areas, const int nt,
+	const int* tris, const uint8_t* areas, const int nt,
 	rcHeightfield& solid, const int flagMergeThr = 1);
 
 // Rasterizes an indexed triangle mesh into the specified heightfield.
@@ -1487,7 +1487,7 @@ bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int nv,
 //  							[Limit: >= 0] [Units: vx]
 //  @returns True if the operation completed successfully.
 bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int nv,
-	const unsigned short* tris, const unsigned char* areas, const int nt,
+	const uint16_t* tris, const uint8_t* areas, const int nt,
 	rcHeightfield& solid, const int flagMergeThr = 1);
 
 // Rasterizes triangles into the specified heightfield.
@@ -1500,7 +1500,7 @@ bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int nv,
 //  @param[in]		flagMergeThr	The distance where the walkable flag is favored over the non-walkable flag.
 //  								[Limit: >= 0] [Units: vx]
 //  @returns True if the operation completed successfully.
-bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const unsigned char* areas, const int nt,
+bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const uint8_t* areas, const int nt,
 	rcHeightfield& solid, const int flagMergeThr = 1);
 
 // Marks non-walkable spans as walkable if their maximum is within @p walkableClimp of a walkable neighbor.
@@ -1712,9 +1712,9 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 //  @param[in]		i		The index of the neighbor span.
 inline void rcSetCon(rcCompactSpan& s, int dir, int i)
 {
-	const unsigned int shift = (unsigned int)dir * 6;
-	unsigned int con = s.con;
-	s.con = (con & ~(0x3f << shift)) | (((unsigned int)i & 0x3f) << shift);
+	const uint32_t shift = (uint32_t)dir * 6;
+	uint32_t con = s.con;
+	s.con = (con & ~(0x3f << shift)) | (((uint32_t)i & 0x3f) << shift);
 }
 
 // Gets neighbor connection data for the specified direction.
@@ -1726,7 +1726,7 @@ inline void rcSetCon(rcCompactSpan& s, int dir, int i)
 // 指定された方向の隣接接続データ、接続がない場合は#RC_NOT_CONNECTED。
 inline int rcGetCon(const rcCompactSpan& s, int dir)
 {
-	const unsigned int shift = (unsigned int)dir * 6;
+	const uint32_t shift = (uint32_t)dir * 6;
 	return (s.con >> shift) & 0x3f;
 }
 

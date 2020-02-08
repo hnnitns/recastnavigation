@@ -20,6 +20,7 @@
 #define DETOURTILECACHEBUILDER_H
 
 #include <cstdint>
+#include <array>
 #include "DetourAlloc.h"
 #include "DetourStatus.h"
 
@@ -35,7 +36,7 @@ struct dtTileCacheLayerHeader
 	int magic;								///< Data magic
 	int version;							///< Data version
 	int tx, ty, tlayer;
-	float bmin[3], bmax[3];
+	std::array<float, 3> bmin, bmax;
 	uint16_t hmin, hmax;				///< Height min/max range
 	uint8_t width, height;			///< Dimension of the layer.
 	uint8_t minx, maxx, miny, maxy;	///< Usable sub-region.
@@ -123,10 +124,12 @@ void dtFreeTileCacheContourSet(dtTileCacheAlloc* alloc, dtTileCacheContourSet* c
 dtTileCachePolyMesh* dtAllocTileCachePolyMesh(dtTileCacheAlloc* alloc);
 void dtFreeTileCachePolyMesh(dtTileCacheAlloc* alloc, dtTileCachePolyMesh* lmesh);
 
-dtStatus dtMarkCylinderArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+dtStatus dtMarkCylinderArea(
+	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
 	const float* pos, const float radius, const float height, const uint8_t areaId);
 
-dtStatus dtMarkBoxArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+dtStatus dtMarkBoxArea(
+	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
 	const float* bmin, const float* bmax, const uint8_t areaId);
 
 dtStatus dtBuildTileCacheRegions(dtTileCacheAlloc* alloc,
@@ -142,10 +145,14 @@ dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
 	dtTileCacheContourSet& lcset,
 	dtTileCachePolyMesh& mesh);
 
-/// Swaps the endianess of the compressed tile data's header (#dtTileCacheLayerHeader).
-/// Tile layer data does not need endian swapping as it consits only of bytes.
-///  @param[in,out]	data		The tile data array.
-///  @param[in]		dataSize	The size of the data array.
+// Swaps the endianess of the compressed tile data's header (#dtTileCacheLayerHeader).
+// 圧縮されたタイルデータのヘッダー（#dtTileCacheLayerHeader）のエンディアンを入れ替えます。
+// Tile layer data does not need endian swapping as it consits only of bytes.
+// タイルレイヤーデータはバイトのみで構成されるため、エンディアンスワッピングを必要としません。
+// @param[in,out] data : The tile data array.
+// @param [in、out] data : タイルデータ配列。
+// @param[in] dataSize : The size of the data array.
+// @param [in] dataSize : データ配列のサイズ。
 bool dtTileCacheHeaderSwapEndian(uint8_t* data, const int dataSize);
 
 #endif // DETOURTILECACHEBUILDER_H

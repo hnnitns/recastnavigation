@@ -1928,10 +1928,11 @@ dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
 	return DT_SUCCESS;
 }
 
-dtStatus dtMarkCylinderArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+dtStatus dtMarkCylinderArea(
+	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
 	const float* pos, const float radius, const float height, const uint8_t areaId)
 {
-	float bmin[3], bmax[3];
+	std::array<float, 3> bmin, bmax;
 	bmin[0] = pos[0] - radius;
 	bmin[1] = pos[1];
 	bmin[2] = pos[2] - radius;
@@ -1983,7 +1984,8 @@ dtStatus dtMarkCylinderArea(dtTileCacheLayer& layer, const float* orig, const fl
 	return DT_SUCCESS;
 }
 
-dtStatus dtMarkBoxArea(dtTileCacheLayer& layer, const float* orig, const float cs, const float ch,
+dtStatus dtMarkBoxArea(
+	dtTileCacheLayer& layer, const std::array<float, 3>& orig, const float cs, const float ch,
 	const float* bmin, const float* bmax, const uint8_t areaId)
 {
 	const int w = (int)layer.header->width;

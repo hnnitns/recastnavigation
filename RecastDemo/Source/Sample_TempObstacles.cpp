@@ -433,8 +433,8 @@ int Sample_TempObstacles::rasterizeTileLayers(
 		header.tx = tx;
 		header.ty = ty;
 		header.tlayer = i;
-		dtVcopy(header.bmin, layer->bmin.data());
-		dtVcopy(header.bmax, layer->bmax.data());
+		header.bmin = layer->bmin;
+		header.bmax = layer->bmax;
 
 		// Tile info.
 		header.width = (unsigned char)layer->width;

@@ -701,8 +701,8 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		return DT_SUCCESS;
 	}
 
-	dtNavMeshCreateParams params;
-	memset(&params, 0, sizeof(params));
+	dtNavMeshCreateParams params{};
+
 	params.verts = bc.lmesh->verts;
 	params.vertCount = bc.lmesh->nverts;
 	params.polys = bc.lmesh->polys;
@@ -719,13 +719,11 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	params.cs = m_params.cs;
 	params.ch = m_params.ch;
 	params.buildBvTree = false;
-	dtVcopy(params.bmin.data(), tile->header->bmin);
-	dtVcopy(params.bmax.data(), tile->header->bmax);
+	params.bmin = tile->header->bmin;
+	params.bmax = tile->header->bmax;
 
 	if (m_tmproc)
-	{
 		m_tmproc->process(&params, bc.lmesh->areas, bc.lmesh->flags);
-	}
 
 	unsigned char* navData = 0;
 	int navDataSize = 0;

@@ -489,7 +489,7 @@ static void debugDrawTileCachePortals(struct duDebugDraw* dd, const dtTileCacheL
 {
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
-	const float* bmin = layer.header->bmin;
+	const auto& bmin = layer.header->bmin;
 
 	// Portals
 	unsigned int pcol = duRGBA(255, 255, 255, 255);
@@ -530,8 +530,8 @@ void duDebugDrawTileCacheLayerAreas(struct duDebugDraw* dd, const dtTileCacheLay
 {
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
-	const float* bmin = layer.header->bmin;
-	const float* bmax = layer.header->bmax;
+	const auto& bmin = layer.header->bmin;
+	const auto& bmax = layer.header->bmax;
 	const int idx = layer.header->tlayer;
 
 	unsigned int color = duIntToCol(idx + 1, 255);
@@ -584,8 +584,8 @@ void duDebugDrawTileCacheLayerRegions(struct duDebugDraw* dd, const dtTileCacheL
 {
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
-	const float* bmin = layer.header->bmin;
-	const float* bmax = layer.header->bmax;
+	const auto& bmin = layer.header->bmin;
+	const auto& bmax = layer.header->bmax;
 	const int idx = layer.header->tlayer;
 
 	unsigned int color = duIntToCol(idx + 1, 255);
@@ -643,7 +643,7 @@ struct dtTileCacheContourSet
 };*/
 
 void duDebugDrawTileCacheContours(duDebugDraw* dd, const struct dtTileCacheContourSet& lcset,
-	const float* orig, const float cs, const float ch)
+	const std::array<float, 3>& orig, const float cs, const float ch)
 {
 	if (!dd) return;
 
@@ -723,7 +723,7 @@ void duDebugDrawTileCacheContours(duDebugDraw* dd, const struct dtTileCacheConto
 }
 
 void duDebugDrawTileCachePolyMesh(duDebugDraw* dd, const struct dtTileCachePolyMesh& lmesh,
-	const float* orig, const float cs, const float ch)
+	const std::array<float, 3>& orig, const float cs, const float ch)
 {
 	if (!dd) return;
 

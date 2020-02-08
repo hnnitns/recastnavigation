@@ -64,8 +64,8 @@ struct dtTileCacheObstacle
 		dtObstacleBox box;
 	};
 
-	dtCompressedTileRef touched[DT_MAX_TOUCHED_TILES];
-	dtCompressedTileRef pending[DT_MAX_TOUCHED_TILES];
+	std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES> touched;
+	std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES> pending;
 	uint16_t salt;
 	uint8_t type;
 	uint8_t state;
@@ -136,7 +136,7 @@ public:
 	dtStatus removeObstacle(const dtObstacleRef ref);
 
 	dtStatus queryTiles(const float* bmin, const float* bmax,
-		dtCompressedTileRef* results, int* resultCount, const int maxResults) const;
+		std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES>* results, int* resultCount, const int maxResults) const;
 
 	// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests.
 	// 未完成の障害物リクエストが接触したタイルを再構築して、タイルキャッシュを更新します。
@@ -242,12 +242,12 @@ private:
 	dtTileCacheObstacle* m_obstacles;
 	dtTileCacheObstacle* m_nextFreeObstacle;
 
-	static const int MAX_REQUESTS = 64;
+	static constexpr int MAX_REQUESTS = 64;
 	ObstacleRequest m_reqs[MAX_REQUESTS];
 	int m_nreqs;
 
-	static const int MAX_UPDATE = 64;
-	dtCompressedTileRef m_update[MAX_UPDATE];
+	static constexpr int MAX_UPDATE = 64;
+	std::array<dtCompressedTileRef, MAX_UPDATE> m_update;
 	int m_nupdate;
 };
 

@@ -25,7 +25,9 @@ void dtFreeTileCache(dtTileCache* tc)
 
 namespace
 {
-	inline bool contains(const dtCompressedTileRef* a, const int n, const dtCompressedTileRef v)
+	template<size_t Size>
+	inline bool contains(const std::array<dtCompressedTileRef, Size>& a,
+		const int n, const dtCompressedTileRef v)
 	{
 		for (int i = 0; i < n; ++i)
 			if (a[i] == v)
@@ -445,7 +447,7 @@ dtStatus dtTileCache::removeObstacle(const dtObstacleRef ref)
 }
 
 dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
-	dtCompressedTileRef* results, int* resultCount, const int maxResults) const
+	std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES>* results, int* resultCount, const int maxResults) const
 {
 	const int MAX_TILES = 32;
 	dtCompressedTileRef tiles[MAX_TILES];
@@ -474,7 +476,7 @@ dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 				if (dtOverlapBounds(bmin, bmax, tbmin, tbmax))
 				{
 					if (n < maxResults)
-						results[n++] = tiles[i];
+						results->at(n++) = tiles[i];
 				}
 			}
 		}
@@ -511,7 +513,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				getObstacleBounds(ob, bmin, bmax);
 
 				int ntouched = 0;
-				queryTiles(bmin, bmax, ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
+				queryTiles(bmin, bmax, &ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
 				ob->ntouched = (unsigned char)ntouched;
 				// Add tiles to update list.
 				ob->npending = 0;
@@ -560,7 +562,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 		status = buildNavMeshTile(ref, navmesh);
 		m_nupdate--;
 		if (m_nupdate > 0)
-			memmove(m_update, m_update + 1, m_nupdate * sizeof(dtCompressedTileRef));
+			memmove(m_update.data(), m_update.data() + 1, m_nupdate * sizeof(dtCompressedTileRef));
 
 		// Update obstacle states.
 		for (int i = 0; i < m_params.maxObstacles; ++i)

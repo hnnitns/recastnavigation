@@ -379,7 +379,7 @@ struct rcSpan
 struct rcSpanPool
 {
 	rcSpanPool* next;					// The next span pool. // 次のスパンプール。
-	rcSpan items[RC_SPANS_PER_POOL];	// Array of spans in the pool. // プール内のスパンの配列。
+	std::array<rcSpan, RC_SPANS_PER_POOL> items;	// Array of spans in the pool. // プール内のスパンの配列。
 };
 
 // A dynamic heightfield representing obstructed space.
@@ -400,11 +400,11 @@ struct rcHeightfield
 
 	// The minimum bounds in world space. [(x, y, z)]
 	// ワールド空間の最小境界。[（x、y、z）]
-	float bmin[3];
+	std::array<float, 3> bmin;
 
 	// The maximum bounds in world space. [(x, y, z)]
 	// ワールド空間の最大境界。[（x、y、z）]
-	float bmax[3];
+	std::array<float, 3> bmax;
 
 	// The size of each cell. (On the xz-plane.)
 	// 各セルのサイズ。（xz平面上。）

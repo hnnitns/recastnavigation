@@ -139,7 +139,7 @@ void duDebugDrawHeightfieldSolid(duDebugDraw* dd, const rcHeightfield& hf)
 {
 	if (!dd) return;
 
-	const float* orig = hf.bmin;
+	const auto& orig = hf.bmin;
 	const float cs = hf.cs;
 	const float ch = hf.ch;
 
@@ -172,7 +172,7 @@ void duDebugDrawHeightfieldWalkable(duDebugDraw* dd, const rcHeightfield& hf)
 {
 	if (!dd) return;
 
-	const float* orig = hf.bmin;
+	const auto& orig = hf.bmin;
 	const float cs = hf.cs;
 	const float ch = hf.ch;
 

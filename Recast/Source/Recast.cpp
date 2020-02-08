@@ -276,8 +276,8 @@ bool rcCreateHeightfield(rcContext* ctx, rcHeightfield& hf, int width, int heigh
 
 	hf.width = width;
 	hf.height = height;
-	rcVcopy(hf.bmin, bmin);
-	rcVcopy(hf.bmax, bmax);
+	rcVcopy(hf.bmin.data(), bmin);
+	rcVcopy(hf.bmax.data(), bmax);
 	hf.cs = cs;
 	hf.ch = ch;
 	hf.spans = (rcSpan**)rcAlloc(sizeof(rcSpan*) * hf.width * hf.height, RC_ALLOC_PERM);
@@ -415,8 +415,8 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 	chf.walkableHeight = walkableHeight;
 	chf.walkableClimb = walkableClimb;
 	chf.maxRegions = 0;
-	rcVcopy(chf.bmin, hf.bmin); // コピー
-	rcVcopy(chf.bmax, hf.bmax); // コピー
+	rcVcopy(chf.bmin, hf.bmin.data()); // コピー
+	rcVcopy(chf.bmax, hf.bmax.data()); // コピー
 	chf.bmax[1] += walkableHeight * hf.ch;
 	chf.cs = hf.cs;
 	chf.ch = hf.ch;

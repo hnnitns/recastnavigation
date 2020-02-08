@@ -719,8 +719,8 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	params.cs = m_params.cs;
 	params.ch = m_params.ch;
 	params.buildBvTree = false;
-	dtVcopy(params.bmin, tile->header->bmin);
-	dtVcopy(params.bmax, tile->header->bmax);
+	dtVcopy(params.bmin.data(), tile->header->bmin);
+	dtVcopy(params.bmax.data(), tile->header->bmax);
 
 	if (m_tmproc)
 	{

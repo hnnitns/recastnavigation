@@ -1336,8 +1336,8 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		params.tileX = tx;
 		params.tileY = ty;
 		params.tileLayer = 0;
-		rcVcopy(params.bmin, m_pmesh->bmin.data());
-		rcVcopy(params.bmax, m_pmesh->bmax.data());
+		params.bmin = m_pmesh->bmin;
+		params.bmax = m_pmesh->bmax;
 		params.cs = m_cfg.cs;
 		params.ch = m_cfg.ch;
 		params.buildBvTree = true;

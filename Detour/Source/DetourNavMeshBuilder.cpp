@@ -235,7 +235,8 @@ namespace
 		return curNode;
 	}
 
-	unsigned char classifyOffMeshPoint(const float* pt, const float* bmin, const float* bmax)
+	unsigned char classifyOffMeshPoint(
+		const float* pt, const std::array<float, 3>& bmin, const std::array<float, 3>& bmax)
 	{
 		static const unsigned char XP = 1 << 0;
 		static const unsigned char ZP = 1 << 1;
@@ -334,10 +335,8 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 		hmin -= params->walkableClimb;
 		hmax += params->walkableClimb;
 
-		float bmin[3]{}, bmax[3]{};
+		std::array<float, 3> bmin{ params->bmin }, bmax{ params->bmax };
 
-		dtVcopy(bmin, params->bmin);
-		dtVcopy(bmax, params->bmax);
 		bmin[1] = hmin;
 		bmax[1] = hmax;
 
@@ -509,8 +508,8 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	header->vertCount = totVertCount;
 	header->maxLinkCount = maxLinkCount;
 
-	dtVcopy(header->bmin, params->bmin);
-	dtVcopy(header->bmax, params->bmax);
+	dtVcopy(header->bmin, params->bmin.data());
+	dtVcopy(header->bmax, params->bmax.data());
 
 	header->detailMeshCount = params->polyCount;
 	header->detailVertCount = uniqueDetailVertCount;

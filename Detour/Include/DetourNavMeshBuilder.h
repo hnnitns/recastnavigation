@@ -20,6 +20,7 @@
 #define DETOURNAVMESHBUILDER_H
 
 #include "DetourAlloc.h"
+#include <array>
 
 // Represents the source data used to build an navigation mesh tile.
 // ナビゲーションメッシュタイルの構築に使用されるソースデータを表します。
@@ -147,11 +148,11 @@ struct dtNavMeshCreateParams
 
 	// The minimum bounds of the tile. [(x, y, z)] [Unit: wu]
 	// タイルの最小境界。[（x、y、z）] [単位：wu]
-	float bmin[3];
+	std::array<float, 3> bmin;
 
 	// The maximum bounds of the tile. [(x, y, z)] [Unit: wu]
 	// タイルの最大境界。 [（x、y、z）] [単位：wu]
-	float bmax[3];
+	std::array<float, 3> bmax;
 
 	// @}
 	// @name General Configuration Attributes // 一般的な構成属性

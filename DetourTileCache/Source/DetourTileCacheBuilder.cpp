@@ -25,6 +25,11 @@
 
 namespace
 {
+	constexpr int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
+	constexpr int MAX_REM_EDGES = 48;		// TODO: make this an expression.
+	constexpr int DT_LAYER_MAX_NEIS = 16;
+	constexpr int VERTEX_BUCKET_COUNT2 = (1 << 8);
+
 	template<class T> class dtFixedArray
 	{
 		dtTileCacheAlloc* m_alloc;
@@ -36,6 +41,45 @@ namespace
 		inline ~dtFixedArray() { if (m_alloc) m_alloc->free(m_ptr); }
 		inline operator T* () { return m_ptr; }
 		inline int size() const { return m_size; }
+	};
+
+	struct rcEdge
+	{
+		uint16_t vert[2];
+		uint16_t polyEdge[2];
+		uint16_t poly[2];
+	};
+
+	struct dtLayerSweepSpan
+	{
+		uint16_t ns;	// number samples
+		uint8_t id;	// region id
+		uint8_t nei;	// neighbour id
+	};
+
+	struct dtLayerMonotoneRegion
+	{
+		int area;
+		uint8_t neis[DT_LAYER_MAX_NEIS];
+		uint8_t nneis;
+		uint8_t regId;
+		uint8_t areaId;
+	};
+
+	struct dtTempContour
+	{
+		inline dtTempContour(uint8_t* vbuf, const int nvbuf,
+			uint16_t* pbuf, const int npbuf) :
+			verts(vbuf), nverts(0), cverts(nvbuf),
+			poly(pbuf), npoly(0), cpoly(npbuf)
+		{
+		}
+		uint8_t* verts;
+		int nverts;
+		int cverts;
+		uint16_t* poly;
+		int npoly;
+		int cpoly;
 	};
 
 	inline int getDirOffsetX(int dir)
@@ -50,8 +94,1289 @@ namespace
 		return offset[dir & 0x03];
 	}
 
-	constexpr int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
-	constexpr int MAX_REM_EDGES = 48;		// TODO: make this an expression.
+	// Last time I checked the if version got compiled using cmov, which was a lot faster than module (with idiv).
+	//前回、cmovを使用してバージョンがコンパイルされたかどうかを確認しました。これは、モジュール（idivを使用）よりもはるかに高速でした。
+	inline int prev(int i, int n) { return i - 1 >= 0 ? i - 1 : n - 1; }
+	inline int next(int i, int n) { return i + 1 < n ? i + 1 : 0; }
+
+	inline int area2(const uint8_t* a, const uint8_t* b, const uint8_t* c)
+	{
+		return ((int)b[0] - (int)a[0]) * ((int)c[2] - (int)a[2]) - ((int)c[0] - (int)a[0]) * ((int)b[2] - (int)a[2]);
+	}
+
+	// Exclusive or: true iff exactly one argument is true.
+	// 排他的または：正確に1つの引数がtrueの場合はtrue。
+	// The arguments are negated to ensure that they are 0/1 values.
+	// 引数は、値が0/1であることを保証するために否定されます。
+	// Then the bitwise Xor operator may apply. (This idea is due to Michael Baldwin.)
+	// 次に、ビット単位のXor演算子が適用されます。 （このアイデアはマイケルボールドウィンによるものです。）
+	inline bool xorb(bool x, bool y)
+	{
+		return !x ^ !y;
+	}
+
+	// Returns true iff c is strictly to the left of the directed line through a to b.
+	// cがaからbまでの有向線の左に厳密にある場合、trueを返します。
+	inline bool left(const uint8_t* a, const uint8_t* b, const uint8_t* c)
+	{
+		return area2(a, b, c) < 0;
+	}
+
+	inline bool leftOn(const uint8_t* a, const uint8_t* b, const uint8_t* c)
+	{
+		return area2(a, b, c) <= 0;
+	}
+
+	inline bool collinear(const uint8_t* a, const uint8_t* b, const uint8_t* c)
+	{
+		return area2(a, b, c) == 0;
+	}
+
+	inline bool uleft(const uint16_t* a, const uint16_t* b, const uint16_t* c)
+	{
+		return ((int)b[0] - (int)a[0]) * ((int)c[2] - (int)a[2]) -
+			((int)c[0] - (int)a[0]) * ((int)b[2] - (int)a[2]) < 0;
+	}
+
+	inline int computeVertexHash2(int x, int y, int z)
+	{
+		const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
+		const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
+		const unsigned int h3 = 0xcb1ab31f;
+		unsigned int n = h1 * x + h2 * y + h3 * z;
+		return (int)(n & (VERTEX_BUCKET_COUNT2 - 1));
+	}
+
+	inline int countPolyVerts(const uint16_t* p)
+	{
+		for (int i = 0; i < MAX_VERTS_PER_POLY; ++i)
+			if (p[i] == DT_TILECACHE_NULL_IDX)
+				return i;
+		return MAX_VERTS_PER_POLY;
+	}
+
+	inline int getPolyMergeValue(uint16_t* pa, uint16_t* pb,
+		const uint16_t* verts, int& ea, int& eb)
+	{
+		const int na = countPolyVerts(pa);
+		const int nb = countPolyVerts(pb);
+
+		// If the merged polygon would be too big, do not merge.
+		if (na + nb - 2 > MAX_VERTS_PER_POLY)
+			return -1;
+
+		// Check if the polygons share an edge.
+		ea = -1;
+		eb = -1;
+
+		for (int i = 0; i < na; ++i)
+		{
+			uint16_t va0 = pa[i];
+			uint16_t va1 = pa[(i + 1) % na];
+			if (va0 > va1)
+				dtSwap(va0, va1);
+			for (int j = 0; j < nb; ++j)
+			{
+				uint16_t vb0 = pb[j];
+				uint16_t vb1 = pb[(j + 1) % nb];
+				if (vb0 > vb1)
+					dtSwap(vb0, vb1);
+				if (va0 == vb0 && va1 == vb1)
+				{
+					ea = i;
+					eb = j;
+					break;
+				}
+			}
+		}
+
+		// No common edge, cannot merge.
+		if (ea == -1 || eb == -1)
+			return -1;
+
+		// Check to see if the merged polygon would be convex.
+		uint16_t va, vb, vc;
+
+		va = pa[(ea + na - 1) % na];
+		vb = pa[ea];
+		vc = pb[(eb + 2) % nb];
+		if (!uleft(&verts[va * 3], &verts[vb * 3], &verts[vc * 3]))
+			return -1;
+
+		va = pb[(eb + nb - 1) % nb];
+		vb = pb[eb];
+		vc = pa[(ea + 2) % na];
+		if (!uleft(&verts[va * 3], &verts[vb * 3], &verts[vc * 3]))
+			return -1;
+
+		va = pa[ea];
+		vb = pa[(ea + 1) % na];
+
+		int dx = (int)verts[va * 3 + 0] - (int)verts[vb * 3 + 0];
+		int dy = (int)verts[va * 3 + 2] - (int)verts[vb * 3 + 2];
+
+		return dx * dx + dy * dy;
+	}
+
+	// Returns true iff ab properly intersects cd: they share a point interior to both segments.
+	// abがcdと適切に交差する場合にtrueを返します。これらは両方のセグメントの内部ポイントを共有します。
+	// The properness of the intersection is ensured by using strict leftness.
+	// 交差点の適切性は、厳密な左を使用して保証されます。
+	inline bool intersectProp(const uint8_t* a, const uint8_t* b,
+		const uint8_t* c, const uint8_t* d)
+	{
+		// Eliminate improper cases.
+		if (collinear(a, b, c) || collinear(a, b, d) ||
+			collinear(c, d, a) || collinear(c, d, b))
+			return false;
+
+		return xorb(left(a, b, c), left(a, b, d)) && xorb(left(c, d, a), left(c, d, b));
+	}
+
+	// Returns T iff (a,b,c) are collinear and point c lies on the closed segement ab.
+	//（a、b、c）が同一直線上にあり、ポイントcが閉じたセグメントab上にある場合、Tを返します。
+	inline bool between(const uint8_t* a, const uint8_t* b, const uint8_t* c)
+	{
+		if (!collinear(a, b, c))
+			return false;
+		// If ab not vertical, check betweenness on x; else on y.
+		if (a[0] != b[0])
+			return ((a[0] <= c[0]) && (c[0] <= b[0])) || ((a[0] >= c[0]) && (c[0] >= b[0]));
+		else
+			return ((a[2] <= c[2]) && (c[2] <= b[2])) || ((a[2] >= c[2]) && (c[2] >= b[2]));
+	}
+
+	// Returns true iff segments ab and cd intersect, properly or improperly.
+	// セグメントabとcdが適切または不適切に交差する場合にのみ、真を返します。
+	inline bool intersect(const uint8_t* a, const uint8_t* b,
+		const uint8_t* c, const uint8_t* d)
+	{
+		if (intersectProp(a, b, c, d))
+			return true;
+		else if (between(a, b, c) || between(a, b, d) ||
+			between(c, d, a) || between(c, d, b))
+			return true;
+		else
+			return false;
+	}
+
+	inline bool vequal(const uint8_t* a, const uint8_t* b)
+	{
+		return a[0] == b[0] && a[2] == b[2];
+	}
+
+	// Returns T iff (v_i, v_j) is a proper internal *or* external diagonal of P, *ignoring edges incident to v_i and v_j*.
+	// Tを返します（v_i、v_j）は、Pの適切な内部*または*外部対角で、* v_iに付随するエッジを無視します。
+	inline bool diagonalie(int i, int j, int n, const uint8_t* verts, const uint16_t* indices)
+	{
+		const uint8_t* d0 = &verts[(indices[i] & 0x7fff) * 4];
+		const uint8_t* d1 = &verts[(indices[j] & 0x7fff) * 4];
+
+		// For each edge (k,k+1) of P
+		for (int k = 0; k < n; k++)
+		{
+			int k1 = next(k, n);
+			// Skip edges incident to i or j
+			if (!((k == i) || (k1 == i) || (k == j) || (k1 == j)))
+			{
+				const uint8_t* p0 = &verts[(indices[k] & 0x7fff) * 4];
+				const uint8_t* p1 = &verts[(indices[k1] & 0x7fff) * 4];
+
+				if (vequal(d0, p0) || vequal(d1, p0) || vequal(d0, p1) || vequal(d1, p1))
+					continue;
+
+				if (intersect(d0, d1, p0, p1))
+					return false;
+			}
+		}
+		return true;
+	}
+
+	// Returns true iff the diagonal (i,j) is strictly internal to the polygon P in the neighborhood of the i endpoint.
+	// 対角線（i、j）が厳密にiの近傍のポリゴンPの内部にある場合にtrueを返します
+	inline bool	inCone(int i, int j, int n, const uint8_t* verts, const uint16_t* indices)
+	{
+		const uint8_t* pi = &verts[(indices[i] & 0x7fff) * 4];
+		const uint8_t* pj = &verts[(indices[j] & 0x7fff) * 4];
+		const uint8_t* pi1 = &verts[(indices[next(i, n)] & 0x7fff) * 4];
+		const uint8_t* pin1 = &verts[(indices[prev(i, n)] & 0x7fff) * 4];
+
+		// If P[i] is a convex vertex [ i+1 left or on (i-1,i) ].
+		if (leftOn(pin1, pi, pi1))
+			return left(pi, pj, pin1) && left(pj, pi, pi1);
+		// Assume (i-1,i,i+1) not collinear.
+		// else P[i] is reflex.
+		return !(leftOn(pi, pj, pi1) && leftOn(pj, pi, pin1));
+	}
+
+	inline bool isConnected(const dtTileCacheLayer& layer,
+		const int ia, const int ib, const int walkableClimb)
+	{
+		if (layer.areas[ia] != layer.areas[ib]) return false;
+		if (dtAbs((int)layer.heights[ia] - (int)layer.heights[ib]) > walkableClimb) return false;
+		return true;
+	}
+
+	// Returns T iff (v_i, v_j) is a proper internal diagonal of P.
+	// Tを返します（v_i、v_j）はPの適切な内部対角線です。
+	inline bool diagonal(int i, int j, int n, const uint8_t* verts, const uint16_t* indices)
+	{
+		return inCone(i, j, n, verts, indices) && diagonalie(i, j, n, verts, indices);
+	}
+
+	inline int triangulate(int n, const uint8_t* verts, uint16_t* indices, uint16_t* tris)
+	{
+		int ntris = 0;
+		uint16_t* dst = tris;
+
+		// The last bit of the index is used to indicate if the vertex can be removed.
+		for (int i = 0; i < n; i++)
+		{
+			int i1 = next(i, n);
+			int i2 = next(i1, n);
+			if (diagonal(i, i2, n, verts, indices))
+				indices[i1] |= 0x8000;
+		}
+
+		while (n > 3)
+		{
+			int minLen = -1;
+			int mini = -1;
+			for (int i = 0; i < n; i++)
+			{
+				int i1 = next(i, n);
+				if (indices[i1] & 0x8000)
+				{
+					const uint8_t* p0 = &verts[(indices[i] & 0x7fff) * 4];
+					const uint8_t* p2 = &verts[(indices[next(i1, n)] & 0x7fff) * 4];
+
+					const int dx = (int)p2[0] - (int)p0[0];
+					const int dz = (int)p2[2] - (int)p0[2];
+					const int len = dx * dx + dz * dz;
+					if (minLen < 0 || len < minLen)
+					{
+						minLen = len;
+						mini = i;
+					}
+				}
+			}
+
+			if (mini == -1)
+			{
+				// Should not happen.
+				/*			printf("mini == -1 ntris=%d n=%d\n", ntris, n);
+				 for (int i = 0; i < n; i++)
+				 {
+				 printf("%d ", indices[i] & 0x0fffffff);
+				 }
+				 printf("\n");*/
+				return -ntris;
+			}
+
+			int i = mini;
+			int i1 = next(i, n);
+			int i2 = next(i1, n);
+
+			*dst++ = indices[i] & 0x7fff;
+			*dst++ = indices[i1] & 0x7fff;
+			*dst++ = indices[i2] & 0x7fff;
+			ntris++;
+
+			// Removes P[i1] by copying P[i+1]...P[n-1] left one index.
+			n--;
+			for (int k = i1; k < n; k++)
+				indices[k] = indices[k + 1];
+
+			if (i1 >= n) i1 = 0;
+			i = prev(i1, n);
+			// Update diagonal flags.
+			if (diagonal(prev(i, n), i1, n, verts, indices))
+				indices[i] |= 0x8000;
+			else
+				indices[i] &= 0x7fff;
+
+			if (diagonal(i, next(i1, n), n, verts, indices))
+				indices[i1] |= 0x8000;
+			else
+				indices[i1] &= 0x7fff;
+		}
+
+		// Append the remaining triangle.
+		*dst++ = indices[0] & 0x7fff;
+		*dst++ = indices[1] & 0x7fff;
+		*dst++ = indices[2] & 0x7fff;
+		ntris++;
+
+		return ntris;
+	}
+
+	inline void mergePolys(uint16_t* pa, uint16_t* pb, int ea, int eb)
+	{
+		uint16_t tmp[MAX_VERTS_PER_POLY * 2];
+
+		const int na = countPolyVerts(pa);
+		const int nb = countPolyVerts(pb);
+
+		// Merge polygons.
+		memset(tmp, 0xff, sizeof(uint16_t) * MAX_VERTS_PER_POLY * 2);
+		int n = 0;
+		// Add pa
+		for (int i = 0; i < na - 1; ++i)
+			tmp[n++] = pa[(ea + 1 + i) % na];
+		// Add pb
+		for (int i = 0; i < nb - 1; ++i)
+			tmp[n++] = pb[(eb + 1 + i) % nb];
+
+		memcpy(pa, tmp, sizeof(uint16_t) * MAX_VERTS_PER_POLY);
+	}
+
+	inline void pushFront(uint16_t v, uint16_t* arr, int& an)
+	{
+		an++;
+		for (int i = an - 1; i > 0; --i)
+			arr[i] = arr[i - 1];
+		arr[0] = v;
+	}
+
+	inline void pushBack(uint16_t v, uint16_t* arr, int& an)
+	{
+		arr[an] = v;
+		an++;
+	}
+
+	inline bool canRemoveVertex(dtTileCachePolyMesh& mesh, const uint16_t rem)
+	{
+		// Count number of polygons to remove.
+		int numRemovedVerts = 0;
+		int numTouchedVerts = 0;
+		int numRemainingEdges = 0;
+		for (int i = 0; i < mesh.npolys; ++i)
+		{
+			uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
+			const int nv = countPolyVerts(p);
+			int numRemoved = 0;
+			int numVerts = 0;
+			for (int j = 0; j < nv; ++j)
+			{
+				if (p[j] == rem)
+				{
+					numTouchedVerts++;
+					numRemoved++;
+				}
+				numVerts++;
+			}
+			if (numRemoved)
+			{
+				numRemovedVerts += numRemoved;
+				numRemainingEdges += numVerts - (numRemoved + 1);
+			}
+		}
+
+		// There would be too few edges remaining to create a polygon.
+		// This can happen for example when a tip of a triangle is marked
+		// as deletion, but there are no other polys that share the vertex.
+		// In this case, the vertex should not be removed.
+		if (numRemainingEdges <= 2)
+			return false;
+
+		// Check that there is enough memory for the test.
+		const int maxEdges = numTouchedVerts * 2;
+		if (maxEdges > MAX_REM_EDGES)
+			return false;
+
+		// Find edges which share the removed vertex.
+		uint16_t edges[MAX_REM_EDGES];
+		int nedges = 0;
+
+		for (int i = 0; i < mesh.npolys; ++i)
+		{
+			uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
+			const int nv = countPolyVerts(p);
+
+			// Collect edges which touches the removed vertex.
+			for (int j = 0, k = nv - 1; j < nv; k = j++)
+			{
+				if (p[j] == rem || p[k] == rem)
+				{
+					// Arrange edge so that a=rem.
+					int a = p[j], b = p[k];
+					if (b == rem)
+						dtSwap(a, b);
+
+					// Check if the edge exists
+					bool exists = false;
+					for (int m = 0; m < nedges; ++m)
+					{
+						uint16_t* e = &edges[m * 3];
+						if (e[1] == b)
+						{
+							// Exists, increment vertex share count.
+							e[2]++;
+							exists = true;
+						}
+					}
+					// Add new edge.
+					if (!exists)
+					{
+						uint16_t* e = &edges[nedges * 3];
+						e[0] = (uint16_t)a;
+						e[1] = (uint16_t)b;
+						e[2] = 1;
+						nedges++;
+					}
+				}
+			}
+		}
+
+		// There should be no more than 2 open edges.
+		// This catches the case that two non-adjacent polygons
+		// share the removed vertex. In that case, do not remove the vertex.
+		int numOpenEdges = 0;
+		for (int i = 0; i < nedges; ++i)
+		{
+			if (edges[i * 3 + 2] < 2)
+				numOpenEdges++;
+		}
+		if (numOpenEdges > 2)
+			return false;
+
+		return true;
+	}
+
+	inline uint16_t addVertex(uint16_t x, uint16_t y, uint16_t z,
+		uint16_t* verts, uint16_t* firstVert, uint16_t* nextVert, int& nv)
+	{
+		int bucket = computeVertexHash2(x, 0, z);
+		uint16_t i = firstVert[bucket];
+
+		while (i != DT_TILECACHE_NULL_IDX)
+		{
+			const uint16_t* v = &verts[i * 3];
+			if (v[0] == x && v[2] == z && (dtAbs(v[1] - y) <= 2))
+				return i;
+			i = nextVert[i]; // next
+		}
+
+		// Could not find, create new.
+		i = (uint16_t)nv; nv++;
+		uint16_t* v = &verts[i * 3];
+		v[0] = x;
+		v[1] = y;
+		v[2] = z;
+		nextVert[i] = firstVert[bucket];
+		firstVert[bucket] = i;
+
+		return (uint16_t)i;
+	}
+
+	inline bool overlapRangeExl(const uint16_t amin, const uint16_t amax,
+		const uint16_t bmin, const uint16_t bmax)
+	{
+		return (amin >= bmax || amax <= bmin) ? false : true;
+	}
+
+	inline bool buildMeshAdjacency(dtTileCacheAlloc* alloc,
+		uint16_t* polys, const int npolys,
+		const uint16_t* verts, const int nverts,
+		const dtTileCacheContourSet& lcset)
+	{
+		// Based on code by Eric Lengyel from:
+		// http://www.terathon.com/code/edges.php
+
+		const int maxEdgeCount = npolys * MAX_VERTS_PER_POLY;
+		dtFixedArray<uint16_t> firstEdge(alloc, nverts + maxEdgeCount);
+		if (!firstEdge)
+			return false;
+		uint16_t* nextEdge = firstEdge + nverts;
+		int edgeCount = 0;
+
+		dtFixedArray<rcEdge> edges(alloc, maxEdgeCount);
+		if (!edges)
+			return false;
+
+		for (int i = 0; i < nverts; i++)
+			firstEdge[i] = DT_TILECACHE_NULL_IDX;
+
+		for (int i = 0; i < npolys; ++i)
+		{
+			uint16_t* t = &polys[i * MAX_VERTS_PER_POLY * 2];
+			for (int j = 0; j < MAX_VERTS_PER_POLY; ++j)
+			{
+				if (t[j] == DT_TILECACHE_NULL_IDX) break;
+				uint16_t v0 = t[j];
+				uint16_t v1 = (j + 1 >= MAX_VERTS_PER_POLY || t[j + 1] == DT_TILECACHE_NULL_IDX) ? t[0] : t[j + 1];
+				if (v0 < v1)
+				{
+					rcEdge& edge = edges[edgeCount];
+					edge.vert[0] = v0;
+					edge.vert[1] = v1;
+					edge.poly[0] = (uint16_t)i;
+					edge.polyEdge[0] = (uint16_t)j;
+					edge.poly[1] = (uint16_t)i;
+					edge.polyEdge[1] = 0xff;
+					// Insert edge
+					nextEdge[edgeCount] = firstEdge[v0];
+					firstEdge[v0] = (uint16_t)edgeCount;
+					edgeCount++;
+				}
+			}
+		}
+
+		for (int i = 0; i < npolys; ++i)
+		{
+			uint16_t* t = &polys[i * MAX_VERTS_PER_POLY * 2];
+			for (int j = 0; j < MAX_VERTS_PER_POLY; ++j)
+			{
+				if (t[j] == DT_TILECACHE_NULL_IDX) break;
+				uint16_t v0 = t[j];
+				uint16_t v1 = (j + 1 >= MAX_VERTS_PER_POLY || t[j + 1] == DT_TILECACHE_NULL_IDX) ? t[0] : t[j + 1];
+				if (v0 > v1)
+				{
+					bool found = false;
+					for (uint16_t e = firstEdge[v1]; e != DT_TILECACHE_NULL_IDX; e = nextEdge[e])
+					{
+						rcEdge& edge = edges[e];
+						if (edge.vert[1] == v0 && edge.poly[0] == edge.poly[1])
+						{
+							edge.poly[1] = (uint16_t)i;
+							edge.polyEdge[1] = (uint16_t)j;
+							found = true;
+							break;
+						}
+					}
+					if (!found)
+					{
+						// Matching edge not found, it is an open edge, add it.
+						rcEdge& edge = edges[edgeCount];
+						edge.vert[0] = v1;
+						edge.vert[1] = v0;
+						edge.poly[0] = (uint16_t)i;
+						edge.polyEdge[0] = (uint16_t)j;
+						edge.poly[1] = (uint16_t)i;
+						edge.polyEdge[1] = 0xff;
+						// Insert edge
+						nextEdge[edgeCount] = firstEdge[v1];
+						firstEdge[v1] = (uint16_t)edgeCount;
+						edgeCount++;
+					}
+				}
+			}
+		}
+
+		// Mark portal edges.
+		for (int i = 0; i < lcset.nconts; ++i)
+		{
+			dtTileCacheContour& cont = lcset.conts[i];
+			if (cont.nverts < 3)
+				continue;
+
+			for (int j = 0, k = cont.nverts - 1; j < cont.nverts; k = j++)
+			{
+				const uint8_t* va = &cont.verts[k * 4];
+				const uint8_t* vb = &cont.verts[j * 4];
+				const uint8_t dir = va[3] & 0xf;
+				if (dir == 0xf)
+					continue;
+
+				if (dir == 0 || dir == 2)
+				{
+					// Find matching vertical edge
+					const uint16_t x = (uint16_t)va[0];
+					uint16_t zmin = (uint16_t)va[2];
+					uint16_t zmax = (uint16_t)vb[2];
+					if (zmin > zmax)
+						dtSwap(zmin, zmax);
+
+					for (int m = 0; m < edgeCount; ++m)
+					{
+						rcEdge& e = edges[m];
+						// Skip connected edges.
+						if (e.poly[0] != e.poly[1])
+							continue;
+						const uint16_t* eva = &verts[e.vert[0] * 3];
+						const uint16_t* evb = &verts[e.vert[1] * 3];
+						if (eva[0] == x && evb[0] == x)
+						{
+							uint16_t ezmin = eva[2];
+							uint16_t ezmax = evb[2];
+							if (ezmin > ezmax)
+								dtSwap(ezmin, ezmax);
+							if (overlapRangeExl(zmin, zmax, ezmin, ezmax))
+							{
+								// Reuse the other polyedge to store dir.
+								e.polyEdge[1] = dir;
+							}
+						}
+					}
+				}
+				else
+				{
+					// Find matching vertical edge
+					const uint16_t z = (uint16_t)va[2];
+					uint16_t xmin = (uint16_t)va[0];
+					uint16_t xmax = (uint16_t)vb[0];
+					if (xmin > xmax)
+						dtSwap(xmin, xmax);
+					for (int m = 0; m < edgeCount; ++m)
+					{
+						rcEdge& e = edges[m];
+						// Skip connected edges.
+						if (e.poly[0] != e.poly[1])
+							continue;
+						const uint16_t* eva = &verts[e.vert[0] * 3];
+						const uint16_t* evb = &verts[e.vert[1] * 3];
+						if (eva[2] == z && evb[2] == z)
+						{
+							uint16_t exmin = eva[0];
+							uint16_t exmax = evb[0];
+							if (exmin > exmax)
+								dtSwap(exmin, exmax);
+							if (overlapRangeExl(xmin, xmax, exmin, exmax))
+							{
+								// Reuse the other polyedge to store dir.
+								e.polyEdge[1] = dir;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Store adjacency
+		for (int i = 0; i < edgeCount; ++i)
+		{
+			const rcEdge& e = edges[i];
+			if (e.poly[0] != e.poly[1])
+			{
+				uint16_t* p0 = &polys[e.poly[0] * MAX_VERTS_PER_POLY * 2];
+				uint16_t* p1 = &polys[e.poly[1] * MAX_VERTS_PER_POLY * 2];
+				p0[MAX_VERTS_PER_POLY + e.polyEdge[0]] = e.poly[1];
+				p1[MAX_VERTS_PER_POLY + e.polyEdge[1]] = e.poly[0];
+			}
+			else if (e.polyEdge[1] != 0xff)
+			{
+				uint16_t* p0 = &polys[e.poly[0] * MAX_VERTS_PER_POLY * 2];
+				p0[MAX_VERTS_PER_POLY + e.polyEdge[0]] = 0x8000 | (uint16_t)e.polyEdge[1];
+			}
+		}
+
+		return true;
+	}
+
+	inline dtStatus removeVertex(dtTileCachePolyMesh& mesh, const uint16_t rem, const int maxTris)
+	{
+		// Count number of polygons to remove.
+		int numRemovedVerts = 0;
+		for (int i = 0; i < mesh.npolys; ++i)
+		{
+			uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
+			const int nv = countPolyVerts(p);
+			for (int j = 0; j < nv; ++j)
+			{
+				if (p[j] == rem)
+					numRemovedVerts++;
+			}
+		}
+
+		int nedges = 0;
+		uint16_t edges[MAX_REM_EDGES * 3];
+		int nhole = 0;
+		uint16_t hole[MAX_REM_EDGES];
+		int nharea = 0;
+		uint16_t harea[MAX_REM_EDGES];
+
+		for (int i = 0; i < mesh.npolys; ++i)
+		{
+			uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
+			const int nv = countPolyVerts(p);
+			bool hasRem = false;
+			for (int j = 0; j < nv; ++j)
+				if (p[j] == rem) hasRem = true;
+			if (hasRem)
+			{
+				// Collect edges which does not touch the removed vertex.
+				for (int j = 0, k = nv - 1; j < nv; k = j++)
+				{
+					if (p[j] != rem && p[k] != rem)
+					{
+						if (nedges >= MAX_REM_EDGES)
+							return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+						uint16_t* e = &edges[nedges * 3];
+						e[0] = p[k];
+						e[1] = p[j];
+						e[2] = mesh.areas[i];
+						nedges++;
+					}
+				}
+				// Remove the polygon.
+				uint16_t* p2 = &mesh.polys[(mesh.npolys - 1) * MAX_VERTS_PER_POLY * 2];
+				memcpy(p, p2, sizeof(uint16_t) * MAX_VERTS_PER_POLY);
+				memset(p + MAX_VERTS_PER_POLY, 0xff, sizeof(uint16_t) * MAX_VERTS_PER_POLY);
+				mesh.areas[i] = mesh.areas[mesh.npolys - 1];
+				mesh.npolys--;
+				--i;
+			}
+		}
+
+		// Remove vertex.
+		for (int i = (int)rem; i < mesh.nverts; ++i)
+		{
+			mesh.verts[i * 3 + 0] = mesh.verts[(i + 1) * 3 + 0];
+			mesh.verts[i * 3 + 1] = mesh.verts[(i + 1) * 3 + 1];
+			mesh.verts[i * 3 + 2] = mesh.verts[(i + 1) * 3 + 2];
+		}
+		mesh.nverts--;
+
+		// Adjust indices to match the removed vertex layout.
+		for (int i = 0; i < mesh.npolys; ++i)
+		{
+			uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
+			const int nv = countPolyVerts(p);
+			for (int j = 0; j < nv; ++j)
+				if (p[j] > rem) p[j]--;
+		}
+		for (int i = 0; i < nedges; ++i)
+		{
+			if (edges[i * 3 + 0] > rem) edges[i * 3 + 0]--;
+			if (edges[i * 3 + 1] > rem) edges[i * 3 + 1]--;
+		}
+
+		if (nedges == 0)
+			return DT_SUCCESS;
+
+		// Start with one vertex, keep appending connected
+		// segments to the start and end of the hole.
+		pushBack(edges[0], hole, nhole);
+		pushBack(edges[2], harea, nharea);
+
+		while (nedges)
+		{
+			bool match = false;
+
+			for (int i = 0; i < nedges; ++i)
+			{
+				const uint16_t ea = edges[i * 3 + 0];
+				const uint16_t eb = edges[i * 3 + 1];
+				const uint16_t a = edges[i * 3 + 2];
+				bool add = false;
+				if (hole[0] == eb)
+				{
+					// The segment matches the beginning of the hole boundary.
+					if (nhole >= MAX_REM_EDGES)
+						return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+					pushFront(ea, hole, nhole);
+					pushFront(a, harea, nharea);
+					add = true;
+				}
+				else if (hole[nhole - 1] == ea)
+				{
+					// The segment matches the end of the hole boundary.
+					if (nhole >= MAX_REM_EDGES)
+						return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+					pushBack(eb, hole, nhole);
+					pushBack(a, harea, nharea);
+					add = true;
+				}
+				if (add)
+				{
+					// The edge segment was added, remove it.
+					edges[i * 3 + 0] = edges[(nedges - 1) * 3 + 0];
+					edges[i * 3 + 1] = edges[(nedges - 1) * 3 + 1];
+					edges[i * 3 + 2] = edges[(nedges - 1) * 3 + 2];
+					--nedges;
+					match = true;
+					--i;
+				}
+			}
+
+			if (!match)
+				break;
+		}
+
+		uint16_t tris[MAX_REM_EDGES * 3];
+		uint8_t tverts[MAX_REM_EDGES * 3];
+		uint16_t tpoly[MAX_REM_EDGES * 3];
+
+		// Generate temp vertex array for triangulation.
+		for (int i = 0; i < nhole; ++i)
+		{
+			const uint16_t pi = hole[i];
+			tverts[i * 4 + 0] = (uint8_t)mesh.verts[pi * 3 + 0];
+			tverts[i * 4 + 1] = (uint8_t)mesh.verts[pi * 3 + 1];
+			tverts[i * 4 + 2] = (uint8_t)mesh.verts[pi * 3 + 2];
+			tverts[i * 4 + 3] = 0;
+			tpoly[i] = (uint16_t)i;
+		}
+
+		// Triangulate the hole.
+		int ntris = triangulate(nhole, tverts, tpoly, tris);
+		if (ntris < 0)
+		{
+			// TODO: issue warning!
+			ntris = -ntris;
+		}
+
+		if (ntris > MAX_REM_EDGES)
+			return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+
+		uint16_t polys[MAX_REM_EDGES * MAX_VERTS_PER_POLY];
+		uint8_t pareas[MAX_REM_EDGES];
+
+		// Build initial polygons.
+		int npolys = 0;
+		memset(polys, 0xff, ntris * MAX_VERTS_PER_POLY * sizeof(uint16_t));
+		for (int j = 0; j < ntris; ++j)
+		{
+			uint16_t* t = &tris[j * 3];
+			if (t[0] != t[1] && t[0] != t[2] && t[1] != t[2])
+			{
+				polys[npolys * MAX_VERTS_PER_POLY + 0] = hole[t[0]];
+				polys[npolys * MAX_VERTS_PER_POLY + 1] = hole[t[1]];
+				polys[npolys * MAX_VERTS_PER_POLY + 2] = hole[t[2]];
+				pareas[npolys] = (uint8_t)harea[t[0]];
+				npolys++;
+			}
+		}
+		if (!npolys)
+			return DT_SUCCESS;
+
+		// Merge polygons.
+		int maxVertsPerPoly = MAX_VERTS_PER_POLY;
+		if (maxVertsPerPoly > 3)
+		{
+			for (;;)
+			{
+				// Find best polygons to merge.
+				int bestMergeVal = 0;
+				int bestPa = 0, bestPb = 0, bestEa = 0, bestEb = 0;
+
+				for (int j = 0; j < npolys - 1; ++j)
+				{
+					uint16_t* pj = &polys[j * MAX_VERTS_PER_POLY];
+					for (int k = j + 1; k < npolys; ++k)
+					{
+						uint16_t* pk = &polys[k * MAX_VERTS_PER_POLY];
+						int ea, eb;
+						int v = getPolyMergeValue(pj, pk, mesh.verts, ea, eb);
+						if (v > bestMergeVal)
+						{
+							bestMergeVal = v;
+							bestPa = j;
+							bestPb = k;
+							bestEa = ea;
+							bestEb = eb;
+						}
+					}
+				}
+
+				if (bestMergeVal > 0)
+				{
+					// Found best, merge.
+					uint16_t* pa = &polys[bestPa * MAX_VERTS_PER_POLY];
+					uint16_t* pb = &polys[bestPb * MAX_VERTS_PER_POLY];
+					mergePolys(pa, pb, bestEa, bestEb);
+					memcpy(pb, &polys[(npolys - 1) * MAX_VERTS_PER_POLY], sizeof(uint16_t) * MAX_VERTS_PER_POLY);
+					pareas[bestPb] = pareas[npolys - 1];
+					npolys--;
+				}
+				else
+				{
+					// Could not merge any polygons, stop.
+					break;
+				}
+			}
+		}
+
+		// Store polygons.
+		for (int i = 0; i < npolys; ++i)
+		{
+			if (mesh.npolys >= maxTris) break;
+			uint16_t* p = &mesh.polys[mesh.npolys * MAX_VERTS_PER_POLY * 2];
+			memset(p, 0xff, sizeof(uint16_t) * MAX_VERTS_PER_POLY * 2);
+			for (int j = 0; j < MAX_VERTS_PER_POLY; ++j)
+				p[j] = polys[i * MAX_VERTS_PER_POLY + j];
+			mesh.areas[mesh.npolys] = pareas[i];
+			mesh.npolys++;
+			if (mesh.npolys > maxTris)
+				return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+		}
+
+		return DT_SUCCESS;
+	}
+
+	inline bool appendVertex(dtTempContour& cont, const int x, const int y, const int z, const int r)
+	{
+		// Try to merge with existing segments.
+		if (cont.nverts > 1)
+		{
+			uint8_t* pa = &cont.verts[(cont.nverts - 2) * 4];
+			uint8_t* pb = &cont.verts[(cont.nverts - 1) * 4];
+			if ((int)pb[3] == r)
+			{
+				if (pa[0] == pb[0] && (int)pb[0] == x)
+				{
+					// The verts are aligned aling x-axis, update z.
+					pb[1] = (uint8_t)y;
+					pb[2] = (uint8_t)z;
+					return true;
+				}
+				else if (pa[2] == pb[2] && (int)pb[2] == z)
+				{
+					// The verts are aligned aling z-axis, update x.
+					pb[0] = (uint8_t)x;
+					pb[1] = (uint8_t)y;
+					return true;
+				}
+			}
+		}
+
+		// Add new point.
+		if (cont.nverts + 1 > cont.cverts)
+			return false;
+
+		uint8_t* v = &cont.verts[cont.nverts * 4];
+		v[0] = (uint8_t)x;
+		v[1] = (uint8_t)y;
+		v[2] = (uint8_t)z;
+		v[3] = (uint8_t)r;
+		cont.nverts++;
+
+		return true;
+	}
+
+	inline uint8_t getNeighbourReg(dtTileCacheLayer& layer,
+		const int ax, const int ay, const int dir)
+	{
+		const int w = (int)layer.header->width;
+		const int ia = ax + ay * w;
+
+		const uint8_t con = layer.cons[ia] & 0xf;
+		const uint8_t portal = layer.cons[ia] >> 4;
+		const uint8_t mask = (uint8_t)(1 << dir);
+
+		if ((con & mask) == 0)
+		{
+			// No connection, return portal or hard edge.
+			if (portal & mask)
+				return 0xf8 + (uint8_t)dir;
+			return 0xff;
+		}
+
+		const int bx = ax + getDirOffsetX(dir);
+		const int by = ay + getDirOffsetY(dir);
+		const int ib = bx + by * w;
+
+		return layer.regs[ib];
+	}
+
+	inline bool walkContour(dtTileCacheLayer& layer, int x, int y, dtTempContour& cont)
+	{
+		const int w = (int)layer.header->width;
+		const int h = (int)layer.header->height;
+
+		cont.nverts = 0;
+
+		int startX = x;
+		int startY = y;
+		int startDir = -1;
+
+		for (int i = 0; i < 4; ++i)
+		{
+			const int dir = (i + 3) & 3;
+			uint8_t rn = getNeighbourReg(layer, x, y, dir);
+			if (rn != layer.regs[x + y * w])
+			{
+				startDir = dir;
+				break;
+			}
+		}
+		if (startDir == -1)
+			return true;
+
+		int dir = startDir;
+		const int maxIter = w * h;
+
+		int iter = 0;
+		while (iter < maxIter)
+		{
+			uint8_t rn = getNeighbourReg(layer, x, y, dir);
+
+			int nx = x;
+			int ny = y;
+			int ndir = dir;
+
+			if (rn != layer.regs[x + y * w])
+			{
+				// Solid edge.
+				int px = x;
+				int pz = y;
+				switch (dir)
+				{
+					case 0: pz++; break;
+					case 1: px++; pz++; break;
+					case 2: px++; break;
+				}
+
+				// Try to merge with previous vertex.
+				if (!appendVertex(cont, px, (int)layer.heights[x + y * w], pz, rn))
+					return false;
+
+				ndir = (dir + 1) & 0x3;  // Rotate CW
+			}
+			else
+			{
+				// Move to next.
+				nx = x + getDirOffsetX(dir);
+				ny = y + getDirOffsetY(dir);
+				ndir = (dir + 3) & 0x3;	// Rotate CCW
+			}
+
+			if (iter > 0 && x == startX && y == startY && dir == startDir)
+				break;
+
+			x = nx;
+			y = ny;
+			dir = ndir;
+
+			iter++;
+		}
+
+		// Remove last vertex if it is duplicate of the first one.
+		uint8_t* pa = &cont.verts[(cont.nverts - 1) * 4];
+		uint8_t* pb = &cont.verts[0];
+		if (pa[0] == pb[0] && pa[2] == pb[2])
+			cont.nverts--;
+
+		return true;
+	}
+
+	inline float distancePtSeg(const int x, const int z,
+		const int px, const int pz,
+		const int qx, const int qz)
+	{
+		float pqx = (float)(qx - px);
+		float pqz = (float)(qz - pz);
+		float dx = (float)(x - px);
+		float dz = (float)(z - pz);
+		float d = pqx * pqx + pqz * pqz;
+		float t = pqx * dx + pqz * dz;
+		if (d > 0)
+			t /= d;
+		if (t < 0)
+			t = 0;
+		else if (t > 1)
+			t = 1;
+
+		dx = px + t * pqx - x;
+		dz = pz + t * pqz - z;
+
+		return dx * dx + dz * dz;
+	}
+
+	inline void simplifyContour(dtTempContour& cont, const float maxError)
+	{
+		cont.npoly = 0;
+
+		for (int i = 0; i < cont.nverts; ++i)
+		{
+			int j = (i + 1) % cont.nverts;
+			// Check for start of a wall segment.
+			uint8_t ra = cont.verts[j * 4 + 3];
+			uint8_t rb = cont.verts[i * 4 + 3];
+			if (ra != rb)
+				cont.poly[cont.npoly++] = (uint16_t)i;
+		}
+		if (cont.npoly < 2)
+		{
+			// If there is no transitions at all,
+			// create some initial points for the simplification process.
+			// Find lower-left and upper-right vertices of the contour.
+			int llx = cont.verts[0];
+			int llz = cont.verts[2];
+			int lli = 0;
+			int urx = cont.verts[0];
+			int urz = cont.verts[2];
+			int uri = 0;
+			for (int i = 1; i < cont.nverts; ++i)
+			{
+				int x = cont.verts[i * 4 + 0];
+				int z = cont.verts[i * 4 + 2];
+				if (x < llx || (x == llx && z < llz))
+				{
+					llx = x;
+					llz = z;
+					lli = i;
+				}
+				if (x > urx || (x == urx && z > urz))
+				{
+					urx = x;
+					urz = z;
+					uri = i;
+				}
+			}
+			cont.npoly = 0;
+			cont.poly[cont.npoly++] = (uint16_t)lli;
+			cont.poly[cont.npoly++] = (uint16_t)uri;
+		}
+
+		// Add points until all raw points are within
+		// error tolerance to the simplified shape.
+		for (int i = 0; i < cont.npoly; )
+		{
+			int ii = (i + 1) % cont.npoly;
+
+			const int ai = (int)cont.poly[i];
+			const int ax = (int)cont.verts[ai * 4 + 0];
+			const int az = (int)cont.verts[ai * 4 + 2];
+
+			const int bi = (int)cont.poly[ii];
+			const int bx = (int)cont.verts[bi * 4 + 0];
+			const int bz = (int)cont.verts[bi * 4 + 2];
+
+			// Find maximum deviation from the segment.
+			float maxd = 0;
+			int maxi = -1;
+			int ci, cinc, endi;
+
+			// Traverse the segment in lexilogical order so that the
+			// max deviation is calculated similarly when traversing
+			// opposite segments.
+			if (bx > ax || (bx == ax && bz > az))
+			{
+				cinc = 1;
+				ci = (ai + cinc) % cont.nverts;
+				endi = bi;
+			}
+			else
+			{
+				cinc = cont.nverts - 1;
+				ci = (bi + cinc) % cont.nverts;
+				endi = ai;
+			}
+
+			// Tessellate only outer edges or edges between areas.
+			while (ci != endi)
+			{
+				float d = distancePtSeg(cont.verts[ci * 4 + 0], cont.verts[ci * 4 + 2], ax, az, bx, bz);
+				if (d > maxd)
+				{
+					maxd = d;
+					maxi = ci;
+				}
+				ci = (ci + cinc) % cont.nverts;
+			}
+
+			// If the max deviation is larger than accepted error,
+			// add new point, else continue to next segment.
+			if (maxi != -1 && maxd > (maxError * maxError))
+			{
+				cont.npoly++;
+				for (int j = cont.npoly - 1; j > i; --j)
+					cont.poly[j] = cont.poly[j - 1];
+				cont.poly[i + 1] = (uint16_t)maxi;
+			}
+			else
+			{
+				++i;
+			}
+		}
+
+		// Remap vertices
+		int start = 0;
+		for (int i = 1; i < cont.npoly; ++i)
+			if (cont.poly[i] < cont.poly[start])
+				start = i;
+
+		cont.nverts = 0;
+		for (int i = 0; i < cont.npoly; ++i)
+		{
+			const int j = (start + i) % cont.npoly;
+			uint8_t* src = &cont.verts[cont.poly[j] * 4];
+			uint8_t* dst = &cont.verts[cont.nverts * 4];
+			dst[0] = src[0];
+			dst[1] = src[1];
+			dst[2] = src[2];
+			dst[3] = src[3];
+			cont.nverts++;
+		}
+	}
+
+	inline uint8_t getCornerHeight(dtTileCacheLayer& layer,
+		const int x, const int y, const int z,
+		const int walkableClimb,
+		bool& shouldRemove)
+	{
+		const int w = (int)layer.header->width;
+		const int h = (int)layer.header->height;
+
+		int n = 0;
+
+		uint8_t portal = 0xf;
+		uint8_t height = 0;
+		uint8_t preg = 0xff;
+		bool allSameReg = true;
+
+		for (int dz = -1; dz <= 0; ++dz)
+		{
+			for (int dx = -1; dx <= 0; ++dx)
+			{
+				const int px = x + dx;
+				const int pz = z + dz;
+				if (px >= 0 && pz >= 0 && px < w && pz < h)
+				{
+					const int idx = px + pz * w;
+					const int lh = (int)layer.heights[idx];
+					if (dtAbs(lh - y) <= walkableClimb && layer.areas[idx] != DT_TILECACHE_NULL_AREA)
+					{
+						height = dtMax(height, (uint8_t)lh);
+						portal &= (layer.cons[idx] >> 4);
+						if (preg != 0xff && preg != layer.regs[idx])
+							allSameReg = false;
+						preg = layer.regs[idx];
+						n++;
+					}
+				}
+			}
+		}
+
+		int portalCount = 0;
+		for (int dir = 0; dir < 4; ++dir)
+			if (portal & (1 << dir))
+				portalCount++;
+
+		shouldRemove = false;
+		if (n > 1 && portalCount == 1 && allSameReg)
+		{
+			shouldRemove = true;
+		}
+
+		return height;
+	}
+
+	inline void addUniqueLast(uint8_t* a, uint8_t& an, uint8_t v)
+	{
+		const int n = (int)an;
+		if (n > 0 && a[n - 1] == v) return;
+		a[an] = v;
+		an++;
+	}
+
+	inline bool canMerge(uint8_t oldRegId, uint8_t newRegId, const dtLayerMonotoneRegion* regs, const int nregs)
+	{
+		int count = 0;
+		for (int i = 0; i < nregs; ++i)
+		{
+			const dtLayerMonotoneRegion& reg = regs[i];
+			if (reg.regId != oldRegId) continue;
+			const int nnei = (int)reg.nneis;
+			for (int j = 0; j < nnei; ++j)
+			{
+				if (regs[reg.neis[j]].regId == newRegId)
+					count++;
+			}
+		}
+		return count == 1;
+	}
 }
 
 dtTileCacheContourSet* dtAllocTileCacheContourSet(dtTileCacheAlloc* alloc)
@@ -93,79 +1418,6 @@ void dtFreeTileCachePolyMesh(dtTileCacheAlloc* alloc, dtTileCachePolyMesh* lmesh
 	alloc->free(lmesh->flags);
 	alloc->free(lmesh->areas);
 	alloc->free(lmesh);
-}
-
-struct dtLayerSweepSpan
-{
-	uint16_t ns;	// number samples
-	uint8_t id;	// region id
-	uint8_t nei;	// neighbour id
-};
-
-static const int DT_LAYER_MAX_NEIS = 16;
-
-struct dtLayerMonotoneRegion
-{
-	int area;
-	uint8_t neis[DT_LAYER_MAX_NEIS];
-	uint8_t nneis;
-	uint8_t regId;
-	uint8_t areaId;
-};
-
-struct dtTempContour
-{
-	inline dtTempContour(uint8_t* vbuf, const int nvbuf,
-		uint16_t* pbuf, const int npbuf) :
-		verts(vbuf), nverts(0), cverts(nvbuf),
-		poly(pbuf), npoly(0), cpoly(npbuf)
-	{
-	}
-	uint8_t* verts;
-	int nverts;
-	int cverts;
-	uint16_t* poly;
-	int npoly;
-	int cpoly;
-};
-
-inline bool overlapRangeExl(const uint16_t amin, const uint16_t amax,
-	const uint16_t bmin, const uint16_t bmax)
-{
-	return (amin >= bmax || amax <= bmin) ? false : true;
-}
-
-static void addUniqueLast(uint8_t* a, uint8_t& an, uint8_t v)
-{
-	const int n = (int)an;
-	if (n > 0 && a[n - 1] == v) return;
-	a[an] = v;
-	an++;
-}
-
-inline bool isConnected(const dtTileCacheLayer& layer,
-	const int ia, const int ib, const int walkableClimb)
-{
-	if (layer.areas[ia] != layer.areas[ib]) return false;
-	if (dtAbs((int)layer.heights[ia] - (int)layer.heights[ib]) > walkableClimb) return false;
-	return true;
-}
-
-static bool canMerge(uint8_t oldRegId, uint8_t newRegId, const dtLayerMonotoneRegion* regs, const int nregs)
-{
-	int count = 0;
-	for (int i = 0; i < nregs; ++i)
-	{
-		const dtLayerMonotoneRegion& reg = regs[i];
-		if (reg.regId != oldRegId) continue;
-		const int nnei = (int)reg.nneis;
-		for (int j = 0; j < nnei; ++j)
-		{
-			if (regs[reg.neis[j]].regId == newRegId)
-				count++;
-		}
-	}
-	return count == 1;
 }
 
 dtStatus dtBuildTileCacheRegions(dtTileCacheAlloc* alloc,
@@ -374,356 +1626,8 @@ dtStatus dtBuildTileCacheRegions(dtTileCacheAlloc* alloc,
 	return DT_SUCCESS;
 }
 
-static bool appendVertex(dtTempContour& cont, const int x, const int y, const int z, const int r)
-{
-	// Try to merge with existing segments.
-	if (cont.nverts > 1)
-	{
-		uint8_t* pa = &cont.verts[(cont.nverts - 2) * 4];
-		uint8_t* pb = &cont.verts[(cont.nverts - 1) * 4];
-		if ((int)pb[3] == r)
-		{
-			if (pa[0] == pb[0] && (int)pb[0] == x)
-			{
-				// The verts are aligned aling x-axis, update z.
-				pb[1] = (uint8_t)y;
-				pb[2] = (uint8_t)z;
-				return true;
-			}
-			else if (pa[2] == pb[2] && (int)pb[2] == z)
-			{
-				// The verts are aligned aling z-axis, update x.
-				pb[0] = (uint8_t)x;
-				pb[1] = (uint8_t)y;
-				return true;
-			}
-		}
-	}
-
-	// Add new point.
-	if (cont.nverts + 1 > cont.cverts)
-		return false;
-
-	uint8_t* v = &cont.verts[cont.nverts * 4];
-	v[0] = (uint8_t)x;
-	v[1] = (uint8_t)y;
-	v[2] = (uint8_t)z;
-	v[3] = (uint8_t)r;
-	cont.nverts++;
-
-	return true;
-}
-
-static uint8_t getNeighbourReg(dtTileCacheLayer& layer,
-	const int ax, const int ay, const int dir)
-{
-	const int w = (int)layer.header->width;
-	const int ia = ax + ay * w;
-
-	const uint8_t con = layer.cons[ia] & 0xf;
-	const uint8_t portal = layer.cons[ia] >> 4;
-	const uint8_t mask = (uint8_t)(1 << dir);
-
-	if ((con & mask) == 0)
-	{
-		// No connection, return portal or hard edge.
-		if (portal & mask)
-			return 0xf8 + (uint8_t)dir;
-		return 0xff;
-	}
-
-	const int bx = ax + getDirOffsetX(dir);
-	const int by = ay + getDirOffsetY(dir);
-	const int ib = bx + by * w;
-
-	return layer.regs[ib];
-}
-
-static bool walkContour(dtTileCacheLayer& layer, int x, int y, dtTempContour& cont)
-{
-	const int w = (int)layer.header->width;
-	const int h = (int)layer.header->height;
-
-	cont.nverts = 0;
-
-	int startX = x;
-	int startY = y;
-	int startDir = -1;
-
-	for (int i = 0; i < 4; ++i)
-	{
-		const int dir = (i + 3) & 3;
-		uint8_t rn = getNeighbourReg(layer, x, y, dir);
-		if (rn != layer.regs[x + y * w])
-		{
-			startDir = dir;
-			break;
-		}
-	}
-	if (startDir == -1)
-		return true;
-
-	int dir = startDir;
-	const int maxIter = w * h;
-
-	int iter = 0;
-	while (iter < maxIter)
-	{
-		uint8_t rn = getNeighbourReg(layer, x, y, dir);
-
-		int nx = x;
-		int ny = y;
-		int ndir = dir;
-
-		if (rn != layer.regs[x + y * w])
-		{
-			// Solid edge.
-			int px = x;
-			int pz = y;
-			switch (dir)
-			{
-				case 0: pz++; break;
-				case 1: px++; pz++; break;
-				case 2: px++; break;
-			}
-
-			// Try to merge with previous vertex.
-			if (!appendVertex(cont, px, (int)layer.heights[x + y * w], pz, rn))
-				return false;
-
-			ndir = (dir + 1) & 0x3;  // Rotate CW
-		}
-		else
-		{
-			// Move to next.
-			nx = x + getDirOffsetX(dir);
-			ny = y + getDirOffsetY(dir);
-			ndir = (dir + 3) & 0x3;	// Rotate CCW
-		}
-
-		if (iter > 0 && x == startX && y == startY && dir == startDir)
-			break;
-
-		x = nx;
-		y = ny;
-		dir = ndir;
-
-		iter++;
-	}
-
-	// Remove last vertex if it is duplicate of the first one.
-	uint8_t* pa = &cont.verts[(cont.nverts - 1) * 4];
-	uint8_t* pb = &cont.verts[0];
-	if (pa[0] == pb[0] && pa[2] == pb[2])
-		cont.nverts--;
-
-	return true;
-}
-
-static float distancePtSeg(const int x, const int z,
-	const int px, const int pz,
-	const int qx, const int qz)
-{
-	float pqx = (float)(qx - px);
-	float pqz = (float)(qz - pz);
-	float dx = (float)(x - px);
-	float dz = (float)(z - pz);
-	float d = pqx * pqx + pqz * pqz;
-	float t = pqx * dx + pqz * dz;
-	if (d > 0)
-		t /= d;
-	if (t < 0)
-		t = 0;
-	else if (t > 1)
-		t = 1;
-
-	dx = px + t * pqx - x;
-	dz = pz + t * pqz - z;
-
-	return dx * dx + dz * dz;
-}
-
-static void simplifyContour(dtTempContour& cont, const float maxError)
-{
-	cont.npoly = 0;
-
-	for (int i = 0; i < cont.nverts; ++i)
-	{
-		int j = (i + 1) % cont.nverts;
-		// Check for start of a wall segment.
-		uint8_t ra = cont.verts[j * 4 + 3];
-		uint8_t rb = cont.verts[i * 4 + 3];
-		if (ra != rb)
-			cont.poly[cont.npoly++] = (uint16_t)i;
-	}
-	if (cont.npoly < 2)
-	{
-		// If there is no transitions at all,
-		// create some initial points for the simplification process.
-		// Find lower-left and upper-right vertices of the contour.
-		int llx = cont.verts[0];
-		int llz = cont.verts[2];
-		int lli = 0;
-		int urx = cont.verts[0];
-		int urz = cont.verts[2];
-		int uri = 0;
-		for (int i = 1; i < cont.nverts; ++i)
-		{
-			int x = cont.verts[i * 4 + 0];
-			int z = cont.verts[i * 4 + 2];
-			if (x < llx || (x == llx && z < llz))
-			{
-				llx = x;
-				llz = z;
-				lli = i;
-			}
-			if (x > urx || (x == urx && z > urz))
-			{
-				urx = x;
-				urz = z;
-				uri = i;
-			}
-		}
-		cont.npoly = 0;
-		cont.poly[cont.npoly++] = (uint16_t)lli;
-		cont.poly[cont.npoly++] = (uint16_t)uri;
-	}
-
-	// Add points until all raw points are within
-	// error tolerance to the simplified shape.
-	for (int i = 0; i < cont.npoly; )
-	{
-		int ii = (i + 1) % cont.npoly;
-
-		const int ai = (int)cont.poly[i];
-		const int ax = (int)cont.verts[ai * 4 + 0];
-		const int az = (int)cont.verts[ai * 4 + 2];
-
-		const int bi = (int)cont.poly[ii];
-		const int bx = (int)cont.verts[bi * 4 + 0];
-		const int bz = (int)cont.verts[bi * 4 + 2];
-
-		// Find maximum deviation from the segment.
-		float maxd = 0;
-		int maxi = -1;
-		int ci, cinc, endi;
-
-		// Traverse the segment in lexilogical order so that the
-		// max deviation is calculated similarly when traversing
-		// opposite segments.
-		if (bx > ax || (bx == ax && bz > az))
-		{
-			cinc = 1;
-			ci = (ai + cinc) % cont.nverts;
-			endi = bi;
-		}
-		else
-		{
-			cinc = cont.nverts - 1;
-			ci = (bi + cinc) % cont.nverts;
-			endi = ai;
-		}
-
-		// Tessellate only outer edges or edges between areas.
-		while (ci != endi)
-		{
-			float d = distancePtSeg(cont.verts[ci * 4 + 0], cont.verts[ci * 4 + 2], ax, az, bx, bz);
-			if (d > maxd)
-			{
-				maxd = d;
-				maxi = ci;
-			}
-			ci = (ci + cinc) % cont.nverts;
-		}
-
-		// If the max deviation is larger than accepted error,
-		// add new point, else continue to next segment.
-		if (maxi != -1 && maxd > (maxError * maxError))
-		{
-			cont.npoly++;
-			for (int j = cont.npoly - 1; j > i; --j)
-				cont.poly[j] = cont.poly[j - 1];
-			cont.poly[i + 1] = (uint16_t)maxi;
-		}
-		else
-		{
-			++i;
-		}
-	}
-
-	// Remap vertices
-	int start = 0;
-	for (int i = 1; i < cont.npoly; ++i)
-		if (cont.poly[i] < cont.poly[start])
-			start = i;
-
-	cont.nverts = 0;
-	for (int i = 0; i < cont.npoly; ++i)
-	{
-		const int j = (start + i) % cont.npoly;
-		uint8_t* src = &cont.verts[cont.poly[j] * 4];
-		uint8_t* dst = &cont.verts[cont.nverts * 4];
-		dst[0] = src[0];
-		dst[1] = src[1];
-		dst[2] = src[2];
-		dst[3] = src[3];
-		cont.nverts++;
-	}
-}
-
-static uint8_t getCornerHeight(dtTileCacheLayer& layer,
-	const int x, const int y, const int z,
-	const int walkableClimb,
-	bool& shouldRemove)
-{
-	const int w = (int)layer.header->width;
-	const int h = (int)layer.header->height;
-
-	int n = 0;
-
-	uint8_t portal = 0xf;
-	uint8_t height = 0;
-	uint8_t preg = 0xff;
-	bool allSameReg = true;
-
-	for (int dz = -1; dz <= 0; ++dz)
-	{
-		for (int dx = -1; dx <= 0; ++dx)
-		{
-			const int px = x + dx;
-			const int pz = z + dz;
-			if (px >= 0 && pz >= 0 && px < w && pz < h)
-			{
-				const int idx = px + pz * w;
-				const int lh = (int)layer.heights[idx];
-				if (dtAbs(lh - y) <= walkableClimb && layer.areas[idx] != DT_TILECACHE_NULL_AREA)
-				{
-					height = dtMax(height, (uint8_t)lh);
-					portal &= (layer.cons[idx] >> 4);
-					if (preg != 0xff && preg != layer.regs[idx])
-						allSameReg = false;
-					preg = layer.regs[idx];
-					n++;
-				}
-			}
-		}
-	}
-
-	int portalCount = 0;
-	for (int dir = 0; dir < 4; ++dir)
-		if (portal & (1 << dir))
-			portalCount++;
-
-	shouldRemove = false;
-	if (n > 1 && portalCount == 1 && allSameReg)
-	{
-		shouldRemove = true;
-	}
-
-	return height;
-}
-
 // TODO: move this somewhere else, once the layer meshing is done.
+// レイヤーメッシュが完了したら、これを別の場所に移動します。
 dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc,
 	dtTileCacheLayer& layer,
 	const int walkableClimb, const float maxError,
@@ -811,906 +1715,6 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc,
 				}
 			}
 		}
-	}
-
-	return DT_SUCCESS;
-}
-
-static const int VERTEX_BUCKET_COUNT2 = (1 << 8);
-
-inline int computeVertexHash2(int x, int y, int z)
-{
-	const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
-	const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
-	const unsigned int h3 = 0xcb1ab31f;
-	unsigned int n = h1 * x + h2 * y + h3 * z;
-	return (int)(n & (VERTEX_BUCKET_COUNT2 - 1));
-}
-
-static uint16_t addVertex(uint16_t x, uint16_t y, uint16_t z,
-	uint16_t* verts, uint16_t* firstVert, uint16_t* nextVert, int& nv)
-{
-	int bucket = computeVertexHash2(x, 0, z);
-	uint16_t i = firstVert[bucket];
-
-	while (i != DT_TILECACHE_NULL_IDX)
-	{
-		const uint16_t* v = &verts[i * 3];
-		if (v[0] == x && v[2] == z && (dtAbs(v[1] - y) <= 2))
-			return i;
-		i = nextVert[i]; // next
-	}
-
-	// Could not find, create new.
-	i = (uint16_t)nv; nv++;
-	uint16_t* v = &verts[i * 3];
-	v[0] = x;
-	v[1] = y;
-	v[2] = z;
-	nextVert[i] = firstVert[bucket];
-	firstVert[bucket] = i;
-
-	return (uint16_t)i;
-}
-
-struct rcEdge
-{
-	uint16_t vert[2];
-	uint16_t polyEdge[2];
-	uint16_t poly[2];
-};
-
-static bool buildMeshAdjacency(dtTileCacheAlloc* alloc,
-	uint16_t* polys, const int npolys,
-	const uint16_t* verts, const int nverts,
-	const dtTileCacheContourSet& lcset)
-{
-	// Based on code by Eric Lengyel from:
-	// http://www.terathon.com/code/edges.php
-
-	const int maxEdgeCount = npolys * MAX_VERTS_PER_POLY;
-	dtFixedArray<uint16_t> firstEdge(alloc, nverts + maxEdgeCount);
-	if (!firstEdge)
-		return false;
-	uint16_t* nextEdge = firstEdge + nverts;
-	int edgeCount = 0;
-
-	dtFixedArray<rcEdge> edges(alloc, maxEdgeCount);
-	if (!edges)
-		return false;
-
-	for (int i = 0; i < nverts; i++)
-		firstEdge[i] = DT_TILECACHE_NULL_IDX;
-
-	for (int i = 0; i < npolys; ++i)
-	{
-		uint16_t* t = &polys[i * MAX_VERTS_PER_POLY * 2];
-		for (int j = 0; j < MAX_VERTS_PER_POLY; ++j)
-		{
-			if (t[j] == DT_TILECACHE_NULL_IDX) break;
-			uint16_t v0 = t[j];
-			uint16_t v1 = (j + 1 >= MAX_VERTS_PER_POLY || t[j + 1] == DT_TILECACHE_NULL_IDX) ? t[0] : t[j + 1];
-			if (v0 < v1)
-			{
-				rcEdge& edge = edges[edgeCount];
-				edge.vert[0] = v0;
-				edge.vert[1] = v1;
-				edge.poly[0] = (uint16_t)i;
-				edge.polyEdge[0] = (uint16_t)j;
-				edge.poly[1] = (uint16_t)i;
-				edge.polyEdge[1] = 0xff;
-				// Insert edge
-				nextEdge[edgeCount] = firstEdge[v0];
-				firstEdge[v0] = (uint16_t)edgeCount;
-				edgeCount++;
-			}
-		}
-	}
-
-	for (int i = 0; i < npolys; ++i)
-	{
-		uint16_t* t = &polys[i * MAX_VERTS_PER_POLY * 2];
-		for (int j = 0; j < MAX_VERTS_PER_POLY; ++j)
-		{
-			if (t[j] == DT_TILECACHE_NULL_IDX) break;
-			uint16_t v0 = t[j];
-			uint16_t v1 = (j + 1 >= MAX_VERTS_PER_POLY || t[j + 1] == DT_TILECACHE_NULL_IDX) ? t[0] : t[j + 1];
-			if (v0 > v1)
-			{
-				bool found = false;
-				for (uint16_t e = firstEdge[v1]; e != DT_TILECACHE_NULL_IDX; e = nextEdge[e])
-				{
-					rcEdge& edge = edges[e];
-					if (edge.vert[1] == v0 && edge.poly[0] == edge.poly[1])
-					{
-						edge.poly[1] = (uint16_t)i;
-						edge.polyEdge[1] = (uint16_t)j;
-						found = true;
-						break;
-					}
-				}
-				if (!found)
-				{
-					// Matching edge not found, it is an open edge, add it.
-					rcEdge& edge = edges[edgeCount];
-					edge.vert[0] = v1;
-					edge.vert[1] = v0;
-					edge.poly[0] = (uint16_t)i;
-					edge.polyEdge[0] = (uint16_t)j;
-					edge.poly[1] = (uint16_t)i;
-					edge.polyEdge[1] = 0xff;
-					// Insert edge
-					nextEdge[edgeCount] = firstEdge[v1];
-					firstEdge[v1] = (uint16_t)edgeCount;
-					edgeCount++;
-				}
-			}
-		}
-	}
-
-	// Mark portal edges.
-	for (int i = 0; i < lcset.nconts; ++i)
-	{
-		dtTileCacheContour& cont = lcset.conts[i];
-		if (cont.nverts < 3)
-			continue;
-
-		for (int j = 0, k = cont.nverts - 1; j < cont.nverts; k = j++)
-		{
-			const uint8_t* va = &cont.verts[k * 4];
-			const uint8_t* vb = &cont.verts[j * 4];
-			const uint8_t dir = va[3] & 0xf;
-			if (dir == 0xf)
-				continue;
-
-			if (dir == 0 || dir == 2)
-			{
-				// Find matching vertical edge
-				const uint16_t x = (uint16_t)va[0];
-				uint16_t zmin = (uint16_t)va[2];
-				uint16_t zmax = (uint16_t)vb[2];
-				if (zmin > zmax)
-					dtSwap(zmin, zmax);
-
-				for (int m = 0; m < edgeCount; ++m)
-				{
-					rcEdge& e = edges[m];
-					// Skip connected edges.
-					if (e.poly[0] != e.poly[1])
-						continue;
-					const uint16_t* eva = &verts[e.vert[0] * 3];
-					const uint16_t* evb = &verts[e.vert[1] * 3];
-					if (eva[0] == x && evb[0] == x)
-					{
-						uint16_t ezmin = eva[2];
-						uint16_t ezmax = evb[2];
-						if (ezmin > ezmax)
-							dtSwap(ezmin, ezmax);
-						if (overlapRangeExl(zmin, zmax, ezmin, ezmax))
-						{
-							// Reuse the other polyedge to store dir.
-							e.polyEdge[1] = dir;
-						}
-					}
-				}
-			}
-			else
-			{
-				// Find matching vertical edge
-				const uint16_t z = (uint16_t)va[2];
-				uint16_t xmin = (uint16_t)va[0];
-				uint16_t xmax = (uint16_t)vb[0];
-				if (xmin > xmax)
-					dtSwap(xmin, xmax);
-				for (int m = 0; m < edgeCount; ++m)
-				{
-					rcEdge& e = edges[m];
-					// Skip connected edges.
-					if (e.poly[0] != e.poly[1])
-						continue;
-					const uint16_t* eva = &verts[e.vert[0] * 3];
-					const uint16_t* evb = &verts[e.vert[1] * 3];
-					if (eva[2] == z && evb[2] == z)
-					{
-						uint16_t exmin = eva[0];
-						uint16_t exmax = evb[0];
-						if (exmin > exmax)
-							dtSwap(exmin, exmax);
-						if (overlapRangeExl(xmin, xmax, exmin, exmax))
-						{
-							// Reuse the other polyedge to store dir.
-							e.polyEdge[1] = dir;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Store adjacency
-	for (int i = 0; i < edgeCount; ++i)
-	{
-		const rcEdge& e = edges[i];
-		if (e.poly[0] != e.poly[1])
-		{
-			uint16_t* p0 = &polys[e.poly[0] * MAX_VERTS_PER_POLY * 2];
-			uint16_t* p1 = &polys[e.poly[1] * MAX_VERTS_PER_POLY * 2];
-			p0[MAX_VERTS_PER_POLY + e.polyEdge[0]] = e.poly[1];
-			p1[MAX_VERTS_PER_POLY + e.polyEdge[1]] = e.poly[0];
-		}
-		else if (e.polyEdge[1] != 0xff)
-		{
-			uint16_t* p0 = &polys[e.poly[0] * MAX_VERTS_PER_POLY * 2];
-			p0[MAX_VERTS_PER_POLY + e.polyEdge[0]] = 0x8000 | (uint16_t)e.polyEdge[1];
-		}
-	}
-
-	return true;
-}
-
-// Last time I checked the if version got compiled using cmov, which was a lot faster than module (with idiv).
-inline int prev(int i, int n) { return i - 1 >= 0 ? i - 1 : n - 1; }
-inline int next(int i, int n) { return i + 1 < n ? i + 1 : 0; }
-
-inline int area2(const uint8_t* a, const uint8_t* b, const uint8_t* c)
-{
-	return ((int)b[0] - (int)a[0]) * ((int)c[2] - (int)a[2]) - ((int)c[0] - (int)a[0]) * ((int)b[2] - (int)a[2]);
-}
-
-//	Exclusive or: true iff exactly one argument is true.
-//	The arguments are negated to ensure that they are 0/1
-//	values.  Then the bitwise Xor operator may apply.
-//	(This idea is due to Michael Baldwin.)
-inline bool xorb(bool x, bool y)
-{
-	return !x ^ !y;
-}
-
-// Returns true iff c is strictly to the left of the directed
-// line through a to b.
-inline bool left(const uint8_t* a, const uint8_t* b, const uint8_t* c)
-{
-	return area2(a, b, c) < 0;
-}
-
-inline bool leftOn(const uint8_t* a, const uint8_t* b, const uint8_t* c)
-{
-	return area2(a, b, c) <= 0;
-}
-
-inline bool collinear(const uint8_t* a, const uint8_t* b, const uint8_t* c)
-{
-	return area2(a, b, c) == 0;
-}
-
-//	Returns true iff ab properly intersects cd: they share
-//	a point interior to both segments.  The properness of the
-//	intersection is ensured by using strict leftness.
-static bool intersectProp(const uint8_t* a, const uint8_t* b,
-	const uint8_t* c, const uint8_t* d)
-{
-	// Eliminate improper cases.
-	if (collinear(a, b, c) || collinear(a, b, d) ||
-		collinear(c, d, a) || collinear(c, d, b))
-		return false;
-
-	return xorb(left(a, b, c), left(a, b, d)) && xorb(left(c, d, a), left(c, d, b));
-}
-
-// Returns T iff (a,b,c) are collinear and point c lies
-// on the closed segement ab.
-static bool between(const uint8_t* a, const uint8_t* b, const uint8_t* c)
-{
-	if (!collinear(a, b, c))
-		return false;
-	// If ab not vertical, check betweenness on x; else on y.
-	if (a[0] != b[0])
-		return ((a[0] <= c[0]) && (c[0] <= b[0])) || ((a[0] >= c[0]) && (c[0] >= b[0]));
-	else
-		return ((a[2] <= c[2]) && (c[2] <= b[2])) || ((a[2] >= c[2]) && (c[2] >= b[2]));
-}
-
-// Returns true iff segments ab and cd intersect, properly or improperly.
-static bool intersect(const uint8_t* a, const uint8_t* b,
-	const uint8_t* c, const uint8_t* d)
-{
-	if (intersectProp(a, b, c, d))
-		return true;
-	else if (between(a, b, c) || between(a, b, d) ||
-		between(c, d, a) || between(c, d, b))
-		return true;
-	else
-		return false;
-}
-
-static bool vequal(const uint8_t* a, const uint8_t* b)
-{
-	return a[0] == b[0] && a[2] == b[2];
-}
-
-// Returns T iff (v_i, v_j) is a proper internal *or* external
-// diagonal of P, *ignoring edges incident to v_i and v_j*.
-static bool diagonalie(int i, int j, int n, const uint8_t* verts, const uint16_t* indices)
-{
-	const uint8_t* d0 = &verts[(indices[i] & 0x7fff) * 4];
-	const uint8_t* d1 = &verts[(indices[j] & 0x7fff) * 4];
-
-	// For each edge (k,k+1) of P
-	for (int k = 0; k < n; k++)
-	{
-		int k1 = next(k, n);
-		// Skip edges incident to i or j
-		if (!((k == i) || (k1 == i) || (k == j) || (k1 == j)))
-		{
-			const uint8_t* p0 = &verts[(indices[k] & 0x7fff) * 4];
-			const uint8_t* p1 = &verts[(indices[k1] & 0x7fff) * 4];
-
-			if (vequal(d0, p0) || vequal(d1, p0) || vequal(d0, p1) || vequal(d1, p1))
-				continue;
-
-			if (intersect(d0, d1, p0, p1))
-				return false;
-		}
-	}
-	return true;
-}
-
-// Returns true iff the diagonal (i,j) is strictly internal to the
-// polygon P in the neighborhood of the i endpoint.
-static bool	inCone(int i, int j, int n, const uint8_t* verts, const uint16_t* indices)
-{
-	const uint8_t* pi = &verts[(indices[i] & 0x7fff) * 4];
-	const uint8_t* pj = &verts[(indices[j] & 0x7fff) * 4];
-	const uint8_t* pi1 = &verts[(indices[next(i, n)] & 0x7fff) * 4];
-	const uint8_t* pin1 = &verts[(indices[prev(i, n)] & 0x7fff) * 4];
-
-	// If P[i] is a convex vertex [ i+1 left or on (i-1,i) ].
-	if (leftOn(pin1, pi, pi1))
-		return left(pi, pj, pin1) && left(pj, pi, pi1);
-	// Assume (i-1,i,i+1) not collinear.
-	// else P[i] is reflex.
-	return !(leftOn(pi, pj, pi1) && leftOn(pj, pi, pin1));
-}
-
-// Returns T iff (v_i, v_j) is a proper internal
-// diagonal of P.
-static bool diagonal(int i, int j, int n, const uint8_t* verts, const uint16_t* indices)
-{
-	return inCone(i, j, n, verts, indices) && diagonalie(i, j, n, verts, indices);
-}
-
-static int triangulate(int n, const uint8_t* verts, uint16_t* indices, uint16_t* tris)
-{
-	int ntris = 0;
-	uint16_t* dst = tris;
-
-	// The last bit of the index is used to indicate if the vertex can be removed.
-	for (int i = 0; i < n; i++)
-	{
-		int i1 = next(i, n);
-		int i2 = next(i1, n);
-		if (diagonal(i, i2, n, verts, indices))
-			indices[i1] |= 0x8000;
-	}
-
-	while (n > 3)
-	{
-		int minLen = -1;
-		int mini = -1;
-		for (int i = 0; i < n; i++)
-		{
-			int i1 = next(i, n);
-			if (indices[i1] & 0x8000)
-			{
-				const uint8_t* p0 = &verts[(indices[i] & 0x7fff) * 4];
-				const uint8_t* p2 = &verts[(indices[next(i1, n)] & 0x7fff) * 4];
-
-				const int dx = (int)p2[0] - (int)p0[0];
-				const int dz = (int)p2[2] - (int)p0[2];
-				const int len = dx * dx + dz * dz;
-				if (minLen < 0 || len < minLen)
-				{
-					minLen = len;
-					mini = i;
-				}
-			}
-		}
-
-		if (mini == -1)
-		{
-			// Should not happen.
-			/*			printf("mini == -1 ntris=%d n=%d\n", ntris, n);
-			 for (int i = 0; i < n; i++)
-			 {
-			 printf("%d ", indices[i] & 0x0fffffff);
-			 }
-			 printf("\n");*/
-			return -ntris;
-		}
-
-		int i = mini;
-		int i1 = next(i, n);
-		int i2 = next(i1, n);
-
-		*dst++ = indices[i] & 0x7fff;
-		*dst++ = indices[i1] & 0x7fff;
-		*dst++ = indices[i2] & 0x7fff;
-		ntris++;
-
-		// Removes P[i1] by copying P[i+1]...P[n-1] left one index.
-		n--;
-		for (int k = i1; k < n; k++)
-			indices[k] = indices[k + 1];
-
-		if (i1 >= n) i1 = 0;
-		i = prev(i1, n);
-		// Update diagonal flags.
-		if (diagonal(prev(i, n), i1, n, verts, indices))
-			indices[i] |= 0x8000;
-		else
-			indices[i] &= 0x7fff;
-
-		if (diagonal(i, next(i1, n), n, verts, indices))
-			indices[i1] |= 0x8000;
-		else
-			indices[i1] &= 0x7fff;
-	}
-
-	// Append the remaining triangle.
-	*dst++ = indices[0] & 0x7fff;
-	*dst++ = indices[1] & 0x7fff;
-	*dst++ = indices[2] & 0x7fff;
-	ntris++;
-
-	return ntris;
-}
-
-static int countPolyVerts(const uint16_t* p)
-{
-	for (int i = 0; i < MAX_VERTS_PER_POLY; ++i)
-		if (p[i] == DT_TILECACHE_NULL_IDX)
-			return i;
-	return MAX_VERTS_PER_POLY;
-}
-
-inline bool uleft(const uint16_t* a, const uint16_t* b, const uint16_t* c)
-{
-	return ((int)b[0] - (int)a[0]) * ((int)c[2] - (int)a[2]) -
-		((int)c[0] - (int)a[0]) * ((int)b[2] - (int)a[2]) < 0;
-}
-
-static int getPolyMergeValue(uint16_t* pa, uint16_t* pb,
-	const uint16_t* verts, int& ea, int& eb)
-{
-	const int na = countPolyVerts(pa);
-	const int nb = countPolyVerts(pb);
-
-	// If the merged polygon would be too big, do not merge.
-	if (na + nb - 2 > MAX_VERTS_PER_POLY)
-		return -1;
-
-	// Check if the polygons share an edge.
-	ea = -1;
-	eb = -1;
-
-	for (int i = 0; i < na; ++i)
-	{
-		uint16_t va0 = pa[i];
-		uint16_t va1 = pa[(i + 1) % na];
-		if (va0 > va1)
-			dtSwap(va0, va1);
-		for (int j = 0; j < nb; ++j)
-		{
-			uint16_t vb0 = pb[j];
-			uint16_t vb1 = pb[(j + 1) % nb];
-			if (vb0 > vb1)
-				dtSwap(vb0, vb1);
-			if (va0 == vb0 && va1 == vb1)
-			{
-				ea = i;
-				eb = j;
-				break;
-			}
-		}
-	}
-
-	// No common edge, cannot merge.
-	if (ea == -1 || eb == -1)
-		return -1;
-
-	// Check to see if the merged polygon would be convex.
-	uint16_t va, vb, vc;
-
-	va = pa[(ea + na - 1) % na];
-	vb = pa[ea];
-	vc = pb[(eb + 2) % nb];
-	if (!uleft(&verts[va * 3], &verts[vb * 3], &verts[vc * 3]))
-		return -1;
-
-	va = pb[(eb + nb - 1) % nb];
-	vb = pb[eb];
-	vc = pa[(ea + 2) % na];
-	if (!uleft(&verts[va * 3], &verts[vb * 3], &verts[vc * 3]))
-		return -1;
-
-	va = pa[ea];
-	vb = pa[(ea + 1) % na];
-
-	int dx = (int)verts[va * 3 + 0] - (int)verts[vb * 3 + 0];
-	int dy = (int)verts[va * 3 + 2] - (int)verts[vb * 3 + 2];
-
-	return dx * dx + dy * dy;
-}
-
-static void mergePolys(uint16_t* pa, uint16_t* pb, int ea, int eb)
-{
-	uint16_t tmp[MAX_VERTS_PER_POLY * 2];
-
-	const int na = countPolyVerts(pa);
-	const int nb = countPolyVerts(pb);
-
-	// Merge polygons.
-	memset(tmp, 0xff, sizeof(uint16_t) * MAX_VERTS_PER_POLY * 2);
-	int n = 0;
-	// Add pa
-	for (int i = 0; i < na - 1; ++i)
-		tmp[n++] = pa[(ea + 1 + i) % na];
-	// Add pb
-	for (int i = 0; i < nb - 1; ++i)
-		tmp[n++] = pb[(eb + 1 + i) % nb];
-
-	memcpy(pa, tmp, sizeof(uint16_t) * MAX_VERTS_PER_POLY);
-}
-
-static void pushFront(uint16_t v, uint16_t* arr, int& an)
-{
-	an++;
-	for (int i = an - 1; i > 0; --i)
-		arr[i] = arr[i - 1];
-	arr[0] = v;
-}
-
-static void pushBack(uint16_t v, uint16_t* arr, int& an)
-{
-	arr[an] = v;
-	an++;
-}
-
-static bool canRemoveVertex(dtTileCachePolyMesh& mesh, const uint16_t rem)
-{
-	// Count number of polygons to remove.
-	int numRemovedVerts = 0;
-	int numTouchedVerts = 0;
-	int numRemainingEdges = 0;
-	for (int i = 0; i < mesh.npolys; ++i)
-	{
-		uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
-		const int nv = countPolyVerts(p);
-		int numRemoved = 0;
-		int numVerts = 0;
-		for (int j = 0; j < nv; ++j)
-		{
-			if (p[j] == rem)
-			{
-				numTouchedVerts++;
-				numRemoved++;
-			}
-			numVerts++;
-		}
-		if (numRemoved)
-		{
-			numRemovedVerts += numRemoved;
-			numRemainingEdges += numVerts - (numRemoved + 1);
-		}
-	}
-
-	// There would be too few edges remaining to create a polygon.
-	// This can happen for example when a tip of a triangle is marked
-	// as deletion, but there are no other polys that share the vertex.
-	// In this case, the vertex should not be removed.
-	if (numRemainingEdges <= 2)
-		return false;
-
-	// Check that there is enough memory for the test.
-	const int maxEdges = numTouchedVerts * 2;
-	if (maxEdges > MAX_REM_EDGES)
-		return false;
-
-	// Find edges which share the removed vertex.
-	uint16_t edges[MAX_REM_EDGES];
-	int nedges = 0;
-
-	for (int i = 0; i < mesh.npolys; ++i)
-	{
-		uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
-		const int nv = countPolyVerts(p);
-
-		// Collect edges which touches the removed vertex.
-		for (int j = 0, k = nv - 1; j < nv; k = j++)
-		{
-			if (p[j] == rem || p[k] == rem)
-			{
-				// Arrange edge so that a=rem.
-				int a = p[j], b = p[k];
-				if (b == rem)
-					dtSwap(a, b);
-
-				// Check if the edge exists
-				bool exists = false;
-				for (int m = 0; m < nedges; ++m)
-				{
-					uint16_t* e = &edges[m * 3];
-					if (e[1] == b)
-					{
-						// Exists, increment vertex share count.
-						e[2]++;
-						exists = true;
-					}
-				}
-				// Add new edge.
-				if (!exists)
-				{
-					uint16_t* e = &edges[nedges * 3];
-					e[0] = (uint16_t)a;
-					e[1] = (uint16_t)b;
-					e[2] = 1;
-					nedges++;
-				}
-			}
-		}
-	}
-
-	// There should be no more than 2 open edges.
-	// This catches the case that two non-adjacent polygons
-	// share the removed vertex. In that case, do not remove the vertex.
-	int numOpenEdges = 0;
-	for (int i = 0; i < nedges; ++i)
-	{
-		if (edges[i * 3 + 2] < 2)
-			numOpenEdges++;
-	}
-	if (numOpenEdges > 2)
-		return false;
-
-	return true;
-}
-
-static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const uint16_t rem, const int maxTris)
-{
-	// Count number of polygons to remove.
-	int numRemovedVerts = 0;
-	for (int i = 0; i < mesh.npolys; ++i)
-	{
-		uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
-		const int nv = countPolyVerts(p);
-		for (int j = 0; j < nv; ++j)
-		{
-			if (p[j] == rem)
-				numRemovedVerts++;
-		}
-	}
-
-	int nedges = 0;
-	uint16_t edges[MAX_REM_EDGES * 3];
-	int nhole = 0;
-	uint16_t hole[MAX_REM_EDGES];
-	int nharea = 0;
-	uint16_t harea[MAX_REM_EDGES];
-
-	for (int i = 0; i < mesh.npolys; ++i)
-	{
-		uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
-		const int nv = countPolyVerts(p);
-		bool hasRem = false;
-		for (int j = 0; j < nv; ++j)
-			if (p[j] == rem) hasRem = true;
-		if (hasRem)
-		{
-			// Collect edges which does not touch the removed vertex.
-			for (int j = 0, k = nv - 1; j < nv; k = j++)
-			{
-				if (p[j] != rem && p[k] != rem)
-				{
-					if (nedges >= MAX_REM_EDGES)
-						return DT_FAILURE | DT_BUFFER_TOO_SMALL;
-					uint16_t* e = &edges[nedges * 3];
-					e[0] = p[k];
-					e[1] = p[j];
-					e[2] = mesh.areas[i];
-					nedges++;
-				}
-			}
-			// Remove the polygon.
-			uint16_t* p2 = &mesh.polys[(mesh.npolys - 1) * MAX_VERTS_PER_POLY * 2];
-			memcpy(p, p2, sizeof(uint16_t) * MAX_VERTS_PER_POLY);
-			memset(p + MAX_VERTS_PER_POLY, 0xff, sizeof(uint16_t) * MAX_VERTS_PER_POLY);
-			mesh.areas[i] = mesh.areas[mesh.npolys - 1];
-			mesh.npolys--;
-			--i;
-		}
-	}
-
-	// Remove vertex.
-	for (int i = (int)rem; i < mesh.nverts; ++i)
-	{
-		mesh.verts[i * 3 + 0] = mesh.verts[(i + 1) * 3 + 0];
-		mesh.verts[i * 3 + 1] = mesh.verts[(i + 1) * 3 + 1];
-		mesh.verts[i * 3 + 2] = mesh.verts[(i + 1) * 3 + 2];
-	}
-	mesh.nverts--;
-
-	// Adjust indices to match the removed vertex layout.
-	for (int i = 0; i < mesh.npolys; ++i)
-	{
-		uint16_t* p = &mesh.polys[i * MAX_VERTS_PER_POLY * 2];
-		const int nv = countPolyVerts(p);
-		for (int j = 0; j < nv; ++j)
-			if (p[j] > rem) p[j]--;
-	}
-	for (int i = 0; i < nedges; ++i)
-	{
-		if (edges[i * 3 + 0] > rem) edges[i * 3 + 0]--;
-		if (edges[i * 3 + 1] > rem) edges[i * 3 + 1]--;
-	}
-
-	if (nedges == 0)
-		return DT_SUCCESS;
-
-	// Start with one vertex, keep appending connected
-	// segments to the start and end of the hole.
-	pushBack(edges[0], hole, nhole);
-	pushBack(edges[2], harea, nharea);
-
-	while (nedges)
-	{
-		bool match = false;
-
-		for (int i = 0; i < nedges; ++i)
-		{
-			const uint16_t ea = edges[i * 3 + 0];
-			const uint16_t eb = edges[i * 3 + 1];
-			const uint16_t a = edges[i * 3 + 2];
-			bool add = false;
-			if (hole[0] == eb)
-			{
-				// The segment matches the beginning of the hole boundary.
-				if (nhole >= MAX_REM_EDGES)
-					return DT_FAILURE | DT_BUFFER_TOO_SMALL;
-				pushFront(ea, hole, nhole);
-				pushFront(a, harea, nharea);
-				add = true;
-			}
-			else if (hole[nhole - 1] == ea)
-			{
-				// The segment matches the end of the hole boundary.
-				if (nhole >= MAX_REM_EDGES)
-					return DT_FAILURE | DT_BUFFER_TOO_SMALL;
-				pushBack(eb, hole, nhole);
-				pushBack(a, harea, nharea);
-				add = true;
-			}
-			if (add)
-			{
-				// The edge segment was added, remove it.
-				edges[i * 3 + 0] = edges[(nedges - 1) * 3 + 0];
-				edges[i * 3 + 1] = edges[(nedges - 1) * 3 + 1];
-				edges[i * 3 + 2] = edges[(nedges - 1) * 3 + 2];
-				--nedges;
-				match = true;
-				--i;
-			}
-		}
-
-		if (!match)
-			break;
-	}
-
-	uint16_t tris[MAX_REM_EDGES * 3];
-	uint8_t tverts[MAX_REM_EDGES * 3];
-	uint16_t tpoly[MAX_REM_EDGES * 3];
-
-	// Generate temp vertex array for triangulation.
-	for (int i = 0; i < nhole; ++i)
-	{
-		const uint16_t pi = hole[i];
-		tverts[i * 4 + 0] = (uint8_t)mesh.verts[pi * 3 + 0];
-		tverts[i * 4 + 1] = (uint8_t)mesh.verts[pi * 3 + 1];
-		tverts[i * 4 + 2] = (uint8_t)mesh.verts[pi * 3 + 2];
-		tverts[i * 4 + 3] = 0;
-		tpoly[i] = (uint16_t)i;
-	}
-
-	// Triangulate the hole.
-	int ntris = triangulate(nhole, tverts, tpoly, tris);
-	if (ntris < 0)
-	{
-		// TODO: issue warning!
-		ntris = -ntris;
-	}
-
-	if (ntris > MAX_REM_EDGES)
-		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
-
-	uint16_t polys[MAX_REM_EDGES * MAX_VERTS_PER_POLY];
-	uint8_t pareas[MAX_REM_EDGES];
-
-	// Build initial polygons.
-	int npolys = 0;
-	memset(polys, 0xff, ntris * MAX_VERTS_PER_POLY * sizeof(uint16_t));
-	for (int j = 0; j < ntris; ++j)
-	{
-		uint16_t* t = &tris[j * 3];
-		if (t[0] != t[1] && t[0] != t[2] && t[1] != t[2])
-		{
-			polys[npolys * MAX_VERTS_PER_POLY + 0] = hole[t[0]];
-			polys[npolys * MAX_VERTS_PER_POLY + 1] = hole[t[1]];
-			polys[npolys * MAX_VERTS_PER_POLY + 2] = hole[t[2]];
-			pareas[npolys] = (uint8_t)harea[t[0]];
-			npolys++;
-		}
-	}
-	if (!npolys)
-		return DT_SUCCESS;
-
-	// Merge polygons.
-	int maxVertsPerPoly = MAX_VERTS_PER_POLY;
-	if (maxVertsPerPoly > 3)
-	{
-		for (;;)
-		{
-			// Find best polygons to merge.
-			int bestMergeVal = 0;
-			int bestPa = 0, bestPb = 0, bestEa = 0, bestEb = 0;
-
-			for (int j = 0; j < npolys - 1; ++j)
-			{
-				uint16_t* pj = &polys[j * MAX_VERTS_PER_POLY];
-				for (int k = j + 1; k < npolys; ++k)
-				{
-					uint16_t* pk = &polys[k * MAX_VERTS_PER_POLY];
-					int ea, eb;
-					int v = getPolyMergeValue(pj, pk, mesh.verts, ea, eb);
-					if (v > bestMergeVal)
-					{
-						bestMergeVal = v;
-						bestPa = j;
-						bestPb = k;
-						bestEa = ea;
-						bestEb = eb;
-					}
-				}
-			}
-
-			if (bestMergeVal > 0)
-			{
-				// Found best, merge.
-				uint16_t* pa = &polys[bestPa * MAX_VERTS_PER_POLY];
-				uint16_t* pb = &polys[bestPb * MAX_VERTS_PER_POLY];
-				mergePolys(pa, pb, bestEa, bestEb);
-				memcpy(pb, &polys[(npolys - 1) * MAX_VERTS_PER_POLY], sizeof(uint16_t) * MAX_VERTS_PER_POLY);
-				pareas[bestPb] = pareas[npolys - 1];
-				npolys--;
-			}
-			else
-			{
-				// Could not merge any polygons, stop.
-				break;
-			}
-		}
-	}
-
-	// Store polygons.
-	for (int i = 0; i < npolys; ++i)
-	{
-		if (mesh.npolys >= maxTris) break;
-		uint16_t* p = &mesh.polys[mesh.npolys * MAX_VERTS_PER_POLY * 2];
-		memset(p, 0xff, sizeof(uint16_t) * MAX_VERTS_PER_POLY * 2);
-		for (int j = 0; j < MAX_VERTS_PER_POLY; ++j)
-			p[j] = polys[i * MAX_VERTS_PER_POLY + j];
-		mesh.areas[mesh.npolys] = pareas[i];
-		mesh.npolys++;
-		if (mesh.npolys > maxTris)
-			return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 	}
 
 	return DT_SUCCESS;

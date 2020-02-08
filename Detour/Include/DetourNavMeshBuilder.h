@@ -34,7 +34,7 @@ struct dtNavMeshCreateParams
 	// @{
 	// The polygon mesh vertices. [(x, y, z) * #vertCount] [Unit: vx]
 	// ポリゴンメッシュの頂点。 [（x、y、z）* #vertCount] [単位：vx]
-	const unsigned short* verts;
+	const uint16_t* verts;
 
 	// The number vertices in the polygon mesh. [Limit: >= 3]
 	// ポリゴンメッシュの頂点の数。 [制限：> = 3]
@@ -42,15 +42,15 @@ struct dtNavMeshCreateParams
 
 	// The polygon data. [Size: #polyCount * 2 * #nvp]
 	// ポリゴンデータ。 [サイズ：#polyCount * 2 * #nvp]
-	const unsigned short* polys;
+	const uint16_t* polys;
 
 	// The user defined flags assigned to each polygon. [Size: #polyCount]
 	// 各ポリゴンに割り当てられたユーザー定義のフラグ。 [サイズ：#polyCount]
-	const unsigned short* polyFlags;
+	const uint16_t* polyFlags;
 
 	// The user defined area ids assigned to each polygon. [Size: #polyCount]
 	// 各ポリゴンに割り当てられたユーザー定義のエリアID。 [サイズ：#polyCount]
-	const unsigned char* polyAreas;
+	const uint8_t* polyAreas;
 
 	// Number of polygons in the mesh. [Limit: >= 1]
 	// メッシュ内のポリゴンの数。 [制限：> = 1]
@@ -66,7 +66,7 @@ struct dtNavMeshCreateParams
 	// @{
 	// The height detail sub-mesh data. [Size: 4 * #polyCount]
 	// 高さの詳細サブメッシュデータ。 [サイズ：4 * #polyCount]
-	const unsigned int* detailMeshes;
+	const uint32_t* detailMeshes;
 
 	// The detail mesh vertices. [Size: 3 * #detailVertsCount] [Unit: wu]
 	// 詳細メッシュの頂点。 [サイズ：3 * #detailVertsCount] [単位：wu]
@@ -78,7 +78,7 @@ struct dtNavMeshCreateParams
 
 	// The detail mesh triangles. [Size: 4 * #detailTriCount]
 	// 詳細メッシュの三角形。 [サイズ：4 * #detailTriCount]
-	const unsigned char* detailTris;
+	const uint8_t* detailTris;
 
 	// The number of triangles in the detail mesh.
 	// 詳細メッシュの三角形の数。
@@ -103,11 +103,11 @@ struct dtNavMeshCreateParams
 
 	// User defined flags assigned to the off-mesh connections. [Size: #offMeshConCount]
 	// オフメッシュ接続に割り当てられたユーザー定義フラグ。 [サイズ：#offMeshConCount]
-	const unsigned short* offMeshConFlags;
+	const uint16_t* offMeshConFlags;
 
 	// User defined area ids assigned to the off-mesh connections. [Size: #offMeshConCount]
 	// オフメッシュ接続に割り当てられたユーザー定義のエリアID。 [サイズ：#offMeshConCount]
-	const unsigned char* offMeshConAreas;
+	const uint8_t* offMeshConAreas;
 
 	// The permitted travel direction of the off-mesh connections. [Size: #offMeshConCount]
 	// オフメッシュ接続の許可された移動方向。 [サイズ：#offMeshConCount]
@@ -115,11 +115,11 @@ struct dtNavMeshCreateParams
 	// 0 = Travel only from endpoint A to endpoint B.<br/>
 	// 0 =エンドポイントAからエンドポイントBへの移動のみ。
 	// #DT_OFFMESH_CON_BIDIR = Bidirectional travel.
-	const unsigned char* offMeshConDir;
+	const uint8_t* offMeshConDir;
 
 	// The user defined ids of the off-mesh connection. [Size: #offMeshConCount]
 	// オフメッシュ接続のユーザー定義ID。 [サイズ：#offMeshConCount]
-	const unsigned int* offMeshConUserID;
+	const uint32_t* offMeshConUserID;
 
 	// The number of off-mesh connections. [Limit: >= 0]
 	// オフメッシュ接続の数。 [制限：> = 0]
@@ -132,7 +132,7 @@ struct dtNavMeshCreateParams
 	// @{
 	// The user defined id of the tile.
 	// ユーザーが定義したタイルのID。
-	unsigned int userId;
+	uint32_t userId;
 
 	// The tile's x-grid location within the multi-tile destination mesh. (Along the x-axis.)
 	// マルチタイル先メッシュ内のタイルのyグリッドの位置。（x軸に沿う）
@@ -194,19 +194,19 @@ struct dtNavMeshCreateParams
 // @param[out] outDataSize : The size of the tile data array. // タイルデータ配列のサイズ。
 // @return True if the tile data was successfully created.
 //  タイルデータが正常に作成された場合はTrue。
-bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize);
+bool dtCreateNavMeshData(dtNavMeshCreateParams* params, uint8_t** outData, int* outDataSize);
 
 // Swaps the endianess of the tile data's header (#dtMeshHeader).
 // タイルデータヘッダーのエンディアンを交換します（#dtMeshHeader）。
 //  @param[in,out]	data		The tile data array.
 //  @param[in]		dataSize	The size of the data array.
-bool dtNavMeshHeaderSwapEndian(unsigned char* data, const int dataSize);
+bool dtNavMeshHeaderSwapEndian(uint8_t* data, const int dataSize);
 
 // Swaps endianess of the tile data.
 // タイルデータのエンディアンを入れ替えます。
 //  @param[in,out]	data		The tile data array.
 //  @param[in]		dataSize	The size of the data array.
-bool dtNavMeshDataSwapEndian(unsigned char* data, const int dataSize);
+bool dtNavMeshDataSwapEndian(uint8_t* data, const int dataSize);
 
 #endif // DETOURNAVMESHBUILDER_H
 

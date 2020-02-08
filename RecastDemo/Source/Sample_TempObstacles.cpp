@@ -1293,7 +1293,7 @@ bool Sample_TempObstacles::handleBuild()
 
 	dtNavMeshParams params{};
 
-	rcVcopy(params.orig, bmin.data());
+	params.orig = bmin;
 	params.tileWidth = m_tileSize * m_cellSize;
 	params.tileHeight = m_tileSize * m_cellSize;
 	params.maxTiles = m_maxTiles;

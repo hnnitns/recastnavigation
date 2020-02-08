@@ -420,11 +420,11 @@ bool Sample_SoloMesh::handleBuild()
 	// ナビゲーションを構築するエリアを設定します。
 	// Here the bounds of the input mesh are used, but the area could be specified by an user defined box, etc.
 	// ここでは、入力メッシュの境界が使用されますが、領域はユーザー定義のボックスなどで指定できます。
-	rcVcopy(m_cfg.bmin, bmin.data()); // コピー
-	rcVcopy(m_cfg.bmax, bmax.data()); // コピー
+	m_cfg.bmin = bmin;
+	m_cfg.bmax = bmax;
 
 	// グリットサイズの計算
-	rcCalcGridSize(m_cfg.bmin, m_cfg.bmax, m_cfg.cs, &m_cfg.width, &m_cfg.height);
+	rcCalcGridSize(m_cfg.bmin.data(), m_cfg.bmax.data(), m_cfg.cs, &m_cfg.width, &m_cfg.height);
 
 	// Reset build times gathering.
 	// ビルド時間の収集をリセットします。
@@ -450,7 +450,7 @@ bool Sample_SoloMesh::handleBuild()
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'."); // メモリー不足「solid」
 		return false;
 	}
-	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin, m_cfg.bmax, m_cfg.cs, m_cfg.ch))
+	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin.data(), m_cfg.bmax.data(), m_cfg.cs, m_cfg.ch))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield."); // ソリッド地形を作成できませんでした
 		return false;

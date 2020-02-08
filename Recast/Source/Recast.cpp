@@ -28,11 +28,6 @@
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
 
-float rcSqrt(float x)
-{
-	return sqrtf(x);
-}
-
 // @class rcContext
 // @par
 //

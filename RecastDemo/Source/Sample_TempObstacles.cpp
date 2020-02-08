@@ -309,7 +309,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 		return 0;
 	}
 
-	if (!rcCreateHeightfield(m_ctx, *rc.solid, tcfg.width, tcfg.height, tcfg.bmin, tcfg.bmax, tcfg.cs, tcfg.ch))
+	if (!rcCreateHeightfield(m_ctx, *rc.solid, tcfg.width, tcfg.height, tcfg.bmin.data(), tcfg.bmax.data(), tcfg.cs, tcfg.ch))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield."); // ソリッド地形を作成できませんでした。
 		return 0;
@@ -1245,8 +1245,8 @@ bool Sample_TempObstacles::handleBuild()
 	cfg.height = cfg.tileSize + cfg.borderSize * 2;
 	cfg.detailSampleDist = m_detailSampleDist < 0.9f ? 0 : m_cellSize * m_detailSampleDist;
 	cfg.detailSampleMaxError = m_cellHeight * m_detailSampleMaxError;
-	rcVcopy(cfg.bmin, bmin.data());
-	rcVcopy(cfg.bmax, bmax.data());
+	cfg.bmin = bmin;
+	cfg.bmax = bmax;
 
 	// Tile cache params.
 	// タイルキャッシュパラメータ。

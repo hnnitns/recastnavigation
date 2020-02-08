@@ -19,14 +19,6 @@
 #ifndef RECAST_H
 #define RECAST_H
 
-//#ifdef _DEBUG
-//#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
-//// Replace _NORMAL_BLOCK with _CLIENT_BLOCK if you want the allocations to be of _CLIENT_BLOCK type.
-//// 割り当てを_CLIENT_BLOCKタイプにする場合は、_NORMAL_BLOCKを_CLIENT_BLOCKに置き換えます。
-//#else
-//#define DBG_NEW new
-//#endif
-
 #include <utility>
 #include <algorithm>
 #include <array>
@@ -255,8 +247,10 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	rcScopedTimer(const rcScopedTimer&);
-	rcScopedTimer& operator=(const rcScopedTimer&);
+	rcScopedTimer(const rcScopedTimer&) = delete;
+	rcScopedTimer& operator=(const rcScopedTimer&) = delete;
+	rcScopedTimer(rcScopedTimer&&) noexcept = delete;
+	rcScopedTimer& operator=(rcScopedTimer&&) noexcept = delete;
 
 	rcContext* const m_ctx;
 	const rcTimerLabel m_label;
@@ -293,11 +287,11 @@ struct rcConfig
 
 	// The minimum bounds of the field's AABB. [(x, y, z)] [Units: wu]
 	// フィールドのAABBの最小境界。[（x、y、z）] [単位：wu]
-	float bmin[3];
+	std::array<float, 3> bmin;
 
 	// The maximum bounds of the field's AABB. [(x, y, z)] [Units: wu]
 	// フィールドのAABBの最大境界。[（x、y、z）] [単位：wu]
-	float bmax[3];
+	std::array<float, 3> bmax;
 
 	// The maximum slope that is considered walkable. [Limits: 0 <= value < 90] [Units: Degrees]
 	// 歩行可能と見なされる最大勾配。[制限：0 <=値<90] [単位：度]
@@ -1054,11 +1048,15 @@ template<class T> inline constexpr T rcClamp(T v, T mn, T mx) { return v < mn ? 
 // 値の平方根を返します。
 //  @param[in]		x	The value.
 //  @return The square root of the vlaue.
-float rcSqrt(float x);
+inline float rcSqrt(float x)
+{
+	return sqrtf(x);
+}
 
 // @}
 // @name Vector helper functions.
 // @{
+
 // Derives the cross product of two vectors. (@p v1 x @p v2)
 // 2つのベクトルの外積を導出します。
 //  @param[out]	dest	The cross product. [(x, y, z)]
@@ -1071,12 +1069,35 @@ inline constexpr void rcVcross(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[0] * v2[1] - v1[1] * v2[0];
 }
 
+// Derives the cross product of two vectors. (@p v1 x @p v2)
+// 2つのベクトルの外積を導出します。
+//  @param[out]	dest	The cross product. [(x, y, z)]
+//  @param[in]		v1		A Vector [(x, y, z)]
+//  @param[in]		v2		A vector [(x, y, z)]
+inline constexpr void rcVcross(
+	std::array<float, 3>* dest, const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	dest->at(0) = v1[1] * v2[2] - v1[2] * v2[1];
+	dest->at(1) = v1[2] * v2[0] - v1[0] * v2[2];
+	dest->at(2) = v1[0] * v2[1] - v1[1] * v2[0];
+}
+
 // Derives the dot product of two vectors. (@p v1 . @p v2)
 // 2つのベクトルのドット積を導出します。
 //  @param[in]		v1	A Vector [(x, y, z)]
 //  @param[in]		v2	A vector [(x, y, z)]
 // @return The dot product.
 inline constexpr float rcVdot(const float* v1, const float* v2)
+{
+	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+// Derives the dot product of two vectors. (@p v1 . @p v2)
+// 2つのベクトルのドット積を導出します。
+//  @param[in]		v1	A Vector [(x, y, z)]
+//  @param[in]		v2	A vector [(x, y, z)]
+// @return The dot product.
+inline constexpr float rcVdot(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
 {
 	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
@@ -1098,6 +1119,24 @@ inline constexpr void rcVmad(float* dest, const float* v1, const float* v2, cons
 	dest[2] = v1[2] + v2[2] * s;
 }
 
+// Performs a scaled vector addition. (@p v1 + (@p v2 * @p s))
+// スケーリングされたベクトル加算を実行します。
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  結果ベクトル。[（x、y、z）]
+//  @param[in]		v1		The base vector. [(x, y, z)]
+//  ベースベクトル。[（x、y、z）]
+//  @param[in]		v2		The vector to scale and add to @p v1. [(x, y, z)]
+//  スケーリングして@p v1に追加するベクトル。[（x、y、z）]
+//  @param[in]		s		The amount to scale @p v2 by before adding to @p v1.
+//  v1に追加する前に@p v2をスケーリングする量。
+inline constexpr void rcVmad(
+	std::array<float, 3>* dest, const std::array<float, 3>& v1, const std::array<float, 3>& v2, const float s)
+{
+	dest->at(0) = v1[0] + v2[0] * s;
+	dest->at(1) = v1[1] + v2[1] * s;
+	dest->at(2) = v1[2] + v2[2] * s;
+}
+
 // Performs a vector addition. (@p v1 + @p v2)
 // ベクトルの加算を実行します。（@p v1 + @p v2）
 //  @param[out]	dest	The result vector. [(x, y, z)]
@@ -1108,6 +1147,19 @@ inline constexpr void rcVadd(float* dest, const float* v1, const float* v2)
 	dest[0] = v1[0] + v2[0];
 	dest[1] = v1[1] + v2[1];
 	dest[2] = v1[2] + v2[2];
+}
+
+// Performs a vector addition. (@p v1 + @p v2)
+// ベクトルの加算を実行します。（@p v1 + @p v2）
+inline auto operator+ (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	std::array<float, 3> dest;
+
+	dest[0] = v1[0] + v2[0];
+	dest[1] = v1[1] + v2[1];
+	dest[2] = v1[2] + v2[2];
+
+	return dest;
 }
 
 // Performs a vector subtraction. (@p v1 - @p v2)
@@ -1122,6 +1174,19 @@ inline constexpr void rcVsub(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[2] - v2[2];
 }
 
+// Performs a vector subtraction. (@p v1 - @p v2)
+// ベクトル減算を実行します。（@p v1-@p v2）
+inline auto operator- (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	std::array<float, 3> dest;
+
+	dest[0] = v1[0] - v2[0];
+	dest[1] = v1[1] - v2[1];
+	dest[2] = v1[2] - v2[2];
+
+	return dest;
+}
+
 // Selects the minimum value of each element from the specified vectors.
 // 指定されたベクトルから各要素の最小値を選択します。
 //  @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
@@ -1133,6 +1198,17 @@ inline constexpr void rcVmin(float* mn, const float* v)
 	mn[2] = rcMin(mn[2], v[2]);
 }
 
+// Selects the minimum value of each element from the specified vectors.
+// 指定されたベクトルから各要素の最小値を選択します。
+//  @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
+//  @param[in]		v	A vector. [(x, y, z)]
+inline constexpr void rcVmin(std::array<float, 3>* mn, const std::array<float, 3>& v)
+{
+	mn->at(0) = rcMin(mn->at(0), v[0]);
+	mn->at(1) = rcMin(mn->at(1), v[1]);
+	mn->at(2) = rcMin(mn->at(2), v[2]);
+}
+
 // Selects the maximum value of each element from the specified vectors.
 // 指定されたベクトルから各要素の最大値を選択します。
 //  @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
@@ -1142,6 +1218,17 @@ inline constexpr void rcVmax(float* mx, const float* v)
 	mx[0] = rcMax(mx[0], v[0]);
 	mx[1] = rcMax(mx[1], v[1]);
 	mx[2] = rcMax(mx[2], v[2]);
+}
+
+// Selects the maximum value of each element from the specified vectors.
+// 指定されたベクトルから各要素の最大値を選択します。
+//  @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
+//  @param[in]		v	A vector. [(x, y, z)]
+inline constexpr void rcVmax(std::array<float, 3>* mn, const std::array<float, 3>& v)
+{
+	mn->at(0) = rcMax(mn->at(0), v[0]);
+	mn->at(1) = rcMax(mn->at(1), v[1]);
+	mn->at(2) = rcMax(mn->at(2), v[2]);
 }
 
 // Performs a vector copy.
@@ -1168,12 +1255,38 @@ inline float rcVdist(const float* v1, const float* v2)
 	return rcSqrt(dx * dx + dy * dy + dz * dz);
 }
 
+// Returns the distance between two points.
+// 2点間の距離を返します。
+//  @param[in]		v1	A point. [(x, y, z)]
+//  @param[in]		v2	A point. [(x, y, z)]
+// @return The distance between the two points.
+inline float rcVdist(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	float dx = v2[0] - v1[0];
+	float dy = v2[1] - v1[1];
+	float dz = v2[2] - v1[2];
+	return rcSqrt(dx * dx + dy * dy + dz * dz);
+}
+
 // Returns the square of the distance between two points.
 // 2点間の距離の2乗を返します。
 //  @param[in]		v1	A point. [(x, y, z)]
 //  @param[in]		v2	A point. [(x, y, z)]
 // @return The square of the distance between the two points.
 inline constexpr float rcVdistSqr(const float* v1, const float* v2)
+{
+	float dx = v2[0] - v1[0];
+	float dy = v2[1] - v1[1];
+	float dz = v2[2] - v1[2];
+	return dx * dx + dy * dy + dz * dz;
+}
+
+// Returns the square of the distance between two points.
+// 2点間の距離の2乗を返します。
+//  @param[in]		v1	A point. [(x, y, z)]
+//  @param[in]		v2	A point. [(x, y, z)]
+// @return The square of the distance between the two points.
+inline constexpr float rcVdistSqr(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
 {
 	float dx = v2[0] - v1[0];
 	float dy = v2[1] - v1[1];
@@ -1190,6 +1303,17 @@ inline void rcVnormalize(float* v)
 	v[0] *= d;
 	v[1] *= d;
 	v[2] *= d;
+}
+
+// Normalizes the vector.
+// ベクトルを正規化します。
+//  @param[in,out]	v	The vector to normalize. [(x, y, z)]
+inline void rcVnormalize(std::array<float, 3>* v)
+{
+	float d = 1.f / rcSqrt(rcSqr(v->at(0)) + rcSqr(v->at(1)) + rcSqr(v->at(2)));
+	v->at(0) *= d;
+	v->at(1) *= d;
+	v->at(2) *= d;
 }
 
 // @}
@@ -1772,3 +1896,4 @@ bool rcMergePolyMeshDetails(rcContext* ctx, rcPolyMeshDetail** meshes, const int
 // Due to the large amount of detail documentation for this file,
 // the content normally located at the end of the header file has been separated
 // out to a file in /Docs/Extern.
+//このファイルの詳細なドキュメントが大量にあるため、通常ヘッダーファイルの最後にあるコンテンツは/ Docs / Externのファイルに分離されています。

@@ -995,8 +995,9 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// In a simple case, just pass in all the 8 neighbours,
 	// or use the bounding box below to only pass in a sliver of each of the 8 neighbours.
 	// 単純な場合、8つの隣すべてを渡すか、下の境界ボックスを使用して、8つの隣人それぞれのスライバーだけを渡します。
-	rcVcopy(m_cfg.bmin, bmin);
-	rcVcopy(m_cfg.bmax, bmax);
+
+	rcVcopy(m_cfg.bmin.data(), bmin);
+	rcVcopy(m_cfg.bmax.data(), bmax);
 	m_cfg.bmin[0] -= m_cfg.borderSize * m_cfg.cs;
 	m_cfg.bmin[2] -= m_cfg.borderSize * m_cfg.cs;
 	m_cfg.bmax[0] += m_cfg.borderSize * m_cfg.cs;
@@ -1024,7 +1025,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		return nullptr;
 	}
 
-	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin, m_cfg.bmax, m_cfg.cs, m_cfg.ch))
+	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin.data(), m_cfg.bmax.data(), m_cfg.cs, m_cfg.ch))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield."); // ソリッドハイトフィールドを作成できませんでした。
 		return nullptr;

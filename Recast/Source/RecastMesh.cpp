@@ -1120,8 +1120,8 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 
 	rcScopedTimer timer(ctx, RC_TIMER_BUILD_POLYMESH);
 
-	rcVcopy(mesh.bmin, cset.bmin); // コピー
-	rcVcopy(mesh.bmax, cset.bmax); // コピー
+	rcVcopy(mesh.bmin, cset.bmin.data()); // コピー
+	rcVcopy(mesh.bmax, cset.bmax.data()); // コピー
 	mesh.cs = cset.cs;
 	mesh.ch = cset.ch;
 	mesh.borderSize = cset.borderSize;

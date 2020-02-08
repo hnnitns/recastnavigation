@@ -325,7 +325,7 @@ void Sample_Debug::handleMeshChanged(InputGeom* geom)
 const float* Sample_Debug::getBoundsMin()
 {
 	if (m_cset)
-		return m_cset->bmin;
+		return m_cset->bmin.data();
 	if (m_chf)
 		return m_chf->bmin.data();
 	if (m_navMesh)
@@ -336,7 +336,7 @@ const float* Sample_Debug::getBoundsMin()
 const float* Sample_Debug::getBoundsMax()
 {
 	if (m_cset)
-		return m_cset->bmax;
+		return m_cset->bmax.data();
 	if (m_chf)
 		return m_chf->bmax.data();
 	if (m_navMesh)

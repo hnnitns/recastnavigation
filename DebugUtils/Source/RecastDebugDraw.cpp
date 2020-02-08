@@ -22,7 +22,85 @@
 #include "RecastDebugDraw.h"
 #include "Recast.h"
 
-void duDebugDrawTriMesh(duDebugDraw* dd, const float* verts, int /*nverts*/,
+namespace
+{
+	inline void drawLayerPortals(duDebugDraw* dd, const rcHeightfieldLayer* layer)
+	{
+		const float cs = layer->cs;
+		const float ch = layer->ch;
+		const int w = layer->width;
+		const int h = layer->height;
+
+		unsigned int pcol = duRGBA(255, 255, 255, 255);
+
+		const int segs[4 * 4] = { 0,0,0,1, 0,1,1,1, 1,1,1,0, 1,0,0,0 };
+
+		// Layer portals
+		dd->begin(DU_DRAW_LINES, 2.0f);
+		for (int y = 0; y < h; ++y)
+		{
+			for (int x = 0; x < w; ++x)
+			{
+				const int idx = x + y * w;
+				const int lh = (int)layer->heights[idx];
+				if (lh == 255) continue;
+
+				for (int dir = 0; dir < 4; ++dir)
+				{
+					if (layer->cons[idx] & (1 << (dir + 4)))
+					{
+						const int* seg = &segs[dir * 4];
+						const float ax = layer->bmin[0] + (x + seg[0]) * cs;
+						const float ay = layer->bmin[1] + (lh + 2) * ch;
+						const float az = layer->bmin[2] + (y + seg[1]) * cs;
+						const float bx = layer->bmin[0] + (x + seg[2]) * cs;
+						const float by = layer->bmin[1] + (lh + 2) * ch;
+						const float bz = layer->bmin[2] + (y + seg[3]) * cs;
+						dd->vertex(ax, ay, az, pcol);
+						dd->vertex(bx, by, bz, pcol);
+					}
+				}
+			}
+		}
+		dd->end();
+	}
+
+	inline void getContourCenter(
+		const rcContour* cont, const std::array<float, 3>& orig, float cs, float ch, float* center)
+	{
+		center[0] = 0;
+		center[1] = 0;
+		center[2] = 0;
+		if (!cont->nverts)
+			return;
+		for (int i = 0; i < cont->nverts; ++i)
+		{
+			const int* v = &cont->verts[i * 4];
+			center[0] += (float)v[0];
+			center[1] += (float)v[1];
+			center[2] += (float)v[2];
+		}
+		const float s = 1.f / cont->nverts;
+		center[0] *= s * cs;
+		center[1] *= s * ch;
+		center[2] *= s * cs;
+		center[0] += orig[0];
+		center[1] += orig[1] + 4 * ch;
+		center[2] += orig[2];
+	}
+
+	inline const rcContour* findContourFromSet(const rcContourSet& cset, unsigned short reg)
+	{
+		for (int i = 0; i < cset.nconts; ++i)
+		{
+			if (cset.conts[i].reg == reg)
+				return &cset.conts[i];
+		}
+		return 0;
+	}
+}
+
+void duDebugDrawTriMesh(duDebugDraw* dd, const float* verts, [[maybe_unused]] int nverts,
 	const int* tris, const float* normals, int ntris,
 	const unsigned char* flags, const float texScale)
 {
@@ -77,7 +155,7 @@ void duDebugDrawTriMesh(duDebugDraw* dd, const float* verts, int /*nverts*/,
 	dd->texture(false);
 }
 
-void duDebugDrawTriMeshSlope(duDebugDraw* dd, const float* verts, int /*nverts*/,
+void duDebugDrawTriMeshSlope(duDebugDraw* dd, const float* verts, [[maybe_unused]] int nverts,
 	const int* tris, const float* normals, int ntris,
 	const float walkableSlopeAngle, const float texScale)
 {
@@ -320,47 +398,6 @@ void duDebugDrawCompactHeightfieldDistance(duDebugDraw* dd, const rcCompactHeigh
 				dd->vertex(fx, fy, fz + cs, color);
 				dd->vertex(fx + cs, fy, fz + cs, color);
 				dd->vertex(fx + cs, fy, fz, color);
-			}
-		}
-	}
-	dd->end();
-}
-
-static void drawLayerPortals(duDebugDraw* dd, const rcHeightfieldLayer* layer)
-{
-	const float cs = layer->cs;
-	const float ch = layer->ch;
-	const int w = layer->width;
-	const int h = layer->height;
-
-	unsigned int pcol = duRGBA(255, 255, 255, 255);
-
-	const int segs[4 * 4] = { 0,0,0,1, 0,1,1,1, 1,1,1,0, 1,0,0,0 };
-
-	// Layer portals
-	dd->begin(DU_DRAW_LINES, 2.0f);
-	for (int y = 0; y < h; ++y)
-	{
-		for (int x = 0; x < w; ++x)
-		{
-			const int idx = x + y * w;
-			const int lh = (int)layer->heights[idx];
-			if (lh == 255) continue;
-
-			for (int dir = 0; dir < 4; ++dir)
-			{
-				if (layer->cons[idx] & (1 << (dir + 4)))
-				{
-					const int* seg = &segs[dir * 4];
-					const float ax = layer->bmin[0] + (x + seg[0]) * cs;
-					const float ay = layer->bmin[1] + (lh + 2) * ch;
-					const float az = layer->bmin[2] + (y + seg[1]) * cs;
-					const float bx = layer->bmin[0] + (x + seg[2]) * cs;
-					const float by = layer->bmin[1] + (lh + 2) * ch;
-					const float bz = layer->bmin[2] + (y + seg[3]) * cs;
-					dd->vertex(ax, ay, az, pcol);
-					dd->vertex(bx, by, bz, pcol);
-				}
 			}
 		}
 	}
@@ -645,44 +682,11 @@ void duDebugDrawLayerPolyMesh(duDebugDraw* dd, const struct rcLayerPolyMesh& lme
 }
 */
 
-static void getContourCenter(const rcContour* cont, const float* orig, float cs, float ch, float* center)
-{
-	center[0] = 0;
-	center[1] = 0;
-	center[2] = 0;
-	if (!cont->nverts)
-		return;
-	for (int i = 0; i < cont->nverts; ++i)
-	{
-		const int* v = &cont->verts[i * 4];
-		center[0] += (float)v[0];
-		center[1] += (float)v[1];
-		center[2] += (float)v[2];
-	}
-	const float s = 1.f / cont->nverts;
-	center[0] *= s * cs;
-	center[1] *= s * ch;
-	center[2] *= s * cs;
-	center[0] += orig[0];
-	center[1] += orig[1] + 4 * ch;
-	center[2] += orig[2];
-}
-
-static const rcContour* findContourFromSet(const rcContourSet& cset, unsigned short reg)
-{
-	for (int i = 0; i < cset.nconts; ++i)
-	{
-		if (cset.conts[i].reg == reg)
-			return &cset.conts[i];
-	}
-	return 0;
-}
-
 void duDebugDrawRegionConnections(duDebugDraw* dd, const rcContourSet& cset, const float alpha)
 {
 	if (!dd) return;
 
-	const float* orig = cset.bmin;
+	const auto& orig = cset.bmin;
 	const float cs = cset.cs;
 	const float ch = cset.ch;
 
@@ -730,7 +734,7 @@ void duDebugDrawRawContours(duDebugDraw* dd, const rcContourSet& cset, const flo
 {
 	if (!dd) return;
 
-	const float* orig = cset.bmin;
+	const auto& orig = cset.bmin;
 	const float cs = cset.cs;
 	const float ch = cset.ch;
 
@@ -793,7 +797,7 @@ void duDebugDrawContours(duDebugDraw* dd, const rcContourSet& cset, const float 
 {
 	if (!dd) return;
 
-	const float* orig = cset.bmin;
+	const auto& orig = cset.bmin;
 	const float cs = cset.cs;
 	const float ch = cset.ch;
 

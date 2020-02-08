@@ -635,8 +635,8 @@ bool rcBuildHeightfieldLayers(rcContext* ctx, rcCompactHeightfield& chf,
 
 		// Adjust the bbox to fit the heightfield.
 		// bboxを調整して、地形に合わせます。
-		rcVcopy(layer->bmin, bmin.data());
-		rcVcopy(layer->bmax, bmax.data());
+		layer->bmin = bmin;
+		layer->bmax = bmax;
 		layer->bmin[1] = bmin[1] + hmin * chf.ch;
 		layer->bmax[1] = bmin[1] + hmax * chf.ch;
 		layer->hmin = hmin;

@@ -1120,8 +1120,8 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 
 	rcScopedTimer timer(ctx, RC_TIMER_BUILD_POLYMESH);
 
-	rcVcopy(mesh.bmin, cset.bmin.data()); // コピー
-	rcVcopy(mesh.bmax, cset.bmax.data()); // コピー
+	mesh.bmin = cset.bmin;
+	mesh.bmax = cset.bmax;
 	mesh.cs = cset.cs;
 	mesh.ch = cset.ch;
 	mesh.borderSize = cset.borderSize;
@@ -1508,16 +1508,16 @@ bool rcMergePolyMeshes(rcContext* ctx, rcPolyMesh** meshes, const int nmeshes, r
 	mesh.nvp = meshes[0]->nvp;
 	mesh.cs = meshes[0]->cs;
 	mesh.ch = meshes[0]->ch;
-	rcVcopy(mesh.bmin, meshes[0]->bmin);
-	rcVcopy(mesh.bmax, meshes[0]->bmax);
+	mesh.bmin = meshes[0]->bmin;
+	mesh.bmax = meshes[0]->bmax;
 
 	int maxVerts = 0;
 	int maxPolys = 0;
 	int maxVertsPerMesh = 0;
 	for (int i = 0; i < nmeshes; ++i)
 	{
-		rcVmin(mesh.bmin, meshes[i]->bmin);
-		rcVmax(mesh.bmax, meshes[i]->bmax);
+		mesh.bmin = meshes[i]->bmin;
+		mesh.bmax = meshes[i]->bmax;
 		maxVertsPerMesh = rcMax(maxVertsPerMesh, meshes[i]->nverts);
 		maxVerts += meshes[i]->nverts;
 		maxPolys += meshes[i]->npolys;
@@ -1681,7 +1681,7 @@ bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst)
 	// Destination must be empty.
 	rcAssert(dst.verts == 0);
 	rcAssert(dst.polys == 0);
-	rcAssert(dst.regs == 0);
+	rcAssert(dst.regs  == 0);
 	rcAssert(dst.areas == 0);
 	rcAssert(dst.flags == 0);
 
@@ -1689,8 +1689,8 @@ bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst)
 	dst.npolys = src.npolys;
 	dst.maxpolys = src.npolys;
 	dst.nvp = src.nvp;
-	rcVcopy(dst.bmin, src.bmin);
-	rcVcopy(dst.bmax, src.bmax);
+	dst.bmin = src.bmin;
+	dst.bmax = src.bmax;
 	dst.cs = src.cs;
 	dst.ch = src.ch;
 	dst.borderSize = src.borderSize;

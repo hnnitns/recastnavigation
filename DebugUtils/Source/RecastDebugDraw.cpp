@@ -863,7 +863,7 @@ void duDebugDrawPolyMesh(duDebugDraw* dd, const struct rcPolyMesh& mesh)
 	const int nvp = mesh.nvp;
 	const float cs = mesh.cs;
 	const float ch = mesh.ch;
-	const float* orig = mesh.bmin;
+	const auto& orig = mesh.bmin;
 
 	dd->begin(DU_DRAW_TRIS);
 

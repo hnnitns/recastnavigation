@@ -21,19 +21,22 @@
 
 #include "DetourMath.h"
 #include <cstddef>
+#include <array>
 
 /**
 @defgroup detour Detour
 
-Members in this module are used to create, manipulate, and query navigation
-meshes.
+Members in this module are used to create, manipulate, and query navigation meshes.
+このモジュールのメンバーは、ナビゲーションメッシュの作成、操作、およびクエリに使用されます。
 
-@note This is a summary list of members.  Use the index or search
-feature to find minor members.
+@note This is a summary list of members.  Use the index or search feature to find minor members.
+	これはメンバーの要約リストです。 インデックスまたは検索機能を使用して、マイナーメンバーを見つけます。
+
 */
 
 // @name General helper functions
 // @{
+
 // Used to ignore a function parameter.  VS complains about unused parameters and this silences the warning.
 // 関数パラメーターを無視するために使用されます。 VSは未使用のパラメーターについて不平を言っており、これは警告を黙らせます。
 //  @param [in] _ Unused parameter
@@ -82,6 +85,7 @@ template<class T> inline constexpr T dtClamp(T v, T mn, T mx) { return v < mn ? 
 // @}
 // @name Vector helper functions.
 // @{
+
 // Derives the cross product of two vectors. (@p v1 x @p v2)
 // 2つのベクトルの外積を導出します。 （v1 x v2）
 //  @param[out]	dest	The cross product. [(x, y, z)]
@@ -94,12 +98,35 @@ inline constexpr void dtVcross(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[0] * v2[1] - v1[1] * v2[0];
 }
 
+// Derives the cross product of two vectors. (@p v1 x @p v2)
+// 2つのベクトルの外積を導出します。 （v1 x v2）
+//  @param[out]	dest	The cross product. [(x, y, z)]
+//  @param[in]		v1		A Vector [(x, y, z)]
+//  @param[in]		v2		A vector [(x, y, z)]
+inline constexpr void dtVcross(
+	std::array<float, 3>* dest, const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	dest->at(0) = v1[1] * v2[2] - v1[2] * v2[1];
+	dest->at(1) = v1[2] * v2[0] - v1[0] * v2[2];
+	dest->at(2) = v1[0] * v2[1] - v1[1] * v2[0];
+}
+
 // Derives the dot product of two vectors. (@p v1 . @p v2)
 // 2つのベクトルのドット積を導出します。 （v1 . v2）
 //  @param[in]		v1	A Vector [(x, y, z)]
 //  @param[in]		v2	A vector [(x, y, z)]
 // @return The dot product.
 inline constexpr float dtVdot(const float* v1, const float* v2)
+{
+	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+// Derives the dot product of two vectors. (@p v1 . @p v2)
+// 2つのベクトルのドット積を導出します。 （v1 . v2）
+//  @param[in]		v1	A Vector [(x, y, z)]
+//  @param[in]		v2	A vector [(x, y, z)]
+// @return The dot product.
+inline constexpr float dtVdot(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
 {
 	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
@@ -117,6 +144,20 @@ inline constexpr void dtVmad(float* dest, const float* v1, const float* v2, cons
 	dest[2] = v1[2] + v2[2] * s;
 }
 
+// Performs a scaled vector addition. (@p v1 + (@p v2 * @p s))
+// スケーリングされたベクトルの加算を実行します。（v1 +（v2 * s））
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  @param[in]		v1		The base vector. [(x, y, z)]
+//  @param[in]		v2		The vector to scale and add to @p v1. [(x, y, z)]
+//  @param[in]		s		The amount to scale @p v2 by before adding to @p v1.
+inline constexpr void dtVmad(
+	std::array<float, 3>* dest, const std::array<float, 3>& v1, const std::array<float, 3>& v2, const float s)
+{
+	dest->at(0) = v1[0] + v2[0] * s;
+	dest->at(1) = v1[1] + v2[1] * s;
+	dest->at(2) = v1[2] + v2[2] * s;
+}
+
 // Performs a linear interpolation between two vectors. (@p v1 toward @p v2)
 // 2つのベクトル間で線形補間を実行します。 （v1からv2へ）
 //  @param[out]	dest	The result vector. [(x, y, x)]
@@ -128,6 +169,20 @@ inline constexpr void dtVlerp(float* dest, const float* v1, const float* v2, con
 	dest[0] = v1[0] + (v2[0] - v1[0]) * t;
 	dest[1] = v1[1] + (v2[1] - v1[1]) * t;
 	dest[2] = v1[2] + (v2[2] - v1[2]) * t;
+}
+
+// Performs a linear interpolation between two vectors. (@p v1 toward @p v2)
+// 2つのベクトル間で線形補間を実行します。 （v1からv2へ）
+//  @param[out]	dest	The result vector. [(x, y, x)]
+//  @param[in]		v1		The starting vector.
+//  @param[in]		v2		The destination vector.
+//	 @param[in]		t		The interpolation factor. [Limits: 0 <= value <= 1.0]
+inline constexpr void dtVlerp(
+	std::array<float, 3>* dest, const std::array<float, 3>& v1, const std::array<float, 3>& v2, const float t)
+{
+	dest->at(0) = v1[0] + (v2[0] - v1[0]) * t;
+	dest->at(1) = v1[1] + (v2[1] - v1[1]) * t;
+	dest->at(2) = v1[2] + (v2[2] - v1[2]) * t;
 }
 
 // Performs a vector addition. (@p v1 + @p v2)
@@ -142,6 +197,22 @@ inline constexpr void dtVadd(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[2] + v2[2];
 }
 
+// Performs a vector addition. (@p v1 + @p v2)
+// ベクトルの加算を実行します。 （v1 + v2）
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  @param[in]		v1		The base vector. [(x, y, z)]
+//  @param[in]		v2		The vector to add to @p v1. [(x, y, z)]
+inline auto operator+(std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	std::array<float, 3> dest;
+
+	dest[0] = v1[0] + v2[0];
+	dest[1] = v1[1] + v2[1];
+	dest[2] = v1[2] + v2[2];
+
+	return dest;
+}
+
 // Performs a vector subtraction. (@p v1 - @p v2)
 // ベクトル減算を実行します。（v1 - v2）
 //  @param[out]	dest	The result vector. [(x, y, z)]
@@ -152,6 +223,22 @@ inline constexpr void dtVsub(float* dest, const float* v1, const float* v2)
 	dest[0] = v1[0] - v2[0];
 	dest[1] = v1[1] - v2[1];
 	dest[2] = v1[2] - v2[2];
+}
+
+// Performs a vector subtraction. (@p v1 - @p v2)
+// ベクトル減算を実行します。（v1 - v2）
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  @param[in]		v1		The base vector. [(x, y, z)]
+//  @param[in]		v2		The vector to subtract from @p v1. [(x, y, z)]
+inline auto operator-(std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	std::array<float, 3> dest;
+
+	dest[0] = v1[0] - v2[0];
+	dest[1] = v1[1] - v2[1];
+	dest[2] = v1[2] - v2[2];
+
+	return dest;
 }
 
 // Scales the vector by the specified value. (@p v * @p t)
@@ -166,6 +253,18 @@ inline constexpr void dtVscale(float* dest, const float* v, const float t)
 	dest[2] = v[2] * t;
 }
 
+// Scales the vector by the specified value. (@p v * @p t)
+// 指定された値でベクトルをスケーリングします。（v * t）
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  @param[in]		v		The vector to scale. [(x, y, z)]
+//  @param[in]		t		The scaling factor.
+inline constexpr void dtVscale(std::array<float, 3>* dest, const std::array<float, 3>& v, const float t)
+{
+	dest->at(0) = v[0] * t;
+	dest->at(1) = v[1] * t;
+	dest->at(2) = v[2] * t;
+}
+
 // Selects the minimum value of each element from the specified vectors.
 // 指定されたベクトルから各要素の最小値を選択します。
 //  @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
@@ -177,6 +276,17 @@ inline constexpr void dtVmin(float* mn, const float* v)
 	mn[2] = dtMin(mn[2], v[2]);
 }
 
+// Selects the minimum value of each element from the specified vectors.
+// 指定されたベクトルから各要素の最小値を選択します。
+//  @param[in,out]	mn	A vector.  (Will be updated with the result.) [(x, y, z)]
+//  @param[in]	v	A vector. [(x, y, z)]
+inline constexpr void dtVmin(std::array<float, 3>* mn, const std::array<float, 3>& v)
+{
+	mn->at(0) = dtMin(mn->at(0), v[0]);
+	mn->at(1) = dtMin(mn->at(1), v[1]);
+	mn->at(2) = dtMin(mn->at(2), v[2]);
+}
+
 // Selects the maximum value of each element from the specified vectors.
 // 指定されたベクトルから各要素の最大値を選択します。
 //  @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
@@ -186,6 +296,17 @@ inline constexpr void dtVmax(float* mx, const float* v)
 	mx[0] = dtMax(mx[0], v[0]);
 	mx[1] = dtMax(mx[1], v[1]);
 	mx[2] = dtMax(mx[2], v[2]);
+}
+
+// Selects the maximum value of each element from the specified vectors.
+// 指定されたベクトルから各要素の最大値を選択します。
+//  @param[in,out]	mx	A vector.  (Will be updated with the result.) [(x, y, z)]
+//  @param[in]		v	A vector. [(x, y, z)]
+inline constexpr void dtVmax(std::array<float, 3>* mx, const std::array<float, 3>& v)
+{
+	mx->at(0) = dtMax(mx->at(0), v[0]);
+	mx->at(1) = dtMax(mx->at(1), v[1]);
+	mx->at(2) = dtMax(mx->at(2), v[2]);
 }
 
 // Sets the vector elements to the specified values.
@@ -219,11 +340,29 @@ inline float dtVlen(const float* v)
 	return dtMathSqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
+// Derives the scalar length of the vector.
+// ベクトルのスカラー長を導出します。
+//  @param[in]		v The vector. [(x, y, z)]
+// @return The scalar length of the vector.
+inline float dtVlen(const std::array<float, 3>& v)
+{
+	return dtMathSqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+}
+
 // Derives the square of the scalar length of the vector. (len * len)
 // ベクトルのスカラー長の二乗を導出します。（len * len）
 //  @param[in]		v The vector. [(x, y, z)]
 // @return The square of the scalar length of the vector.
 inline constexpr float dtVlenSqr(const float* v)
+{
+	return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+}
+
+// Derives the square of the scalar length of the vector. (len * len)
+// ベクトルのスカラー長の二乗を導出します。（len * len）
+//  @param[in]		v The vector. [(x, y, z)]
+// @return The square of the scalar length of the vector.
+inline constexpr float dtVlenSqr(const std::array<float, 3>& v)
 {
 	return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
 }
@@ -241,12 +380,38 @@ inline float dtVdist(const float* v1, const float* v2)
 	return dtMathSqrtf(dx * dx + dy * dy + dz * dz);
 }
 
+// Returns the distance between two points.
+// 2点間の距離を返します。
+//  @param[in]		v1	A point. [(x, y, z)]
+//  @param[in]		v2	A point. [(x, y, z)]
+// @return The distance between the two points.
+inline float dtVdist(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	const float dx = v2[0] - v1[0];
+	const float dy = v2[1] - v1[1];
+	const float dz = v2[2] - v1[2];
+	return dtMathSqrtf(dx * dx + dy * dy + dz * dz);
+}
+
 // Returns the square of the distance between two points.
 // 2点間の距離の2乗を返します。
 //  @param[in]		v1	A point. [(x, y, z)]
 //  @param[in]		v2	A point. [(x, y, z)]
 // @return The square of the distance between the two points.
 inline constexpr float dtVdistSqr(const float* v1, const float* v2)
+{
+	const float dx = v2[0] - v1[0];
+	const float dy = v2[1] - v1[1];
+	const float dz = v2[2] - v1[2];
+	return dx * dx + dy * dy + dz * dz;
+}
+
+// Returns the square of the distance between two points.
+// 2点間の距離の2乗を返します。
+//  @param[in]		v1	A point. [(x, y, z)]
+//  @param[in]		v2	A point. [(x, y, z)]
+// @return The square of the distance between the two points.
+inline constexpr float dtVdistSqr(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
 {
 	const float dx = v2[0] - v1[0];
 	const float dy = v2[1] - v1[1];
@@ -269,12 +434,39 @@ inline float dtVdist2D(const float* v1, const float* v2)
 	return dtMathSqrtf(dx * dx + dz * dz);
 }
 
+// Derives the distance between the specified points on the xz-plane.
+// xz平面上の指定されたポイント間の距離を導出します。
+//  @param[in]		v1	A point. [(x, y, z)]
+//  @param[in]		v2	A point. [(x, y, z)]
+// @return The distance between the point on the xz-plane.
+//
+// The vectors are projected onto the xz-plane, so the y-values are ignored.
+// ベクトルはxz平面に投影されるため、y値は無視されます。
+inline float dtVdist2D(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+{
+	const float dx = v2[0] - v1[0];
+	const float dz = v2[2] - v1[2];
+	return dtMathSqrtf(dx * dx + dz * dz);
+}
+
 // Derives the square of the distance between the specified points on the xz-plane.
 // xz平面上の指定されたポイント間の距離の2乗を導出します。
 //  @param[in]		v1	A point. [(x, y, z)]
 //  @param[in]		v2	A point. [(x, y, z)]
 // @return The square of the distance between the point on the xz-plane.
 inline constexpr float dtVdist2DSqr(const float* v1, const float* v2)
+{
+	const float dx = v2[0] - v1[0];
+	const float dz = v2[2] - v1[2];
+	return dx * dx + dz * dz;
+}
+
+// Derives the square of the distance between the specified points on the xz-plane.
+// xz平面上の指定されたポイント間の距離の2乗を導出します。
+//  @param[in]		v1	A point. [(x, y, z)]
+//  @param[in]		v2	A point. [(x, y, z)]
+// @return The square of the distance between the point on the xz-plane.
+inline constexpr float dtVdist2DSqr(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
 {
 	const float dx = v2[0] - v1[0];
 	const float dz = v2[2] - v1[2];
@@ -292,6 +484,17 @@ inline void dtVnormalize(float* v)
 	v[2] *= d;
 }
 
+// Normalizes the vector.
+// ベクトルを正規化します。
+//  @param[in,out]	v	The vector to normalize. [(x, y, z)]
+inline void dtVnormalize(std::array<float, 3>* v)
+{
+	float d = 1.f / dtMathSqrtf(dtSqr(v->at(0)) + dtSqr(v->at(1)) + dtSqr(v->at(2)));
+	v->at(0) *= d;
+	v->at(1) *= d;
+	v->at(2) *= d;
+}
+
 // Performs a 'sloppy' colocation check of the specified points.
 // 指定されたポイントの「ずさんな」コロケーションチェックを実行します。
 //  @param[in]		p0	A point. [(x, y, z)]
@@ -302,6 +505,22 @@ inline void dtVnormalize(float* v)
 // Basically, this function will return true if the specified points are close enough to eachother to be considered colocated.
 // 基本的に、この関数は、指定されたポイントが同じ場所にあると見なされるほど互いに近い場合にtrueを返します。
 inline constexpr bool dtVequal(const float* p0, const float* p1)
+{
+	constexpr float thr = dtSqr(1.f / 16384.0f);
+	const float d = dtVdistSqr(p0, p1);
+	return d < thr;
+}
+
+// Performs a 'sloppy' colocation check of the specified points.
+// 指定されたポイントの「ずさんな」コロケーションチェックを実行します。
+//  @param[in]		p0	A point. [(x, y, z)]
+//  @param[in]		p1	A point. [(x, y, z)]
+// @return True if the points are considered to be at the same location.
+// ポイントが同じ場所にあると見なされる場合はTrue。
+//
+// Basically, this function will return true if the specified points are close enough to eachother to be considered colocated.
+// 基本的に、この関数は、指定されたポイントが同じ場所にあると見なされるほど互いに近い場合にtrueを返します。
+inline constexpr bool dtVequal(const std::array<float, 3>& p0, const std::array<float, 3>& p1)
 {
 	constexpr float thr = dtSqr(1.f / 16384.0f);
 	const float d = dtVdistSqr(p0, p1);
@@ -321,6 +540,19 @@ inline constexpr float dtVdot2D(const float* u, const float* v)
 	return u[0] * v[0] + u[2] * v[2];
 }
 
+// Derives the dot product of two vectors on the xz-plane. (@p u . @p v)
+// xz平面上の2つのベクトルのドット積を導出します。 （u .v）
+//  @param[in]		u		A vector [(x, y, z)]
+//  @param[in]		v		A vector [(x, y, z)]
+// @return The dot product on the xz-plane.
+//
+// The vectors are projected onto the xz-plane, so the y-values are ignored.
+// ベクトルはxz平面に投影されるため、y値は無視されます。
+inline constexpr float dtVdot2D(const std::array<float, 3>& u, const std::array<float, 3>& v)
+{
+	return u[0] * v[0] + u[2] * v[2];
+}
+
 // Derives the xz-plane 2D perp product of the two vectors. (uz * vx - ux * vz)
 // 2つのベクトルのxz平面2D perp積を導出します。 （uz * vx - ux * vz）
 //  @param[in]		u		The LHV vector [(x, y, z)]
@@ -334,10 +566,24 @@ inline constexpr float dtVperp2D(const float* u, const float* v)
 	return u[2] * v[0] - u[0] * v[2];
 }
 
+// Derives the xz-plane 2D perp product of the two vectors. (uz * vx - ux * vz)
+// 2つのベクトルのxz平面2D perp積を導出します。 （uz * vx - ux * vz）
+//  @param[in]		u		The LHV vector [(x, y, z)]
+//  @param[in]		v		The RHV vector [(x, y, z)]
+// @return The dot product on the xz-plane.
+//
+// The vectors are projected onto the xz-plane, so the y-values are ignored.
+//ベクトルはxz平面に投影されるため、y値は無視されます。
+inline constexpr float dtVperp2D(const std::array<float, 3>& u, const std::array<float, 3>& v)
+{
+	return u[2] * v[0] - u[0] * v[2];
+}
+
 // @}
 // @name Computational geometry helper functions.
 // @name 計算幾何学ヘルパー関数。
 // @{
+
 // Derives the signed xz-plane area of the triangle ABC, or the relationship of line AB to point C.
 // 三角形ABCの符号付きxz平面領域、またはラインABとポイントCの関係を導出します。
 //  @param[in]		a		Vertex A. [(x, y, z)]
@@ -354,15 +600,34 @@ inline constexpr float dtTriArea2D(const float* a, const float* b, const float* 
 	return acx * abz - abx * acz;
 }
 
+// Derives the signed xz-plane area of the triangle ABC, or the relationship of line AB to point C.
+// 三角形ABCの符号付きxz平面領域、またはラインABとポイントCの関係を導出します。
+//  @param[in]		a		Vertex A. [(x, y, z)]
+//  @param[in]		b		Vertex B. [(x, y, z)]
+//  @param[in]		c		Vertex C. [(x, y, z)]
+// @return The signed xz-plane area of the triangle.
+// @return 三角形の符号付きxz平面領域。
+inline constexpr float dtTriArea2D(
+	const std::array<float, 3>& a, const std::array<float, 3>& b, const std::array<float, 3>& c)
+{
+	const float abx = b[0] - a[0];
+	const float abz = b[2] - a[2];
+	const float acx = c[0] - a[0];
+	const float acz = c[2] - a[2];
+	return acx * abz - abx * acz;
+}
+
 // Determines if two axis-aligned bounding boxes overlap.
+// 2つの軸に沿った境界ボックスが重なるかどうかを決定します。
 //  @param[in]		amin	Minimum bounds of box A. [(x, y, z)]
 //  @param[in]		amax	Maximum bounds of box A. [(x, y, z)]
 //  @param[in]		bmin	Minimum bounds of box B. [(x, y, z)]
 //  @param[in]		bmax	Maximum bounds of box B. [(x, y, z)]
 // @return True if the two AABB's overlap.
+//	2つのAABBが重複している場合はTrue。
 // @see dtOverlapBounds
-inline constexpr bool dtOverlapQuantBounds(const unsigned short amin[3], const unsigned short amax[3],
-	const unsigned short bmin[3], const unsigned short bmax[3])
+inline constexpr bool dtOverlapQuantBounds(const uint16_t amin[3], const uint16_t amax[3],
+	const uint16_t bmin[3], const uint16_t bmax[3])
 {
 	bool overlap = true;
 	overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
@@ -372,14 +637,55 @@ inline constexpr bool dtOverlapQuantBounds(const unsigned short amin[3], const u
 }
 
 // Determines if two axis-aligned bounding boxes overlap.
+// 2つの軸に沿った境界ボックスが重なるかどうかを決定します。
 //  @param[in]		amin	Minimum bounds of box A. [(x, y, z)]
 //  @param[in]		amax	Maximum bounds of box A. [(x, y, z)]
 //  @param[in]		bmin	Minimum bounds of box B. [(x, y, z)]
 //  @param[in]		bmax	Maximum bounds of box B. [(x, y, z)]
 // @return True if the two AABB's overlap.
+//	2つのAABBが重複している場合はTrue。
+// @see dtOverlapBounds
+inline constexpr bool dtOverlapQuantBounds(
+	const std::array<uint16_t, 3>& amin, const std::array<uint16_t, 3>& amax,
+	const std::array<uint16_t, 3>& bmin, const std::array<uint16_t, 3>& bmax)
+{
+	bool overlap = true;
+	overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
+	overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
+	overlap = (amin[2] > bmax[2] || amax[2] < bmin[2]) ? false : overlap;
+	return overlap;
+}
+
+// Determines if two axis-aligned bounding boxes overlap.
+// 2つの軸に沿った境界ボックスが重なるかどうかを決定します。
+//  @param[in]		amin	Minimum bounds of box A. [(x, y, z)]
+//  @param[in]		amax	Maximum bounds of box A. [(x, y, z)]
+//  @param[in]		bmin	Minimum bounds of box B. [(x, y, z)]
+//  @param[in]		bmax	Maximum bounds of box B. [(x, y, z)]
+// @return True if the two AABB's overlap.
+//	2つのAABBが重複している場合はTrue。
 // @see dtOverlapQuantBounds
 inline constexpr bool dtOverlapBounds(const float* amin, const float* amax,
 	const float* bmin, const float* bmax)
+{
+	bool overlap = true;
+	overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
+	overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
+	overlap = (amin[2] > bmax[2] || amax[2] < bmin[2]) ? false : overlap;
+	return overlap;
+}
+
+// Determines if two axis-aligned bounding boxes overlap.
+// 2つの軸に沿った境界ボックスが重なるかどうかを決定します。
+//  @param[in]		amin	Minimum bounds of box A. [(x, y, z)]
+//  @param[in]		amax	Maximum bounds of box A. [(x, y, z)]
+//  @param[in]		bmin	Minimum bounds of box B. [(x, y, z)]
+//  @param[in]		bmax	Maximum bounds of box B. [(x, y, z)]
+// @return True if the two AABB's overlap.
+//	2つのAABBが重複している場合はTrue。
+// @see dtOverlapQuantBounds
+inline constexpr bool dtOverlapBounds(const std::array<float, 3>& amin, const std::array<float, 3>& amax,
+	const std::array<float, 3>& bmin, const std::array<float, 3>& bmax)
 {
 	bool overlap = true;
 	overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
@@ -431,7 +737,7 @@ float dtDistancePtSegSqr2D(const float* pt, const float* p, const float* q, floa
 //  @param[in]		idx		The polygon indices. [(vertIndex) * @p nidx]
 //  @param[in]		nidx	The number of indices in the polygon. [Limit: >= 3]
 //  @param[in]		verts	The polygon vertices. [(x, y, z) * vertCount]
-void dtCalcPolyCenter(float* tc, const unsigned short* idx, int nidx, const float* verts);
+void dtCalcPolyCenter(float* tc, const uint16_t* idx, int nidx, const float* verts);
 
 // Determines if the two convex polygons overlap on the xz-plane.
 //  @param[in]		polya		Polygon A vertices.	[(x, y, z) * @p npolya]
@@ -445,7 +751,7 @@ bool dtOverlapPolyPoly2D(const float* polya, const int npolya,
 // @}
 // @name Miscellanious functions. // その他の機能。
 // @{
-inline constexpr unsigned int dtNextPow2(unsigned int v)
+inline constexpr uint32_t dtNextPow2(uint32_t v)
 {
 	v--;
 	v |= v >> 1;
@@ -457,10 +763,10 @@ inline constexpr unsigned int dtNextPow2(unsigned int v)
 	return v;
 }
 
-inline unsigned int dtIlog2(unsigned int v)
+inline uint32_t dtIlog2(uint32_t v)
 {
-	unsigned int r;
-	unsigned int shift;
+	uint32_t r;
+	uint32_t shift;
 	r = (v > 0xffff) << 4; v >>= r;
 	shift = (v > 0xff) << 3; v >>= shift; r |= shift;
 	shift = (v > 0xf) << 2; v >>= shift; r |= shift;
@@ -473,41 +779,41 @@ inline constexpr int dtAlign4(int x) { return (x + 3) & ~3; }
 
 inline constexpr int dtOppositeTile(int side) { return (side + 4) & 0x7; }
 
-inline constexpr void dtSwapByte(unsigned char* a, unsigned char* b)
+inline constexpr void dtSwapByte(uint8_t* a, uint8_t* b)
 {
-	unsigned char tmp = *a;
+	uint8_t tmp = *a;
 	*a = *b;
 	*b = tmp;
 }
 
-inline constexpr void dtSwapEndian(unsigned short* v)
+inline constexpr void dtSwapEndian(uint16_t* v)
 {
-	unsigned char* x = (unsigned char*)v;
+	uint8_t* x = (uint8_t*)v;
 	dtSwapByte(x + 0, x + 1);
 }
 
 inline constexpr void dtSwapEndian(short* v)
 {
-	unsigned char* x = (unsigned char*)v;
+	uint8_t* x = (uint8_t*)v;
 	dtSwapByte(x + 0, x + 1);
 }
 
-inline constexpr void dtSwapEndian(unsigned int* v)
+inline constexpr void dtSwapEndian(uint32_t* v)
 {
-	unsigned char* x = (unsigned char*)v;
+	uint8_t* x = (uint8_t*)v;
 	dtSwapByte(x + 0, x + 3);
 	dtSwapByte(x + 1, x + 2);
 }
 
 inline void dtSwapEndian(int* v)
 {
-	unsigned char* x = (unsigned char*)v;
+	uint8_t* x = (uint8_t*)v;
 	dtSwapByte(x + 0, x + 3); dtSwapByte(x + 1, x + 2);
 }
 
 inline constexpr void dtSwapEndian(float* v)
 {
-	unsigned char* x = (unsigned char*)v;
+	uint8_t* x = (uint8_t*)v;
 	dtSwapByte(x + 0, x + 3);
 	dtSwapByte(x + 1, x + 2);
 }
@@ -521,7 +827,7 @@ void dtRandomPointInConvexPoly(const float* pts, const int npts, float* areas,
 
 // アドバンスバッファーポインターを取得する
 template<typename TypeToRetrieveAs>
-TypeToRetrieveAs* dtGetThenAdvanceBufferPointer(const unsigned char*& buffer, const size_t distanceToAdvance)
+TypeToRetrieveAs* dtGetThenAdvanceBufferPointer(const uint8_t*& buffer, const size_t distanceToAdvance)
 {
 	TypeToRetrieveAs* returnPointer = reinterpret_cast<TypeToRetrieveAs*>(buffer);
 	buffer += distanceToAdvance;
@@ -530,7 +836,7 @@ TypeToRetrieveAs* dtGetThenAdvanceBufferPointer(const unsigned char*& buffer, co
 
 // アドバンスバッファーポインターを取得する
 template<typename TypeToRetrieveAs>
-TypeToRetrieveAs* dtGetThenAdvanceBufferPointer(unsigned char*& buffer, const size_t distanceToAdvance)
+TypeToRetrieveAs* dtGetThenAdvanceBufferPointer(uint8_t*& buffer, const size_t distanceToAdvance)
 {
 	TypeToRetrieveAs* returnPointer = reinterpret_cast<TypeToRetrieveAs*>(buffer);
 	buffer += distanceToAdvance;

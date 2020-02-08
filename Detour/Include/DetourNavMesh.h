@@ -217,35 +217,76 @@ struct dtPoly
 };
 
 // Defines the location of detail sub-mesh data within a dtMeshTile.
+// dtMeshTile内の詳細サブメッシュデータの場所を定義します。
 struct dtPolyDetail
 {
-	uint32_t vertBase;			//< The offset of the vertices in the dtMeshTile::detailVerts array.
-	uint32_t triBase;			//< The offset of the triangles in the dtMeshTile::detailTris array.
-	uint8_t vertCount;		//< The number of vertices in the sub-mesh.
-	uint8_t triCount;			//< The number of triangles in the sub-mesh.
+	// The offset of the vertices in the dtMeshTile::detailVerts array.
+	// dtMeshTile::detailVerts配列内の頂点のオフセット。
+	uint32_t vertBase;
+
+	// The offset of the triangles in the dtMeshTile::detailTris array.
+	// dtMeshTile::detailTris配列内の三角形のオフセット。
+	uint32_t triBase;
+
+	// The number of vertices in the sub-mesh.
+	// サブメッシュ内の頂点の数。
+	uint8_t vertCount;
+
+	// The number of triangles in the sub-mesh.
+	// サブメッシュ内の三角形の数。
+	uint8_t triCount;
 };
 
 // Defines a link between polygons.
+// ポリゴン間のリンクを定義します。
 // @note This structure is rarely if ever used by the end user.
+// この構造は、エンドユーザーが使用することはほとんどありません。
 // @see dtMeshTile
 struct dtLink
 {
-	dtPolyRef ref;					//< Neighbour reference. (The neighbor that is linked to.)
-	uint32_t next;				//< Index of the next link.
-	uint8_t edge;				//< Index of the polygon edge that owns this link.
-	uint8_t side;				//< If a boundary link, defines on which side the link is.
-	uint8_t bmin;				//< If a boundary link, defines the minimum sub-edge area.
-	uint8_t bmax;				//< If a boundary link, defines the maximum sub-edge area.
+	// Neighbour reference. (The neighbor that is linked to.)
+	// 近隣参照。 （リンクされている隣人。）
+	dtPolyRef ref;
+
+	// Index of the next link.
+	// 次のリンクのインデックス。
+	uint32_t next;
+
+	// Index of the polygon edge that owns this link.
+	// このリンクを所有するポリゴンエッジのインデックス。
+	uint8_t edge;
+
+	// If a boundary link, defines on which side the link is.
+	// 境界リンクの場合、リンクがどちら側にあるかを定義します。
+	uint8_t side;
+
+	// If a boundary link, defines the minimum sub-edge area.
+	// 境界リンクの場合、最小サブエッジエリアを定義します。
+	uint8_t bmin;
+
+	// If a boundary link, defines the maximum sub-edge area.
+	// 境界リンクの場合、最大サブエッジエリアを定義します。
+	uint8_t bmax;
 };
 
 // Bounding volume node.
+// 境界ボリュームノード。
 // @note This structure is rarely if ever used by the end user.
+// この構造は、エンドユーザーが使用することはほとんどありません。
 // @see dtMeshTile
 struct dtBVNode
 {
-	uint16_t bmin[3];	//< Minimum bounds of the node's AABB. [(x, y, z)]
-	uint16_t bmax[3];	//< Maximum bounds of the node's AABB. [(x, y, z)]
-	int i;				//< The node's index. (Negative for escape sequence.)
+	// Minimum bounds of the node's AABB. [(x, y, z)]
+	// ノードのAABBの最小境界。 [（x、y、z）]
+	std::array<uint16_t, 3> bmin;
+
+	// Maximum bounds of the node's AABB. [(x, y, z)]
+	// ノードのAABBの最大境界。 [（x、y、z）]
+	std::array<uint16_t, 3> bmax;
+
+	// The node's index. (Negative for escape sequence.)
+	// ノードのインデックス。 （エスケープシーケンスが負の場合。）
+	int i;
 };
 
 // Defines an navigation mesh off-mesh connection within a dtMeshTile object.

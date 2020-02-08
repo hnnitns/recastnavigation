@@ -127,7 +127,7 @@ namespace
 		else
 		{
 			// Split
-			calcExtends(items, nitems, imin, imax, node.bmin, node.bmax);
+			calcExtends(items, nitems, imin, imax, node.bmin.data(), node.bmax.data());
 
 			int	axis = longestAxis(node.bmax[0] - node.bmin[0],
 				node.bmax[1] - node.bmin[1],

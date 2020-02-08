@@ -783,7 +783,7 @@ int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, co
 		int n = 0;
 		while (node < end)
 		{
-			const bool overlap = dtOverlapQuantBounds(bmin, bmax, node->bmin, node->bmax);
+			const bool overlap = dtOverlapQuantBounds(bmin, bmax, node->bmin.data(), node->bmax.data());
 			const bool isLeafNode = node->i >= 0;
 
 			if (isLeafNode && overlap)

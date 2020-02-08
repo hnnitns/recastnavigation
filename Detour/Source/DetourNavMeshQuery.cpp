@@ -886,7 +886,7 @@ void dtNavMeshQuery::queryPolygonsInTile(const dtMeshTile* tile, const float* qm
 
 		// Calculate quantized box
 		// 量子化ボックスを計算
-		unsigned short bmin[3], bmax[3];
+		uint16_t bmin[3], bmax[3];
 
 		// dtClamp query box to world box.
 		// dtクエリボックスをワールドボックスにクランプします。
@@ -899,18 +899,18 @@ void dtNavMeshQuery::queryPolygonsInTile(const dtMeshTile* tile, const float* qm
 
 		// Quantize
 		// クオンタイズ
-		bmin[0] = (unsigned short)(qfac * minx) & 0xfffe;
-		bmin[1] = (unsigned short)(qfac * miny) & 0xfffe;
-		bmin[2] = (unsigned short)(qfac * minz) & 0xfffe;
-		bmax[0] = (unsigned short)(qfac * maxx + 1) | 1;
-		bmax[1] = (unsigned short)(qfac * maxy + 1) | 1;
-		bmax[2] = (unsigned short)(qfac * maxz + 1) | 1;
+		bmin[0] = (uint16_t)(qfac * minx) & 0xfffe;
+		bmin[1] = (uint16_t)(qfac * miny) & 0xfffe;
+		bmin[2] = (uint16_t)(qfac * minz) & 0xfffe;
+		bmax[0] = (uint16_t)(qfac * maxx + 1) | 1;
+		bmax[1] = (uint16_t)(qfac * maxy + 1) | 1;
+		bmax[2] = (uint16_t)(qfac * maxz + 1) | 1;
 
 		// Traverse tree（検索アルゴリズム：ツリートラバーサル）
 		const dtPolyRef base = m_nav->getPolyRefBase(tile);
 		while (node < end)
 		{
-			const bool overlap = dtOverlapQuantBounds(bmin, bmax, node->bmin, node->bmax);
+			const bool overlap = dtOverlapQuantBounds(bmin, bmax, node->bmin.data(), node->bmax.data());
 			const bool isLeafNode = node->i >= 0;
 
 			if (isLeafNode && overlap)

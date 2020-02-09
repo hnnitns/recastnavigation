@@ -19,6 +19,7 @@
 #ifndef DETOURNAVMESHQUERY_H
 #define DETOURNAVMESHQUERY_H
 
+#include <array>
 #include "DetourConfig.h"
 #include "DetourNavMesh.h"
 #include "DetourStatus.h"
@@ -30,7 +31,7 @@ class dtQueryFilter
 {
 	// Cost per area type. (Used by default implementation.)
 	// エリアタイプごとのコスト。 （デフォルトの実装で使用されます。）
-	float m_areaCost[DT_MAX_AREAS];
+	std::array<float, DT_MAX_AREAS> m_areaCost;
 
 	// Flags for polygons that can be visited. (Used by default implementation.)
 	// 訪問できるポリゴンのフラグ。 （デフォルトの実装で使用されます。）

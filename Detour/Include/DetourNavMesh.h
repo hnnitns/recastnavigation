@@ -799,7 +799,7 @@ private:
 	void closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const;
 
 	dtNavMeshParams m_params;			//< Current initialization params. TODO: do not store this info twice.
-	float m_orig[3];					//< Origin of the tile (0,0) タイルの原点
+	std::array<float, 3> m_orig;		//< Origin of the tile (0,0) タイルの原点
 	float m_tileWidth, m_tileHeight;	//< Dimensions of each tile. 各タイルの寸法。
 	int m_maxTiles;						//< Max number of tiles.
 	int m_tileLutSize;					//< Tile hash lookup size (must be pot).

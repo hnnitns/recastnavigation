@@ -225,7 +225,8 @@ dtNavMesh::~dtNavMesh()
 dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 {
 	memcpy(&m_params, params, sizeof(dtNavMeshParams));
-	dtVcopy(m_orig, params->orig.data());
+
+	m_orig = params->orig;
 	m_tileWidth = params->tileWidth;
 	m_tileHeight = params->tileHeight;
 

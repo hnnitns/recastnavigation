@@ -230,7 +230,7 @@ bool dtPathCorridor::init(const int maxPath)
 void dtPathCorridor::reset(dtPolyRef ref, const float* pos)
 {
 	dtAssert(m_path);
-	dtVcopy(m_pos, pos);
+	dtVcopy(m_pos.data(), pos);
 	dtVcopy(m_target, pos);
 	m_path[0] = ref;
 	m_npath = 1;
@@ -248,29 +248,29 @@ So if 10 corners are needed, the buffers should be sized for 11 corners.
 
 If the target is within range, it will be the last corner and have a polygon reference id of zero.
 */
-int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
+int dtPathCorridor::findCorners(float* cornerVerts, uint8_t* cornerFlags,
 	dtPolyRef* cornerPolys, const int maxCorners,
 	dtNavMeshQuery* navquery, const dtQueryFilter* /*filter*/)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
 
-	static const float MIN_TARGET_DIST = 0.01f;
+	constexpr float MIN_TARGET_DIST = 0.01f;
 
 	int ncorners = 0;
-	navquery->findStraightPath(m_pos, m_target, m_path, m_npath,
+	navquery->findStraightPath(m_pos.data(), m_target, m_path, m_npath,
 		cornerVerts, cornerFlags, cornerPolys, &ncorners, maxCorners);
 
 	// Prune points in the beginning of the path which are too close.
 	while (ncorners)
 	{
 		if ((cornerFlags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ||
-			dtVdist2DSqr(&cornerVerts[0], m_pos) > dtSqr(MIN_TARGET_DIST))
+			dtVdist2DSqr(&cornerVerts[0], m_pos.data()) > dtSqr(MIN_TARGET_DIST))
 			break;
 		ncorners--;
 		if (ncorners)
 		{
-			memmove(cornerFlags, cornerFlags + 1, sizeof(unsigned char) * ncorners);
+			memmove(cornerFlags, cornerFlags + 1, sizeof(uint8_t) * ncorners);
 			memmove(cornerPolys, cornerPolys + 1, sizeof(dtPolyRef) * ncorners);
 			memmove(cornerVerts, cornerVerts + 3, sizeof(float) * 3 * ncorners);
 		}
@@ -313,8 +313,8 @@ void dtPathCorridor::optimizePathVisibility(const float* next, const float pathO
 	dtAssert(m_path);
 
 	// Clamp the ray to max distance.
-	float goal[3];
-	dtVcopy(goal, next);
+	std::array<float, 3> goal{};
+	dtVcopy(goal.data(), next);
 	float dist = dtVdist2D(m_pos, goal);
 
 	// If too close to the goal, do not try to optimize.
@@ -325,18 +325,20 @@ void dtPathCorridor::optimizePathVisibility(const float* next, const float pathO
 	dist = dtMin(dist + 0.01f, pathOptimizationRange);
 
 	// Adjust ray length.
-	float delta[3];
-	dtVsub(delta, goal, m_pos);
-	dtVmad(goal, m_pos, delta, pathOptimizationRange / dist);
+	std::array<float, 3> delta{ goal - m_pos };
 
-	static const int MAX_RES = 32;
-	dtPolyRef res[MAX_RES];
-	float t, norm[3];
-	int nres = 0;
-	navquery->raycast(m_path[0], m_pos, goal, filter, &t, norm, res, &nres, MAX_RES);
+	dtVmad(&goal, m_pos, delta, pathOptimizationRange / dist);
+
+	constexpr int MAX_RES = 32;
+	std::array<dtPolyRef, MAX_RES> res{};
+	float t{};
+	std::array<float, 3> norm{};
+	int nres{};
+
+	navquery->raycast(m_path[0], m_pos.data(), goal.data(), filter, &t, norm.data(), res.data(), &nres, MAX_RES);
 	if (nres > 1 && t > 0.99f)
 	{
-		m_npath = dtMergeCorridorStartShortcut(m_path, m_npath, m_maxPath, res, nres);
+		m_npath = dtMergeCorridorStartShortcut(m_path, m_npath, m_maxPath, res.data(), nres);
 	}
 }
 
@@ -359,18 +361,19 @@ bool dtPathCorridor::optimizePathTopology(dtNavMeshQuery* navquery, const dtQuer
 	if (m_npath < 3)
 		return false;
 
-	static const int MAX_ITER = 32;
-	static const int MAX_RES = 32;
+	constexpr int MAX_ITER = 32;
+	constexpr int MAX_RES = 32;
 
-	dtPolyRef res[MAX_RES];
-	int nres = 0;
-	navquery->initSlicedFindPath(m_path[0], m_path[m_npath - 1], m_pos, m_target, filter);
+	std::array<dtPolyRef, MAX_RES> res{};
+	int nres{};
+
+	navquery->initSlicedFindPath(m_path[0], m_path[m_npath - 1], m_pos.data(), m_target, filter);
 	navquery->updateSlicedFindPath(MAX_ITER, 0);
-	dtStatus status = navquery->finalizeSlicedFindPathPartial(m_path, m_npath, res, &nres, MAX_RES);
+	dtStatus status = navquery->finalizeSlicedFindPathPartial(m_path, m_npath, res.data(), &nres, MAX_RES);
 
 	if (dtStatusSucceed(status) && nres > 0)
 	{
-		m_npath = dtMergeCorridorStartShortcut(m_path, m_npath, m_maxPath, res, nres);
+		m_npath = dtMergeCorridorStartShortcut(m_path, m_npath, m_maxPath, res.data(), nres);
 		return true;
 	}
 
@@ -414,7 +417,7 @@ bool dtPathCorridor::moveOverOffmeshConnection(dtPolyRef offMeshConRef, dtPolyRe
 	dtStatus status = nav->getOffMeshConnectionPolyEndPoints(refs[0], refs[1], startPos, endPos);
 	if (dtStatusSucceed(status))
 	{
-		dtVcopy(m_pos, endPos);
+		dtVcopy(m_pos.data(), endPos);
 		return true;
 	}
 
@@ -442,20 +445,22 @@ bool dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, c
 	dtAssert(m_npath);
 
 	// Move along navmesh and update new position.
-	float result[3];
-	static const int MAX_VISITED = 16;
-	dtPolyRef visited[MAX_VISITED];
-	int nvisited = 0;
-	dtStatus status = navquery->moveAlongSurface(m_path[0], m_pos, npos, filter,
-		result, visited, &nvisited, MAX_VISITED);
+	std::array<float, 3> result{};
+	constexpr int MAX_VISITED = 16;
+	std::array<dtPolyRef, MAX_VISITED> visited;
+	int nvisited{};
+
+	dtStatus status = navquery->moveAlongSurface(m_path[0], m_pos.data(), npos, filter,
+		result.data(), visited.data(), &nvisited, MAX_VISITED);
 	if (dtStatusSucceed(status)) {
-		m_npath = dtMergeCorridorStartMoved(m_path, m_npath, m_maxPath, visited, nvisited);
+		m_npath = dtMergeCorridorStartMoved(m_path, m_npath, m_maxPath, visited.data(), nvisited);
 
 		// Adjust the position to stay on top of the navmesh.
 		float h = m_pos[1];
-		navquery->getPolyHeight(m_path[0], result, &h);
+		navquery->getPolyHeight(m_path[0], result.data(), &h);
 		result[1] = h;
-		dtVcopy(m_pos, result);
+		m_pos = result;
+
 		return true;
 	}
 	return false;
@@ -523,7 +528,7 @@ bool dtPathCorridor::fixPathStart(dtPolyRef safeRef, const float* safePos)
 {
 	dtAssert(m_path);
 
-	dtVcopy(m_pos, safePos);
+	dtVcopy(m_pos.data(), safePos);
 	if (m_npath < 3 && m_npath > 0)
 	{
 		m_path[2] = m_path[m_npath - 1];
@@ -561,7 +566,7 @@ bool dtPathCorridor::trimInvalidPath(dtPolyRef safeRef, const float* safePos,
 	else if (n == 0)
 	{
 		// The first polyref is bad, use current safe values.
-		dtVcopy(m_pos, safePos);
+		dtVcopy(m_pos.data(), safePos);
 		m_path[0] = safeRef;
 		m_npath = 1;
 	}

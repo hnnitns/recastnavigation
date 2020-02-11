@@ -25,7 +25,7 @@
 /// @ingroup crowd, detour
 class dtPathCorridor
 {
-	float m_pos[3];
+	std::array<float, 3> m_pos;
 	float m_target[3];
 
 	dtPolyRef* m_path;
@@ -55,7 +55,7 @@ public:
 	///  @param[in]		navquery		The query object used to build the corridor.
 	///  @param[in]		filter			The filter to apply to the operation.
 	/// @return The number of corners returned in the corner buffers. [0 <= value <= @p maxCorners]
-	int findCorners(float* cornerVerts, unsigned char* cornerFlags,
+	int findCorners(float* cornerVerts, uint8_t* cornerFlags,
 		dtPolyRef* cornerPolys, const int maxCorners,
 		dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
@@ -111,7 +111,7 @@ public:
 
 	/// Gets the current position within the corridor. (In the first polygon.)
 	/// @return The current position within the corridor.
-	inline const float* getPos() const { return m_pos; }
+	inline const float* getPos() const { return m_pos.data(); }
 
 	/// Gets the current target within the corridor. (In the last polygon.)
 	/// @return The current target within the corridor.

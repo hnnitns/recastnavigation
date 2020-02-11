@@ -98,14 +98,14 @@ struct dtCrowdAgentParams
 	float separationWeight;
 
 	// Flags that impact steering behavior. (See: #UpdateFlags)
-	unsigned char updateFlags;
+	uint8_t updateFlags;
 
 	// The index of the avoidance configuration to use for the agent.
 	// [Limits: 0 <= value <= #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
-	unsigned char obstacleAvoidanceType;
+	uint8_t obstacleAvoidanceType;
 
 	// The index of the query filter used by this agent.
-	unsigned char queryFilterType;
+	uint8_t queryFilterType;
 
 	// User defined data attached to the agent.
 	void* userData;
@@ -130,7 +130,7 @@ struct dtCrowdAgent
 	bool active;
 
 	// The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
-	unsigned char state;
+	uint8_t state;
 
 	// True if the agent has valid path (targetState == DT_CROWDAGENT_TARGET_VALID) and the path does not lead to the requested position, else false.
 	bool partial;
@@ -145,7 +145,7 @@ struct dtCrowdAgent
 	float topologyOptTime;
 
 	// The known neighbors of the agent.
-	dtCrowdNeighbour neis[DT_CROWDAGENT_MAX_NEIGHBOURS];
+	std::array<dtCrowdNeighbour, DT_CROWDAGENT_MAX_NEIGHBOURS> neis;
 
 	// The number of neighbors.
 	int nneis;
@@ -166,7 +166,7 @@ struct dtCrowdAgent
 	float cornerVerts[DT_CROWDAGENT_MAX_CORNERS * 3];
 
 	// The local path corridor corner flags. (See: #dtStraightPathFlags) [(flags) * #ncorners]
-	unsigned char cornerFlags[DT_CROWDAGENT_MAX_CORNERS];
+	uint8_t cornerFlags[DT_CROWDAGENT_MAX_CORNERS];
 
 	// The reference id of the polygon being entered at the corner. [(polyRef) * #ncorners]
 	dtPolyRef cornerPolys[DT_CROWDAGENT_MAX_CORNERS];
@@ -174,7 +174,7 @@ struct dtCrowdAgent
 	// The number of corners.
 	int ncorners;
 
-	unsigned char targetState;			//< State of the movement request.
+	uint8_t targetState;			//< State of the movement request.
 	dtPolyRef targetRef;				//< Target polyref of the movement request.
 	float targetPos[3];					//< Target position of the movement request (or velocity in case of DT_CROWDAGENT_TARGET_VELOCITY).
 	dtPathQueueRef targetPathqRef;		//< Path finder ref.

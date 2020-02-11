@@ -116,7 +116,8 @@ int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int max
 	// Find furthest common polygon.
 	for (int i = npath - 1; i >= 0; --i)
 	{
-		bool found = false;
+		bool found{};
+
 		for (int j = nvisited - 1; j >= 0; --j)
 		{
 			if (path[i] == visited[j])
@@ -126,8 +127,8 @@ int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int max
 				found = true;
 			}
 		}
-		if (found)
-			break;
+
+		if (found) break;
 	}
 
 	// If no intersection found just return current path.
@@ -138,15 +139,13 @@ int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int max
 
 	// Adjust beginning of the buffer to include the visited.
 	const int req = furthestVisited;
-	if (req <= 0)
-		return npath;
+	if (req <= 0) return npath;
 
 	const int orig = furthestPath;
 	int size = dtMax(0, npath - orig);
 	if (req + size > maxPath)
 		size = maxPath - req;
-	if (size)
-		memmove(path + req, path + orig, size * sizeof(dtPolyRef));
+	if (size) memmove(path + req, path + orig, size * sizeof(dtPolyRef));
 
 	// Store visited
 	for (int i = 0; i < req; ++i)

@@ -26,7 +26,7 @@
 class dtPathCorridor
 {
 	std::array<float, 3> m_pos;
-	float m_target[3];
+	std::array<float, 3> m_target;
 
 	dtPolyRef* m_path;
 	int m_npath;
@@ -115,7 +115,7 @@ public:
 
 	/// Gets the current target within the corridor. (In the last polygon.)
 	/// @return The current target within the corridor.
-	inline const float* getTarget() const { return m_target; }
+	inline const float* getTarget() const { return m_target.data(); }
 
 	/// The polygon reference id of the first polygon in the corridor, the polygon containing the position.
 	/// @return The polygon reference id of the first polygon in the corridor. (Or zero if there is no path.)
@@ -142,8 +142,9 @@ private:
 int dtMergeCorridorStartMoved(dtPolyRef* path, const int npath, const int maxPath,
 	const dtPolyRef* visited, const int nvisited);
 
+template<size_t Size>
 int dtMergeCorridorEndMoved(dtPolyRef* path, const int npath, const int maxPath,
-	const dtPolyRef* visited, const int nvisited);
+	const std::array<dtPolyRef, Size>& visited, const int nvisited);
 
 int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int maxPath,
 	const dtPolyRef* visited, const int nvisited);

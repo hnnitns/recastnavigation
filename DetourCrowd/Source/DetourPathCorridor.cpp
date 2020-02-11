@@ -68,8 +68,9 @@ int dtMergeCorridorStartMoved(dtPolyRef* path, const int npath, const int maxPat
 	return req + size;
 }
 
+template<size_t Size>
 int dtMergeCorridorEndMoved(dtPolyRef* path, const int npath, const int maxPath,
-	const dtPolyRef* visited, const int nvisited)
+	const std::array<dtPolyRef, Size>& visited, const int nvisited)
 {
 	int furthestPath = -1;
 	int furthestVisited = -1;
@@ -101,7 +102,7 @@ int dtMergeCorridorEndMoved(dtPolyRef* path, const int npath, const int maxPath,
 	const int count = dtMin(nvisited - vpos, maxPath - ppos);
 	dtAssert(ppos + count <= maxPath);
 	if (count)
-		memcpy(path + ppos, visited + vpos, sizeof(dtPolyRef) * count);
+		memcpy(path + ppos, &visited[vpos], sizeof(dtPolyRef) * count);
 
 	return ppos + count;
 }
@@ -231,7 +232,7 @@ void dtPathCorridor::reset(dtPolyRef ref, const float* pos)
 {
 	dtAssert(m_path);
 	dtVcopy(m_pos.data(), pos);
-	dtVcopy(m_target, pos);
+	dtVcopy(m_target.data(), pos);
 	m_path[0] = ref;
 	m_npath = 1;
 }
@@ -258,7 +259,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, uint8_t* cornerFlags,
 	constexpr float MIN_TARGET_DIST = 0.01f;
 
 	int ncorners = 0;
-	navquery->findStraightPath(m_pos.data(), m_target, m_path, m_npath,
+	navquery->findStraightPath(m_pos.data(), m_target.data(), m_path, m_npath,
 		cornerVerts, cornerFlags, cornerPolys, &ncorners, maxCorners);
 
 	// Prune points in the beginning of the path which are too close.
@@ -367,7 +368,7 @@ bool dtPathCorridor::optimizePathTopology(dtNavMeshQuery* navquery, const dtQuer
 	std::array<dtPolyRef, MAX_RES> res{};
 	int nres{};
 
-	navquery->initSlicedFindPath(m_path[0], m_path[m_npath - 1], m_pos.data(), m_target, filter);
+	navquery->initSlicedFindPath(m_path[0], m_path[m_npath - 1], m_pos.data(), m_target.data(), filter);
 	navquery->updateSlicedFindPath(MAX_ITER, 0);
 	dtStatus status = navquery->finalizeSlicedFindPathPartial(m_path, m_npath, res.data(), &nres, MAX_RES);
 
@@ -485,12 +486,13 @@ bool dtPathCorridor::moveTargetPosition(const float* npos, dtNavMeshQuery* navqu
 	dtAssert(m_npath);
 
 	// Move along navmesh and update new position.
-	float result[3];
-	static const int MAX_VISITED = 16;
-	dtPolyRef visited[MAX_VISITED];
-	int nvisited = 0;
-	dtStatus status = navquery->moveAlongSurface(m_path[m_npath - 1], m_target, npos, filter,
-		result, visited, &nvisited, MAX_VISITED);
+	std::array<float, 3> result{};
+	constexpr int MAX_VISITED = 16;
+	std::array<dtPolyRef, MAX_VISITED> visited{};
+	int nvisited{};
+	dtStatus status = navquery->moveAlongSurface(m_path[m_npath - 1], m_target.data(), npos, filter,
+		result.data(), visited.data(), &nvisited, MAX_VISITED);
+
 	if (dtStatusSucceed(status))
 	{
 		m_npath = dtMergeCorridorEndMoved(m_path, m_npath, m_maxPath, visited, nvisited);
@@ -500,7 +502,7 @@ bool dtPathCorridor::moveTargetPosition(const float* npos, dtNavMeshQuery* navqu
 		 navquery->getPolyHeight(m_path[m_npath-1], result, &h);
 		 result[1] = h;*/
 
-		dtVcopy(m_target, result);
+		m_target = result;
 
 		return true;
 	}
@@ -519,7 +521,7 @@ void dtPathCorridor::setCorridor(const float* target, const dtPolyRef* path, con
 	dtAssert(npath > 0);
 	dtAssert(npath < m_maxPath);
 
-	dtVcopy(m_target, target);
+	dtVcopy(m_target.data(), target);
 	memcpy(m_path, path, sizeof(dtPolyRef) * npath);
 	m_npath = npath;
 }
@@ -577,9 +579,9 @@ bool dtPathCorridor::trimInvalidPath(dtPolyRef safeRef, const float* safePos,
 	}
 
 	// Clamp target pos to last poly
-	float tgt[3];
-	dtVcopy(tgt, m_target);
-	navquery->closestPointOnPolyBoundary(m_path[m_npath - 1], tgt, m_target);
+	std::array<float, 3> tgt{ m_target };
+
+	navquery->closestPointOnPolyBoundary(m_path[m_npath - 1], tgt.data(), m_target.data());
 
 	return true;
 }

@@ -1426,8 +1426,8 @@ dtStatus dtNavMeshQuery::initSlicedFindPath(dtPolyRef startRef, dtPolyRef endRef
 	m_query.status = DT_FAILURE;
 	m_query.startRef = startRef;
 	m_query.endRef = endRef;
-	dtVcopy(m_query.startPos, startPos); // コピー
-	dtVcopy(m_query.endPos, endPos);     // コピー
+	dtVcopy(m_query.startPos.data(), startPos); // コピー
+	dtVcopy(m_query.endPos.data(), endPos);     // コピー
 	m_query.filter = filter;
 	m_query.options = options;
 	m_query.raycastLimitSqr = (std::numeric_limits<float>::max)();
@@ -1662,7 +1662,7 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			// 最後のノードの特別な場合。
 			if (neighbourRef == m_query.endRef)
 			{
-				const float endCost = m_query.filter->getCost(neighbourNode->pos, m_query.endPos,
+				const float endCost = m_query.filter->getCost(neighbourNode->pos, m_query.endPos.data(),
 					bestRef, bestTile, bestPoly,
 					neighbourRef, neighbourTile, neighbourPoly,
 					0, 0, 0);
@@ -1672,7 +1672,7 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 			}
 			else
 			{
-				heuristic = dtVdist(neighbourNode->pos, m_query.endPos) * H_SCALE;
+				heuristic = dtVdist(neighbourNode->pos, m_query.endPos.data()) * H_SCALE;
 			}
 
 			const float total = cost + heuristic;

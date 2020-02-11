@@ -794,7 +794,7 @@ private:
 		struct dtNode* lastBestNode;
 		float lastBestNodeCost;
 		dtPolyRef startRef, endRef;
-		float startPos[3], endPos[3];
+		std::array<float, 3> startPos, endPos;
 		const dtQueryFilter* filter;
 		unsigned int options;
 		float raycastLimitSqr;

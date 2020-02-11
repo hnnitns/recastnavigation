@@ -153,7 +153,7 @@ struct dtRaycastHit
 	float t;
 
 	// hitNormal	The normal of the nearest wall hit. [(x, y, z)]
-	float hitNormal[3];
+	std::array<float, 3> hitNormal;
 
 	// The index of the edge on the final polygon where the wall was hit.
 	int hitEdgeIndex;

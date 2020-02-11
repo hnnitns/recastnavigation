@@ -320,6 +320,17 @@ inline constexpr void dtVset(float* dest, const float x, const float y, const fl
 	dest[0] = x; dest[1] = y; dest[2] = z;
 }
 
+// Sets the vector elements to the specified values.
+// ベクトル要素を指定された値に設定します。
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  @param[in]		x		The x-value of the vector.
+//  @param[in]		y		The y-value of the vector.
+//  @param[in]		z		The z-value of the vector.
+inline constexpr void dtVset(std::array<float, 3>* dest, const float x, const float y, const float z)
+{
+	dest->at(0) = x; dest->at(1) = y; dest->at(2) = z;
+}
+
 // Performs a vector copy.
 // ベクターコピーを実行します。
 //  @param[out]	dest	The result. [(x, y, z)]

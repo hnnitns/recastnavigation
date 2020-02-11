@@ -278,7 +278,7 @@ void CrowdToolState::handleRender()
 		{
 			const dtCrowdAgent* ag = crowd->getAgent(i);
 			if (!ag->active) continue;
-			const float* pos = ag->corridor.getPos();
+			const auto& pos = ag->corridor.getPos();
 			gridy = dtMax(gridy, pos[1]);
 		}
 		gridy += 1.f;

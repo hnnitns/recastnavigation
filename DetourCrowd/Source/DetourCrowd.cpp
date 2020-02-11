@@ -1130,7 +1130,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			// デバッグのためにデータをコピーします。
 			if (debugIdx == i)
 			{
-				dtVcopy(debug->optStart, ag->corridor.getPos());
+				dtVcopy(debug->optStart, ag->corridor.getPos().data());
 				dtVcopy(debug->optEnd, target);
 			}
 		}
@@ -1427,7 +1427,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		ag->corridor.movePosition(ag->npos, m_navquery, &m_filters[ag->params.queryFilterType]);
 		// Get valid constrained position back.
 		// 有効な制約位置を取得します。
-		dtVcopy(ag->npos, ag->corridor.getPos());
+		dtVcopy(ag->npos, ag->corridor.getPos().data());
 
 		// If not using path, truncate the corridor to just one poly.
 		// パスを使用しない場合、コリドーを1つのポリゴンに切り捨てます。

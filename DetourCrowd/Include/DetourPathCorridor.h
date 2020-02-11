@@ -111,7 +111,7 @@ public:
 
 	/// Gets the current position within the corridor. (In the first polygon.)
 	/// @return The current position within the corridor.
-	inline const float* getPos() const { return m_pos.data(); }
+	inline const auto& getPos() const { return m_pos; }
 
 	/// Gets the current target within the corridor. (In the last polygon.)
 	/// @return The current target within the corridor.

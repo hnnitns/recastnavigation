@@ -19,6 +19,8 @@
 #ifndef DETOUROBSTACLEAVOIDANCE_H
 #define DETOUROBSTACLEAVOIDANCE_H
 
+#include <array>
+
 struct dtObstacleCircle
 {
 	float p[3];				///< Position of the obstacle
@@ -102,17 +104,17 @@ public:
 
 	void reset();
 
-	void addCircle(const float* pos, const float rad,
+	void addCircle(const std::array<float, 3>& pos, const float rad,
 		const float* vel, const float* dvel);
 
 	void addSegment(const float* p, const float* q);
 
-	int sampleVelocityGrid(const float* pos, const float rad, const float vmax,
+	int sampleVelocityGrid(const std::array<float, 3>& pos, const float rad, const float vmax,
 		const float* vel, const float* dvel, float* nvel,
 		const dtObstacleAvoidanceParams* params,
 		dtObstacleAvoidanceDebugData* debug = 0);
 
-	int sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
+	int sampleVelocityAdaptive(const std::array<float, 3>& pos, const float rad, const float vmax,
 		const float* vel, const float* dvel, float* nvel,
 		const dtObstacleAvoidanceParams* params,
 		dtObstacleAvoidanceDebugData* debug = 0);

@@ -153,7 +153,7 @@ struct dtCrowdAgent
 	// The desired speed.
 	float desiredSpeed;
 
-	float npos[3];		//< The current agent position. [(x, y, z)]
+	std::array<float, 3> npos;		//< The current agent position. [(x, y, z)]
 	float disp[3];		//< A temporary value used to accumulate agent displacement during iterative collision resolution. [(x, y, z)]
 	float dvel[3];		//< The desired velocity of the agent. Based on the current path, calculated from scratch each frame. [(x, y, z)]
 	float nvel[3];		//< The desired velocity adjusted by obstacle avoidance, calculated from scratch each frame. [(x, y, z)]
@@ -316,7 +316,7 @@ public:
 	//  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	//  @param[in]		vel		The movement velocity. [(x, y, z)]
 	// @return True if the request was successfully submitted.
-	bool requestMoveVelocity(const int idx, const float* vel);
+	bool requestMoveVelocity(const int idx, const std::array<float, 3>& vel);
 
 	// Resets any request for the specified agent.
 	//  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]

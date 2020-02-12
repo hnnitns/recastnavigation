@@ -93,7 +93,7 @@ public:
 	///  @param[in]		navquery	The query object used to build the corridor.
 	///  @param[in]		filter		The filter to apply to the operation.
 	/// @return Returns true if move succeeded.
-	bool movePosition(const float* npos, dtNavMeshQuery* navquery, const dtQueryFilter* filter);
+	bool movePosition(const std::array<float, 3>& npos, dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
 	/// Moves the target from the curent location to the desired location, adjusting the corridor
 	/// as needed to reflect the change.
@@ -135,8 +135,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtPathCorridor(const dtPathCorridor&);
-	dtPathCorridor& operator=(const dtPathCorridor&);
+	dtPathCorridor(const dtPathCorridor&) = delete;
+	dtPathCorridor& operator=(const dtPathCorridor&) = delete;
 };
 
 int dtMergeCorridorStartMoved(dtPolyRef* path, const int npath, const int maxPath,

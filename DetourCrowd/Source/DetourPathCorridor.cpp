@@ -23,6 +23,8 @@
 #include "DetourAssert.h"
 #include "DetourAlloc.h"
 
+using namespace DtOperator;
+
 int dtMergeCorridorStartMoved(dtPolyRef* path, const int npath, const int maxPath,
 	const dtPolyRef* visited, const int nvisited)
 {
@@ -439,7 +441,8 @@ depends on local polygon density, query search extents, etc.
 The resulting position will differ from the desired position if the desired position is not on the navigation mesh,
 or it can't be reached using a local search.
 */
-bool dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, const dtQueryFilter* filter)
+bool dtPathCorridor::movePosition(
+	const std::array<float, 3>& npos, dtNavMeshQuery* navquery, const dtQueryFilter* filter)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
@@ -450,7 +453,7 @@ bool dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, c
 	std::array<dtPolyRef, MAX_VISITED> visited;
 	int nvisited{};
 
-	dtStatus status = navquery->moveAlongSurface(m_path[0], m_pos.data(), npos, filter,
+	dtStatus status = navquery->moveAlongSurface(m_path[0], m_pos.data(), npos.data(), filter,
 		result.data(), visited.data(), &nvisited, MAX_VISITED);
 	if (dtStatusSucceed(status)) {
 		m_npath = dtMergeCorridorStartMoved(m_path, m_npath, m_maxPath, visited.data(), nvisited);

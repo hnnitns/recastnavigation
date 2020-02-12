@@ -1108,7 +1108,8 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		// Update the collision boundary after certain distance has been passed or if it has become invalid.
 		// 特定の距離が渡された後、または無効になった場合、衝突境界を更新します。
 		const float updateThr = ag->params.collisionQueryRange * 0.25f;
-		if (dtVdist2DSqr(ag->npos.data(), ag->boundary.getCenter()) > dtSqr(updateThr) ||
+
+		if (dtVdist2DSqr(ag->npos, ag->boundary.getCenter()) > dtSqr(updateThr) ||
 			!ag->boundary.isValid(m_navquery, &m_filters[ag->params.queryFilterType]))
 		{
 			ag->boundary.update(ag->corridor.getFirstPoly(), ag->npos.data(), ag->params.collisionQueryRange,
@@ -1325,10 +1326,13 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			// 隣接セグメントを障害物として追加します。
 			for (int j = 0; j < ag->boundary.getSegmentCount(); ++j)
 			{
-				const float* s = ag->boundary.getSegment(j);
-				if (dtTriArea2D(ag->npos.data(), s, s + 3) < 0.0f)
+				const auto& s = ag->boundary.getSegment(j);
+				ArrayF start{ s[0], s[1], s[2] }, end{ s[3], s[4], s[5] };
+
+				if (dtTriArea2D(ag->npos, start, end) < 0.0f)
 					continue;
-				m_obstacleQuery->addSegment(s, s + 3);
+
+				m_obstacleQuery->addSegment(start, end);
 			}
 
 			dtObstacleAvoidanceDebugData* vod = 0;
@@ -1338,7 +1342,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			// Sample new safe velocity.
 			// 新しい安全な速度をサンプリングします。
 			bool adaptive = true;
-			int ns = 0;
+			int ns{};
 
 			const dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[ag->params.obstacleAvoidanceType];
 

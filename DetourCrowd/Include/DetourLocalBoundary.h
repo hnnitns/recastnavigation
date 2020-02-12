@@ -52,9 +52,9 @@ public:
 
 	bool isValid(dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
-	inline const float* getCenter() const { return m_center.data(); }
+	inline auto& getCenter() const { return m_center; }
 	inline int getSegmentCount() const { return m_nsegs; }
-	inline const float* getSegment(int i) const { return m_segs[i].s.data(); }
+	inline auto& getSegment(int i) const { return m_segs[i].s; }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

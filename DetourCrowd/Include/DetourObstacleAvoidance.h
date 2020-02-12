@@ -107,7 +107,7 @@ public:
 	void addCircle(const std::array<float, 3>& pos, const float rad,
 		const std::array<float, 3>& vel, const std::array<float, 3>& dvel);
 
-	void addSegment(const float* p, const float* q);
+	void addSegment(const std::array<float, 3>& p, const std::array<float, 3>& q);
 
 	int sampleVelocityGrid(const std::array<float, 3>& pos, const float rad, const float vmax,
 		const std::array<float, 3>& vel, const std::array<float, 3>& dvel, std::array<float, 3>& nvel,

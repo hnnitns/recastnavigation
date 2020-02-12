@@ -291,14 +291,14 @@ void dtObstacleAvoidanceQuery::addCircle(const std::array<float, 3>& pos, const 
 	cir->dvel = dvel;
 }
 
-void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q)
+void dtObstacleAvoidanceQuery::addSegment(const std::array<float, 3>& p, const std::array<float, 3>& q)
 {
 	if (m_nsegments >= m_maxSegments)
 		return;
 
 	dtObstacleSegment* seg = &m_segments[m_nsegments++];
-	dtVcopy(seg->p.data(), p);
-	dtVcopy(seg->q.data(), q);
+	seg->p = p;
+	seg->q = q;
 }
 
 void dtObstacleAvoidanceQuery::prepare(const std::array<float, 3>& pos, const std::array<float, 3>& dvel)

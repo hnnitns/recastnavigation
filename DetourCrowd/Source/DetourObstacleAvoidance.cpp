@@ -282,7 +282,7 @@ void dtObstacleAvoidanceQuery::reset()
 }
 
 void dtObstacleAvoidanceQuery::addCircle(const std::array<float, 3>& pos, const float rad,
-	const float* vel, const std::array<float, 3>& dvel)
+	const std::array<float, 3>& vel, const std::array<float, 3>& dvel)
 {
 	if (m_ncircles >= m_maxCircles)
 		return;
@@ -290,7 +290,7 @@ void dtObstacleAvoidanceQuery::addCircle(const std::array<float, 3>& pos, const 
 	dtObstacleCircle* cir = &m_circles[m_ncircles++];
 	dtVcopy(cir->p, pos.data());
 	cir->rad = rad;
-	dtVcopy(cir->vel, vel);
+	dtVcopy(cir->vel, vel.data());
 	dtVcopy(cir->dvel, dvel.data());
 }
 
@@ -353,13 +353,13 @@ void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
  */
 float dtObstacleAvoidanceQuery::processSample(const std::array<float, 3>& vcand, const float cs,
 	const std::array<float, 3>& pos, const float rad,
-	const float* vel, const std::array<float, 3>& dvel,
+	const std::array<float, 3>& vel, const std::array<float, 3>& dvel,
 	const float minPenalty,
 	dtObstacleAvoidanceDebugData* debug)
 {
 	// penalty for straying away from the desired and current velocities
 	const float vpen = m_params.weightDesVel * (dtVdist2D(vcand, dvel) * m_invVmax);
-	const float vcpen = m_params.weightCurVel * (dtVdist2D(vcand.data(), vel) * m_invVmax);
+	const float vcpen = m_params.weightCurVel * (dtVdist2D(vcand, vel) * m_invVmax);
 
 	// find the threshold hit time to bail out based on the early out penalty
 	// (see how the penalty is calculated below to understnad)
@@ -378,9 +378,9 @@ float dtObstacleAvoidanceQuery::processSample(const std::array<float, 3>& vcand,
 		const dtObstacleCircle* cir = &m_circles[i];
 
 		// RVO
-		ArrayF vab{};
-		dtVscale(&vab, vcand, 2);
-		dtVsub(vab.data(), vab.data(), vel);
+		ArrayF vab{ vcand * 2.f };
+
+		vab -= vel;
 		dtVsub(vab.data(), vab.data(), cir->vel);
 
 		// Side
@@ -466,7 +466,7 @@ float dtObstacleAvoidanceQuery::processSample(const std::array<float, 3>& vcand,
 
 int dtObstacleAvoidanceQuery::sampleVelocityGrid(
 	const std::array<float, 3>& pos, const float rad, const float vmax,
-	const float* vel, const std::array<float, 3>& dvel, std::array<float, 3>& nvel,
+	const std::array<float, 3>& vel, const std::array<float, 3>& dvel, std::array<float, 3>& nvel,
 	const dtObstacleAvoidanceParams* params,
 	dtObstacleAvoidanceDebugData* debug)
 {
@@ -515,7 +515,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityGrid(
 
 int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(
 	const std::array<float, 3>& pos, const float rad, const float vmax,
-	const float* vel, const std::array<float, 3>& dvel, std::array<float, 3>& nvel,
+	const std::array<float, 3>& vel, const std::array<float, 3>& dvel, std::array<float, 3>& nvel,
 	const dtObstacleAvoidanceParams* params,
 	dtObstacleAvoidanceDebugData* debug)
 {

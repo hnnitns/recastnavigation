@@ -119,7 +119,7 @@ namespace
 		dtVsub(vel->data(), tgt, pos.data());
 		vel->at(1) = 0.0;
 		dtVnormalize(vel);
-		dtVscale(vel, *vel, speed);
+		*vel *= speed;
 	}
 }
 
@@ -524,7 +524,7 @@ void CrowdToolState::handleRender()
 		const float radius = ag->params.radius;
 		const float height = ag->params.height;
 		const auto& pos = ag->npos;
-		const float* vel = ag->vel;
+		const auto& vel = ag->vel;
 		const auto& dvel = ag->dvel;
 
 		unsigned int col = duRGBA(220, 220, 220, 192);

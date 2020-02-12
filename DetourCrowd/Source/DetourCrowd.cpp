@@ -62,22 +62,19 @@ namespace
 	{
 		// Fake dynamic constraint.
 		const float maxDelta = ag->params.maxAcceleration * dt;
-		ArrayF dv{};
-
-		dtVsub(dv.data(), ag->nvel.data(), ag->vel);
-
+		ArrayF dv{ ag->nvel - ag->vel };
 		float ds = dtVlen(dv);
 
 		if (ds > maxDelta)
-			dtVscale(&dv, dv, maxDelta / ds);
+			dv *= maxDelta / ds;
 
-		dtVadd(ag->vel, ag->vel, dv.data());
+		ag->vel += dv;
 
 		// Integrate
 		if (dtVlen(ag->vel) > 0.0001f)
-			dtVmad(ag->npos.data(), ag->npos.data(), ag->vel, dt);
+			dtVmad(&ag->npos, ag->npos, ag->vel, dt);
 		else
-			dtVset(ag->vel, 0, 0, 0);
+			ag->vel.fill(0.f);
 	}
 
 	bool overOffmeshConnection(const dtCrowdAgent* ag, const float radius)
@@ -131,7 +128,7 @@ namespace
 		float len0 = dtVlen(dir0);
 		float len1 = dtVlen(dir1);
 		if (len1 > 0.001f)
-			dtVscale(&dir1, dir1, 1.f / len1);
+			dir1 *= (1.f / len1);
 
 		dir->at(0) = dir0[0] - dir1[0] * len0 * 0.5f;
 		dir->at(1) = 0;
@@ -566,7 +563,7 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 
 	ag->dvel.fill(0.f);
 	ag->nvel.fill(0.f);
-	dtVset(ag->vel, 0, 0, 0);
+	ag->vel.fill(0.f);
 	ag->npos = nearest;
 
 	ag->desiredSpeed = 0;
@@ -1241,7 +1238,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			const float speedScale = getDistanceToGoal(ag, slowDownRadius) / slowDownRadius;
 
 			ag->desiredSpeed = ag->params.maxSpeed;
-			dtVscale(&dvel, dvel, ag->desiredSpeed * speedScale);
+			dvel *= (ag->desiredSpeed * speedScale);
 		}
 
 		//分離
@@ -1284,7 +1281,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				const float speedSqr = dtVlenSqr(dvel);
 				const float desiredSqr = dtSqr(ag->desiredSpeed);
 				if (speedSqr > desiredSqr)
-					dtVscale(&dvel, dvel, desiredSqr / speedSqr);
+					dvel *= (desiredSqr / speedSqr);
 			}
 		}
 
@@ -1416,11 +1413,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				w += 1.f;
 			}
 
-			if (w > 0.0001f)
-			{
-				const float iw = 1.f / w;
-				dtVscale(&ag->disp, ag->disp, iw);
-			}
+			if (w > 0.0001f) ag->disp *= (1.f / w);
 		}
 
 		for (int i = 0; i < nagents; ++i)
@@ -1494,7 +1487,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 
 		// Update velocity.
 		// 速度を更新します。
-		dtVset(ag->vel, 0, 0, 0);
+		ag->vel.fill(0.f);
 		ag->dvel.fill(0.f);
 	}
 }

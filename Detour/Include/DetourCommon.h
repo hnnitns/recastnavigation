@@ -258,6 +258,24 @@ namespace DtOperator
 		v1[1] -= v2[1];
 		v1[2] -= v2[2];
 	}
+
+	inline auto operator*(const std::array<float, 3>& v1, const float num)
+	{
+		std::array<float, 3> dest;
+
+		dest[0] = v1[0] * num;
+		dest[1] = v1[1] * num;
+		dest[2] = v1[2] * num;
+
+		return dest;
+	}
+
+	inline void operator*=(std::array<float, 3>& v1, const float num)
+	{
+		v1[0] *= num;
+		v1[1] *= num;
+		v1[2] *= num;
+	}
 }
 
 // Scales the vector by the specified value. (@p v * @p t)
@@ -270,18 +288,6 @@ inline constexpr void dtVscale(float* dest, const float* v, const float t)
 	dest[0] = v[0] * t;
 	dest[1] = v[1] * t;
 	dest[2] = v[2] * t;
-}
-
-// Scales the vector by the specified value. (@p v * @p t)
-// 指定された値でベクトルをスケーリングします。（v * t）
-//  @param[out]	dest	The result vector. [(x, y, z)]
-//  @param[in]		v		The vector to scale. [(x, y, z)]
-//  @param[in]		t		The scaling factor.
-inline constexpr void dtVscale(std::array<float, 3>* dest, const std::array<float, 3>& v, const float t)
-{
-	dest->at(0) = v[0] * t;
-	dest->at(1) = v[1] * t;
-	dest->at(2) = v[2] * t;
 }
 
 // Selects the minimum value of each element from the specified vectors.

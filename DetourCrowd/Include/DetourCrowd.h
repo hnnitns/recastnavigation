@@ -157,7 +157,7 @@ struct dtCrowdAgent
 	std::array<float, 3> disp;		//< A temporary value used to accumulate agent displacement during iterative collision resolution. [(x, y, z)]
 	std::array<float, 3> dvel;		//< The desired velocity of the agent. Based on the current path, calculated from scratch each frame. [(x, y, z)]
 	std::array<float, 3> nvel;		//< The desired velocity adjusted by obstacle avoidance, calculated from scratch each frame. [(x, y, z)]
-	float vel[3];		//< The actual velocity of the agent. The change from nvel -> vel is constrained by max acceleration. [(x, y, z)]
+	std::array<float, 3> vel;		//< The actual velocity of the agent. The change from nvel -> vel is constrained by max acceleration. [(x, y, z)]
 
 	// The agent's configuration parameters.
 	dtCrowdAgentParams params;

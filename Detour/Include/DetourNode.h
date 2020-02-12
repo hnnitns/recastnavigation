@@ -35,13 +35,33 @@ constexpr int DT_NODE_PARENT_BITS = 24;
 constexpr int DT_NODE_STATE_BITS = 2;
 struct dtNode
 {
-	float pos[3];								//< Position of the node. ノードの位置。
-	float cost;									//< Cost from previous node to current node. 前のノードから現在のノードまでのコスト。
-	float total;								//< Cost up to the node. ノードまでのコスト。
-	unsigned int pidx : DT_NODE_PARENT_BITS;	//< Index to parent node. 親ノードへのインデックス。
-	unsigned int state : DT_NODE_STATE_BITS;	//< extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE 追加の状態情報。 polyRefは、異なる追加情報を持つ複数のノードを持つことができます。 DT_MAX_STATES_PER_NODEを参照
-	unsigned int flags : 3;						//< Node flags. A combination of dtNodeFlags. ノードフラグ。 dtNodeFlagsの組み合わせ。
-	dtPolyRef id;								//< Polygon ref the node corresponds to. ノードが対応するポリゴン参照。
+	// Position of the node.
+	// ノードの位置。
+	std::array<float, 3> pos;
+
+	// Cost from previous node to current node.
+	// 前のノードから現在のノードまでのコスト。
+	float cost;
+
+	// Cost up to the node.
+	// ノードまでのコスト。
+	float total;
+
+	// Index to parent node.
+	// 親ノードへのインデックス。
+	uint32_t pidx : DT_NODE_PARENT_BITS;
+
+	// extra state information. A polyRef can have multiple nodes with different extra info. see DT_MAX_STATES_PER_NODE
+	// 追加の状態情報。 polyRefは、異なる追加情報を持つ複数のノードを持つことができます。 DT_MAX_STATES_PER_NODEを参照
+	uint32_t state : DT_NODE_STATE_BITS;
+
+	// Node flags. A combination of dtNodeFlags.
+	// ノードフラグ。 dtNodeFlagsの組み合わせ。
+	uint32_t flags : 3;
+
+	// Polygon ref the node corresponds to.
+	// ノードが対応するポリゴン参照。
+	dtPolyRef id;
 };
 
 constexpr int DT_MAX_STATES_PER_NODE = 1 << DT_NODE_STATE_BITS;	// number of extra states per node. See dtNode::state ノードごとの追加状態の数。 dtNode :: stateを参照してください
@@ -59,21 +79,21 @@ public:
 	// 同じpolyRefに対して複数のノードが存在する可能性がありますが、追加の状態情報が異なります。
 	dtNode* getNode(dtPolyRef id, unsigned char state = 0);
 	dtNode* findNode(dtPolyRef id, unsigned char state);
-	unsigned int findNodes(dtPolyRef id, dtNode** nodes, const int maxNodes);
+	uint32_t findNodes(dtPolyRef id, dtNode** nodes, const int maxNodes);
 
-	inline unsigned int getNodeIdx(const dtNode* node) const
+	inline uint32_t getNodeIdx(const dtNode* node) const
 	{
 		if (!node) return 0;
-		return (unsigned int)(node - m_nodes) + 1;
+		return (uint32_t)(node - m_nodes) + 1;
 	}
 
-	inline dtNode* getNodeAtIdx(unsigned int idx)
+	inline dtNode* getNodeAtIdx(uint32_t idx)
 	{
 		if (!idx) return 0;
 		return &m_nodes[idx - 1];
 	}
 
-	inline const dtNode* getNodeAtIdx(unsigned int idx) const
+	inline const dtNode* getNodeAtIdx(uint32_t idx) const
 	{
 		if (!idx) return 0;
 		return &m_nodes[idx - 1];

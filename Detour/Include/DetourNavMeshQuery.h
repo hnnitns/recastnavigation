@@ -97,7 +97,7 @@ public:
 	// 次のポリゴンを含むタイル。 [最適化]
 	// @param[in] nextPoly : The next polygon. [opt]
 	// 次のポリゴン。 [最適化]
-	float getCost(const float* pa, const float* pb,
+	float getCost(const std::array<float, 3>& pa, const float* pb,
 		const dtPolyRef prevRef, const dtMeshTile* prevTile, const dtPoly* prevPoly,
 		const dtPolyRef curRef, const dtMeshTile* curTile, const dtPoly* curPoly,
 		const dtPolyRef nextRef, const dtMeshTile* nextTile, const dtPoly* nextPoly) const;
@@ -255,7 +255,7 @@ public:
 	// @returns The status flags for the query.
 	dtStatus findStraightPath(const float* startPos, const float* endPos,
 		const dtPolyRef* path, const int pathSize,
-		float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
+		float* straightPath, uint8_t* straightPathFlags, dtPolyRef* straightPathRefs,
 		int* straightPathCount, const int maxStraightPath, const int options = 0) const;
 
 	// @nameスライスパス検索関数
@@ -700,7 +700,7 @@ public:
 	//  @param[in]		pos			The position to check. [(x, y, z)]
 	//  @param[out]	closest		The closest point. [(x, y, z)]
 	// @returns The status flags for the query.
-	dtStatus closestPointOnPolyBoundary(dtPolyRef ref, const float* pos, float* closest) const;
+	dtStatus closestPointOnPolyBoundary(dtPolyRef ref, const float* pos, std::array<float, 3>* closest) const;
 
 	// 高さの詳細を使用して、指定された位置のポリゴンの高さを取得します。（最も正確です。）
 	//  @param [in] refポリゴンの参照ID。
@@ -758,11 +758,12 @@ private:
 		const dtQueryFilter* filter, dtPolyQuery* query) const;
 
 	// Returns portal points between two polygons.
-	dtStatus getPortalPoints(dtPolyRef from, dtPolyRef to, float* left, float* right,
-		unsigned char& fromType, unsigned char& toType) const;
+	dtStatus getPortalPoints(
+		dtPolyRef from, dtPolyRef to, std::array<float, 3>* left, std::array<float, 3>* right,
+		uint8_t& fromType, uint8_t& toType) const;
 	dtStatus getPortalPoints(dtPolyRef from, const dtPoly* fromPoly, const dtMeshTile* fromTile,
 		dtPolyRef to, const dtPoly* toPoly, const dtMeshTile* toTile,
-		float* left, float* right) const;
+		std::array<float, 3>* left, std::array<float, 3>* right) const;
 
 	// Returns edge mid point between two polygons.
 	// 2つのポリゴン間のエッジの中点を返します。
@@ -770,16 +771,17 @@ private:
 	// 2つのポリゴン間のエッジの中点を返します。
 	dtStatus getEdgeMidPoint(dtPolyRef from, const dtPoly* fromPoly, const dtMeshTile* fromTile,
 		dtPolyRef to, const dtPoly* toPoly, const dtMeshTile* toTile,
-		float* mid) const;
+		std::array<float, 3>* mid) const;
 
 	// Appends vertex to a straight path
-	dtStatus appendVertex(const float* pos, const unsigned char flags, const dtPolyRef ref,
-		float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
+	dtStatus appendVertex(const std::array<float, 3>& pos, const uint8_t flags, const dtPolyRef ref,
+		float* straightPath, uint8_t* straightPathFlags, dtPolyRef* straightPathRefs,
 		int* straightPathCount, const int maxStraightPath) const;
 
 	// Appends intermediate portal points to a straight path.
-	dtStatus appendPortals(const int startIdx, const int endIdx, const float* endPos, const dtPolyRef* path,
-		float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
+	dtStatus appendPortals(
+		const int startIdx, const int endIdx, const std::array<float, 3>* endPos, const dtPolyRef* path,
+		float* straightPath, uint8_t* straightPathFlags, dtPolyRef* straightPathRefs,
 		int* straightPathCount, const int maxStraightPath, const int options) const;
 
 	// Gets the path leading to the specified end node.

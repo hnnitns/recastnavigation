@@ -586,7 +586,7 @@ bool dtPathCorridor::trimInvalidPath(dtPolyRef safeRef, const float* safePos,
 	// Clamp target pos to last poly
 	std::array<float, 3> tgt{ m_target };
 
-	navquery->closestPointOnPolyBoundary(m_path[m_npath - 1], tgt.data(), m_target.data());
+	navquery->closestPointOnPolyBoundary(m_path[m_npath - 1], tgt.data(), &m_target);
 
 	return true;
 }

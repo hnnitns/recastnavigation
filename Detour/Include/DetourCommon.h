@@ -752,8 +752,8 @@ bool dtIntersectSegmentPoly2D(const float* p0, const float* p1,
 	float& tmin, float& tmax,
 	int& segMin, int& segMax);
 
-bool dtIntersectSegSeg2D(const float* ap, const float* aq,
-	const float* bp, const float* bq,
+bool dtIntersectSegSeg2D(const float* ap, const std::array<float, 3>& aq,
+	const std::array<float, 3>& bp, const std::array<float, 3>& bq,
 	float& s, float& t);
 
 // Determines if the specified point is inside the convex polygon on the xz-plane.

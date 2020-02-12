@@ -649,15 +649,15 @@ void dtNavMesh::closestPointOnPoly(dtPolyRef ref, const float* pos, float* close
 	const dtPolyDetail* pd = &tile->detailMeshes[ip];
 
 	// Clamp point to be inside the polygon.
-	float verts[DT_VERTS_PER_POLYGON * 3];
-	float edged[DT_VERTS_PER_POLYGON];
-	float edget[DT_VERTS_PER_POLYGON];
+	std::array<float, DT_VERTS_PER_POLYGON * 3> verts{};
+	std::array<float, DT_VERTS_PER_POLYGON> edged{};
+	std::array<float, DT_VERTS_PER_POLYGON> edget{};
 	const int nv = poly->vertCount;
 	for (int i = 0; i < nv; ++i)
 		dtVcopy(&verts[i * 3], &tile->verts[poly->verts[i] * 3]);
 
 	dtVcopy(closest, pos);
-	if (!dtDistancePtPolyEdgesSqr(pos, verts, nv, edged, edget))
+	if (!dtDistancePtPolyEdgesSqr(pos, verts.data(), nv, edged.data(), edget.data()))
 	{
 		// Point is outside the polygon, dtClamp to nearest edge.
 		float dmin = edged[0];

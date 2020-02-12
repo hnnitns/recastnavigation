@@ -1165,9 +1165,35 @@ namespace RcOperator
 {
 	using ArrayF = std::array<float, 3>;
 
+	// Performs a vector addition. (@p v1 + @p v2)
+	// ベクトルの加算を実行します。 （v1 + v2）
+	//  @param[out]	dest	The result vector. [(x, y, z)]
+	//  @param[in]		v1		The base vector. [(x, y, z)]
+	//  @param[in]		v2		The vector to add to @p v1. [(x, y, z)]
+	inline auto operator+(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		std::array<float, 3> dest;
+
+		dest[0] = v1[0] + v2[0];
+		dest[1] = v1[1] + v2[1];
+		dest[2] = v1[2] + v2[2];
+
+		return dest;
+	}
+
+	inline void operator+=(std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		v1[0] += v2[0];
+		v1[1] += v2[1];
+		v1[2] += v2[2];
+	}
+
 	// Performs a vector subtraction. (@p v1 - @p v2)
-	// ベクトル減算を実行します。（@p v1-@p v2）
-	inline auto operator- (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	// ベクトル減算を実行します。（v1 - v2）
+	//  @param[out]	dest	The result vector. [(x, y, z)]
+	//  @param[in]		v1		The base vector. [(x, y, z)]
+	//  @param[in]		v2		The vector to subtract from @p v1. [(x, y, z)]
+	inline auto operator-(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
 	{
 		std::array<float, 3> dest;
 
@@ -1178,17 +1204,29 @@ namespace RcOperator
 		return dest;
 	}
 
-	// Performs a vector addition. (@p v1 + @p v2)
-	// ベクトルの加算を実行します。（@p v1 + @p v2）
-	inline auto operator+ (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	inline void operator-=(std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		v1[0] -= v2[0];
+		v1[1] -= v2[1];
+		v1[2] -= v2[2];
+	}
+
+	inline auto operator*(const std::array<float, 3>& v1, const float num)
 	{
 		std::array<float, 3> dest;
 
-		dest[0] = v1[0] + v2[0];
-		dest[1] = v1[1] + v2[1];
-		dest[2] = v1[2] + v2[2];
+		dest[0] = v1[0] * num;
+		dest[1] = v1[1] * num;
+		dest[2] = v1[2] * num;
 
 		return dest;
+	}
+
+	inline void operator*=(std::array<float, 3>& v1, const float num)
+	{
+		v1[0] *= num;
+		v1[1] *= num;
+		v1[2] *= num;
 	}
 }
 

@@ -210,7 +210,7 @@ enum UpdateFlags
 struct dtCrowdAgentDebugInfo
 {
 	int idx;
-	float optStart[3], optEnd[3];
+	std::array<float, 3> optStart, optEnd;
 	dtObstacleAvoidanceDebugData* vod;
 };
 

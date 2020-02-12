@@ -1148,8 +1148,8 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			// デバッグのためにデータをコピーします。
 			if (debugIdx == i)
 			{
-				dtVcopy(debug->optStart, ag->corridor.getPos().data());
-				dtVcopy(debug->optEnd, target);
+				debug->optStart = ag->corridor.getPos();
+				dtVcopy(debug->optEnd.data(), target);
 			}
 		}
 		else
@@ -1158,8 +1158,8 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			// デバッグのためにデータをコピーします。
 			if (debugIdx == i)
 			{
-				dtVset(debug->optStart, 0, 0, 0);
-				dtVset(debug->optEnd, 0, 0, 0);
+				debug->optStart.fill(0.f);
+				debug->optEnd.fill(0.f);
 			}
 		}
 	}

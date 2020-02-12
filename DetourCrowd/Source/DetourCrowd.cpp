@@ -1374,7 +1374,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 				continue;
 
-			dtVset(ag->disp, 0, 0, 0);
+			ag->disp.fill(0.f);
 
 			float w = 0;
 
@@ -1407,7 +1407,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 					pen = (1.f / dist) * (pen * 0.5f) * COLLISION_RESOLVE_FACTOR;
 				}
 
-				dtVmad(ag->disp, ag->disp, diff.data(), pen);
+				dtVmad(&ag->disp, ag->disp, diff, pen);
 
 				w += 1.f;
 			}
@@ -1415,7 +1415,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			if (w > 0.0001f)
 			{
 				const float iw = 1.f / w;
-				dtVscale(ag->disp, ag->disp, iw);
+				dtVscale(&ag->disp, ag->disp, iw);
 			}
 		}
 
@@ -1425,7 +1425,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 				continue;
 
-			dtVadd(ag->npos.data(), ag->npos.data(), ag->disp);
+			ag->npos += ag->disp;
 		}
 	}
 

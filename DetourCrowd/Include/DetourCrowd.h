@@ -344,7 +344,7 @@ public:
 
 	// Gets the search extents [(x, y, z)] used by the crowd for query operations.
 	// @return The search extents used by the crowd. [(x, y, z)]
-	const float* getQueryExtents() const { return m_ext.data(); }
+	const auto& getQueryExtents() const { return m_ext; }
 
 	// Gets the velocity sample count.
 	// @return The velocity sample count.
@@ -363,8 +363,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtCrowd(const dtCrowd&);
-	dtCrowd& operator=(const dtCrowd&);
+	dtCrowd(const dtCrowd&) = delete;
+	dtCrowd& operator=(const dtCrowd&) = delete;
 };
 
 // Allocates a crowd object using the Detour allocator.

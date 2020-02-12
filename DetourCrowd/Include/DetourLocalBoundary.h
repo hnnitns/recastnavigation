@@ -23,12 +23,12 @@
 
 class dtLocalBoundary
 {
-	static const int MAX_LOCAL_SEGS = 8;
-	static const int MAX_LOCAL_POLYS = 16;
+	static constexpr int MAX_LOCAL_SEGS = 8;
+	static constexpr int MAX_LOCAL_POLYS = 16;
 
 	struct Segment
 	{
-		float s[6];	///< Segment start/end
+		std::array<float, 6> s;	///< Segment start/end
 		float d;	///< Distance for pruning.
 	};
 
@@ -54,12 +54,12 @@ public:
 
 	inline const float* getCenter() const { return m_center; }
 	inline int getSegmentCount() const { return m_nsegs; }
-	inline const float* getSegment(int i) const { return m_segs[i].s; }
+	inline const float* getSegment(int i) const { return m_segs[i].s.data(); }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtLocalBoundary(const dtLocalBoundary&);
-	dtLocalBoundary& operator=(const dtLocalBoundary&);
+	dtLocalBoundary(const dtLocalBoundary&) = delete;
+	dtLocalBoundary& operator=(const dtLocalBoundary&) = delete;
 };
 
 #endif // DETOURLOCALBOUNDARY_H

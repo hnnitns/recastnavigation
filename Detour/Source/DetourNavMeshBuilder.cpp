@@ -235,15 +235,15 @@ namespace
 		return curNode;
 	}
 
-	unsigned char classifyOffMeshPoint(
+	uint8_t classifyOffMeshPoint(
 		const float* pt, const std::array<float, 3>& bmin, const std::array<float, 3>& bmax)
 	{
-		static const unsigned char XP = 1 << 0;
-		static const unsigned char ZP = 1 << 1;
-		static const unsigned char XM = 1 << 2;
-		static const unsigned char ZM = 1 << 3;
+		static const uint8_t XP = 1 << 0;
+		static const uint8_t ZP = 1 << 1;
+		static const uint8_t XM = 1 << 2;
+		static const uint8_t ZM = 1 << 3;
 
-		unsigned char outcode = 0;
+		uint8_t outcode = 0;
 		outcode |= (pt[0] >= bmax[0]) ? XP : 0;
 		outcode |= (pt[2] >= bmax[2]) ? ZP : 0;
 		outcode |= (pt[0] < bmin[0]) ? XM : 0;
@@ -276,7 +276,7 @@ namespace
 // メモリを解放するために使用されるメソッドは、タイルがナビゲーションメッシュに追加される方法によって決まります。
 //
 // @see dtNavMesh, dtNavMesh::addTile()
-bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData, int* outDataSize)
+bool dtCreateNavMeshData(dtNavMeshCreateParams* params, uint8_t** outData, int* outDataSize)
 {
 	//ポリゴンごとの頂点の最大値を超えている
 	if (params->nvp > DT_VERTS_PER_POLYGON) return false;
@@ -296,13 +296,13 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	// オフメッシュ接続ポイントを分類します。
 	// We store only the connections whose start point is inside the tile.
 	// 開始点がタイル内にある接続のみを保存します。
-	unsigned char* offMeshConClass{};
+	uint8_t* offMeshConClass{};
 	int storedOffMeshConCount{};
 	int offMeshConLinkCount{};
 
 	if (params->offMeshConCount > 0)
 	{
-		offMeshConClass = (unsigned char*)dtAlloc(sizeof(unsigned char) * params->offMeshConCount * 2, DT_ALLOC_TEMP);
+		offMeshConClass = (uint8_t*)dtAlloc(sizeof(uint8_t) * params->offMeshConCount * 2, DT_ALLOC_TEMP);
 
 		// ポインタが死んでいる
 		if (!offMeshConClass) return false;
@@ -461,7 +461,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	const int linksSize = dtAlign4(sizeof(dtLink) * maxLinkCount);
 	const int detailMeshesSize = dtAlign4(sizeof(dtPolyDetail) * params->polyCount);
 	const int detailVertsSize = dtAlign4(sizeof(float) * 3 * uniqueDetailVertCount);
-	const int detailTrisSize = dtAlign4(sizeof(unsigned char) * 4 * detailTriCount);
+	const int detailTrisSize = dtAlign4(sizeof(uint8_t) * 4 * detailTriCount);
 	const int bvTreeSize = params->buildBvTree ? dtAlign4(sizeof(dtBVNode) * params->polyCount * 2) : 0;
 	const int offMeshConsSize = dtAlign4(sizeof(dtOffMeshConnection) * storedOffMeshConCount);
 
@@ -470,7 +470,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 		detailMeshesSize + detailVertsSize + detailTrisSize +
 		bvTreeSize + offMeshConsSize;
 
-	unsigned char* data = (unsigned char*)dtAlloc(sizeof(unsigned char) * dataSize, DT_ALLOC_PERM);
+	uint8_t* data = (uint8_t*)dtAlloc(sizeof(uint8_t) * dataSize, DT_ALLOC_PERM);
 
 	// メモリー割り当てが失敗
 	if (!data)
@@ -481,7 +481,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 
 	memset(data, 0, dataSize);
 
-	unsigned char* d = data;
+	uint8_t* d = data;
 
 	dtMeshHeader* header = dtGetThenAdvanceBufferPointer<dtMeshHeader>(d, headerSize);
 	float* navVerts = dtGetThenAdvanceBufferPointer<float>(d, vertsSize);
@@ -493,7 +493,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 
 	dtPolyDetail* navDMeshes = dtGetThenAdvanceBufferPointer<dtPolyDetail>(d, detailMeshesSize);
 	float* navDVerts = dtGetThenAdvanceBufferPointer<float>(d, detailVertsSize);
-	unsigned char* navDTris = dtGetThenAdvanceBufferPointer<unsigned char>(d, detailTrisSize);
+	uint8_t* navDTris = dtGetThenAdvanceBufferPointer<uint8_t>(d, detailTrisSize);
 	dtBVNode* navBvtree = dtGetThenAdvanceBufferPointer<dtBVNode>(d, bvTreeSize);
 	dtOffMeshConnection* offMeshCons = dtGetThenAdvanceBufferPointer<dtOffMeshConnection>(d, offMeshConsSize);
 
@@ -655,9 +655,9 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 			const int nv = navPolys[i].vertCount;
 
 			dtl.vertBase = (unsigned int)vbase;
-			dtl.vertCount = (unsigned char)(ndv - nv);
+			dtl.vertCount = (uint8_t)(ndv - nv);
 			dtl.triBase = (unsigned int)params->detailMeshes[i * 4 + 2];
-			dtl.triCount = (unsigned char)params->detailMeshes[i * 4 + 3];
+			dtl.triCount = (uint8_t)params->detailMeshes[i * 4 + 3];
 
 			// Copy vertices except the first 'nv' verts which are equal to nav poly verts.
 			// nav poly vertと等しい最初の「nv」頂点以外の頂点をコピーします。
@@ -670,7 +670,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 
 		// Store triangles.
 		// 三角形を保存します。
-		memcpy(navDTris, params->detailTris, sizeof(unsigned char) * 4 * params->detailTriCount);
+		memcpy(navDTris, params->detailTris, sizeof(uint8_t) * 4 * params->detailTriCount);
 	}
 	else
 	{
@@ -685,17 +685,17 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 			dtl.vertBase = 0;
 			dtl.vertCount = 0;
 			dtl.triBase = (unsigned int)tbase;
-			dtl.triCount = (unsigned char)(nv - 2);
+			dtl.triCount = (uint8_t)(nv - 2);
 
 			// Triangulate polygon (local indices).
 			// ポリゴンを三角形化します（ローカルインデックス）。
 			for (int j = 2; j < nv; ++j)
 			{
-				unsigned char* t = &navDTris[tbase * 4];
+				uint8_t* t = &navDTris[tbase * 4];
 
 				t[0] = 0;
-				t[1] = (unsigned char)(j - 1);
-				t[2] = (unsigned char)j;
+				t[1] = (uint8_t)(j - 1);
+				t[2] = (uint8_t)j;
 				// Bit for each edge that belongs to poly boundary.
 				// ポリゴン境界に属する各エッジのビット。
 				t[3] = (1 << 2);
@@ -750,7 +750,7 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	return true;
 }
 
-bool dtNavMeshHeaderSwapEndian(unsigned char* data, const int /*dataSize*/)
+bool dtNavMeshHeaderSwapEndian(uint8_t* data, [[maybe_unused]] const int dataSize)
 {
 	dtMeshHeader* header = (dtMeshHeader*)data;
 
@@ -802,7 +802,7 @@ bool dtNavMeshHeaderSwapEndian(unsigned char* data, const int /*dataSize*/)
 // Call #dtNavMeshHeaderSwapEndian() first on the data if the data is expected to be in wrong endianess
 // to start with. Call #dtNavMeshHeaderSwapEndian() after the data has been swapped if converting from
 // native to foreign endianess.
-bool dtNavMeshDataSwapEndian(unsigned char* data, const int /*dataSize*/)
+bool dtNavMeshDataSwapEndian(uint8_t* data, [[maybe_unused]]const int dataSize)
 {
 	// Make sure the data is in right format.
 	dtMeshHeader* header = (dtMeshHeader*)data;
@@ -818,11 +818,11 @@ bool dtNavMeshDataSwapEndian(unsigned char* data, const int /*dataSize*/)
 	const int linksSize = dtAlign4(sizeof(dtLink) * (header->maxLinkCount));
 	const int detailMeshesSize = dtAlign4(sizeof(dtPolyDetail) * header->detailMeshCount);
 	const int detailVertsSize = dtAlign4(sizeof(float) * 3 * header->detailVertCount);
-	const int detailTrisSize = dtAlign4(sizeof(unsigned char) * 4 * header->detailTriCount);
+	const int detailTrisSize = dtAlign4(sizeof(uint8_t) * 4 * header->detailTriCount);
 	const int bvtreeSize = dtAlign4(sizeof(dtBVNode) * header->bvNodeCount);
 	const int offMeshLinksSize = dtAlign4(sizeof(dtOffMeshConnection) * header->offMeshConCount);
 
-	unsigned char* d = data + headerSize;
+	uint8_t* d = data + headerSize;
 	float* verts = dtGetThenAdvanceBufferPointer<float>(d, vertsSize);
 	dtPoly* polys = dtGetThenAdvanceBufferPointer<dtPoly>(d, polysSize);
 	d += linksSize; // Ignore links; they technically should be endian-swapped but all their data is overwritten on load anyway.
@@ -830,7 +830,7 @@ bool dtNavMeshDataSwapEndian(unsigned char* data, const int /*dataSize*/)
 	dtPolyDetail* detailMeshes = dtGetThenAdvanceBufferPointer<dtPolyDetail>(d, detailMeshesSize);
 	float* detailVerts = dtGetThenAdvanceBufferPointer<float>(d, detailVertsSize);
 	d += detailTrisSize; // Ignore detail tris; single bytes can't be endian-swapped.
-	//unsigned char* detailTris = dtGetThenAdvanceBufferPointer<unsigned char>(d, detailTrisSize);
+	//uint8_t* detailTris = dtGetThenAdvanceBufferPointer<uint8_t>(d, detailTrisSize);
 	dtBVNode* bvTree = dtGetThenAdvanceBufferPointer<dtBVNode>(d, bvtreeSize);
 	dtOffMeshConnection* offMeshCons = dtGetThenAdvanceBufferPointer<dtOffMeshConnection>(d, offMeshLinksSize);
 

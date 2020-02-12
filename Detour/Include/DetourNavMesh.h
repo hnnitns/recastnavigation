@@ -755,8 +755,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtNavMesh(const dtNavMesh&);
-	dtNavMesh& operator=(const dtNavMesh&);
+	dtNavMesh(const dtNavMesh&) = delete;
+	dtNavMesh& operator=(const dtNavMesh&) = delete;
 
 	// Returns pointer to tile in the tile array.
 	dtMeshTile* getTile(int i);

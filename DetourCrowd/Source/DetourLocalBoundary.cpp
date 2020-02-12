@@ -74,7 +74,7 @@ void dtLocalBoundary::addSegment(const float dist, const float* s)
 	}
 
 	seg->d = dist;
-	memcpy(seg->s, s, sizeof(float) * 6);
+	seg->s.fill(*s);
 
 	if (m_nsegs < MAX_LOCAL_SEGS)
 		m_nsegs++;

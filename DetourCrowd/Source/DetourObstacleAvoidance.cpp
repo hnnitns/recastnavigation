@@ -55,14 +55,10 @@ namespace
 	}
 
 	inline int isectRaySeg(const ArrayF& ap, const ArrayF& u,
-		const float* bp, const float* bq,
+		const ArrayF& bp, const ArrayF& bq,
 		float& t)
 	{
-		ArrayF v{}, w{};
-
-		dtVsub(v.data(), bq, bp);
-		dtVsub(w.data(), ap.data(), bp);
-
+		ArrayF v{ bq - bp }, w{ ap - bp };
 		float d = dtVperp2D(u, v);
 
 		if (dtMathFabsf(d) < 1e-6f) return 0;
@@ -301,8 +297,8 @@ void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q)
 		return;
 
 	dtObstacleSegment* seg = &m_segments[m_nsegments++];
-	dtVcopy(seg->p, p);
-	dtVcopy(seg->q, q);
+	dtVcopy(seg->p.data(), p);
+	dtVcopy(seg->q.data(), q);
 }
 
 void dtObstacleAvoidanceQuery::prepare(const std::array<float, 3>& pos, const std::array<float, 3>& dvel)
@@ -343,7 +339,7 @@ void dtObstacleAvoidanceQuery::prepare(const std::array<float, 3>& pos, const st
 		// Precalc if the agent is really close to the segment.
 		const float r = 0.01f;
 		float t;
-		seg->touch = dtDistancePtSegSqr2D(pos.data(), seg->p, seg->q, t) < dtSqr(r);
+		seg->touch = dtDistancePtSegSqr2D(pos.data(), seg->p.data(), seg->q.data(), t) < dtSqr(r);
 	}
 }
 
@@ -422,8 +418,8 @@ float dtObstacleAvoidanceQuery::processSample(const std::array<float, 3>& vcand,
 		if (seg->touch)
 		{
 			// Special case when the agent is very close to the segment.
-			ArrayF sdir{}, snorm{};
-			dtVsub(sdir.data(), seg->q, seg->p);
+			ArrayF sdir{ seg->q - seg->p }, snorm{};
+
 			snorm[0] = -sdir[2];
 			snorm[2] = sdir[0];
 			// If the velocity is pointing towards the segment, no collision.

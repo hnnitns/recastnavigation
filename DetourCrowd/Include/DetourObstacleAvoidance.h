@@ -32,7 +32,7 @@ struct dtObstacleCircle
 
 struct dtObstacleSegment
 {
-	float p[3], q[3];		///< End points of the obstacle segment
+	std::array<float, 3> p, q;		///< End points of the obstacle segment
 	bool touch;
 };
 

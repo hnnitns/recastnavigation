@@ -44,7 +44,7 @@ public:
 
 	bool init(const int maxSamples);
 	void reset();
-	void addSample(const float* vel, const float ssize, const float pen,
+	void addSample(const std::array<float, 3>& vel, const float ssize, const float pen,
 		const float vpen, const float vcpen, const float spen, const float tpen);
 
 	void normalizeSamples();
@@ -105,19 +105,19 @@ public:
 	void reset();
 
 	void addCircle(const std::array<float, 3>& pos, const float rad,
-		const float* vel, const float* dvel);
+		const float* vel, const std::array<float, 3>& dvel);
 
 	void addSegment(const float* p, const float* q);
 
 	int sampleVelocityGrid(const std::array<float, 3>& pos, const float rad, const float vmax,
-		const float* vel, const float* dvel, float* nvel,
+		const float* vel, const std::array<float, 3>& dvel, float* nvel,
 		const dtObstacleAvoidanceParams* params,
 		dtObstacleAvoidanceDebugData* debug = 0);
 
 	int sampleVelocityAdaptive(const std::array<float, 3>& pos, const float rad, const float vmax,
-		const float* vel, const float* dvel, float* nvel,
+		const float* vel, const std::array<float, 3>& dvel, float* nvel,
 		const dtObstacleAvoidanceParams* params,
-		dtObstacleAvoidanceDebugData* debug = 0);
+		dtObstacleAvoidanceDebugData* debug = nullptr);
 
 	inline int getObstacleCircleCount() const { return m_ncircles; }
 	const dtObstacleCircle* getObstacleCircle(const int i) { return &m_circles[i]; }
@@ -127,14 +127,14 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtObstacleAvoidanceQuery(const dtObstacleAvoidanceQuery&);
-	dtObstacleAvoidanceQuery& operator=(const dtObstacleAvoidanceQuery&);
+	dtObstacleAvoidanceQuery(const dtObstacleAvoidanceQuery&) = delete;
+	dtObstacleAvoidanceQuery& operator=(const dtObstacleAvoidanceQuery&) = delete;
 
 	void prepare(const float* pos, const float* dvel);
 
-	float processSample(const float* vcand, const float cs,
-		const float* pos, const float rad,
-		const float* vel, const float* dvel,
+	float processSample(const std::array<float, 3>& vcand, const float cs,
+		const std::array<float, 3>& pos, const float rad,
+		const float* vel, const std::array<float, 3>& dvel,
 		const float minPenalty,
 		dtObstacleAvoidanceDebugData* debug);
 

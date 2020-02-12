@@ -560,7 +560,7 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	ag->targetReplanTime = 0;
 	ag->nneis = 0;
 
-	dtVset(ag->dvel, 0, 0, 0);
+	ag->dvel.fill(0.f);
 	dtVset(ag->nvel, 0, 0, 0);
 	dtVset(ag->vel, 0, 0, 0);
 	ag->npos = nearest;
@@ -667,7 +667,7 @@ bool dtCrowd::resetMoveTarget(const int idx)
 	// Initialize request.
 	ag->targetRef = 0;
 	dtVset(ag->targetPos, 0, 0, 0);
-	dtVset(ag->dvel, 0, 0, 0);
+	ag->dvel.fill(0.f);
 	ag->targetPathqRef = DT_PATHQ_INVALID;
 	ag->targetReplan = false;
 	ag->targetState = DT_CROWDAGENT_TARGET_NONE;
@@ -1286,7 +1286,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 
 		// Set the desired velocity.
 		// 希望の速度を設定します。
-		dtVcopy(ag->dvel, dvel.data());
+		ag->dvel = dvel;
 	}
 
 	// Velocity planning.
@@ -1347,7 +1347,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		{
 			// If not using velocity planning, new velocity is directly the desired velocity.
 			// 速度計画を使用しない場合、新しい速度は直接目的の速度です。
-			dtVcopy(ag->nvel, ag->dvel);
+			dtVcopy(ag->nvel, ag->dvel.data());
 		}
 	}
 
@@ -1491,6 +1491,6 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		// Update velocity.
 		// 速度を更新します。
 		dtVset(ag->vel, 0, 0, 0);
-		dtVset(ag->dvel, 0, 0, 0);
+		ag->dvel.fill(0.f);
 	}
 }

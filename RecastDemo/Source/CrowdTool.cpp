@@ -525,7 +525,7 @@ void CrowdToolState::handleRender()
 		const float height = ag->params.height;
 		const auto& pos = ag->npos;
 		const float* vel = ag->vel;
-		const float* dvel = ag->dvel;
+		const auto& dvel = ag->dvel;
 
 		unsigned int col = duRGBA(220, 220, 220, 192);
 		if (ag->targetState == DT_CROWDAGENT_TARGET_REQUESTING || ag->targetState == DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE)

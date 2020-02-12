@@ -1186,11 +1186,12 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 
 			// Adjust the path over the off-mesh connection.
 			// オフメッシュ接続上のパスを調整します。
-			dtPolyRef refs[2];
-			if (ag->corridor.moveOverOffmeshConnection(ag->cornerPolys[ag->ncorners - 1], refs,
-				anim->startPos, anim->endPos, m_navquery))
+			std::array<dtPolyRef, 2> refs{};
+
+			if (ag->corridor.moveOverOffmeshConnection(ag->cornerPolys[ag->ncorners - 1], &refs,
+				&anim->startPos, &anim->endPos, m_navquery))
 			{
-				dtVcopy(anim->initPos, ag->npos.data());
+				anim->initPos = ag->npos;
 				anim->polyRef = refs[1];
 				anim->active = true;
 				anim->t = 0.0f;
@@ -1481,12 +1482,12 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		if (anim->t < ta)
 		{
 			const float u = tween(anim->t, 0.0, ta);
-			dtVlerp(ag->npos.data(), anim->initPos, anim->startPos, u);
+			dtVlerp(&ag->npos, anim->initPos, anim->startPos, u);
 		}
 		else
 		{
 			const float u = tween(anim->t, ta, tb);
-			dtVlerp(ag->npos.data(), anim->startPos, anim->endPos, u);
+			dtVlerp(&ag->npos, anim->startPos, anim->endPos, u);
 		}
 
 		// Update velocity.

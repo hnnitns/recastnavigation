@@ -185,7 +185,7 @@ struct dtCrowdAgent
 struct dtCrowdAgentAnimation
 {
 	bool active;
-	float initPos[3], startPos[3], endPos[3];
+	std::array<float, 3> initPos, startPos, endPos;
 	dtPolyRef polyRef;
 	float t, tmax;
 };

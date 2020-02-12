@@ -1149,19 +1149,6 @@ inline constexpr void rcVadd(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[2] + v2[2];
 }
 
-// Performs a vector addition. (@p v1 + @p v2)
-// ベクトルの加算を実行します。（@p v1 + @p v2）
-inline auto operator+ (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
-{
-	std::array<float, 3> dest;
-
-	dest[0] = v1[0] + v2[0];
-	dest[1] = v1[1] + v2[1];
-	dest[2] = v1[2] + v2[2];
-
-	return dest;
-}
-
 // Performs a vector subtraction. (@p v1 - @p v2)
 // ベクトル減算を実行します。（@p v1-@p v2）
 //  @param[out]	dest	The result vector. [(x, y, z)]
@@ -1174,17 +1161,35 @@ inline constexpr void rcVsub(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[2] - v2[2];
 }
 
-// Performs a vector subtraction. (@p v1 - @p v2)
-// ベクトル減算を実行します。（@p v1-@p v2）
-inline auto operator- (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+namespace RcOperator
 {
-	std::array<float, 3> dest;
+	using ArrayF = std::array<float, 3>;
 
-	dest[0] = v1[0] - v2[0];
-	dest[1] = v1[1] - v2[1];
-	dest[2] = v1[2] - v2[2];
+	// Performs a vector subtraction. (@p v1 - @p v2)
+	// ベクトル減算を実行します。（@p v1-@p v2）
+	inline auto operator- (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		std::array<float, 3> dest;
 
-	return dest;
+		dest[0] = v1[0] - v2[0];
+		dest[1] = v1[1] - v2[1];
+		dest[2] = v1[2] - v2[2];
+
+		return dest;
+	}
+
+	// Performs a vector addition. (@p v1 + @p v2)
+	// ベクトルの加算を実行します。（@p v1 + @p v2）
+	inline auto operator+ (const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		std::array<float, 3> dest;
+
+		dest[0] = v1[0] + v2[0];
+		dest[1] = v1[1] + v2[1];
+		dest[2] = v1[2] + v2[2];
+
+		return dest;
+	}
 }
 
 // Selects the minimum value of each element from the specified vectors.

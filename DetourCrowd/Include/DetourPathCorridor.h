@@ -72,8 +72,8 @@ public:
 	///  @param[in]		filter		The filter to apply to the operation.
 	bool optimizePathTopology(dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
-	bool moveOverOffmeshConnection(dtPolyRef offMeshConRef, dtPolyRef* refs,
-		float* startPos, float* endPos,
+	bool moveOverOffmeshConnection(dtPolyRef offMeshConRef, std::array<dtPolyRef, 2>* refs,
+		std::array<float, 3>* startPos, std::array<float, 3>* endPos,
 		dtNavMeshQuery* navquery);
 
 	bool fixPathStart(dtPolyRef safeRef, const float* safePos);

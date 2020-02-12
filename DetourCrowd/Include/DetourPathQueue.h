@@ -54,7 +54,7 @@ class dtPathQueue
 	};
 
 	static constexpr int MAX_QUEUE = 8;
-	PathQuery m_queue[MAX_QUEUE];
+	std::array<PathQuery, MAX_QUEUE> m_queue;
 	dtPathQueueRef m_nextHandle;
 	int m_maxPathSize;
 	int m_queueHead;

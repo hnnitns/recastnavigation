@@ -136,45 +136,39 @@ dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
 	const dtQueryFilter* filter)
 {
 	// Find empty slot
-	int slot = -1;
-	for (int i = 0; i < MAX_QUEUE; ++i)
-	{
-		if (m_queue[i].ref == DT_PATHQ_INVALID)
-		{
-			slot = i;
-			break;
-		}
-	}
+	// 空のスロットを見つける
+	auto slot{ std::find_if(m_queue.begin(), m_queue.end(),
+		[](const auto& queue) { return (queue.ref == DT_PATHQ_INVALID); }) };
+
 	// Could not find slot.
-	if (slot == -1)
-		return DT_PATHQ_INVALID;
+	// スロットが見つかりませんでした。
+	if (slot == m_queue.end()) return DT_PATHQ_INVALID;
 
 	dtPathQueueRef ref = m_nextHandle++;
 	if (m_nextHandle == DT_PATHQ_INVALID) m_nextHandle++;
 
-	PathQuery& q = m_queue[slot];
-
-	q.ref = ref;
-	dtVcopy(q.startPos.data(), startPos);
-	q.startRef = startRef;
-	q.endPos = endPos;
-	q.endRef = endRef;
-	q.status = 0;
-	q.npath = 0;
-	q.filter = filter;
-	q.keepAlive = 0;
+	slot->ref = ref;
+	dtVcopy(slot->startPos.data(), startPos);
+	slot->startRef = startRef;
+	slot->endPos = endPos;
+	slot->endRef = endRef;
+	slot->status = 0;
+	slot->npath = 0;
+	slot->filter = filter;
+	slot->keepAlive = 0;
 
 	return ref;
 }
 
 dtStatus dtPathQueue::getRequestStatus(dtPathQueueRef ref) const
 {
-	for (int i = 0; i < MAX_QUEUE; ++i)
-	{
-		if (m_queue[i].ref == ref)
-			return m_queue[i].status;
-	}
-	return DT_FAILURE;
+	auto slot{ std::find_if(m_queue.cbegin(), m_queue.cend(),
+		[ref](const auto& queue) { return (queue.ref == ref); }) };
+
+	if (slot == m_queue.cend())
+		return DT_FAILURE;
+	else
+		return slot->status;
 }
 
 dtStatus dtPathQueue::getPathResult(dtPathQueueRef ref, dtPolyRef* path, int* pathSize, const int maxPath)

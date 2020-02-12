@@ -163,13 +163,13 @@ struct dtCrowdAgent
 	dtCrowdAgentParams params;
 
 	// The local path corridor corners for the agent. (Staight path.) [(x, y, z) * #ncorners]
-	float cornerVerts[DT_CROWDAGENT_MAX_CORNERS * 3];
+	std::array<float, DT_CROWDAGENT_MAX_CORNERS * 3> cornerVerts;
 
 	// The local path corridor corner flags. (See: #dtStraightPathFlags) [(flags) * #ncorners]
-	uint8_t cornerFlags[DT_CROWDAGENT_MAX_CORNERS];
+	std::array<uint8_t, DT_CROWDAGENT_MAX_CORNERS> cornerFlags;
 
 	// The reference id of the polygon being entered at the corner. [(polyRef) * #ncorners]
-	dtPolyRef cornerPolys[DT_CROWDAGENT_MAX_CORNERS];
+	std::array<dtPolyRef, DT_CROWDAGENT_MAX_CORNERS> cornerPolys;
 
 	// The number of corners.
 	int ncorners;

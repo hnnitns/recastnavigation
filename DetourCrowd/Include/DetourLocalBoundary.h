@@ -33,10 +33,10 @@ class dtLocalBoundary
 	};
 
 	std::array<float, 3> m_center;
-	Segment m_segs[MAX_LOCAL_SEGS];
+	std::array<Segment, MAX_LOCAL_SEGS> m_segs;
 	int m_nsegs;
 
-	dtPolyRef m_polys[MAX_LOCAL_POLYS];
+	std::array<dtPolyRef, MAX_LOCAL_POLYS> m_polys;
 	int m_npolys;
 
 	void addSegment(const float dist, const float* s);

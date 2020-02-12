@@ -97,7 +97,7 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 
 	// First query non-overlapping polygons.
 	navquery->findLocalNeighbourhood(ref, pos, collisionQueryRange,
-		filter, m_polys, 0, &m_npolys, MAX_LOCAL_POLYS);
+		filter, m_polys.data(), nullptr, &m_npolys, MAX_LOCAL_POLYS);
 
 	// Secondly, store all polygon edges.
 	m_nsegs = 0;

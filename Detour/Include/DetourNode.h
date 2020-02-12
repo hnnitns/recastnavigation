@@ -116,8 +116,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtNodePool(const dtNodePool&);
-	dtNodePool& operator=(const dtNodePool&);
+	dtNodePool(const dtNodePool&) = delete;
+	dtNodePool& operator=(const dtNodePool&) = delete;
 
 	dtNode* m_nodes;
 	dtNodeIndex* m_first;
@@ -175,8 +175,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtNodeQueue(const dtNodeQueue&);
-	dtNodeQueue& operator=(const dtNodeQueue&);
+	dtNodeQueue(const dtNodeQueue&) = delete;
+	dtNodeQueue& operator=(const dtNodeQueue&) = delete;
 
 	void bubbleUp(int i, dtNode* node);
 	void trickleDown(int i, dtNode* node);

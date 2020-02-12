@@ -22,28 +22,38 @@
 #include "DetourNavMesh.h"
 #include "DetourNavMeshQuery.h"
 
-static const unsigned int DT_PATHQ_INVALID = 0;
+constexpr uint32_t DT_PATHQ_INVALID = 0;
 
-typedef unsigned int dtPathQueueRef;
+typedef uint32_t dtPathQueueRef;
 
 class dtPathQueue
 {
 	struct PathQuery
 	{
 		dtPathQueueRef ref;
-		/// Path find start and end location.
-		float startPos[3], endPos[3];
+
+		// Path find start and end location.
+		// パス検索の開始位置と終了位置。
+		std::array<float, 3> startPos, endPos;
+
 		dtPolyRef startRef, endRef;
-		/// Result.
+
+		// 結果
 		dtPolyRef* path;
+
 		int npath;
-		/// State.
+
+		// 状態
 		dtStatus status;
+
 		int keepAlive;
-		const dtQueryFilter* filter; ///< TODO: This is potentially dangerous!
+
+		// TODO: This is potentially dangerous!
+		// これは潜在的に危険です！
+		const dtQueryFilter* filter;
 	};
 
-	static const int MAX_QUEUE = 8;
+	static constexpr int MAX_QUEUE = 8;
 	PathQuery m_queue[MAX_QUEUE];
 	dtPathQueueRef m_nextHandle;
 	int m_maxPathSize;
@@ -72,8 +82,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtPathQueue(const dtPathQueue&);
-	dtPathQueue& operator=(const dtPathQueue&);
+	dtPathQueue(const dtPathQueue&) = delete;
+	dtPathQueue& operator=(const dtPathQueue&) = delete;
 };
 
 #endif // DETOURPATHQUEUE_H

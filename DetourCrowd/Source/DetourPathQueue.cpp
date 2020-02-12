@@ -110,7 +110,7 @@ void dtPathQueue::update(const int maxIters)
 		// Handle query start.
 		if (q.status == 0)
 		{
-			q.status = m_navquery->initSlicedFindPath(q.startRef, q.endRef, q.startPos, q.endPos, q.filter);
+			q.status = m_navquery->initSlicedFindPath(q.startRef, q.endRef, q.startPos.data(), q.endPos.data(), q.filter);
 		}
 		// Handle query in progress.
 		if (dtStatusInProgress(q.status))
@@ -153,12 +153,12 @@ dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
 	if (m_nextHandle == DT_PATHQ_INVALID) m_nextHandle++;
 
 	PathQuery& q = m_queue[slot];
-	q.ref = ref;
-	dtVcopy(q.startPos, startPos);
-	q.startRef = startRef;
-	dtVcopy(q.endPos, endPos.data());
-	q.endRef = endRef;
 
+	q.ref = ref;
+	dtVcopy(q.startPos.data(), startPos);
+	q.startRef = startRef;
+	q.endPos = endPos;
+	q.endRef = endRef;
 	q.status = 0;
 	q.npath = 0;
 	q.filter = filter;

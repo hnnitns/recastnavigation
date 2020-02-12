@@ -24,7 +24,7 @@
 struct dtObstacleCircle
 {
 	std::array<float, 3> pos;	// Position of the obstacle
-	float vel[3];				// Velocity of the obstacle
+	std::array<float, 3> vel;	// Velocity of the obstacle
 	float dvel[3];				// Velocity of the obstacle
 	float rad;					// Radius of the obstacle
 	float dp[3], np[3];			// Use for side selection during sampling.

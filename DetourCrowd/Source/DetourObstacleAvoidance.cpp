@@ -291,7 +291,7 @@ void dtObstacleAvoidanceQuery::addCircle(const std::array<float, 3>& pos, const 
 
 	cir->pos = pos;
 	cir->rad = rad;
-	dtVcopy(cir->vel, vel.data());
+	cir->vel = vel;
 	dtVcopy(cir->dvel, dvel.data());
 }
 
@@ -383,7 +383,7 @@ float dtObstacleAvoidanceQuery::processSample(const std::array<float, 3>& vcand,
 		ArrayF vab{ vcand * 2.f };
 
 		vab -= vel;
-		dtVsub(vab.data(), vab.data(), cir->vel);
+		vab -= cir->vel;
 
 		// Side
 		side += dtClamp(dtMin(

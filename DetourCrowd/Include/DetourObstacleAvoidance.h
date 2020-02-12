@@ -110,12 +110,12 @@ public:
 	void addSegment(const float* p, const float* q);
 
 	int sampleVelocityGrid(const std::array<float, 3>& pos, const float rad, const float vmax,
-		const float* vel, const std::array<float, 3>& dvel, float* nvel,
+		const float* vel, const std::array<float, 3>& dvel, std::array<float, 3>& nvel,
 		const dtObstacleAvoidanceParams* params,
 		dtObstacleAvoidanceDebugData* debug = 0);
 
 	int sampleVelocityAdaptive(const std::array<float, 3>& pos, const float rad, const float vmax,
-		const float* vel, const std::array<float, 3>& dvel, float* nvel,
+		const float* vel, const std::array<float, 3>& dvel, std::array<float, 3>& nvel,
 		const dtObstacleAvoidanceParams* params,
 		dtObstacleAvoidanceDebugData* debug = nullptr);
 

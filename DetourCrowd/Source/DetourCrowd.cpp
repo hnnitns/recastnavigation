@@ -62,12 +62,16 @@ namespace
 	{
 		// Fake dynamic constraint.
 		const float maxDelta = ag->params.maxAcceleration * dt;
-		float dv[3];
-		dtVsub(dv, ag->nvel, ag->vel);
+		ArrayF dv{};
+
+		dtVsub(dv.data(), ag->nvel.data(), ag->vel);
+
 		float ds = dtVlen(dv);
+
 		if (ds > maxDelta)
-			dtVscale(dv, dv, maxDelta / ds);
-		dtVadd(ag->vel, ag->vel, dv);
+			dtVscale(&dv, dv, maxDelta / ds);
+
+		dtVadd(ag->vel, ag->vel, dv.data());
 
 		// Integrate
 		if (dtVlen(ag->vel) > 0.0001f)
@@ -561,7 +565,7 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	ag->nneis = 0;
 
 	ag->dvel.fill(0.f);
-	dtVset(ag->nvel, 0, 0, 0);
+	ag->nvel.fill(0.f);
 	dtVset(ag->vel, 0, 0, 0);
 	ag->npos = nearest;
 
@@ -1347,7 +1351,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		{
 			// If not using velocity planning, new velocity is directly the desired velocity.
 			// 速度計画を使用しない場合、新しい速度は直接目的の速度です。
-			dtVcopy(ag->nvel, ag->dvel.data());
+			ag->nvel = ag->dvel;
 		}
 	}
 

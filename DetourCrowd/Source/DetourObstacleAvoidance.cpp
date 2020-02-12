@@ -318,11 +318,11 @@ void dtObstacleAvoidanceQuery::prepare(const std::array<float, 3>& pos, const st
 
 		const ArrayF orig{};
 		ArrayF dv{};
-		dtVsub(cir->dp, pb.data(), pa.data());
-		dtVnormalize(cir->dp);
+		cir->dp = pb - pa;
+		dtVnormalize(&cir->dp);
 		dv = cir->dvel - dvel;
 
-		const float a = dtTriArea2D(orig.data(), cir->dp, dv.data());
+		const float a = dtTriArea2D(orig.data(), cir->dp.data(), dv.data());
 
 		if (a < 0.01f)
 		{
@@ -387,7 +387,7 @@ float dtObstacleAvoidanceQuery::processSample(const std::array<float, 3>& vcand,
 
 		// Side
 		side += dtClamp(dtMin(
-			dtVdot2D(cir->dp, vab.data()) * 0.5f + 0.5f, dtVdot2D(cir->np, vab.data()) * 2), 0.0f, 1.f);
+			dtVdot2D(cir->dp, vab) * 0.5f + 0.5f, dtVdot2D(cir->np, vab) * 2), 0.0f, 1.f);
 
 		nside++;
 

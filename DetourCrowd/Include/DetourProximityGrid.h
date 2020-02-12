@@ -60,8 +60,8 @@ public:
 
 	int getItemCountAt(const int x, const int y) const;
 
-	inline auto& getBounds() const { return m_bounds; }
-	inline float getCellSize() const { return m_cellSize; }
+	auto& getBounds() const { return m_bounds; }
+	float getCellSize() const { return m_cellSize; }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

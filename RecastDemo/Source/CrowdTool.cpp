@@ -694,7 +694,7 @@ void CrowdToolState::addAgent(const float* p)
 		ap.updateFlags |= DT_CROWD_OBSTACLE_AVOIDANCE;
 	if (m_toolParams.m_separation)
 		ap.updateFlags |= DT_CROWD_SEPARATION;
-	ap.obstacleAvoidanceType = (unsigned char)m_toolParams.m_obstacleAvoidanceType;
+	ap.obstacleAvoidanceType = (uint8_t)m_toolParams.m_obstacleAvoidanceType;
 	ap.separationWeight = m_toolParams.m_separationWeight;
 
 	int idx = crowd->addAgent(p, &ap);
@@ -819,8 +819,8 @@ void CrowdToolState::updateAgentParams()
 	dtCrowd* crowd = m_sample->getCrowd();
 	if (!crowd) return;
 
-	unsigned char updateFlags = 0;
-	unsigned char obstacleAvoidanceType = 0;
+	uint8_t updateFlags = 0;
+	uint8_t obstacleAvoidanceType = 0;
 
 	if (m_toolParams.m_anticipateTurns)
 		updateFlags |= DT_CROWD_ANTICIPATE_TURNS;
@@ -835,15 +835,18 @@ void CrowdToolState::updateAgentParams()
 	if (m_toolParams.m_separation)
 		updateFlags |= DT_CROWD_SEPARATION;
 
-	obstacleAvoidanceType = (unsigned char)m_toolParams.m_obstacleAvoidanceType;
+	obstacleAvoidanceType = (uint8_t)m_toolParams.m_obstacleAvoidanceType;
 
-	dtCrowdAgentParams params;
+	dtCrowdAgentParams params{};
 
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
 		const dtCrowdAgent* ag = crowd->getAgent(i);
+
 		if (!ag->active) continue;
+
 		memcpy(&params, &ag->params, sizeof(dtCrowdAgentParams));
+
 		params.updateFlags = updateFlags;
 		params.obstacleAvoidanceType = obstacleAvoidanceType;
 		params.separationWeight = m_toolParams.m_separationWeight;
@@ -894,12 +897,9 @@ CrowdTool::CrowdTool() :
 void CrowdTool::init(Sample* sample)
 {
 	if (m_sample != sample)
-	{
 		m_sample = sample;
-	}
 
-	if (!sample)
-		return;
+	if (!sample) return;
 
 	m_state = (CrowdToolState*)sample->getToolState(type());
 	if (!m_state)

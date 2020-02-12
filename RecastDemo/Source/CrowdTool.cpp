@@ -287,7 +287,7 @@ void CrowdToolState::handleRender()
 
 		dd.begin(DU_DRAW_QUADS);
 		const dtProximityGrid* grid = crowd->getGrid();
-		const int* bounds = grid->getBounds();
+		const auto& bounds = grid->getBounds();
 		const float cs = grid->getCellSize();
 		for (int y = bounds[1]; y <= bounds[3]; ++y)
 		{
@@ -295,7 +295,7 @@ void CrowdToolState::handleRender()
 			{
 				const int count = grid->getItemCountAt(x, y);
 				if (!count) continue;
-				unsigned int col = duRGBA(128, 0, 0, dtMin(count * 40, 255));
+				uint32_t col = duRGBA(128, 0, 0, dtMin(count * 40, 255));
 				dd.vertex(x * cs, gridy, y * cs, col);
 				dd.vertex(x * cs, gridy, y * cs + cs, col);
 				dd.vertex(x * cs + cs, gridy, y * cs + cs, col);
@@ -401,12 +401,15 @@ void CrowdToolState::handleRender()
 			dd.begin(DU_DRAW_LINES, 3.0f);
 			for (int j = 0; j < ag->boundary.getSegmentCount(); ++j)
 			{
-				const float* s = ag->boundary.getSegment(j);
-				unsigned int col = duRGBA(192, 0, 128, 192);
-				if (dtTriArea2D(pos.data(), s, s + 3) < 0.0f)
+				const auto& s = ag->boundary.getSegment(j);
+				uint32_t col = duRGBA(192, 0, 128, 192);
+				ArrayF start{ s[0], s[1], s[2] }, end{ s[3], s[4], s[5] };
+
+				if (dtTriArea2D(pos, start, end) < 0.0f)
 					col = duDarkenCol(col);
 
-				duAppendArrow(&dd, s[0], s[1] + 0.2f, s[2], s[3], s[4] + 0.2f, s[5], 0.0f, 0.3f, col);
+				duAppendArrow(
+					&dd, start[0], start[1] + 0.2f, start[2], end[0], end[1] + 0.2f, end[2], 0.0f, 0.3f, col);
 			}
 			dd.end();
 		}
@@ -449,7 +452,7 @@ void CrowdToolState::handleRender()
 		const float radius = ag->params.radius;
 		const auto& pos = ag->npos;
 
-		unsigned int col = duRGBA(0, 0, 0, 32);
+		uint32_t col = duRGBA(0, 0, 0, 32);
 		if (m_agentDebug.idx == i)
 			col = duRGBA(255, 0, 0, 128);
 
@@ -465,7 +468,7 @@ void CrowdToolState::handleRender()
 		const float radius = ag->params.radius;
 		const auto& pos = ag->npos;
 
-		unsigned int col = duRGBA(220, 220, 220, 128);
+		uint32_t col = duRGBA(220, 220, 220, 128);
 		if (ag->targetState == DT_CROWDAGENT_TARGET_REQUESTING || ag->targetState == DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE)
 			col = duLerpCol(col, duRGBA(128, 0, 255, 128), 32);
 		else if (ag->targetState == DT_CROWDAGENT_TARGET_WAITING_FOR_PATH)
@@ -505,7 +508,7 @@ void CrowdToolState::handleRender()
 				const float sr = vod->getSampleSize(j);
 				const float pen = vod->getSamplePenalty(j);
 				const float pen2 = vod->getSamplePreferredSidePenalty(j);
-				unsigned int col = duLerpCol(duRGBA(255, 255, 255, 220), duRGBA(128, 96, 0, 220), (int)(pen * 255));
+				uint32_t col = duLerpCol(duRGBA(255, 255, 255, 220), duRGBA(128, 96, 0, 220), (int)(pen * 255));
 				col = duLerpCol(col, duRGBA(128, 0, 0, 220), (int)(pen2 * 128));
 				dd.vertex(dx + p[0] - sr, dy, dz + p[2] - sr, col);
 				dd.vertex(dx + p[0] - sr, dy, dz + p[2] + sr, col);
@@ -528,7 +531,7 @@ void CrowdToolState::handleRender()
 		const auto& vel = ag->vel;
 		const auto& dvel = ag->dvel;
 
-		unsigned int col = duRGBA(220, 220, 220, 192);
+		uint32_t col = duRGBA(220, 220, 220, 192);
 		if (ag->targetState == DT_CROWDAGENT_TARGET_REQUESTING || ag->targetState == DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE)
 			col = duLerpCol(col, duRGBA(128, 0, 255, 192), 32);
 		else if (ag->targetState == DT_CROWDAGENT_TARGET_WAITING_FOR_PATH)

@@ -19,6 +19,8 @@
 #ifndef DETOURPROXIMITYGRID_H
 #define DETOURPROXIMITYGRID_H
 
+#include <array>
+
 class dtProximityGrid
 {
 	float m_cellSize;
@@ -26,18 +28,19 @@ class dtProximityGrid
 
 	struct Item
 	{
-		unsigned short id;
+		uint16_t id;
 		short x, y;
-		unsigned short next;
+		uint16_t next;
 	};
+
 	Item* m_pool;
 	int m_poolHead;
 	int m_poolSize;
 
-	unsigned short* m_buckets;
+	uint16_t* m_buckets;
 	int m_bucketsSize;
 
-	int m_bounds[4];
+	std::array<int, 4> m_bounds;
 
 public:
 	dtProximityGrid();
@@ -47,23 +50,23 @@ public:
 
 	void clear();
 
-	void addItem(const unsigned short id,
+	void addItem(const uint16_t id,
 		const float minx, const float miny,
 		const float maxx, const float maxy);
 
 	int queryItems(const float minx, const float miny,
 		const float maxx, const float maxy,
-		unsigned short* ids, const int maxIds) const;
+		uint16_t* ids, const int maxIds) const;
 
 	int getItemCountAt(const int x, const int y) const;
 
-	inline const int* getBounds() const { return m_bounds; }
+	inline auto& getBounds() const { return m_bounds; }
 	inline float getCellSize() const { return m_cellSize; }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtProximityGrid(const dtProximityGrid&);
-	dtProximityGrid& operator=(const dtProximityGrid&);
+	dtProximityGrid(const dtProximityGrid&) = delete;
+	dtProximityGrid& operator=(const dtProximityGrid&) = delete;
 };
 
 dtProximityGrid* dtAllocProximityGrid();

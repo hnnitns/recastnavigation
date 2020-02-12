@@ -25,7 +25,7 @@ struct dtObstacleCircle
 {
 	std::array<float, 3> pos;	// Position of the obstacle
 	std::array<float, 3> vel;	// Velocity of the obstacle
-	float dvel[3];				// Velocity of the obstacle
+	std::array<float, 3> dvel;	// Velocity of the obstacle
 	float rad;					// Radius of the obstacle
 	float dp[3], np[3];			// Use for side selection during sampling.
 };
@@ -130,7 +130,7 @@ private:
 	dtObstacleAvoidanceQuery(const dtObstacleAvoidanceQuery&) = delete;
 	dtObstacleAvoidanceQuery& operator=(const dtObstacleAvoidanceQuery&) = delete;
 
-	void prepare(const float* pos, const float* dvel);
+	void prepare(const std::array<float, 3>& pos, const std::array<float, 3>& dvel);
 
 	float processSample(const std::array<float, 3>& vcand, const float cs,
 		const std::array<float, 3>& pos, const float rad,

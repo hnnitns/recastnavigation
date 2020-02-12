@@ -292,7 +292,7 @@ void dtObstacleAvoidanceQuery::addCircle(const std::array<float, 3>& pos, const 
 	cir->pos = pos;
 	cir->rad = rad;
 	cir->vel = vel;
-	dtVcopy(cir->dvel, dvel.data());
+	cir->dvel = dvel;
 }
 
 void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q)
@@ -305,7 +305,7 @@ void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q)
 	dtVcopy(seg->q, q);
 }
 
-void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
+void dtObstacleAvoidanceQuery::prepare(const std::array<float, 3>& pos, const std::array<float, 3>& dvel)
 {
 	// Prepare obstacles
 	for (int i = 0; i < m_ncircles; ++i)
@@ -313,14 +313,14 @@ void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
 		dtObstacleCircle* cir = &m_circles[i];
 
 		// Side
-		const float* pa = pos;
+		const auto& pa = pos;
 		const auto& pb = cir->pos;
 
 		const ArrayF orig{};
 		ArrayF dv{};
-		dtVsub(cir->dp, pb.data(), pa);
+		dtVsub(cir->dp, pb.data(), pa.data());
 		dtVnormalize(cir->dp);
-		dtVsub(dv.data(), cir->dvel, dvel);
+		dv = cir->dvel - dvel;
 
 		const float a = dtTriArea2D(orig.data(), cir->dp, dv.data());
 
@@ -343,7 +343,7 @@ void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
 		// Precalc if the agent is really close to the segment.
 		const float r = 0.01f;
 		float t;
-		seg->touch = dtDistancePtSegSqr2D(pos, seg->p, seg->q, t) < dtSqr(r);
+		seg->touch = dtDistancePtSegSqr2D(pos.data(), seg->p, seg->q, t) < dtSqr(r);
 	}
 }
 
@@ -472,7 +472,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityGrid(
 	const dtObstacleAvoidanceParams* params,
 	dtObstacleAvoidanceDebugData* debug)
 {
-	prepare(pos.data(), dvel.data());
+	prepare(pos, dvel);
 
 	memcpy(&m_params, params, sizeof(dtObstacleAvoidanceParams));
 	m_invHorizTime = 1.f / m_params.horizTime;
@@ -521,7 +521,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(
 	const dtObstacleAvoidanceParams* params,
 	dtObstacleAvoidanceDebugData* debug)
 {
-	prepare(pos.data(), dvel.data());
+	prepare(pos, dvel);
 
 	memcpy(&m_params, params, sizeof(dtObstacleAvoidanceParams));
 	m_invHorizTime = 1.f / m_params.horizTime;

@@ -226,7 +226,7 @@ class dtCrowd
 
 	dtPathQueue m_pathq;
 
-	dtObstacleAvoidanceParams m_obstacleQueryParams[DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS];
+	std::array<dtObstacleAvoidanceParams, DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS> m_obstacleQueryParams;
 	dtObstacleAvoidanceQuery* m_obstacleQuery;
 
 	dtProximityGrid* m_grid;

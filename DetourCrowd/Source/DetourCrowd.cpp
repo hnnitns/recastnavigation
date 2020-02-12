@@ -412,20 +412,20 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 
 	// Init obstacle query params.
 	// 障害物クエリパラメータを初期化します。
-	memset(m_obstacleQueryParams, 0, sizeof(m_obstacleQueryParams));
-	for (int i = 0; i < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS; ++i)
+	m_obstacleQueryParams.fill({});
+
+	for (auto& params : m_obstacleQueryParams)
 	{
-		dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[i];
-		params->velBias = 0.4f;
-		params->weightDesVel = 2.0f;
-		params->weightCurVel = 0.75f;
-		params->weightSide = 0.75f;
-		params->weightToi = 2.5f;
-		params->horizTime = 2.5f;
-		params->gridSize = 33;
-		params->adaptiveDivs = 7;
-		params->adaptiveRings = 2;
-		params->adaptiveDepth = 5;
+		params.velBias = 0.4f;
+		params.weightDesVel = 2.0f;
+		params.weightCurVel = 0.75f;
+		params.weightSide = 0.75f;
+		params.weightToi = 2.5f;
+		params.horizTime = 2.5f;
+		params.gridSize = 33;
+		params.adaptiveDivs = 7;
+		params.adaptiveRings = 2;
+		params.adaptiveDepth = 5;
 	}
 
 	// Allocate temp buffer for merging paths.

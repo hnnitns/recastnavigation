@@ -32,15 +32,15 @@ namespace
 	constexpr float DT_PI = 3.14159265f;
 
 	inline int sweepCircleCircle(const ArrayF& c0, const float r0, const ArrayF& v,
-		const float* c1, const float r1,
+		const ArrayF& c1, const float r1,
 		float& tmin, float& tmax)
 	{
-		static const float EPS = 0.0001f;
-		ArrayF s;
-		dtVsub(s.data(), c1, c0.data());
+		constexpr float EPS = 0.0001f;
+		ArrayF s{ c1 - c0 };
 		float r = r0 + r1;
 		float c = dtVdot2D(s, s) - r * r;
 		float a = dtVdot2D(v, v);
+
 		if (a < EPS) return 0;	// not moving
 
 		// Overlap, calc time to exit.
@@ -288,7 +288,8 @@ void dtObstacleAvoidanceQuery::addCircle(const std::array<float, 3>& pos, const 
 		return;
 
 	dtObstacleCircle* cir = &m_circles[m_ncircles++];
-	dtVcopy(cir->p, pos.data());
+
+	cir->pos = pos;
 	cir->rad = rad;
 	dtVcopy(cir->vel, vel.data());
 	dtVcopy(cir->dvel, dvel.data());
@@ -313,15 +314,16 @@ void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
 
 		// Side
 		const float* pa = pos;
-		const float* pb = cir->p;
+		const auto& pb = cir->pos;
 
-		const float orig[3] = { 0,0,0 };
-		float dv[3];
-		dtVsub(cir->dp, pb, pa);
+		const ArrayF orig{};
+		ArrayF dv{};
+		dtVsub(cir->dp, pb.data(), pa);
 		dtVnormalize(cir->dp);
-		dtVsub(dv, cir->dvel, dvel);
+		dtVsub(dv.data(), cir->dvel, dvel);
 
-		const float a = dtTriArea2D(orig, cir->dp, dv);
+		const float a = dtTriArea2D(orig.data(), cir->dp, dv.data());
+
 		if (a < 0.01f)
 		{
 			cir->np[0] = -cir->dp[2];
@@ -390,7 +392,7 @@ float dtObstacleAvoidanceQuery::processSample(const std::array<float, 3>& vcand,
 		nside++;
 
 		float htmin = 0, htmax = 0;
-		if (!sweepCircleCircle(pos, rad, vab, cir->p, cir->rad, htmin, htmax))
+		if (!sweepCircleCircle(pos, rad, vab, cir->pos, cir->rad, htmin, htmax))
 			continue;
 
 		// Handle overlapping obstacles.

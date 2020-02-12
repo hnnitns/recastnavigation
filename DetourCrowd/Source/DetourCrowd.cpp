@@ -395,7 +395,7 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	m_maxAgents = maxAgents;
 	m_maxAgentRadius = maxAgentRadius;
 
-	dtVset(m_ext, m_maxAgentRadius * 2.0f, m_maxAgentRadius * 1.5f, m_maxAgentRadius * 2.0f);
+	dtVset(&m_ext, m_maxAgentRadius * 2.0f, m_maxAgentRadius * 1.5f, m_maxAgentRadius * 2.0f);
 
 	m_grid = dtAllocProximityGrid();
 
@@ -545,7 +545,8 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	dtPolyRef ref = 0;
 	dtVcopy(nearest.data(), pos);
 	dtStatus status =
-		m_navquery->findNearestPoly(pos, m_ext, &m_filters[ag->params.queryFilterType], &ref, nearest.data());
+		m_navquery->findNearestPoly(
+			pos, m_ext.data(), &m_filters[ag->params.queryFilterType], &ref, nearest.data());
 
 	if (dtStatusFailed(status))
 	{
@@ -980,7 +981,9 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 			ArrayF nearest{ agentPos };
 
 			agentRef = 0;
-			m_navquery->findNearestPoly(ag->npos.data(), m_ext, &m_filters[ag->params.queryFilterType], &agentRef, nearest.data());
+			m_navquery->
+				findNearestPoly(ag->npos.data(), m_ext.data(), &m_filters[ag->params.queryFilterType],
+					&agentRef, nearest.data());
 
 			agentPos = nearest;
 
@@ -1017,7 +1020,9 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 				ArrayF nearest{ ag->targetPos };
 
 				ag->targetRef = 0;
-				m_navquery->findNearestPoly(ag->targetPos.data(), m_ext, &m_filters[ag->params.queryFilterType], &ag->targetRef, nearest.data());
+				m_navquery->findNearestPoly(
+					ag->targetPos.data(), m_ext.data(), &m_filters[ag->params.queryFilterType], &ag->targetRef,
+					nearest.data());
 
 				ag->targetPos = nearest;
 				replan = true;

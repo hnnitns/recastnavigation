@@ -234,7 +234,7 @@ class dtCrowd
 	dtPolyRef* m_pathResult;
 	int m_maxPathResult;
 
-	float m_ext[3];
+	std::array<float, 3> m_ext;
 
 	dtQueryFilter m_filters[DT_CROWD_MAX_QUERY_FILTER_TYPE];
 
@@ -344,7 +344,7 @@ public:
 
 	// Gets the search extents [(x, y, z)] used by the crowd for query operations.
 	// @return The search extents used by the crowd. [(x, y, z)]
-	const float* getQueryExtents() const { return m_ext; }
+	const float* getQueryExtents() const { return m_ext.data(); }
 
 	// Gets the velocity sample count.
 	// @return The velocity sample count.

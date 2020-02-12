@@ -27,7 +27,7 @@ dtLocalBoundary::dtLocalBoundary() :
 	m_nsegs(0),
 	m_npolys(0)
 {
-	dtVset(m_center, FLT_MAX, FLT_MAX, FLT_MAX);
+	m_center.fill((std::numeric_limits<float>::max)());
 }
 
 dtLocalBoundary::~dtLocalBoundary()
@@ -36,7 +36,7 @@ dtLocalBoundary::~dtLocalBoundary()
 
 void dtLocalBoundary::reset()
 {
-	dtVset(m_center, FLT_MAX, FLT_MAX, FLT_MAX);
+	m_center.fill((std::numeric_limits<float>::max)());
 	m_npolys = 0;
 	m_nsegs = 0;
 }
@@ -87,13 +87,13 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 
 	if (!ref)
 	{
-		dtVset(m_center, FLT_MAX, FLT_MAX, FLT_MAX);
+		m_center.fill((std::numeric_limits<float>::max)());
 		m_nsegs = 0;
 		m_npolys = 0;
 		return;
 	}
 
-	dtVcopy(m_center, pos);
+	dtVcopy(m_center.data(), pos);
 
 	// First query non-overlapping polygons.
 	navquery->findLocalNeighbourhood(ref, pos, collisionQueryRange,
@@ -101,11 +101,14 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 
 	// Secondly, store all polygon edges.
 	m_nsegs = 0;
-	float segs[MAX_SEGS_PER_POLY * 6];
-	int nsegs = 0;
+
+	std::array<float, MAX_SEGS_PER_POLY * 6> segs;
+	int nsegs{};
+
 	for (int j = 0; j < m_npolys; ++j)
 	{
-		navquery->getPolyWallSegments(m_polys[j], filter, segs, 0, &nsegs, MAX_SEGS_PER_POLY);
+		navquery->getPolyWallSegments(m_polys[j], filter, segs.data(), nullptr, &nsegs, MAX_SEGS_PER_POLY);
+
 		for (int k = 0; k < nsegs; ++k)
 		{
 			const float* s = &segs[k * 6];

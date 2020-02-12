@@ -32,7 +32,7 @@ class dtLocalBoundary
 		float d;	///< Distance for pruning.
 	};
 
-	float m_center[3];
+	std::array<float, 3> m_center;
 	Segment m_segs[MAX_LOCAL_SEGS];
 	int m_nsegs;
 
@@ -52,7 +52,7 @@ public:
 
 	bool isValid(dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
-	inline const float* getCenter() const { return m_center; }
+	inline const float* getCenter() const { return m_center.data(); }
 	inline int getSegmentCount() const { return m_nsegs; }
 	inline const float* getSegment(int i) const { return m_segs[i].s.data(); }
 

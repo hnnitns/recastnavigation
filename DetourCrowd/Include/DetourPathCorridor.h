@@ -107,7 +107,7 @@ public:
 	///  @param[in]		target		The target location within the last polygon of the path. [(x, y, z)]
 	///  @param[in]		path		The path corridor. [(polyRef) * @p npolys]
 	///  @param[in]		npath		The number of polygons in the path.
-	void setCorridor(const float* target, const dtPolyRef* polys, const int npath);
+	void setCorridor(const std::array<float, 3>& target, const dtPolyRef* polys, const int npath);
 
 	/// Gets the current position within the corridor. (In the first polygon.)
 	/// @return The current position within the corridor.

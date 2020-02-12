@@ -592,7 +592,7 @@ void dtCrowd::removeAgent(const int idx)
 	}
 }
 
-bool dtCrowd::requestMoveTargetReplan(const int idx, dtPolyRef ref, const float* pos)
+bool dtCrowd::requestMoveTargetReplan(const int idx, dtPolyRef ref, const std::array<float, 3>& pos)
 {
 	if (idx < 0 || idx >= m_maxAgents)
 		return false;
@@ -601,7 +601,7 @@ bool dtCrowd::requestMoveTargetReplan(const int idx, dtPolyRef ref, const float*
 
 	// Initialize request.
 	ag->targetRef = ref;
-	dtVcopy(ag->targetPos, pos);
+	ag->targetPos = pos;
 	ag->targetPathqRef = DT_PATHQ_INVALID;
 	ag->targetReplan = true;
 	if (ag->targetRef)
@@ -630,7 +630,7 @@ bool dtCrowd::requestMoveTarget(const int idx, dtPolyRef ref, const float* pos)
 
 	// Initialize request.
 	ag->targetRef = ref;
-	dtVcopy(ag->targetPos, pos);
+	dtVcopy(ag->targetPos.data(), pos);
 	ag->targetPathqRef = DT_PATHQ_INVALID;
 	ag->targetReplan = false;
 	if (ag->targetRef)
@@ -650,7 +650,7 @@ bool dtCrowd::requestMoveVelocity(const int idx, const std::array<float, 3>& vel
 
 	// Initialize request.
 	ag->targetRef = 0;
-	dtVcopy(ag->targetPos, vel.data());
+	ag->targetPos = vel;
 	ag->targetPathqRef = DT_PATHQ_INVALID;
 	ag->targetReplan = false;
 	ag->targetState = DT_CROWDAGENT_TARGET_VELOCITY;
@@ -667,7 +667,7 @@ bool dtCrowd::resetMoveTarget(const int idx)
 
 	// Initialize request.
 	ag->targetRef = 0;
-	dtVset(ag->targetPos, 0, 0, 0);
+	ag->targetPos.fill(0.f);
 	ag->dvel.fill(0.f);
 	ag->targetPathqRef = DT_PATHQ_INVALID;
 	ag->targetReplan = false;
@@ -698,6 +698,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgent* ag = &m_agents[i];
+
 		if (!ag->active)
 			continue;
 		if (ag->state == DT_CROWDAGENT_STATE_INVALID)
@@ -719,7 +720,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 			// Quick search towards the goal.
 			constexpr int MAX_ITER = 20;
 
-			m_navquery->initSlicedFindPath(path[0], ag->targetRef, ag->npos.data(), ag->targetPos, &m_filters[ag->params.queryFilterType]);
+			m_navquery->initSlicedFindPath(path[0], ag->targetRef, ag->npos.data(), ag->targetPos.data(), &m_filters[ag->params.queryFilterType]);
 			m_navquery->updateSlicedFindPath(MAX_ITER, 0);
 			dtStatus status{};
 
@@ -740,7 +741,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 				if (reqPath[reqPathCount - 1] != ag->targetRef)
 				{
 					// Partial path, constrain target position inside the last polygon.
-					status = m_navquery->closestPointOnPoly(reqPath[reqPathCount - 1], ag->targetPos,
+					status = m_navquery->closestPointOnPoly(reqPath[reqPathCount - 1], ag->targetPos.data(),
 						reqPos.data(), 0);
 
 					if (dtStatusFailed(status))
@@ -748,7 +749,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 				}
 				else
 				{
-					dtVcopy(reqPos.data(), ag->targetPos);
+					reqPos = ag->targetPos;
 				}
 			}
 			else
@@ -764,7 +765,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 				reqPathCount = 1;
 			}
 
-			ag->corridor.setCorridor(reqPos.data(), reqPath.data(), reqPathCount);
+			ag->corridor.setCorridor(reqPos, reqPath.data(), reqPathCount);
 			ag->boundary.reset();
 			ag->partial = false;
 
@@ -830,12 +831,11 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 				dtAssert(npath);
 
 				// Apply results.
-				float targetPos[3];
-				dtVcopy(targetPos, ag->targetPos);
-
+				ArrayF targetPos{ ag->targetPos };
 				dtPolyRef* res = m_pathResult;
 				bool valid = true;
-				int nres = 0;
+				int nres{};
+
 				status = m_pathq.getPathResult(ag->targetPathqRef, res, &nres, m_maxPathResult);
 				if (dtStatusFailed(status) || !nres)
 					valid = false;
@@ -889,10 +889,12 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 					if (res[nres - 1] != ag->targetRef)
 					{
 						// Partial path, constrain target position inside the last polygon.
-						float nearest[3];
-						status = m_navquery->closestPointOnPoly(res[nres - 1], targetPos, nearest, 0);
+						ArrayF nearest{};
+						status =
+							m_navquery->closestPointOnPoly(res[nres - 1], targetPos.data(), nearest.data(), 0);
+
 						if (dtStatusSucceed(status))
-							dtVcopy(targetPos, nearest);
+							targetPos = nearest;
 						else
 							valid = false;
 					}
@@ -1012,11 +1014,12 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 			if (!m_navquery->isValidPolyRef(ag->targetRef, &m_filters[ag->params.queryFilterType]))
 			{
 				// Current target is not valid, try to reposition.
-				ArrayF nearest{  };
-				dtVcopy(nearest.data(), ag->targetPos);
+				ArrayF nearest{ ag->targetPos };
+
 				ag->targetRef = 0;
-				m_navquery->findNearestPoly(ag->targetPos, m_ext, &m_filters[ag->params.queryFilterType], &ag->targetRef, nearest.data());
-				dtVcopy(ag->targetPos, nearest.data());
+				m_navquery->findNearestPoly(ag->targetPos.data(), m_ext, &m_filters[ag->params.queryFilterType], &ag->targetRef, nearest.data());
+
+				ag->targetPos = nearest;
 				replan = true;
 			}
 			if (!ag->targetRef)
@@ -1221,7 +1224,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 
 		if (ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 		{
-			dtVcopy(dvel.data(), ag->targetPos);
+			dvel = ag->targetPos;
 			ag->desiredSpeed = dtVlen(ag->targetPos);
 		}
 		else

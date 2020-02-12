@@ -132,7 +132,7 @@ void dtPathQueue::update(const int maxIters)
 }
 
 dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
-	const float* startPos, const float* endPos,
+	const float* startPos, const std::array<float, 3>& endPos,
 	const dtQueryFilter* filter)
 {
 	// Find empty slot
@@ -156,7 +156,7 @@ dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
 	q.ref = ref;
 	dtVcopy(q.startPos, startPos);
 	q.startRef = startRef;
-	dtVcopy(q.endPos, endPos);
+	dtVcopy(q.endPos, endPos.data());
 	q.endRef = endRef;
 
 	q.status = 0;

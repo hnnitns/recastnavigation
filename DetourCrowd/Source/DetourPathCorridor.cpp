@@ -517,13 +517,13 @@ bool dtPathCorridor::moveTargetPosition(const float* npos, dtNavMeshQuery* navqu
 /// is expected to be in the last polygon.
 ///
 /// @warning The size of the path must not exceed the size of corridor's path buffer set during #init().
-void dtPathCorridor::setCorridor(const float* target, const dtPolyRef* path, const int npath)
+void dtPathCorridor::setCorridor(const std::array<float, 3>& target, const dtPolyRef* path, const int npath)
 {
 	dtAssert(m_path);
 	dtAssert(npath > 0);
 	dtAssert(npath < m_maxPath);
 
-	dtVcopy(m_target.data(), target);
+	m_target = target;
 	memcpy(m_path, path, sizeof(dtPolyRef) * npath);
 	m_npath = npath;
 }

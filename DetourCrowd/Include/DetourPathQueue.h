@@ -61,7 +61,7 @@ public:
 	void update(const int maxIters);
 
 	dtPathQueueRef request(dtPolyRef startRef, dtPolyRef endRef,
-		const float* startPos, const float* endPos,
+		const float* startPos, const std::array<float, 3>& endPos,
 		const dtQueryFilter* filter);
 
 	dtStatus getRequestStatus(dtPathQueueRef ref) const;

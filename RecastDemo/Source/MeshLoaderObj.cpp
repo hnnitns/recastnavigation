@@ -219,7 +219,7 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 		if (row[0] == 'v' && row[1] != 'n' && row[1] != 't')
 		{
 			// Vertex pos
-			int temp{ sscanf_s(row + 1, "%f %f %f", &x, &y, &z) };
+			[[maybe_unused]]int temp{ sscanf_s(row + 1, "%f %f %f", &x, &y, &z) };
 			addVertex(x, y, z, vcap);
 		}
 

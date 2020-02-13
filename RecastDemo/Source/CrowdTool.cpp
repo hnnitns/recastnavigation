@@ -152,8 +152,7 @@ CrowdToolState::CrowdToolState() :
 	m_toolParams.m_separation = false;
 	m_toolParams.m_separationWeight = 2.0f;
 
-	memset(m_trails, 0, sizeof(m_trails));
-
+	m_trails.fill({});
 	m_vod = dtAllocObstacleAvoidanceDebugData();
 	m_vod->init(2048);
 

@@ -70,10 +70,10 @@ class CrowdToolState : public SampleToolState
 	static constexpr int MAX_AGENTS = 128;
 	struct AgentTrail
 	{
-		float trail[AGENT_MAX_TRAIL * 3];
+		std::array<float, AGENT_MAX_TRAIL * 3> trail;
 		int htrail;
 	};
-	AgentTrail m_trails[MAX_AGENTS];
+	std::array<AgentTrail, MAX_AGENTS> m_trails;
 
 	ValueHistory m_crowdTotalTime;
 	ValueHistory m_crowdSampleCount;

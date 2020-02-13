@@ -67,11 +67,11 @@ class NavMeshTesterTool : public SampleTool
 	std::array<float, 4 * 3> m_queryPoly;
 
 	static constexpr int MAX_RAND_POINTS = 64;
-	float m_randPoints[MAX_RAND_POINTS * 3];
+	std::array<float, MAX_RAND_POINTS * 3> m_randPoints;
 	int m_nrandPoints;
 	bool m_randPointsInCircle;
 
-	float m_spos[3];
+	std::array<float, 3> m_spos;
 	float m_epos[3];
 	float m_hitPos[3];
 	float m_hitNormal[3];

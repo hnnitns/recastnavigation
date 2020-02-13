@@ -25,6 +25,7 @@
 
 class ConvexVolumeTool : public SampleTool
 {
+private:
 	Sample* m_sample;
 	rcAreaModification m_areaMod;
 	float m_polyOffset;
@@ -32,7 +33,7 @@ class ConvexVolumeTool : public SampleTool
 	float m_boxDescent;
 
 	static constexpr int MAX_PTS = 12;
-	float m_pts[MAX_PTS * 3];
+	std::array<float, MAX_PTS * 3> m_pts;
 	int m_npts;
 	int m_hull[MAX_PTS];
 	int m_nhull;

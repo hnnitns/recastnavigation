@@ -66,7 +66,8 @@ namespace
 	// 'pts'上の点のxz平面上の凸包を計算し、
 	// stores the indices of the resulting hull in 'out' and returns number of points on hull.
 	// 結果のハルのインデックスを 'out'に格納し、ハル上の点の数を返します。
-	int convexhull(const float* pts, int npts, int* out)
+	template<size_t Size>
+	int convexhull(const std::array<float, Size>& pts, int npts, int* out)
 	{
 		// Find lower-leftmost point.
 		int hull = 0;
@@ -80,10 +81,13 @@ namespace
 		{
 			out[i++] = hull;
 			endpt = 0;
+
 			for (int j = 1; j < npts; ++j)
 				if (hull == endpt || left(&pts[hull * 3], &pts[endpt * 3], &pts[j * 3]))
 					endpt = j;
+
 			hull = endpt;
+
 		} while (endpt != out[0]);
 
 		return i;
@@ -240,6 +244,7 @@ void ConvexVolumeTool::handleClick(const float* /*s*/, const float* p, bool shif
 			{
 				rcVcopy(&m_pts[m_npts * 3], p);
 				m_npts++;
+
 				// Update hull.
 				if (m_npts > 1)
 					m_nhull = convexhull(m_pts, m_npts, m_hull);

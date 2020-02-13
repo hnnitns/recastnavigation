@@ -704,7 +704,7 @@ void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos, 0);
 
 				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
-					m_straightPath, m_straightPathFlags,
+					m_straightPath.data(), m_straightPathFlags,
 					m_straightPathPolys, &m_nstraightPath, MAX_POLYS, DT_STRAIGHTPATH_ALL_CROSSINGS);
 			}
 
@@ -921,7 +921,7 @@ void NavMeshTesterTool::recalc()
 					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos, 0);
 
 				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
-					m_straightPath, m_straightPathFlags,
+					m_straightPath.data(), m_straightPathFlags,
 					m_straightPathPolys, &m_nstraightPath, MAX_POLYS, m_straightPathOptions);
 			}
 		}
@@ -1017,7 +1017,7 @@ void NavMeshTesterTool::recalc()
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
 			m_navQuery->findPolysAroundCircle(m_startRef, m_spos, dist, &m_filter,
-				m_polys.data(), m_parent, 0, &m_npolys, MAX_POLYS);
+				m_polys.data(), m_parent.data(), 0, &m_npolys, MAX_POLYS);
 		}
 	}
 	else if (m_toolMode == TOOLMODE_FIND_POLYS_IN_SHAPE)
@@ -1053,7 +1053,7 @@ void NavMeshTesterTool::recalc()
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
 			m_navQuery->findPolysAroundShape(m_startRef, m_queryPoly, 4, &m_filter,
-				m_polys.data(), m_parent, 0, &m_npolys, MAX_POLYS);
+				m_polys.data(), m_parent.data(), 0, &m_npolys, MAX_POLYS);
 		}
 	}
 	else if (m_toolMode == TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD)
@@ -1066,7 +1066,7 @@ void NavMeshTesterTool::recalc()
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
 			m_navQuery->findLocalNeighbourhood(m_startRef, m_spos, m_neighbourhoodRadius, &m_filter,
-				m_polys.data(), m_parent, &m_npolys, MAX_POLYS);
+				m_polys.data(), m_parent.data(), &m_npolys, MAX_POLYS);
 		}
 	}
 }

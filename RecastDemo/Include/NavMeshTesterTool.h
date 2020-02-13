@@ -55,10 +55,10 @@ class NavMeshTesterTool : public SampleTool
 	dtPolyRef m_startRef;
 	dtPolyRef m_endRef;
 	std::array<dtPolyRef, MAX_POLYS> m_polys;
-	dtPolyRef m_parent[MAX_POLYS];
+	std::array<dtPolyRef, MAX_POLYS> m_parent;
 	int m_npolys;
-	float m_straightPath[MAX_POLYS * 3];
-	unsigned char m_straightPathFlags[MAX_POLYS];
+	std::array<float, MAX_POLYS * 3> m_straightPath;
+	uint8_t m_straightPathFlags[MAX_POLYS];
 	dtPolyRef m_straightPathPolys[MAX_POLYS];
 	int m_nstraightPath;
 	float m_polyPickExt[3];

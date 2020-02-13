@@ -732,13 +732,13 @@ void NavMeshTesterTool::recalc()
 
 	// スタート地点が設定されている
 	if (m_sposSet)
-		m_navQuery->findNearestPoly(m_spos, m_polyPickExt, &m_filter, &m_startRef, 0);
+		m_navQuery->findNearestPoly(m_spos, m_polyPickExt.data(), &m_filter, &m_startRef, 0);
 	else
 		m_startRef = 0;
 
 	// ゴール地点が設定されている
 	if (m_eposSet)
-		m_navQuery->findNearestPoly(m_epos, m_polyPickExt, &m_filter, &m_endRef, 0);
+		m_navQuery->findNearestPoly(m_epos, m_polyPickExt.data(), &m_filter, &m_endRef, 0);
 	else
 		m_endRef = 0;
 
@@ -915,12 +915,12 @@ void NavMeshTesterTool::recalc()
 			if (m_npolys)
 			{
 				// In case of partial path, make sure the end point is clamped to the last polygon.
-				float epos[3];
-				dtVcopy(epos, m_epos);
+				ArrayF epos{};
+				dtVcopy(epos.data(), m_epos);
 				if (m_polys[m_npolys - 1] != m_endRef)
-					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos, 0);
+					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos.data(), 0);
 
-				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
+				m_navQuery->findStraightPath(m_spos, epos.data(), m_polys.data(), m_npolys,
 					m_straightPath.data(), m_straightPathFlags,
 					m_straightPathPolys, &m_nstraightPath, MAX_POLYS, m_straightPathOptions);
 			}

@@ -244,11 +244,8 @@ void NavMeshPruneTool::handleMenu()
 	}
 }
 
-void NavMeshPruneTool::handleClick(const float* s, const float* p, bool shift)
+void NavMeshPruneTool::handleClick([[maybe_unused]]const float* s, const float* p, [[maybe_unused]]bool shift)
 {
-	rcIgnoreUnused(s);
-	rcIgnoreUnused(shift);
-
 	if (!m_sample) return;
 	InputGeom* geom = m_sample->getInputGeom();
 	if (!geom) return;
@@ -257,7 +254,7 @@ void NavMeshPruneTool::handleClick(const float* s, const float* p, bool shift)
 	dtNavMeshQuery* query = m_sample->getNavMeshQuery();
 	if (!query) return;
 
-	dtVcopy(m_hitPos, p);
+	dtVcopy(m_hitPos.data(), p);
 	m_hitPosSet = true;
 
 	if (!m_flags)

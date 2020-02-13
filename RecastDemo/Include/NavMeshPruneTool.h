@@ -29,28 +29,28 @@ class NavMeshPruneTool : public SampleTool
 
 	class NavmeshFlags* m_flags;
 
-	float m_hitPos[3];
+	std::array<float, 3> m_hitPos;
 	bool m_hitPosSet;
 
 public:
 	NavMeshPruneTool();
 	virtual ~NavMeshPruneTool();
 
-	virtual int type() { return TOOL_NAVMESH_PRUNE; }
-	virtual void init(Sample* sample);
-	virtual void reset();
-	virtual void handleMenu();
-	virtual void handleClick(const float* s, const float* p, bool shift);
-	virtual void handleToggle();
-	virtual void handleStep();
-	virtual void handleUpdate(const float dt);
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
+	int type() override { return TOOL_NAVMESH_PRUNE; }
+	void init(Sample* sample) override;
+	void reset() override;
+	void handleMenu() override;
+	void handleClick(const float* s, const float* p, bool shift) override;
+	void handleToggle() override;
+	void handleStep() override;
+	void handleUpdate(const float dt) override;
+	void handleRender() override;
+	void handleRenderOverlay(double* proj, double* model, int* view) override;
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	NavMeshPruneTool(const NavMeshPruneTool&);
-	NavMeshPruneTool& operator=(const NavMeshPruneTool&);
+	NavMeshPruneTool(const NavMeshPruneTool&) = delete;
+	NavMeshPruneTool& operator=(const NavMeshPruneTool&) = delete;
 };
 
 #endif // NAVMESHPRUNETOOL_H

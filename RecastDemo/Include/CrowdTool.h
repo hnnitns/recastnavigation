@@ -107,8 +107,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	CrowdToolState(const CrowdToolState&);
-	CrowdToolState& operator=(const CrowdToolState&);
+	CrowdToolState(const CrowdToolState&) = delete;
+	CrowdToolState& operator=(const CrowdToolState&) = delete;
 };
 
 class CrowdTool : public SampleTool

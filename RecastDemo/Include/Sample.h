@@ -19,6 +19,7 @@
 #ifndef RECASTSAMPLE_H
 #define RECASTSAMPLE_H
 
+#include <cstdint>
 #include "Recast.h"
 #include "SampleInterfaces.h"
 

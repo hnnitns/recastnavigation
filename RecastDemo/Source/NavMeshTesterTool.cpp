@@ -704,8 +704,8 @@ void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos, 0);
 
 				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
-					m_straightPath.data(), m_straightPathFlags,
-					m_straightPathPolys, &m_nstraightPath, MAX_POLYS, DT_STRAIGHTPATH_ALL_CROSSINGS);
+					m_straightPath.data(), m_straightPathFlags.data(),
+					m_straightPathPolys.data(), &m_nstraightPath, MAX_POLYS, DT_STRAIGHTPATH_ALL_CROSSINGS);
 			}
 
 			m_pathFindStatus = DT_FAILURE;
@@ -921,8 +921,8 @@ void NavMeshTesterTool::recalc()
 					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos.data(), 0);
 
 				m_navQuery->findStraightPath(m_spos, epos.data(), m_polys.data(), m_npolys,
-					m_straightPath.data(), m_straightPathFlags,
-					m_straightPathPolys, &m_nstraightPath, MAX_POLYS, m_straightPathOptions);
+					m_straightPath.data(), m_straightPathFlags.data(),
+					m_straightPathPolys.data(), &m_nstraightPath, MAX_POLYS, m_straightPathOptions);
 			}
 		}
 		else

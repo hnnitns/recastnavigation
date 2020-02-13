@@ -620,7 +620,7 @@ bool dtCrowd::requestMoveTargetReplan(const int idx, dtPolyRef ref, const std::a
 /// The position will be constrained to the surface of the navigation mesh.
 ///
 /// The request will be processed during the next #update().
-bool dtCrowd::requestMoveTarget(const int idx, dtPolyRef ref, const float* pos)
+bool dtCrowd::requestMoveTarget(const int idx, dtPolyRef ref, const std::array<float, 3>& pos)
 {
 	if (idx < 0 || idx >= m_maxAgents)
 		return false;
@@ -631,7 +631,7 @@ bool dtCrowd::requestMoveTarget(const int idx, dtPolyRef ref, const float* pos)
 
 	// Initialize request.
 	ag->targetRef = ref;
-	dtVcopy(ag->targetPos.data(), pos);
+	ag->targetPos = pos;
 	ag->targetPathqRef = DT_PATHQ_INVALID;
 	ag->targetReplan = false;
 	if (ag->targetRef)

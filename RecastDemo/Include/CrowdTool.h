@@ -60,14 +60,14 @@ class CrowdToolState : public SampleToolState
 	dtNavMesh* m_nav;
 	dtCrowd* m_crowd;
 
-	float m_targetPos[3];
+	std::array<float, 3> m_targetPos;
 	dtPolyRef m_targetRef;
 
 	dtCrowdAgentDebugInfo m_agentDebug;
 	dtObstacleAvoidanceDebugData* m_vod;
 
-	static const int AGENT_MAX_TRAIL = 64;
-	static const int MAX_AGENTS = 128;
+	static constexpr int AGENT_MAX_TRAIL = 64;
+	static constexpr int MAX_AGENTS = 128;
 	struct AgentTrail
 	{
 		float trail[AGENT_MAX_TRAIL * 3];

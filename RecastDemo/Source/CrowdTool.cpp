@@ -769,7 +769,7 @@ void CrowdToolState::setMoveTarget(const float* p, bool adjust)
 	}
 	else
 	{
-		navquery->findNearestPoly(p, ext.data(), filter, &m_targetRef, m_targetPos);
+		navquery->findNearestPoly(p, ext.data(), filter, &m_targetRef, m_targetPos.data());
 
 		if (m_agentDebug.idx != -1)
 		{

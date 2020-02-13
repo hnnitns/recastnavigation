@@ -38,8 +38,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	rcMeshLoaderObj(const rcMeshLoaderObj&);
-	rcMeshLoaderObj& operator=(const rcMeshLoaderObj&);
+	rcMeshLoaderObj(const rcMeshLoaderObj&) = delete;
+	rcMeshLoaderObj& operator=(const rcMeshLoaderObj&) = delete;
 
 	void addVertex(float x, float y, float z, int& cap);
 	void addTriangle(int a, int b, int c, int& cap);

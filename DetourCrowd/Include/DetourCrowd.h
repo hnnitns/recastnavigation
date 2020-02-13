@@ -324,7 +324,7 @@ public:
 	//  @param[in]		ref		The position's polygon reference.
 	//  @param[in]		pos		The position within the polygon. [(x, y, z)]
 	// @return True if the request was successfully submitted.
-	bool requestMoveTarget(const int idx, dtPolyRef ref, const float* pos);
+	bool requestMoveTarget(const int idx, dtPolyRef ref, const std::array<float, 3>& pos);
 
 	// Submits a new move request for the specified agent.
 	// 指定されたエージェントの新しい移動要求を送信します。

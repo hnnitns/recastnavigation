@@ -35,22 +35,22 @@ private:
 	static constexpr int MAX_PTS = 12;
 	std::array<float, MAX_PTS * 3> m_pts;
 	int m_npts;
-	int m_hull[MAX_PTS];
+	std::array<int, MAX_PTS> m_hull;
 	int m_nhull;
 
 public:
 	ConvexVolumeTool();
 
-	virtual int type() { return TOOL_CONVEX_VOLUME; }
-	virtual void init(Sample* sample);
-	virtual void reset();
-	virtual void handleMenu();
-	virtual void handleClick(const float* s, const float* p, bool shift);
-	virtual void handleToggle();
-	virtual void handleStep();
-	virtual void handleUpdate(const float dt);
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
+	int type() override { return TOOL_CONVEX_VOLUME; }
+	void init(Sample* sample) override;
+	void reset() override;
+	void handleMenu() override;
+	void handleClick(const float* s, const float* p, bool shift) override;
+	void handleToggle() override;
+	void handleStep() override;
+	void handleUpdate(const float dt) override;
+	void handleRender() override;
+	void handleRenderOverlay(double* proj, double* model, int* view) override;
 };
 
 #endif // CONVEXVOLUMETOOL_H

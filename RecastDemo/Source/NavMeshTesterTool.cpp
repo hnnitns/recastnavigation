@@ -1052,7 +1052,7 @@ void NavMeshTesterTool::recalc()
 				m_queryPoly[9], m_queryPoly[10], m_queryPoly[11],
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
-			m_navQuery->findPolysAroundShape(m_startRef, m_queryPoly, 4, &m_filter,
+			m_navQuery->findPolysAroundShape(m_startRef, m_queryPoly.data(), 4, &m_filter,
 				m_polys.data(), m_parent.data(), 0, &m_npolys, MAX_POLYS);
 		}
 	}

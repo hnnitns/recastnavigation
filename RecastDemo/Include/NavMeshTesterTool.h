@@ -62,9 +62,9 @@ class NavMeshTesterTool : public SampleTool
 	std::array<dtPolyRef, MAX_POLYS> m_straightPathPolys;
 	int m_nstraightPath;
 	std::array<float, 3> m_polyPickExt;
-	float m_smoothPath[MAX_SMOOTH * 3];
+	std::array<float, MAX_SMOOTH * 3> m_smoothPath;
 	int m_nsmoothPath;
-	float m_queryPoly[4 * 3];
+	std::array<float, 4 * 3> m_queryPoly;
 
 	static constexpr int MAX_RAND_POINTS = 64;
 	float m_randPoints[MAX_RAND_POINTS * 3];

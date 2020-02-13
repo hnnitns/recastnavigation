@@ -50,12 +50,11 @@ class NavMeshTesterTool : public SampleTool
 
 	int m_straightPathOptions;
 
-	static const int MAX_POLYS = 256;
-	static const int MAX_SMOOTH = 2048;
+	static constexpr int MAX_SMOOTH = 2048;
 
 	dtPolyRef m_startRef;
 	dtPolyRef m_endRef;
-	dtPolyRef m_polys[MAX_POLYS];
+	std::array<dtPolyRef, MAX_POLYS> m_polys;
 	dtPolyRef m_parent[MAX_POLYS];
 	int m_npolys;
 	float m_straightPath[MAX_POLYS * 3];
@@ -67,7 +66,7 @@ class NavMeshTesterTool : public SampleTool
 	int m_nsmoothPath;
 	float m_queryPoly[4 * 3];
 
-	static const int MAX_RAND_POINTS = 64;
+	static constexpr int MAX_RAND_POINTS = 64;
 	float m_randPoints[MAX_RAND_POINTS * 3];
 	int m_nrandPoints;
 	bool m_randPointsInCircle;
@@ -109,7 +108,7 @@ public:
 
 	// åoòHíTçıÇ»Ç«ÇçsÇ§
 	void recalc();
-	void drawAgent(const float* pos, float r, float h, float c, const unsigned int col);
+	void drawAgent(const float* pos, float r, float h, float c, const uint32_t col);
 };
 
 #endif // NAVMESHTESTERTOOL_H

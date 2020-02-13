@@ -41,6 +41,7 @@ typedef uint64_t dtPolyRef;
 #else
 //ナビゲーションメッシュタイル内のポリゴンのハンドル。
 typedef uint32_t dtPolyRef;
+static const int MAX_POLYS = 256;
 #endif
 
 // A handle to a tile within a navigation mesh.

@@ -572,7 +572,7 @@ void NavMeshTesterTool::handleToggle()
 	dtPolyRef steerPosRef{};
 
 	if (!getSteerTarget(m_navQuery, m_iterPos, m_targetPos, SLOP,
-		m_pathIterPolys, m_pathIterPolyCount, &steerPos, steerPosFlag, steerPosRef,
+		m_pathIterPolys.data(), m_pathIterPolyCount, &steerPos, steerPosFlag, steerPosRef,
 		m_steerPoints, &m_steerPointCount))
 		return;
 
@@ -593,6 +593,7 @@ void NavMeshTesterTool::handleToggle()
 		len = 1;
 	else
 		len = STEP_SIZE / len;
+
 	ArrayF moveTgt;
 	dtVmad(moveTgt.data(), m_iterPos, delta.data(), len);
 
@@ -600,15 +601,16 @@ void NavMeshTesterTool::handleToggle()
 	ArrayF result{};
 	std::array<dtPolyRef, 16> visited{};
 	int nvisited{};
+	float h{};
 
 	m_navQuery->moveAlongSurface(m_pathIterPolys[0], m_iterPos, moveTgt.data(), &m_filter,
 		result.data(), visited.data(), &nvisited, 16);
 
-	m_pathIterPolyCount = fixupCorridor(m_pathIterPolys, m_pathIterPolyCount, MAX_POLYS, visited.data(), nvisited);
-	m_pathIterPolyCount = fixupShortcuts(m_pathIterPolys, m_pathIterPolyCount, m_navQuery);
+	m_pathIterPolyCount = fixupCorridor(m_pathIterPolys.data(), m_pathIterPolyCount, MAX_POLYS, visited.data(), nvisited);
+	m_pathIterPolyCount = fixupShortcuts(m_pathIterPolys.data(), m_pathIterPolyCount, m_navQuery);
 
-	float h = 0;
 	m_navQuery->getPolyHeight(m_pathIterPolys[0], result.data(), &h);
+
 	result[1] = h;
 	dtVcopy(m_iterPos, result.data());
 
@@ -627,11 +629,12 @@ void NavMeshTesterTool::handleToggle()
 	else if (offMeshConnection && inRange(m_iterPos, steerPos.data(), SLOP, 1.f))
 	{
 		// Reached off-mesh connection.
-		float startPos[3], endPos[3];
+		ArrayF startPos{}, endPos{};
 
 		// Advance the path up to and over the off-mesh connection.
-		dtPolyRef prevRef = 0, polyRef = m_pathIterPolys[0];
-		int npos = 0;
+		dtPolyRef prevRef{}, polyRef = m_pathIterPolys[0];
+		int npos{};
+
 		while (npos < m_pathIterPolyCount && polyRef != steerPosRef)
 		{
 			prevRef = polyRef;
@@ -643,23 +646,25 @@ void NavMeshTesterTool::handleToggle()
 		m_pathIterPolyCount -= npos;
 
 		// Handle the connection.
-		dtStatus status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos);
+		dtStatus status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos.data(), endPos.data());
+
 		if (dtStatusSucceed(status))
 		{
 			if (m_nsmoothPath < MAX_SMOOTH)
 			{
-				dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos);
+				dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos.data());
 				m_nsmoothPath++;
 				// Hack to make the dotted path not visible during off-mesh connection.
 				if (m_nsmoothPath & 1)
 				{
-					dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos);
+					dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos.data());
 					m_nsmoothPath++;
 				}
 			}
 			// Move position at the other side of the off-mesh link.
-			dtVcopy(m_iterPos, endPos);
-			float eh = 0.0f;
+			dtVcopy(m_iterPos, endPos.data());
+			float eh{};
+
 			m_navQuery->getPolyHeight(m_pathIterPolys[0], m_iterPos, &eh);
 			m_iterPos[1] = eh;
 		}

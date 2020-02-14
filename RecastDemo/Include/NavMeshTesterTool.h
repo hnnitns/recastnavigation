@@ -72,7 +72,7 @@ class NavMeshTesterTool : public SampleTool
 	bool m_randPointsInCircle;
 
 	std::array<float, 3> m_spos;
-	float m_epos[3];
+	std::array<float, 3> m_epos;
 	float m_hitPos[3];
 	float m_hitNormal[3];
 	bool m_hitResult;

@@ -391,7 +391,7 @@ void NavMeshTesterTool::handleMenu()
 	{
 		if (m_sposSet)
 		{
-			dtStatus status = m_navQuery->findRandomPointAroundCircle(m_startRef, m_spos.data(), m_randomRadius, &m_filter, frand, &m_endRef, m_epos);
+			dtStatus status = m_navQuery->findRandomPointAroundCircle(m_startRef, m_spos.data(), m_randomRadius, &m_filter, frand, &m_endRef, m_epos.data());
 			if (dtStatusSucceed(status))
 			{
 				m_eposSet = true;
@@ -506,7 +506,7 @@ void NavMeshTesterTool::handleClick(const float* /*s*/, const float* p, bool shi
 	else
 	{
 		m_eposSet = true;
-		dtVcopy(m_epos, p);
+		dtVcopy(m_epos.data(), p);
 	}
 	recalc();
 }
@@ -529,7 +529,7 @@ void NavMeshTesterTool::handleToggle()
 
 	if (m_pathIterNum == 0)
 	{
-		m_navQuery->findPath(m_startRef, m_endRef, m_spos.data(), m_epos, &m_filter, m_polys.data(), &m_npolys, MAX_POLYS);
+		m_navQuery->findPath(m_startRef, m_endRef, m_spos.data(), m_epos.data(), &m_filter, m_polys.data(), &m_npolys, MAX_POLYS);
 		m_nsmoothPath = 0;
 
 		m_pathIterPolyCount = m_npolys;
@@ -546,7 +546,7 @@ void NavMeshTesterTool::handleToggle()
 			// Iterate over the path to find smooth path on the detail mesh surface.
 			// パスを反復処理して、詳細メッシュサーフェス上の滑らかなパスを見つけます。
 			m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), m_iterPos, 0);
-			m_navQuery->closestPointOnPoly(m_pathIterPolys[m_pathIterPolyCount - 1], m_epos, m_targetPos, 0);
+			m_navQuery->closestPointOnPoly(m_pathIterPolys[m_pathIterPolyCount - 1], m_epos.data(), m_targetPos, 0);
 
 			m_nsmoothPath = 0;
 
@@ -698,11 +698,10 @@ void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 			{
 				// In case of partial path, make sure the end point is clamped to the last polygon.
 				// 部分パスの場合、終点が最後のポリゴンに固定されていることを確認してください。
-				ArrayF epos{};
-				dtVcopy(epos.data(), m_epos);
+				ArrayF epos{ m_epos };
 
 				if (m_polys[m_npolys - 1] != m_endRef)
-					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos.data(), 0);
+					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), epos.data(), 0);
 
 				m_navQuery->findStraightPath(m_spos.data(), epos.data(), m_polys.data(), m_npolys,
 					m_straightPath.data(), m_straightPathFlags.data(),
@@ -739,7 +738,7 @@ void NavMeshTesterTool::recalc()
 
 	// ゴール地点が設定されている
 	if (m_eposSet)
-		m_navQuery->findNearestPoly(m_epos, m_polyPickExt.data(), &m_filter, &m_endRef, 0);
+		m_navQuery->findNearestPoly(m_epos.data(), m_polyPickExt.data(), &m_filter, &m_endRef, 0);
 	else
 		m_endRef = 0;
 
@@ -756,7 +755,7 @@ void NavMeshTesterTool::recalc()
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
 
-			m_navQuery->findPath(m_startRef, m_endRef, m_spos.data(), m_epos, &m_filter, m_polys.data(), &m_npolys, MAX_POLYS);
+			m_navQuery->findPath(m_startRef, m_endRef, m_spos.data(), m_epos.data(), &m_filter, m_polys.data(), &m_npolys, MAX_POLYS);
 
 			m_nsmoothPath = 0;
 
@@ -773,7 +772,7 @@ void NavMeshTesterTool::recalc()
 
 				ArrayF iterPos{}, targetPos{};
 				m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), iterPos.data(), 0);
-				m_navQuery->closestPointOnPoly(polys[npolys - 1], m_epos, targetPos.data(), 0);
+				m_navQuery->closestPointOnPoly(polys[npolys - 1], m_epos.data(), targetPos.data(), 0);
 
 				constexpr float STEP_SIZE = 0.5f;
 				constexpr float SLOP = 0.01f;
@@ -911,15 +910,16 @@ void NavMeshTesterTool::recalc()
 				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
-			m_navQuery->findPath(m_startRef, m_endRef, m_spos.data(), m_epos, &m_filter, m_polys.data(), &m_npolys, MAX_POLYS);
+			m_navQuery->findPath(m_startRef, m_endRef, m_spos.data(), m_epos.data(), &m_filter, m_polys.data(), &m_npolys, MAX_POLYS);
 			m_nstraightPath = 0;
+
 			if (m_npolys)
 			{
 				// In case of partial path, make sure the end point is clamped to the last polygon.
-				ArrayF epos{};
-				dtVcopy(epos.data(), m_epos);
+				ArrayF epos{ m_epos };
+
 				if (m_polys[m_npolys - 1] != m_endRef)
-					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos, epos.data(), 0);
+					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), epos.data(), 0);
 
 				m_navQuery->findStraightPath(m_spos.data(), epos.data(), m_polys.data(), m_npolys,
 					m_straightPath.data(), m_straightPathFlags.data(),
@@ -944,7 +944,7 @@ void NavMeshTesterTool::recalc()
 			m_npolys = 0;
 			m_nstraightPath = 0;
 
-			m_pathFindStatus = m_navQuery->initSlicedFindPath(m_startRef, m_endRef, m_spos.data(), m_epos, &m_filter, DT_FINDPATH_ANY_ANGLE);
+			m_pathFindStatus = m_navQuery->initSlicedFindPath(m_startRef, m_endRef, m_spos.data(), m_epos.data(), &m_filter, DT_FINDPATH_ANY_ANGLE);
 		}
 		else
 		{
@@ -962,32 +962,37 @@ void NavMeshTesterTool::recalc()
 				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
-			float t = 0;
+			float t{};
+
 			m_npolys = 0;
 			m_nstraightPath = 2;
 			m_straightPath[0] = m_spos[0];
 			m_straightPath[1] = m_spos[1];
 			m_straightPath[2] = m_spos[2];
-			m_navQuery->raycast(m_startRef, m_spos.data(), m_epos, &m_filter, &t, m_hitNormal, m_polys.data(), &m_npolys, MAX_POLYS);
+
+			m_navQuery->raycast(m_startRef, m_spos.data(), m_epos.data(), &m_filter, &t, m_hitNormal, m_polys.data(), &m_npolys, MAX_POLYS);
+
 			if (t > 1)
 			{
 				// No hit
-				dtVcopy(m_hitPos, m_epos);
+				dtVcopy(m_hitPos, m_epos.data());
 				m_hitResult = false;
 			}
 			else
 			{
 				// Hit
-				dtVlerp(m_hitPos, m_spos.data(), m_epos, t);
+				dtVlerp(m_hitPos, m_spos.data(), m_epos.data(), t);
 				m_hitResult = true;
 			}
 			// Adjust height.
 			if (m_npolys > 0)
 			{
-				float h = 0;
+				float h{};
+
 				m_navQuery->getPolyHeight(m_polys[m_npolys - 1], m_hitPos, &h);
 				m_hitPos[1] = h;
 			}
+
 			dtVcopy(&m_straightPath[3], m_hitPos);
 		}
 	}
@@ -1088,7 +1093,7 @@ void NavMeshTesterTool::handleRender()
 
 	if (m_sposSet) drawAgent(m_spos.data(), agentRadius, agentHeight, agentClimb, startCol);
 
-	if (m_eposSet) drawAgent(m_epos, agentRadius, agentHeight, agentClimb, endCol);
+	if (m_eposSet) drawAgent(m_epos.data(), agentRadius, agentHeight, agentClimb, endCol);
 
 	dd.depthMask(true);
 

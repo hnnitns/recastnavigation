@@ -541,25 +541,21 @@ void NavMeshTesterTool::handleToggle()
 		{
 			// Iterate over the path to find smooth path on the detail mesh surface.
 			// パスを反復処理して、詳細メッシュサーフェス上の滑らかなパスを見つけます。
-			m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), m_iterPos, 0);
-			m_navQuery->closestPointOnPoly(m_pathIterPolys[m_pathIterPolyCount - 1], m_epos.data(), m_targetPos, 0);
+			m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), m_iterPos.data(), 0);
+			m_navQuery->closestPointOnPoly(m_pathIterPolys[m_pathIterPolyCount - 1], m_epos.data(), m_targetPos.data(), 0);
 
 			m_nsmoothPath = 0;
 
-			dtVcopy(&m_smoothPath[m_nsmoothPath * 3], m_iterPos);
+			dtVcopy(&m_smoothPath[m_nsmoothPath * 3], m_iterPos.data());
 			m_nsmoothPath++;
 		}
 	}
 
-	dtVcopy(m_prevIterPos, m_iterPos);
-
+	m_prevIterPos = m_iterPos;
 	m_pathIterNum++;
 
-	if (!m_pathIterPolyCount)
-		return;
-
-	if (m_nsmoothPath >= MAX_SMOOTH)
-		return;
+	if (!m_pathIterPolyCount) return;
+	if (m_nsmoothPath >= MAX_SMOOTH) return;
 
 	// Move towards target a small advancement at a time until target reached or
 	// when ran out of memory to store the path.
@@ -571,22 +567,19 @@ void NavMeshTesterTool::handleToggle()
 	uint8_t steerPosFlag{};
 	dtPolyRef steerPosRef{};
 
-	if (!getSteerTarget(m_navQuery, m_iterPos, m_targetPos, SLOP,
+	if (!getSteerTarget(m_navQuery, m_iterPos.data(), m_targetPos.data(), SLOP,
 		m_pathIterPolys.data(), m_pathIterPolyCount, &steerPos, steerPosFlag, steerPosRef,
 		m_steerPoints, &m_steerPointCount))
 		return;
 
-	dtVcopy(m_steerPos, steerPos.data());
+	m_steerPos = steerPos;
 
 	bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END) ? true : false;
 	bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ? true : false;
 
 	// Find movement delta.
-	ArrayF delta{};
-	float len{};
-
-	dtVsub(delta.data(), steerPos.data(), m_iterPos);
-	len = sqrtf(dtVdot(delta, delta));
+	ArrayF delta{ steerPos - m_iterPos };
+	float len{ sqrtf(dtVdot(delta, delta)) };
 
 	// If the steer target is end of path or off-mesh link, do not move past the location.
 	if ((endOfPath || offMeshConnection) && len < STEP_SIZE)
@@ -594,8 +587,8 @@ void NavMeshTesterTool::handleToggle()
 	else
 		len = STEP_SIZE / len;
 
-	ArrayF moveTgt;
-	dtVmad(moveTgt.data(), m_iterPos, delta.data(), len);
+	ArrayF moveTgt{};
+	dtVmad(&moveTgt, m_iterPos, delta, len);
 
 	// Move
 	ArrayF result{};
@@ -603,7 +596,7 @@ void NavMeshTesterTool::handleToggle()
 	int nvisited{};
 	float h{};
 
-	m_navQuery->moveAlongSurface(m_pathIterPolys[0], m_iterPos, moveTgt.data(), &m_filter,
+	m_navQuery->moveAlongSurface(m_pathIterPolys[0], m_iterPos.data(), moveTgt.data(), &m_filter,
 		result.data(), visited.data(), &nvisited, 16);
 
 	m_pathIterPolyCount = fixupCorridor(m_pathIterPolys.data(), m_pathIterPolyCount, MAX_POLYS, visited.data(), nvisited);
@@ -612,21 +605,22 @@ void NavMeshTesterTool::handleToggle()
 	m_navQuery->getPolyHeight(m_pathIterPolys[0], result.data(), &h);
 
 	result[1] = h;
-	dtVcopy(m_iterPos, result.data());
+	m_iterPos = result;
 
 	// Handle end of path and off-mesh links when close enough.
-	if (endOfPath && inRange(m_iterPos, steerPos.data(), SLOP, 1.f))
+	if (endOfPath && inRange(m_iterPos.data(), steerPos.data(), SLOP, 1.f))
 	{
 		// Reached end of path.
-		dtVcopy(m_iterPos, m_targetPos);
+		m_iterPos = m_targetPos;
+
 		if (m_nsmoothPath < MAX_SMOOTH)
 		{
-			dtVcopy(&m_smoothPath[m_nsmoothPath * 3], m_iterPos);
+			dtVcopy(&m_smoothPath[m_nsmoothPath * 3], m_iterPos.data());
 			m_nsmoothPath++;
 		}
 		return;
 	}
-	else if (offMeshConnection && inRange(m_iterPos, steerPos.data(), SLOP, 1.f))
+	else if (offMeshConnection && inRange(m_iterPos.data(), steerPos.data(), SLOP, 1.f))
 	{
 		// Reached off-mesh connection.
 		ArrayF startPos{}, endPos{};
@@ -641,8 +635,10 @@ void NavMeshTesterTool::handleToggle()
 			polyRef = m_pathIterPolys[npos];
 			npos++;
 		}
+
 		for (int i = npos; i < m_pathIterPolyCount; ++i)
 			m_pathIterPolys[i - npos] = m_pathIterPolys[i];
+
 		m_pathIterPolyCount -= npos;
 
 		// Handle the connection.
@@ -662,10 +658,11 @@ void NavMeshTesterTool::handleToggle()
 				}
 			}
 			// Move position at the other side of the off-mesh link.
-			dtVcopy(m_iterPos, endPos.data());
+			m_iterPos = endPos;
+
 			float eh{};
 
-			m_navQuery->getPolyHeight(m_pathIterPolys[0], m_iterPos, &eh);
+			m_navQuery->getPolyHeight(m_pathIterPolys[0], m_iterPos.data(), &eh);
 			m_iterPos[1] = eh;
 		}
 	}
@@ -673,7 +670,7 @@ void NavMeshTesterTool::handleToggle()
 	// Store results.
 	if (m_nsmoothPath < MAX_SMOOTH)
 	{
-		dtVcopy(&m_smoothPath[m_nsmoothPath * 3], m_iterPos);
+		dtVcopy(&m_smoothPath[m_nsmoothPath * 3], m_iterPos.data());
 		m_nsmoothPath++;
 	}
 }

@@ -25,15 +25,12 @@
 
 class NavMeshTesterTool : public SampleTool
 {
-	Sample* m_sample;
+private:
+	static constexpr int MAX_RAND_POINTS = 64;
+	static constexpr int MAX_STEER_POINTS = 10;
+	static constexpr int MAX_SMOOTH = 2048;
 
-	dtNavMesh* m_navMesh;
-	dtNavMeshQuery* m_navQuery;
-
-	dtQueryFilter m_filter;
-
-	dtStatus m_pathFindStatus;
-
+private:
 	enum ToolMode
 	{
 		TOOLMODE_PATHFIND_FOLLOW,
@@ -46,11 +43,15 @@ class NavMeshTesterTool : public SampleTool
 		TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD,
 	};
 
+private:
+	Sample* m_sample;
+	dtNavMesh* m_navMesh;
+	dtNavMeshQuery* m_navQuery;
+	dtQueryFilter m_filter;
+	dtStatus m_pathFindStatus;
+
 	ToolMode m_toolMode;
-
 	int m_straightPathOptions;
-
-	static constexpr int MAX_SMOOTH = 2048;
 
 	dtPolyRef m_startRef;
 	dtPolyRef m_endRef;
@@ -66,7 +67,6 @@ class NavMeshTesterTool : public SampleTool
 	int m_nsmoothPath;
 	std::array<float, 4 * 3> m_queryPoly;
 
-	static constexpr int MAX_RAND_POINTS = 64;
 	std::array<float, MAX_RAND_POINTS * 3> m_randPoints;
 	int m_nrandPoints;
 	bool m_randPointsInCircle;
@@ -85,9 +85,8 @@ class NavMeshTesterTool : public SampleTool
 	int m_pathIterNum;
 	std::array<dtPolyRef, MAX_POLYS> m_pathIterPolys;
 	int m_pathIterPolyCount;
-	float m_prevIterPos[3], m_iterPos[3], m_steerPos[3], m_targetPos[3];
+	std::array<float, 3> m_prevIterPos, m_iterPos, m_steerPos, m_targetPos;
 
-	static const int MAX_STEER_POINTS = 10;
 	float m_steerPoints[MAX_STEER_POINTS * 3];
 	int m_steerPointCount;
 

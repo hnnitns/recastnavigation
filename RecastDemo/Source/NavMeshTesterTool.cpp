@@ -23,11 +23,7 @@
 #include <string>
 #include "SDL.h"
 #include "SDL_opengl.h"
-#ifdef __APPLE__
-#	include <OpenGL/glu>
-#else
-#	include <GL/glu.h>
-#endif
+#include <GL/glu.h>
 #include "imgui.h"
 #include "NavMeshTesterTool.h"
 #include "Sample.h"
@@ -721,7 +717,7 @@ void NavMeshTesterTool::reset()
 	m_nstraightPath = 0;
 	m_nsmoothPath = 0;
 	m_hitPos.fill(0.f);
-	memset(m_hitNormal, 0, sizeof(m_hitNormal));
+	m_hitNormal.fill(0.f);
 	m_distanceToWall = 0;
 }
 
@@ -970,7 +966,7 @@ void NavMeshTesterTool::recalc()
 			m_straightPath[1] = m_spos[1];
 			m_straightPath[2] = m_spos[2];
 
-			m_navQuery->raycast(m_startRef, m_spos.data(), m_epos.data(), &m_filter, &t, m_hitNormal, m_polys.data(), &m_npolys, MAX_POLYS);
+			m_navQuery->raycast(m_startRef, m_spos.data(), m_epos.data(), &m_filter, &t, m_hitNormal.data(), m_polys.data(), &m_npolys, MAX_POLYS);
 
 			if (t > 1)
 			{
@@ -1007,7 +1003,7 @@ void NavMeshTesterTool::recalc()
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
 			m_distanceToWall = 0.0f;
-			m_navQuery->findDistanceToWall(m_startRef, m_spos.data(), 100.0f, &m_filter, &m_distanceToWall, m_hitPos.data(), m_hitNormal);
+			m_navQuery->findDistanceToWall(m_startRef, m_spos.data(), 100.0f, &m_filter, &m_distanceToWall, m_hitPos.data(), m_hitNormal.data());
 		}
 	}
 	else if (m_toolMode == TOOLMODE_FIND_POLYS_IN_CIRCLE)

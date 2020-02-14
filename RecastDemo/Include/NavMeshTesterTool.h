@@ -31,7 +31,7 @@ private:
 	static constexpr int MAX_SMOOTH = 2048;
 
 private:
-	enum ToolMode
+	enum class ToolMode : uint8_t
 	{
 		TOOLMODE_PATHFIND_FOLLOW,
 		TOOLMODE_PATHFIND_STRAIGHT,

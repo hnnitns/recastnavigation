@@ -25,6 +25,8 @@
 /// @ingroup crowd, detour
 class dtPathCorridor
 {
+	static constexpr int DT_CROWDAGENT_MAX_CORNERS = 4;
+
 	std::array<float, 3> m_pos;
 	std::array<float, 3> m_target;
 
@@ -55,9 +57,10 @@ public:
 	///  @param[in]		navquery		The query object used to build the corridor.
 	///  @param[in]		filter			The filter to apply to the operation.
 	/// @return The number of corners returned in the corner buffers. [0 <= value <= @p maxCorners]
-	int findCorners(float* cornerVerts, uint8_t* cornerFlags,
-		dtPolyRef* cornerPolys, const int maxCorners,
-		dtNavMeshQuery* navquery, const dtQueryFilter* filter);
+	int findCorners(std::array<float, DT_CROWDAGENT_MAX_CORNERS * 3>* cornerVerts,
+		std::array<uint8_t, DT_CROWDAGENT_MAX_CORNERS>* cornerFlags,
+		std::array<dtPolyRef, DT_CROWDAGENT_MAX_CORNERS>* cornerPolys,
+		const int maxCorners, dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
 	/// Attempts to optimize the path if the specified point is visible from the current position.
 	///  @param[in]		next					The point to search toward. [(x, y, z])

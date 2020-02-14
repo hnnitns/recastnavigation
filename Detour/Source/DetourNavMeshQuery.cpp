@@ -685,7 +685,7 @@ dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, flo
 // @p posは、polybonまたはナビゲーションメッシュの境界内にある必要はありません。
 //
 dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(
-	dtPolyRef ref, const float* pos, std::array<float, 3>* closest) const
+	dtPolyRef ref, const std::array<float, 3>& pos, std::array<float, 3>* closest) const
 {
 	dtAssert(m_nav);
 
@@ -707,12 +707,12 @@ dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(
 		nv++;
 	}
 
-	bool inside = dtDistancePtPolyEdgesSqr(pos, verts.data(), nv, edged.data(), edget.data());
+	bool inside = dtDistancePtPolyEdgesSqr(pos.data(), verts.data(), nv, edged.data(), edget.data());
 	if (inside)
 	{
 		// Point is inside the polygon, return the point.
 		//ポイントはポリゴン内にあり、ポイントを返します。
-		dtVcopy(closest->data(), pos); // コピー
+		*closest = pos;
 	}
 	else
 	{
@@ -1139,9 +1139,9 @@ dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents
 //
 // 実際に経路探索を行っている部分
 dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
-	const float* startPos, const float* endPos,
+	const std::array<float, 3>& startPos, const std::array<float, 3>& endPos,
 	const dtQueryFilter* filter,
-	dtPolyRef* path, int* pathCount, const int maxPath) const
+	std::array<dtPolyRef, MAX_POLYS>* path, int* pathCount, const int maxPath) const
 {
 	dtAssert(m_nav);
 	dtAssert(m_nodePool);
@@ -1152,15 +1152,15 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 
 	// Validate input
 	// 入力を検証する (ポリゴン参照の有効性を確認)
-	if (!m_nav->isValidPolyRef(startRef) || !m_nav->isValidPolyRef(endRef) ||
-		!startPos || !endPos || !filter || maxPath <= 0 || !path || !pathCount)
+	if (!(m_nav->isValidPolyRef(startRef) && m_nav->isValidPolyRef(endRef) && filter && path && pathCount) ||
+		maxPath <= 0)
 		return DT_FAILURE | DT_INVALID_PARAM;
 
 	// スタート地点とゴール地点が同じ場所
 	if (startRef == endRef)
 	{
 		// パスをスタート地点に設定する
-		path[0] = startRef;
+		path->at(0) = startRef;
 		*pathCount = 1;
 		return DT_SUCCESS;
 	}
@@ -1172,9 +1172,8 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 	// ノードの取得
 	dtNode* startNode = m_nodePool->getNode(startRef);
 
-	dtVcopy(startNode->pos.data(), startPos);  // コピー
-
 	// 追加するノードへの初期設定
+	startNode->pos = startPos;
 	startNode->pidx = 0;
 	startNode->cost = 0;
 	startNode->total = dtVdist(startPos, endPos) * H_SCALE;  // 引算
@@ -1188,8 +1187,7 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 
 	dtNode* lastBestNode = startNode;
 	float lastBestNodeCost = startNode->total;
-
-	bool outOfNodes{ false };
+	bool outOfNodes{};
 
 	// 開かれたリストが無くなるまで実行
 	while (!m_openList->empty())
@@ -1295,7 +1293,7 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 					bestRef, bestTile, bestPoly,
 					neighbourRef, neighbourTile, neighbourPoly);
 
-				const float endCost = filter->getCost(neighbourNode->pos, endPos,
+				const float endCost = filter->getCost(neighbourNode->pos, endPos.data(),
 					bestRef, bestTile, bestPoly,
 					neighbourRef, neighbourTile, neighbourPoly,
 					0, 0, 0);
@@ -1311,7 +1309,7 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 					bestRef, bestTile, bestPoly,
 					neighbourRef, neighbourTile, neighbourPoly);
 				cost = bestNode->cost + curCost;
-				heuristic = dtVdist(neighbourNode->pos.data(), endPos) * H_SCALE;
+				heuristic = dtVdist(neighbourNode->pos, endPos) * H_SCALE;
 			}
 
 			const float total = cost + heuristic;
@@ -1359,7 +1357,7 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 	}
 
 	// 指定された終了ノードへのパスを取得
-	dtStatus status{ getPathToNode(lastBestNode, path, pathCount, maxPath) };
+	dtStatus status{ getPathToNode(lastBestNode, path->data(), pathCount, maxPath) };
 
 	// ゴールまでパスを発見できず、最も最善のパスを返す
 	if (lastBestNode->id != endRef)
@@ -2059,7 +2057,8 @@ dtStatus dtNavMeshQuery::appendPortals(
 // 指定された結果バッファーが結果セット全体に対して小さすぎる場合、
 // 開始位置から終了位置に向かって可能な限りいっぱいになります。
 //
-dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* endPos,
+dtStatus dtNavMeshQuery::findStraightPath(
+	const std::array<float, 3>& startPos, const std::array<float, 3>& endPos,
 	const dtPolyRef* path, const int pathSize,
 	float* straightPath, uint8_t* straightPathFlags, dtPolyRef* straightPathRefs,
 	int* straightPathCount, const int maxStraightPath, const int options) const

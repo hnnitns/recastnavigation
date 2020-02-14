@@ -225,9 +225,9 @@ public:
 	//  @param[out]	pathCount	The number of polygons returned in the @p path array.
 	//  @param[in]		maxPath		The maximum number of polygons the @p path array can hold. [Limit: >= 1]
 	dtStatus findPath(dtPolyRef startRef, dtPolyRef endRef,
-		const float* startPos, const float* endPos,
+		const std::array<float, 3>& startPos, const std::array<float, 3>& endPos,
 		const dtQueryFilter* filter,
-		dtPolyRef* path, int* pathCount, const int maxPath) const;
+		std::array<dtPolyRef, MAX_POLYS>* path, int* pathCount, const int maxPath) const;
 
 	// ポリゴンコリドー内の開始位置から終了位置までの直線パスを検索します。
 	// @param[in] startPos：パスの開始位置。[（x、y、z）]
@@ -253,7 +253,7 @@ public:
 	//  @param[in]		maxStraightPath		The maximum number of points the straight path arrays can hold.  [Limit: > 0]
 	//  @param[in]		options				Query options. (see: #dtStraightPathOptions)
 	// @returns The status flags for the query.
-	dtStatus findStraightPath(const float* startPos, const float* endPos,
+	dtStatus findStraightPath(const std::array<float, 3>& startPos, const std::array<float, 3>& endPos,
 		const dtPolyRef* path, const int pathSize,
 		float* straightPath, uint8_t* straightPathFlags, dtPolyRef* straightPathRefs,
 		int* straightPathCount, const int maxStraightPath, const int options = 0) const;
@@ -700,7 +700,8 @@ public:
 	//  @param[in]		pos			The position to check. [(x, y, z)]
 	//  @param[out]	closest		The closest point. [(x, y, z)]
 	// @returns The status flags for the query.
-	dtStatus closestPointOnPolyBoundary(dtPolyRef ref, const float* pos, std::array<float, 3>* closest) const;
+	dtStatus closestPointOnPolyBoundary(
+		dtPolyRef ref, const std::array<float, 3>& pos, std::array<float, 3>* closest) const;
 
 	// 高さの詳細を使用して、指定された位置のポリゴンの高さを取得します。（最も正確です。）
 	//  @param [in] refポリゴンの参照ID。

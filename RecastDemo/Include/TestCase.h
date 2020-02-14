@@ -78,8 +78,8 @@ class TestCase
 		Test* next;
 	private:
 		// Explicitly disabled copy constructor and copy assignment operator.
-		Test(const Test&);
-		Test& operator=(const Test&);
+		Test(const Test&) = delete;
+		Test& operator=(const Test&) = delete;
 	};
 
 	std::string m_sampleName;
@@ -104,8 +104,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	TestCase(const TestCase&);
-	TestCase& operator=(const TestCase&);
+	TestCase(const TestCase&) = delete;
+	TestCase& operator=(const TestCase&) = delete;
 };
 
 #endif // TESTCASE_H

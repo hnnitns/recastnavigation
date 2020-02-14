@@ -33,9 +33,7 @@
 #include "DetourAssert.h"
 #include "DetourDebugDraw.h"
 
-#ifdef WIN32
-#	define snprintf _snprintf
-#endif
+using namespace DtOperator;
 
 class NavmeshFlags
 {
@@ -263,10 +261,11 @@ void NavMeshPruneTool::handleClick([[maybe_unused]]const float* s, const float* 
 		m_flags->init(nav);
 	}
 
-	const float ext[3] = { 2,4,2 };
-	dtQueryFilter filter;
-	dtPolyRef ref = 0;
-	query->findNearestPoly(p, ext, &filter, &ref, 0);
+	constexpr ArrayF ext{ 2.f, 4.f, 2.f };
+	dtQueryFilter filter{};
+	dtPolyRef ref{};
+
+	query->findNearestPoly(p, ext.data(), &filter, &ref, 0);
 
 	floodNavmesh(nav, m_flags, ref, 1);
 }

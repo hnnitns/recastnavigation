@@ -250,38 +250,52 @@ So if 10 corners are needed, the buffers should be sized for 11 corners.
 
 If the target is within range, it will be the last corner and have a polygon reference id of zero.
 */
-int dtPathCorridor::findCorners(float* cornerVerts, uint8_t* cornerFlags,
-	dtPolyRef* cornerPolys, const int maxCorners,
-	dtNavMeshQuery* navquery, const dtQueryFilter* /*filter*/)
+int dtPathCorridor::findCorners(std::array<float, DT_CROWDAGENT_MAX_CORNERS * 3>* cornerVerts,
+	std::array<uint8_t, DT_CROWDAGENT_MAX_CORNERS>* cornerFlags,
+	std::array<dtPolyRef, DT_CROWDAGENT_MAX_CORNERS>* cornerPolys, const int maxCorners,
+	dtNavMeshQuery* navquery, [[maybe_unused]]const dtQueryFilter* filter)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
 
 	constexpr float MIN_TARGET_DIST = 0.01f;
 
-	int ncorners = 0;
-	navquery->findStraightPath(m_pos.data(), m_target.data(), m_path, m_npath,
-		cornerVerts, cornerFlags, cornerPolys, &ncorners, maxCorners);
+	int ncorners{};
+
+	navquery->findStraightPath(m_pos, m_target, m_path, m_npath, cornerVerts->data(), cornerFlags->data(),
+		cornerPolys->data(), &ncorners, maxCorners);
 
 	// Prune points in the beginning of the path which are too close.
+	// パスの先頭にある、近すぎるポイントを削除します。
 	while (ncorners)
 	{
-		if ((cornerFlags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ||
-			dtVdist2DSqr(&cornerVerts[0], m_pos.data()) > dtSqr(MIN_TARGET_DIST))
+		if ((cornerFlags->front() & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ||
+			dtVdist2DSqr(&cornerVerts->front(), m_pos.data()) > dtSqr(MIN_TARGET_DIST))
 			break;
+
 		ncorners--;
+
 		if (ncorners)
 		{
-			memmove(cornerFlags, cornerFlags + 1, sizeof(uint8_t) * ncorners);
-			memmove(cornerPolys, cornerPolys + 1, sizeof(dtPolyRef) * ncorners);
-			memmove(cornerVerts, cornerVerts + 3, sizeof(float) * 3 * ncorners);
+			size_t i{};
+
+			std::for_each_n(cornerFlags->begin(), ncorners,
+				[&](uint8_t& flag) { flag = cornerFlags->at(1 + i++); });
+
+			i = 0u;
+			std::for_each_n(cornerPolys->begin(), ncorners,
+				[&](dtPolyRef& poly) { poly = cornerPolys->at(1 + i++); });
+
+			i = 0u;
+			std::for_each_n(cornerVerts->begin(), ncorners,
+				[&](float& vert) { vert = cornerVerts->at(3 + i++); });
 		}
 	}
 
 	// Prune points after an off-mesh connection.
 	for (int i = 0; i < ncorners; ++i)
 	{
-		if (cornerFlags[i] & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
+		if (cornerFlags->at(i) & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
 		{
 			ncorners = i + 1;
 			break;
@@ -294,20 +308,28 @@ int dtPathCorridor::findCorners(float* cornerVerts, uint8_t* cornerFlags,
 /**
 @par
 
-Inaccurate locomotion or dynamic obstacle avoidance can force the argent position significantly outside the
-original corridor. Over time this can result in the formation of a non-optimal corridor. Non-optimal paths can
-also form near the corners of tiles.
+Inaccurate locomotion or dynamic obstacle avoidance can force the argent position significantly outside the original corridor.
+不正確な移動または動的な障害物回避により、元の廊下から大幅に外れた位置に強制的に移動できます。
+Over time this can result in the formation of a non-optimal corridor.
+時間が経つにつれて、これは最適ではない回廊の形成をもたらす可能性があります。
+Non-optimal paths can also form near the corners of tiles.
+最適でないパスは、タイルの角の近くに形成されることもあります。
 
 This function uses an efficient local visibility search to try to optimize the corridor
 between the current position and @p next.
+この関数は、効率的なローカル可視性検索を使用して、現在の位置と@p nextの間のコリドーを最適化しようとします。
 
 The corridor will change only if @p next is visible from the current position and moving directly toward the point
 is better than following the existing path.
+廊下は、@ p nextが現在の位置から見える場合にのみ変更され、既存のパスをたどるよりもポイントに向かって直接移動する方が適切です。
 
 The more inaccurate the agent movement, the more beneficial this function becomes. Simply adjust the frequency
 of the call to match the needs to the agent.
+エージェントの動きが不正確であるほど、この機能はより有益になります。 コールの頻度を調整して、エージェントのニーズに合わせます。
 
 This function is not suitable for long distance searches.
+この機能は、長距離検索には適していません。
+
 */
 void dtPathCorridor::optimizePathVisibility(const float* next, const float pathOptimizationRange,
 	dtNavMeshQuery* navquery, const dtQueryFilter* filter)
@@ -584,9 +606,9 @@ bool dtPathCorridor::trimInvalidPath(dtPolyRef safeRef, const float* safePos,
 	}
 
 	// Clamp target pos to last poly
-	std::array<float, 3> tgt{ m_target };
+	ArrayF tgt{ m_target };
 
-	navquery->closestPointOnPolyBoundary(m_path[m_npath - 1], tgt.data(), &m_target);
+	navquery->closestPointOnPolyBoundary(m_path[m_npath - 1], tgt, &m_target);
 
 	return true;
 }

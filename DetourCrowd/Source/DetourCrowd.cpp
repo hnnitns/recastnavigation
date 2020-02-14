@@ -1139,8 +1139,8 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 
 		// Find corners for steering
 		// ステアリングのコーナーを見つける
-		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts.data(), ag->cornerFlags.data(),
-			ag->cornerPolys.data(), DT_CROWDAGENT_MAX_CORNERS, m_navquery,
+		ag->ncorners = ag->corridor.findCorners(&ag->cornerVerts, &ag->cornerFlags,
+			&ag->cornerPolys, DT_CROWDAGENT_MAX_CORNERS, m_navquery,
 			&m_filters[ag->params.queryFilterType]);
 
 		// Check to see if the corner after the next corner is directly visible, and short cut to there.

@@ -648,7 +648,7 @@ public:
 	//  @param[out]	randomPt		The random location.
 	// @returns The status flags for the query.
 	dtStatus findRandomPoint(const dtQueryFilter* filter, float (*frand)(),
-		dtPolyRef* randomRef, float* randomPt) const;
+		dtPolyRef* randomRef, std::array<float, 3>* randomPt) const;
 
 	// 指定された場所の範囲内でnavmeshのランダムな場所を返します。
 	// ポリゴンは、エリアごとに重み付けされて選択されます。検索は、ポリゴンの数に関連する線形で実行されます。
@@ -672,7 +672,7 @@ public:
 	// @returns The status flags for the query.
 	dtStatus findRandomPointAroundCircle(dtPolyRef startRef, const float* centerPos, const float maxRadius,
 		const dtQueryFilter* filter, float (*frand)(),
-		dtPolyRef* randomRef, float* randomPt) const;
+		dtPolyRef* randomRef, std::array<float, 3>* randomPt) const;
 
 	// 指定されたポリゴンで最も近いポイントを検索します。
 	// @param [in] refポリゴンの参照ID。

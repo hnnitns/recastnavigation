@@ -246,60 +246,66 @@ dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes)
 // navmeshのランダムな位置を返します。
 // ポリゴンは、エリアごとに重み付けされて選択されます。検索は、ポリゴンの数に関連する線形で実行されます。
 dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*frand)(),
-	dtPolyRef* randomRef, float* randomPt) const
+	dtPolyRef* randomRef, std::array<float, 3>* randomPt) const
 {
 	dtAssert(m_nav);
 
 	// Randomly pick one tile. Assume that all tiles cover roughly the same area.
 	// ランダムに1つのタイルを選択します。すべてのタイルがほぼ同じ領域をカバーすると仮定します。
-	const dtMeshTile* tile = 0;
-	float tsum = 0.0f;
+	const dtMeshTile* tile{};
+	float tsum{};
+
 	for (int i = 0; i < m_nav->getMaxTiles(); i++)
 	{
 		const dtMeshTile* t = m_nav->getTile(i);
+
 		if (!t || !t->header) continue;
 
 		// Choose random tile using reservoi sampling.
 		//リザーバーサンプリングを使用してランダムタイルを選択します。
-		const float area = 1.f; // Could be tile area too. タイル領域にもなります。
+		constexpr float area = 1.f; // Could be tile area too. タイル領域にもなります。
+
 		tsum += area;
+
 		const float u = frand();
+
 		if (u * tsum <= area)
 			tile = t;
 	}
-	if (!tile)
-		return DT_FAILURE;
+
+	if (!tile) return DT_FAILURE;
 
 	// Randomly pick one polygon weighted by polygon area.
 	// ポリゴン領域で重み付けされた1つのポリゴンをランダムに選択します。
-	const dtPoly* poly = 0;
-	dtPolyRef polyRef = 0;
+	const dtPoly* poly{};
+	dtPolyRef polyRef{};
 	const dtPolyRef base = m_nav->getPolyRefBase(tile);
+	float areaSum{};
 
-	float areaSum = 0.0f;
 	for (int i = 0; i < tile->header->polyCount; ++i)
 	{
 		const dtPoly* p = &tile->polys[i];
 
 		// Do not return off-mesh connection polygons.
 		// オフメッシュ接続ポリゴンを返しません。
-		if (p->getType() != DT_POLYTYPE_GROUND)
-			continue;
+		if (p->getType() != DT_POLYTYPE_GROUND) continue;
 
 		// Must pass filter
 		// フィルタを渡す必要があります
 		const dtPolyRef ref = base | (dtPolyRef)i;
-		if (!filter->passFilter(ref, tile, p))
-			continue;
+
+		if (!filter->passFilter(ref, tile, p)) continue;
 
 		// Calc area of the polygon.
 		// ポリゴンの面積を計算します。
-		float polyArea = 0.0f;
+		float polyArea{};
+
 		for (int j = 2; j < p->vertCount; ++j)
 		{
 			const float* va = &tile->verts[p->verts[0] * 3];
 			const float* vb = &tile->verts[p->verts[j - 1] * 3];
 			const float* vc = &tile->verts[p->verts[j] * 3];
+
 			polyArea += dtTriArea2D(va, vb, vc);
 		}
 
@@ -307,6 +313,7 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 		//リザーバサンプリングを使用して、面積で重み付けされたランダムなポリゴンを選択します。
 		areaSum += polyArea;
 		const float u = frand();
+
 		if (u * areaSum <= polyArea)
 		{
 			poly = p;
@@ -319,8 +326,8 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 	// Randomly pick point on polygon.
 	// ポリゴン上のポイントをランダムに選択します。
 	const float* v = &tile->verts[poly->verts[0] * 3];
-	float verts[3 * DT_VERTS_PER_POLYGON];
-	float areas[DT_VERTS_PER_POLYGON];
+	std::array<float, 3 * DT_VERTS_PER_POLYGON> verts{};
+	std::array<float, DT_VERTS_PER_POLYGON> areas{};
 
 	dtVcopy(&verts[0 * 3], v); // コピー
 
@@ -332,19 +339,18 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 
 	const float s = frand();
 	const float t = frand();
+	ArrayF pt{};
 
-	float pt[3];
-	dtRandomPointInConvexPoly(verts, poly->vertCount, areas, s, t, pt);
+	dtRandomPointInConvexPoly(verts, poly->vertCount, areas.data(), s, t, pt.data());
 
-	float ht{ 0.0f };
-	dtStatus status = getPolyHeight(polyRef, pt, &ht);
+	float ht{};
+	dtStatus status = getPolyHeight(polyRef, pt.data(), &ht);
 
 	if (dtStatusFailed(status))
 		return status;
 
 	pt[1] = ht;
-
-	dtVcopy(randomPt, pt); // コピー
+	*randomPt = pt;
 	*randomRef = polyRef;
 
 	return DT_SUCCESS;
@@ -356,7 +362,7 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 dtStatus dtNavMeshQuery::findRandomPointAroundCircle(
 	dtPolyRef startRef, const float* centerPos, const float maxRadius,
 	const dtQueryFilter* filter, float (*frand)(),
-	dtPolyRef* randomRef, float* randomPt) const
+	dtPolyRef* randomRef, std::array<float, 3>* randomPt) const
 {
 	dtAssert(m_nav);
 	dtAssert(m_nodePool);
@@ -531,8 +537,8 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(
 	// Randomly pick point on polygon.
 	// ポリゴン上のポイントをランダムに選択します。
 	const float* v = &randomTile->verts[randomPoly->verts[0] * 3];
-	float verts[3 * DT_VERTS_PER_POLYGON];
-	float areas[DT_VERTS_PER_POLYGON];
+	std::array<float, 3 * DT_VERTS_PER_POLYGON> verts{};
+	std::array<float, DT_VERTS_PER_POLYGON> areas{};
 	dtVcopy(&verts[0 * 3], v);
 
 	for (int j = 1; j < randomPoly->vertCount; ++j)
@@ -543,17 +549,17 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(
 
 	const float s = frand();
 	const float t = frand();
+	ArrayF pt{};
 
-	float pt[3];
-	dtRandomPointInConvexPoly(verts, randomPoly->vertCount, areas, s, t, pt);
+	dtRandomPointInConvexPoly(verts, randomPoly->vertCount, areas.data(), s, t, pt.data());
 
-	float h = 0.0f;
-	dtStatus stat = getPolyHeight(randomPolyRef, pt, &h);
-	if (dtStatusFailed(status))
-		return stat;
+	float h{};
+	dtStatus stat = getPolyHeight(randomPolyRef, pt.data(), &h);
+
+	if (dtStatusFailed(status)) return stat;
+
 	pt[1] = h;
-
-	dtVcopy(randomPt, pt);
+	*randomPt = pt;
 	*randomRef = randomPolyRef;
 
 	return DT_SUCCESS;

@@ -73,7 +73,7 @@ class NavMeshTesterTool : public SampleTool
 
 	std::array<float, 3> m_spos;
 	std::array<float, 3> m_epos;
-	float m_hitPos[3];
+	std::array<float, 3> m_hitPos;
 	float m_hitNormal[3];
 	bool m_hitResult;
 	float m_distanceToWall;

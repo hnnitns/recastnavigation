@@ -720,7 +720,7 @@ void NavMeshTesterTool::reset()
 	m_npolys = 0;
 	m_nstraightPath = 0;
 	m_nsmoothPath = 0;
-	memset(m_hitPos, 0, sizeof(m_hitPos));
+	m_hitPos.fill(0.f);
 	memset(m_hitNormal, 0, sizeof(m_hitNormal));
 	m_distanceToWall = 0;
 }
@@ -975,13 +975,13 @@ void NavMeshTesterTool::recalc()
 			if (t > 1)
 			{
 				// No hit
-				dtVcopy(m_hitPos, m_epos.data());
+				m_hitPos = m_epos;
 				m_hitResult = false;
 			}
 			else
 			{
 				// Hit
-				dtVlerp(m_hitPos, m_spos.data(), m_epos.data(), t);
+				dtVlerp(&m_hitPos, m_spos, m_epos, t);
 				m_hitResult = true;
 			}
 			// Adjust height.
@@ -989,11 +989,11 @@ void NavMeshTesterTool::recalc()
 			{
 				float h{};
 
-				m_navQuery->getPolyHeight(m_polys[m_npolys - 1], m_hitPos, &h);
+				m_navQuery->getPolyHeight(m_polys[m_npolys - 1], m_hitPos.data(), &h);
 				m_hitPos[1] = h;
 			}
 
-			dtVcopy(&m_straightPath[3], m_hitPos);
+			dtVcopy(&m_straightPath[3], m_hitPos.data());
 		}
 	}
 	else if (m_toolMode == TOOLMODE_DISTANCE_TO_WALL)
@@ -1007,7 +1007,7 @@ void NavMeshTesterTool::recalc()
 				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
 			m_distanceToWall = 0.0f;
-			m_navQuery->findDistanceToWall(m_startRef, m_spos.data(), 100.0f, &m_filter, &m_distanceToWall, m_hitPos, m_hitNormal);
+			m_navQuery->findDistanceToWall(m_startRef, m_spos.data(), 100.0f, &m_filter, &m_distanceToWall, m_hitPos.data(), m_hitNormal);
 		}
 	}
 	else if (m_toolMode == TOOLMODE_FIND_POLYS_IN_CIRCLE)
@@ -1158,8 +1158,7 @@ void NavMeshTesterTool::handleRender()
 			dd.depthMask(true);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_PATHFIND_STRAIGHT ||
-		m_toolMode == TOOLMODE_PATHFIND_SLICED)
+	else if (m_toolMode == TOOLMODE_PATHFIND_STRAIGHT || m_toolMode == TOOLMODE_PATHFIND_SLICED)
 	{
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_startRef, startCol);
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_endRef, endCol);

@@ -686,7 +686,7 @@ public:
 	//  @param[out]	closest		The closest point on the polygon. [(x, y, z)]
 	//  @param[out]	posOverPoly	True of the position is over the polygon.
 	// @returns The status flags for the query.
-	dtStatus closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const;
+	dtStatus closestPointOnPoly(dtPolyRef ref, const float* pos, std::array<float, 3>* closest, bool* posOverPoly) const;
 
 	// ソースポイントが外側にある場合、ソースポイントに最も近い境界上のポイントを返します
 	// ポリゴンのxz境界。

@@ -578,7 +578,8 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(
 // See closestPointOnPolyBoundary() for a limited but faster option.
 // 制限されているがより高速なオプションについては、closestPointOnPolyBoundary（）を参照してください。
 //
-dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const
+dtStatus dtNavMeshQuery::closestPointOnPoly(
+	dtPolyRef ref, const float* pos, std::array<float, 3>* closest, bool* posOverPoly) const
 {
 	dtAssert(m_nav);
 	const dtMeshTile* tile = 0;
@@ -597,10 +598,10 @@ dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, flo
 		const float d0 = dtVdist(pos, v0); // 引き算
 		const float d1 = dtVdist(pos, v1); // 引き算
 		const float u = d0 / (d0 + d1);
-		dtVlerp(closest, v0, v1, u); // 線形補間
 
-		if (posOverPoly)
-			*posOverPoly = false;
+		dtVlerp(closest->data(), v0, v1, u); // 線形補間
+
+		if (posOverPoly) *posOverPoly = false;
 
 		return DT_SUCCESS;
 	}
@@ -617,7 +618,7 @@ dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, flo
 	for (int i = 0; i < nv; ++i)
 		dtVcopy(&verts[i * 3], &tile->verts[poly->verts[i] * 3]);
 
-	dtVcopy(closest, pos);
+	dtVcopy(closest->data(), pos);
 	if (!dtDistancePtPolyEdgesSqr(pos, verts.data(), nv, edged.data(), edget.data()))
 	{
 		// Point is outside the polygon, dtClamp to nearest edge.
@@ -634,7 +635,7 @@ dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, flo
 		}
 		const float* va = &verts[imin * 3];
 		const float* vb = &verts[((imin + 1) % nv) * 3];
-		dtVlerp(closest, va, vb, edget[imin]);
+		dtVlerp(closest->data(), va, vb, edget[imin]);
 
 		if (posOverPoly)
 			*posOverPoly = false;
@@ -650,7 +651,7 @@ dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, flo
 	for (int j = 0; j < pd->triCount; ++j)
 	{
 		const uint8_t* t = &tile->detailTris[(pd->triBase + j) * 4];
-		const float* v[3];
+		std::array<float*, 3> v{};
 		for (int k = 0; k < 3; ++k)
 		{
 			if (t[k] < poly->vertCount)
@@ -659,9 +660,9 @@ dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, flo
 				v[k] = &tile->detailVerts[(pd->vertBase + (t[k] - poly->vertCount)) * 3];
 		}
 		float h;
-		if (dtClosestHeightPointTriangle(closest, v[0], v[1], v[2], h))
+		if (dtClosestHeightPointTriangle(closest->data(), v[0], v[1], v[2], h))
 		{
-			closest[1] = h;
+			closest->at(1) = h;
 			break;
 		}
 	}
@@ -815,17 +816,17 @@ public:
 		for (int i = 0; i < count; ++i)
 		{
 			dtPolyRef ref = refs[i];
-			float closestPtPoly[3];
-			float diff[3];
-			bool posOverPoly = false;
-			float d;
-			m_query->closestPointOnPoly(ref, m_center, closestPtPoly, &posOverPoly);
+			ArrayF closestPtPoly{}, diff{};
+			bool posOverPoly{};
+			float d{};
+
+			m_query->closestPointOnPoly(ref, m_center, &closestPtPoly, &posOverPoly);
 
 			// If a point is directly over a polygon and closer than
 			// climb height, favor that instead of straight line nearest point.
 			// ポイントがポリゴンの真上にあり、上昇の高さよりも近い場合は、
 			// 直線に最も近いポイントではなく、ポイントを優先します。
-			dtVsub(diff, m_center, closestPtPoly);
+			dtVsub(diff.data(), m_center, closestPtPoly.data());
 			if (posOverPoly)
 			{
 				d = dtAbs(diff[1]) - tile->header->walkableClimb;
@@ -838,7 +839,7 @@ public:
 
 			if (d < m_nearestDistanceSqr)
 			{
-				dtVcopy(m_nearestPoint, closestPtPoly);
+				dtVcopy(m_nearestPoint, closestPtPoly.data());
 
 				m_nearestDistanceSqr = d;
 				m_nearestRef = ref;

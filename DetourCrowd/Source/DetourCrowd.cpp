@@ -743,7 +743,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 				{
 					// Partial path, constrain target position inside the last polygon.
 					status = m_navquery->closestPointOnPoly(reqPath[reqPathCount - 1], ag->targetPos.data(),
-						reqPos.data(), 0);
+						&reqPos, nullptr);
 
 					if (dtStatusFailed(status))
 						reqPathCount = 0;
@@ -891,8 +891,9 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 					{
 						// Partial path, constrain target position inside the last polygon.
 						ArrayF nearest{};
+
 						status =
-							m_navquery->closestPointOnPoly(res[nres - 1], targetPos.data(), nearest.data(), 0);
+							m_navquery->closestPointOnPoly(res[nres - 1], targetPos.data(), &nearest, nullptr);
 
 						if (dtStatusSucceed(status))
 							targetPos = nearest;

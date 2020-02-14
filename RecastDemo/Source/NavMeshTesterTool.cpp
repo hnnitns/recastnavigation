@@ -568,8 +568,8 @@ void NavMeshTesterTool::handleToggle()
 		{
 			// Iterate over the path to find smooth path on the detail mesh surface.
 			// パスを反復処理して、詳細メッシュサーフェス上の滑らかなパスを見つけます。
-			m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), m_iterPos.data(), 0);
-			m_navQuery->closestPointOnPoly(m_pathIterPolys[m_pathIterPolyCount - 1], m_epos.data(), m_targetPos.data(), 0);
+			m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), &m_iterPos, 0);
+			m_navQuery->closestPointOnPoly(m_pathIterPolys[m_pathIterPolyCount - 1], m_epos.data(), &m_targetPos, 0);
 
 			m_nsmoothPath = 0;
 
@@ -726,7 +726,7 @@ void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 				ArrayF epos{ m_epos };
 
 				if (m_polys[m_npolys - 1] != m_endRef)
-					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), epos.data(), 0);
+					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), &epos, 0);
 
 				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
 					m_straightPath.data(), m_straightPathFlags.data(),
@@ -796,8 +796,8 @@ void NavMeshTesterTool::recalc()
 				int npolys = m_npolys;
 
 				ArrayF iterPos{}, targetPos{};
-				m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), iterPos.data(), 0);
-				m_navQuery->closestPointOnPoly(polys[npolys - 1], m_epos.data(), targetPos.data(), 0);
+				m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), &iterPos, nullptr);
+				m_navQuery->closestPointOnPoly(polys[npolys - 1], m_epos.data(), &targetPos, nullptr);
 
 				constexpr float STEP_SIZE = 0.5f;
 				constexpr float SLOP = 0.01f;
@@ -946,7 +946,7 @@ void NavMeshTesterTool::recalc()
 				ArrayF epos{ m_epos };
 
 				if (m_polys[m_npolys - 1] != m_endRef)
-					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), epos.data(), 0);
+					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), &epos, nullptr);
 
 				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
 					m_straightPath.data(), m_straightPathFlags.data(),

@@ -569,7 +569,7 @@ void NavMeshTesterTool::handleToggle()
 
 	if (!getSteerTarget(m_navQuery, m_iterPos.data(), m_targetPos.data(), SLOP,
 		m_pathIterPolys.data(), m_pathIterPolyCount, &steerPos, steerPosFlag, steerPosRef,
-		m_steerPoints, &m_steerPointCount))
+		m_steerPoints.data(), &m_steerPointCount))
 		return;
 
 	m_steerPos = steerPos;

@@ -87,7 +87,7 @@ private:
 	int m_pathIterPolyCount;
 	std::array<float, 3> m_prevIterPos, m_iterPos, m_steerPos, m_targetPos;
 
-	float m_steerPoints[MAX_STEER_POINTS * 3];
+	std::array<float, MAX_STEER_POINTS * 3> m_steerPoints;
 	int m_steerPointCount;
 
 public:

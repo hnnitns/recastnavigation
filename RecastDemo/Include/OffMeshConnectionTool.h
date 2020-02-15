@@ -26,7 +26,7 @@
 class OffMeshConnectionTool : public SampleTool
 {
 	Sample* m_sample;
-	float m_hitPos[3];
+	std::array<float, 3> m_hitPos;
 	bool m_hitPosSet;
 	bool m_bidir;
 	unsigned char m_oldFlags;

@@ -726,7 +726,7 @@ void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 				ArrayF epos{ m_epos };
 
 				if (m_polys[m_npolys - 1] != m_endRef)
-					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), &epos, 0);
+					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), &epos, nullptr);
 
 				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
 					m_straightPath.data(), m_straightPathFlags.data(),

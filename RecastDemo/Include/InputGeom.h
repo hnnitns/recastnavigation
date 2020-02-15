@@ -152,7 +152,7 @@ public:
 	const auto& getOffMeshConnectionAreas() const { return m_offMeshConAreas; }
 	const auto& getOffMeshConnectionFlags() const { return m_offMeshConFlags; }
 	const auto& getOffMeshConnectionId() const { return m_offMeshConId; }
-	void addOffMeshConnection(const float* spos, const float* epos, const float rad,
+	void addOffMeshConnection(const std::array<float, 3>& spos, const float* epos, const float rad,
 		unsigned char bidir, unsigned char area, unsigned short flags);
 	void deleteOffMeshConnection(int i);
 	void drawOffMeshConnections(struct duDebugDraw* dd, bool hilight = false);

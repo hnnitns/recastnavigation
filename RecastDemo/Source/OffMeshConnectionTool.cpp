@@ -23,11 +23,7 @@
 #include <cfloat>
 #include "SDL.h"
 #include "SDL_opengl.h"
-#ifdef __APPLE__
-#	include <OpenGL/glu>
-#else
-#	include <GL/glu.h>
-#endif
+#include <GL/glu.h>
 #include "imgui.h"
 #include "OffMeshConnectionTool.h"
 #include "InputGeom.h"
@@ -35,10 +31,6 @@
 #include "Recast.h"
 #include "RecastDebugDraw.h"
 #include "DetourDebugDraw.h"
-
-#ifdef WIN32
-#	define snprintf _snprintf
-#endif
 
 OffMeshConnectionTool::OffMeshConnectionTool() :
 	m_sample(0),
@@ -121,13 +113,14 @@ void OffMeshConnectionTool::handleClick(const float* /*s*/, const float* p, bool
 		// Create
 		if (!m_hitPosSet)
 		{
-			rcVcopy(m_hitPos, p);
+			rcVcopy(m_hitPos.data(), p);
 			m_hitPosSet = true;
 		}
 		else
 		{
-			const unsigned char area = SAMPLE_POLYAREA_FLAG_JUMP;
-			const unsigned short flags = SAMPLE_POLYFLAGS_JUMP;
+			constexpr uint8_t area = SAMPLE_POLYAREA_FLAG_JUMP;
+			constexpr uint16_t flags = SAMPLE_POLYFLAGS_JUMP;
+
 			geom->addOffMeshConnection(m_hitPos, p, m_sample->getAgentRadius(), m_bidir ? 1 : 0, area, flags);
 			m_hitPosSet = false;
 		}

@@ -262,6 +262,14 @@ void rcCalcGridSize(const float* bmin, const float* bmax, float cs, int* w, int*
 	*h = (int)((bmax[2] - bmin[2]) / cs + 0.5f);
 }
 
+// 境界ボックスとグリッドセルサイズに基づいてグリッドサイズを計算します。
+void rcCalcGridSize(
+	const std::array<float, 3>& bmin, const std::array<float, 3>& bmax, float cs, int* w, int* h)
+{
+	*w = (int)((bmax[0] - bmin[0]) / cs + 0.5f);
+	*h = (int)((bmax[2] - bmin[2]) / cs + 0.5f);
+}
+
 // @par
 //
 // See the #rcConfig documentation for more information on the configuration parameters.

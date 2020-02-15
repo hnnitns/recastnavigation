@@ -100,8 +100,7 @@ Sample::Sample() :
 	m_navQuery = dtAllocNavMeshQuery();
 	m_crowd = dtAllocCrowd();
 
-	for (int i = 0; i < MAX_TOOLS; i++)
-		m_toolStates[i] = 0;
+	m_toolStates.fill(nullptr);
 }
 
 Sample::~Sample()
@@ -109,35 +108,33 @@ Sample::~Sample()
 	dtFreeNavMeshQuery(m_navQuery);
 	dtFreeNavMesh(m_navMesh);
 	dtFreeCrowd(m_crowd);
+
 	delete m_tool;
-	for (int i = 0; i < MAX_TOOLS; i++)
-		delete m_toolStates[i];
+
+	for (auto& tool : m_toolStates)
+	{
+		delete tool;
+		tool = nullptr;
+	}
 }
 
 void Sample::setTool(SampleTool* tool)
 {
 	delete m_tool;
 	m_tool = tool;
-	if (tool)
-		m_tool->init(this);
+
+	if (tool) m_tool->init(this);
 }
 
-void Sample::handleSettings()
-{
-}
+void Sample::handleSettings() { }
 
-void Sample::handleTools()
-{
-}
+void Sample::handleTools() { }
 
-void Sample::handleDebugMode()
-{
-}
+void Sample::handleDebugMode() { }
 
 void Sample::handleRender()
 {
-	if (!m_geom)
-		return;
+	if (!m_geom) return;
 
 	// Draw mesh // メッシュを描画します
 	duDebugDrawTriMesh(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
@@ -151,9 +148,7 @@ void Sample::handleRender()
 	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], Color, 1.f);
 }
 
-void Sample::handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/)
-{
-}
+void Sample::handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/) { }
 
 void Sample::handleMeshChanged(InputGeom* geom)
 {
@@ -163,57 +158,57 @@ void Sample::handleMeshChanged(InputGeom* geom)
 
 	if (buildSettings)
 	{
-		m_cellSize = buildSettings->cellSize;
-		m_cellHeight = buildSettings->cellHeight;
-		m_agentHeight = buildSettings->agentHeight;
-		m_agentRadius = buildSettings->agentRadius;
-		m_agentMaxClimb = buildSettings->agentMaxClimb;
-		m_agentMaxSlope = buildSettings->agentMaxSlope;
-		m_regionMinSize = buildSettings->regionMinSize;
-		m_regionMergeSize = buildSettings->regionMergeSize;
-		m_edgeMaxLen = buildSettings->edgeMaxLen;
-		m_edgeMaxError = buildSettings->edgeMaxError;
-		m_vertsPerPoly = buildSettings->vertsPerPoly;
-		m_detailSampleDist = buildSettings->detailSampleDist;
+		m_cellSize             = buildSettings->cellSize;
+		m_cellHeight           = buildSettings->cellHeight;
+		m_agentHeight          = buildSettings->agentHeight;
+		m_agentRadius          = buildSettings->agentRadius;
+		m_agentMaxClimb        = buildSettings->agentMaxClimb;
+		m_agentMaxSlope        = buildSettings->agentMaxSlope;
+		m_regionMinSize        = buildSettings->regionMinSize;
+		m_regionMergeSize      = buildSettings->regionMergeSize;
+		m_edgeMaxLen           = buildSettings->edgeMaxLen;
+		m_edgeMaxError         = buildSettings->edgeMaxError;
+		m_vertsPerPoly         = buildSettings->vertsPerPoly;
+		m_detailSampleDist     = buildSettings->detailSampleDist;
 		m_detailSampleMaxError = buildSettings->detailSampleMaxError;
-		m_partitionType = buildSettings->partitionType;
+		m_partitionType        = buildSettings->partitionType;
 	}
 }
 
 void Sample::collectSettings(BuildSettings& settings)
 {
-	settings.cellSize = m_cellSize;
-	settings.cellHeight = m_cellHeight;
-	settings.agentHeight = m_agentHeight;
-	settings.agentRadius = m_agentRadius;
-	settings.agentMaxClimb = m_agentMaxClimb;
-	settings.agentMaxSlope = m_agentMaxSlope;
-	settings.regionMinSize = m_regionMinSize;
-	settings.regionMergeSize = m_regionMergeSize;
-	settings.edgeMaxLen = m_edgeMaxLen;
-	settings.edgeMaxError = m_edgeMaxError;
-	settings.vertsPerPoly = m_vertsPerPoly;
-	settings.detailSampleDist = m_detailSampleDist;
+	settings.cellSize             = m_cellSize;
+	settings.cellHeight           = m_cellHeight;
+	settings.agentHeight          = m_agentHeight;
+	settings.agentRadius          = m_agentRadius;
+	settings.agentMaxClimb        = m_agentMaxClimb;
+	settings.agentMaxSlope        = m_agentMaxSlope;
+	settings.regionMinSize        = m_regionMinSize;
+	settings.regionMergeSize      = m_regionMergeSize;
+	settings.edgeMaxLen           = m_edgeMaxLen;
+	settings.edgeMaxError         = m_edgeMaxError;
+	settings.vertsPerPoly         = m_vertsPerPoly;
+	settings.detailSampleDist     = m_detailSampleDist;
 	settings.detailSampleMaxError = m_detailSampleMaxError;
-	settings.partitionType = m_partitionType;
+	settings.partitionType        = m_partitionType;
 }
 
 void Sample::resetCommonSettings()
 {
-	m_cellSize = 0.3f;
-	m_cellHeight = 0.2f;
-	m_agentHeight = 2.0f;
-	m_agentRadius = 0.6f;
-	m_agentMaxClimb = 0.9f;
-	m_agentMaxSlope = 45.0f;
-	m_regionMinSize = 8;
-	m_regionMergeSize = 20;
-	m_edgeMaxLen = 12.0f;
-	m_edgeMaxError = 1.3f;
-	m_vertsPerPoly = 6.0f;
-	m_detailSampleDist = 6.0f;
+	m_cellSize             = 0.3f;
+	m_cellHeight           = 0.2f;
+	m_agentHeight          = 2.f;
+	m_agentRadius          = 0.6f;
+	m_agentMaxClimb        = 0.9f;
+	m_agentMaxSlope        = 45.f;
+	m_regionMinSize        = 8;
+	m_regionMergeSize      = 20;
+	m_edgeMaxLen           = 12.f;
+	m_edgeMaxError         = 1.3f;
+	m_vertsPerPoly         = 6.f;
+	m_detailSampleDist     = 6.f;
 	m_detailSampleMaxError = 1.f;
-	m_partitionType = SAMPLE_PARTITION_WATERSHED;
+	m_partitionType        = SAMPLE_PARTITION_WATERSHED;
 }
 
 void Sample::handleCommonSettings()
@@ -233,7 +228,7 @@ void Sample::handleCommonSettings()
 		std::array<char, 64u> text{};
 
 		// グリットサイズの計算
-		rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
+		rcCalcGridSize(bmin, bmax, m_cellSize, &gw, &gh);
 
 		snprintf(text.data(), text.size(), "Voxels  %d x %d", gw, gh);
 		imguiValue(text.data());
@@ -345,50 +340,46 @@ void Sample::handleUpdate(const float dt)
 {
 	if (m_tool)
 		m_tool->handleUpdate(dt);
+
 	updateToolStates(dt);
 }
 
 void Sample::updateToolStates(const float dt)
 {
-	for (int i = 0; i < MAX_TOOLS; i++)
+	for (auto* tool : m_toolStates)
 	{
-		if (m_toolStates[i])
-			m_toolStates[i]->handleUpdate(dt);
+		if (tool) tool->handleUpdate(dt);
 	}
 }
 
 void Sample::initToolStates(Sample* sample)
 {
-	for (int i = 0; i < MAX_TOOLS; i++)
+	for (auto* tool : m_toolStates)
 	{
-		if (m_toolStates[i])
-			m_toolStates[i]->init(sample);
+		if (tool) tool->init(sample);
 	}
 }
 
 void Sample::resetToolStates()
 {
-	for (int i = 0; i < MAX_TOOLS; i++)
+	for (auto* tool : m_toolStates)
 	{
-		if (m_toolStates[i])
-			m_toolStates[i]->reset();
+		if (tool) tool->reset();
 	}
 }
 
 void Sample::renderToolStates()
 {
-	for (int i = 0; i < MAX_TOOLS; i++)
+	for (auto* tool : m_toolStates)
 	{
-		if (m_toolStates[i])
-			m_toolStates[i]->handleRender();
+		if (tool) tool->handleRender();
 	}
 }
 
 void Sample::renderOverlayToolStates(double* proj, double* model, int* view)
 {
-	for (int i = 0; i < MAX_TOOLS; i++)
+	for (auto* tool : m_toolStates)
 	{
-		if (m_toolStates[i])
-			m_toolStates[i]->handleRenderOverlay(proj, model, view);
+		if (tool) tool->handleRenderOverlay(proj, model, view);
 	}
 }

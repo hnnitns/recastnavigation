@@ -166,7 +166,7 @@ protected:
 	bool m_filterWalkableLowHeightSpans;
 
 	SampleTool* m_tool;
-	SampleToolState* m_toolStates[MAX_TOOLS];
+	std::array<SampleToolState*, MAX_TOOLS> m_toolStates;
 
 	BuildContext* m_ctx;
 
@@ -176,13 +176,13 @@ public:
 	Sample();
 	virtual ~Sample();
 
-	void setContext(BuildContext* ctx) { m_ctx = ctx; }
+	void setContext(BuildContext* ctx) noexcept { m_ctx = ctx; }
 
 	void setTool(SampleTool* tool);
-	SampleToolState* getToolState(int type) { return m_toolStates[type]; }
-	void setToolState(int type, SampleToolState* s) { m_toolStates[type] = s; }
+	SampleToolState* getToolState(int type) noexcept { return m_toolStates[type]; }
+	void setToolState(int type, SampleToolState* s) noexcept { m_toolStates[type] = s; }
 
-	SampleDebugDraw& getDebugDraw() { return m_dd; }
+	SampleDebugDraw& getDebugDraw() noexcept { return m_dd; }
 
 	virtual void handleSettings();
 	virtual void handleTools();
@@ -197,16 +197,16 @@ public:
 	virtual void handleUpdate(const float dt);
 	virtual void collectSettings(struct BuildSettings& settings);
 
-	virtual class InputGeom* getInputGeom() { return m_geom; }
-	virtual class dtNavMesh* getNavMesh() { return m_navMesh; }
-	virtual class dtNavMeshQuery* getNavMeshQuery() { return m_navQuery; }
-	virtual class dtCrowd* getCrowd() { return m_crowd; }
-	virtual float getAgentRadius() { return m_agentRadius; }
-	virtual float getAgentHeight() { return m_agentHeight; }
-	virtual float getAgentClimb() { return m_agentMaxClimb; }
+	virtual class InputGeom* getInputGeom() noexcept { return m_geom; }
+	virtual class dtNavMesh* getNavMesh() noexcept { return m_navMesh; }
+	virtual class dtNavMeshQuery* getNavMeshQuery() noexcept { return m_navQuery; }
+	virtual class dtCrowd* getCrowd() noexcept { return m_crowd; }
+	virtual float getAgentRadius() noexcept { return m_agentRadius; }
+	virtual float getAgentHeight() noexcept { return m_agentHeight; }
+	virtual float getAgentClimb() noexcept { return m_agentMaxClimb; }
 
-	uint8_t getNavMeshDrawFlags() const { return m_navMeshDrawFlags; }
-	void setNavMeshDrawFlags(uint8_t flags) { m_navMeshDrawFlags = flags; }
+	uint8_t getNavMeshDrawFlags() const noexcept { return m_navMeshDrawFlags; }
+	void setNavMeshDrawFlags(uint8_t flags) noexcept { m_navMeshDrawFlags = flags; }
 
 	void updateToolStates(const float dt);
 	void initToolStates(Sample* sample);

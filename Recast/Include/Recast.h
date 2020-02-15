@@ -1389,6 +1389,21 @@ void rcCalcBounds(const float* verts, int nv, float* bmin, float* bmax);
 //  x軸に沿った幅。 [制限：> = 0] [単位：vx]
 //  @param[out] h : The height along the z-axis. [Limit: >= 0] [Units: vx]
 //  z軸に沿った高さ。 [制限：> = 0] [単位：vx]
+void rcCalcGridSize(const std::array<float, 3>& bmin, const std::array<float, 3>& bmax, float cs, int* w, int* h);
+
+// Calculates the grid size based on the bounding box and grid cell size.
+// 境界ボックスとグリッドセルサイズに基づいてグリッドサイズを計算します。
+//  @ingroup recast
+//  @param[in] bmin : The minimum bounds of the AABB. [(x, y, z)] [Units: wu]
+//  AABBの最小境界。 [（x、y、z）] [単位：wu]
+//  @param[in] bmax	The maximum bounds of the AABB. [(x, y, z)] [Units: wu]
+//  AABBの最大境界。 [（x、y、z）] [単位：wu]
+//  @param[in] cs : The xz-plane cell size. [Limit: > 0] [Units: wu]
+//  xz平面のセルサイズ。 [制限：> 0] [単位：wu]
+//  @param[out] w : The width along the x-axis. [Limit: >= 0] [Units: vx]
+//  x軸に沿った幅。 [制限：> = 0] [単位：vx]
+//  @param[out] h : The height along the z-axis. [Limit: >= 0] [Units: vx]
+//  z軸に沿った高さ。 [制限：> = 0] [単位：vx]
 void rcCalcGridSize(const float* bmin, const float* bmax, float cs, int* w, int* h);
 
 // Initializes a new heightfield. // 新しい地形を初期化します。

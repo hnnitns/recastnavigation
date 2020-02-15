@@ -607,9 +607,10 @@ public:
 	//  @param[out]	hitNormal		The normalized ray formed from the wall point to the
 	//  								source point. [(x, y, z)]
 	// @returns The status flags for the query.
-	dtStatus findDistanceToWall(dtPolyRef startRef, const float* centerPos, const float maxRadius,
+	dtStatus findDistanceToWall(
+		dtPolyRef startRef, const std::array<float, 3>& centerPos, const float maxRadius,
 		const dtQueryFilter* filter,
-		float* hitDist, float* hitPos, float* hitNormal) const;
+		float* hitDist, std::array<float, 3>* hitPos, std::array<float, 3>* hitNormal) const;
 
 	// オプションでポータルを含む、指定されたポリゴンのセグメントを返します。
 	// @param [in] refポリゴンの参照ID。

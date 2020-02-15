@@ -286,7 +286,7 @@ NavMeshTesterTool::NavMeshTesterTool()
 	m_hitResult(false), m_distanceToWall(0), m_neighbourhoodRadius(0), m_randomRadius(0),
 	m_sposSet(false), m_eposSet(false), m_pathIterNum(0), m_pathIterPolyCount(0), m_steerPointCount(0)
 {
-	m_filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
+	m_filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL^ SAMPLE_POLYFLAGS_DISABLED);
 	m_filter.setExcludeFlags(0);
 
 	m_polyPickExt[0] = 2;
@@ -769,338 +769,358 @@ void NavMeshTesterTool::recalc()
 
 	m_pathFindStatus = DT_FAILURE;
 
-	if (m_toolMode == ToolMode::TOOLMODE_PATHFIND_FOLLOW)
+	switch (m_toolMode)
 	{
-		m_pathIterNum = 0;
-		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
+		case ToolMode::TOOLMODE_PATHFIND_FOLLOW:
 		{
+			m_pathIterNum = 0;
+			if (m_sposSet && m_eposSet && m_startRef && m_endRef)
+			{
 #ifdef DUMP_REQS
-			printf("pi  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+				printf("pi  %f %f %f  %f %f %f  0x%x 0x%x\n",
+					m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
 
-			m_navQuery->findPath(m_startRef, m_endRef, m_spos, m_epos, &m_filter, &m_polys, &m_npolys, MAX_POLYS);
-
-			m_nsmoothPath = 0;
-
-			if (m_npolys)
-			{
-				// Iterate over the path to find smooth path on the detail mesh surface.
-				std::array<dtPolyRef, MAX_POLYS> polys{};
-
-				{
-					size_t i{};
-					std::for_each_n(polys.begin(), m_npolys, [&](dtPolyRef& poly) { poly = m_polys[i++]; });
-				}
-				int npolys = m_npolys;
-
-				ArrayF iterPos{}, targetPos{};
-				m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), &iterPos, nullptr);
-				m_navQuery->closestPointOnPoly(polys[npolys - 1], m_epos.data(), &targetPos, nullptr);
-
-				constexpr float STEP_SIZE = 0.5f;
-				constexpr float SLOP = 0.01f;
+				m_navQuery->findPath(m_startRef, m_endRef, m_spos, m_epos, &m_filter, &m_polys, &m_npolys, MAX_POLYS);
 
 				m_nsmoothPath = 0;
 
-				dtVcopy(&m_smoothPath[m_nsmoothPath * 3], iterPos.data());
-				m_nsmoothPath++;
-
-				// Move towards target a small advancement at a time until target reached or
-				// when ran out of memory to store the path.
-				while (npolys && m_nsmoothPath < MAX_SMOOTH)
+				if (m_npolys)
 				{
-					// Find location to steer towards.
-					ArrayF steerPos{};
-					uint8_t steerPosFlag;
-					dtPolyRef steerPosRef;
+					// Iterate over the path to find smooth path on the detail mesh surface.
+					std::array<dtPolyRef, MAX_POLYS> polys{};
 
-					if (!getSteerTarget(m_navQuery, iterPos, targetPos, SLOP, polys, npolys, &steerPos,
-						steerPosFlag, steerPosRef))
-						break;
-
-					bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END) ? true : false;
-					bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ? true : false;
-
-					// Find movement delta.
-					ArrayF delta{ steerPos - iterPos };
-					float len{};
-
-					len = dtMathSqrtf(dtVdot(delta, delta));
-					// If the steer target is end of path or off-mesh link, do not move past the location.
-					if ((endOfPath || offMeshConnection) && len < STEP_SIZE)
-						len = 1;
-					else
-						len = STEP_SIZE / len;
-					ArrayF moveTgt{};
-					dtVmad(&moveTgt, iterPos, delta, len);
-
-					// Move
-					ArrayF result{};
-					std::array<dtPolyRef, 16> visited{};
-					int nvisited{};
-					float h{};
-
-					m_navQuery->moveAlongSurface(polys[0], iterPos.data(), moveTgt.data(), &m_filter,
-						result.data(), visited.data(), &nvisited, 16);
-
-					npolys = fixupCorridor(&polys, npolys, MAX_POLYS, visited, nvisited);
-					npolys = fixupShortcuts(&polys, npolys, m_navQuery);
-
-					m_navQuery->getPolyHeight(polys[0], result, &h);
-					result[1] = h;
-					iterPos = result;
-
-					// Handle end of path and off-mesh links when close enough.
-					if (endOfPath && inRange(iterPos, steerPos, SLOP, 1.f))
 					{
-						// Reached end of path.
-						iterPos = targetPos;
+						size_t i{};
+						std::for_each_n(polys.begin(), m_npolys, [&](dtPolyRef& poly) { poly = m_polys[i++]; });
+					}
+					int npolys = m_npolys;
 
+					ArrayF iterPos{}, targetPos{};
+					m_navQuery->closestPointOnPoly(m_startRef, m_spos.data(), &iterPos, nullptr);
+					m_navQuery->closestPointOnPoly(polys[npolys - 1], m_epos.data(), &targetPos, nullptr);
+
+					constexpr float STEP_SIZE = 0.5f;
+					constexpr float SLOP = 0.01f;
+
+					m_nsmoothPath = 0;
+
+					dtVcopy(&m_smoothPath[m_nsmoothPath * 3], iterPos.data());
+					m_nsmoothPath++;
+
+					// Move towards target a small advancement at a time until target reached or
+					// when ran out of memory to store the path.
+					while (npolys && m_nsmoothPath < MAX_SMOOTH)
+					{
+						// Find location to steer towards.
+						ArrayF steerPos{};
+						uint8_t steerPosFlag;
+						dtPolyRef steerPosRef;
+
+						if (!getSteerTarget(m_navQuery, iterPos, targetPos, SLOP, polys, npolys, &steerPos,
+							steerPosFlag, steerPosRef))
+							break;
+
+						bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END) ? true : false;
+						bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ? true : false;
+
+						// Find movement delta.
+						ArrayF delta{ steerPos - iterPos };
+						float len{};
+
+						len = dtMathSqrtf(dtVdot(delta, delta));
+						// If the steer target is end of path or off-mesh link, do not move past the location.
+						if ((endOfPath || offMeshConnection) && len < STEP_SIZE)
+							len = 1;
+						else
+							len = STEP_SIZE / len;
+						ArrayF moveTgt{};
+						dtVmad(&moveTgt, iterPos, delta, len);
+
+						// Move
+						ArrayF result{};
+						std::array<dtPolyRef, 16> visited{};
+						int nvisited{};
+						float h{};
+
+						m_navQuery->moveAlongSurface(polys[0], iterPos.data(), moveTgt.data(), &m_filter,
+							result.data(), visited.data(), &nvisited, 16);
+
+						npolys = fixupCorridor(&polys, npolys, MAX_POLYS, visited, nvisited);
+						npolys = fixupShortcuts(&polys, npolys, m_navQuery);
+
+						m_navQuery->getPolyHeight(polys[0], result, &h);
+						result[1] = h;
+						iterPos = result;
+
+						// Handle end of path and off-mesh links when close enough.
+						if (endOfPath && inRange(iterPos, steerPos, SLOP, 1.f))
+						{
+							// Reached end of path.
+							iterPos = targetPos;
+
+							if (m_nsmoothPath < MAX_SMOOTH)
+							{
+								dtVcopy(&m_smoothPath[m_nsmoothPath * 3], iterPos.data());
+								m_nsmoothPath++;
+							}
+							break;
+						}
+						else if (offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.f))
+						{
+							// Reached off-mesh connection.
+							ArrayF startPos{}, endPos{};
+
+							// Advance the path up to and over the off-mesh connection.
+							dtPolyRef prevRef{}, polyRef = polys[0];
+							int npos{};
+
+							while (npos < npolys && polyRef != steerPosRef)
+							{
+								prevRef = polyRef;
+								polyRef = polys[npos];
+								npos++;
+							}
+
+							for (int i = npos; i < npolys; ++i)
+								polys[i - npos] = polys[i];
+
+							npolys -= npos;
+
+							// Handle the connection.
+							dtStatus status =
+								m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, &startPos, &endPos);
+
+							if (dtStatusSucceed(status))
+							{
+								if (m_nsmoothPath < MAX_SMOOTH)
+								{
+									dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos.data());
+									m_nsmoothPath++;
+									// Hack to make the dotted path not visible during off-mesh connection.
+									if (m_nsmoothPath & 1)
+									{
+										dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos.data());
+										m_nsmoothPath++;
+									}
+								}
+								// Move position at the other side of the off-mesh link.
+								iterPos = endPos;
+
+								float eh{};
+								m_navQuery->getPolyHeight(polys[0], iterPos, &eh);
+								iterPos[1] = eh;
+							}
+						}
+
+						// Store results.
 						if (m_nsmoothPath < MAX_SMOOTH)
 						{
 							dtVcopy(&m_smoothPath[m_nsmoothPath * 3], iterPos.data());
 							m_nsmoothPath++;
 						}
-						break;
-					}
-					else if (offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.f))
-					{
-						// Reached off-mesh connection.
-						ArrayF startPos{}, endPos{};
-
-						// Advance the path up to and over the off-mesh connection.
-						dtPolyRef prevRef{}, polyRef = polys[0];
-						int npos{};
-
-						while (npos < npolys && polyRef != steerPosRef)
-						{
-							prevRef = polyRef;
-							polyRef = polys[npos];
-							npos++;
-						}
-
-						for (int i = npos; i < npolys; ++i)
-							polys[i - npos] = polys[i];
-
-						npolys -= npos;
-
-						// Handle the connection.
-						dtStatus status =
-							m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, &startPos, &endPos);
-
-						if (dtStatusSucceed(status))
-						{
-							if (m_nsmoothPath < MAX_SMOOTH)
-							{
-								dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos.data());
-								m_nsmoothPath++;
-								// Hack to make the dotted path not visible during off-mesh connection.
-								if (m_nsmoothPath & 1)
-								{
-									dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos.data());
-									m_nsmoothPath++;
-								}
-							}
-							// Move position at the other side of the off-mesh link.
-							iterPos = endPos;
-
-							float eh{};
-							m_navQuery->getPolyHeight(polys[0], iterPos, &eh);
-							iterPos[1] = eh;
-						}
-					}
-
-					// Store results.
-					if (m_nsmoothPath < MAX_SMOOTH)
-					{
-						dtVcopy(&m_smoothPath[m_nsmoothPath * 3], iterPos.data());
-						m_nsmoothPath++;
 					}
 				}
 			}
-		}
-		else
-		{
-			m_npolys = 0;
-			m_nsmoothPath = 0;
-		}
-	}
-	else if (m_toolMode == ToolMode::TOOLMODE_PATHFIND_STRAIGHT)
-	{
-		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
-		{
-#ifdef DUMP_REQS
-			printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
-			m_navQuery->findPath(m_startRef, m_endRef, m_spos, m_epos, &m_filter, &m_polys, &m_npolys,
-				MAX_POLYS);
-
-			m_nstraightPath = 0;
-
-			if (m_npolys)
+			else
 			{
-				// In case of partial path, make sure the end point is clamped to the last polygon.
-				ArrayF epos{ m_epos };
-
-				if (m_polys[m_npolys - 1] != m_endRef)
-					m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), &epos, nullptr);
-
-				m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
-					m_straightPath.data(), m_straightPathFlags.data(),
-					m_straightPathPolys.data(), &m_nstraightPath, MAX_POLYS, m_straightPathOptions);
+				m_npolys = 0;
+				m_nsmoothPath = 0;
 			}
-		}
-		else
-		{
-			m_npolys = 0;
-			m_nstraightPath = 0;
-		}
-	}
-	else if (m_toolMode == ToolMode::TOOLMODE_PATHFIND_SLICED)
-	{
-		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
-		{
-#ifdef DUMP_REQS
-			printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
-			m_npolys = 0;
-			m_nstraightPath = 0;
 
-			m_pathFindStatus = m_navQuery->initSlicedFindPath(m_startRef, m_endRef, m_spos.data(), m_epos.data(), &m_filter, DT_FINDPATH_ANY_ANGLE);
+			break;
 		}
-		else
+		case ToolMode::TOOLMODE_PATHFIND_STRAIGHT:
 		{
-			m_npolys = 0;
-			m_nstraightPath = 0;
-		}
-	}
-	else if (m_toolMode == ToolMode::TOOLMODE_RAYCAST)
-	{
-		m_nstraightPath = 0;
-		if (m_sposSet && m_eposSet && m_startRef)
-		{
-#ifdef DUMP_REQS
-			printf("rc  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
-			float t{};
-
-			m_npolys = 0;
-			m_nstraightPath = 2;
-			m_straightPath[0] = m_spos[0];
-			m_straightPath[1] = m_spos[1];
-			m_straightPath[2] = m_spos[2];
-
-			m_navQuery->raycast(m_startRef, m_spos.data(), m_epos.data(), &m_filter, &t, m_hitNormal.data(), m_polys.data(), &m_npolys, MAX_POLYS);
-
-			if (t > 1)
+			if (m_sposSet && m_eposSet && m_startRef && m_endRef)
 			{
-				// No hit
-				m_hitPos = m_epos;
-				m_hitResult = false;
+#ifdef DUMP_REQS
+				printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
+					m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
+				m_navQuery->findPath(m_startRef, m_endRef, m_spos, m_epos, &m_filter, &m_polys, &m_npolys,
+					MAX_POLYS);
+
+				m_nstraightPath = 0;
+
+				if (m_npolys)
+				{
+					// In case of partial path, make sure the end point is clamped to the last polygon.
+					ArrayF epos{ m_epos };
+
+					if (m_polys[m_npolys - 1] != m_endRef)
+						m_navQuery->closestPointOnPoly(m_polys[m_npolys - 1], m_epos.data(), &epos, nullptr);
+
+					m_navQuery->findStraightPath(m_spos, epos, m_polys.data(), m_npolys,
+						m_straightPath.data(), m_straightPathFlags.data(),
+						m_straightPathPolys.data(), &m_nstraightPath, MAX_POLYS, m_straightPathOptions);
+				}
 			}
 			else
 			{
-				// Hit
-				dtVlerp(&m_hitPos, m_spos, m_epos, t);
-				m_hitResult = true;
+				m_npolys = 0;
+				m_nstraightPath = 0;
 			}
-			// Adjust height.
-			if (m_npolys > 0)
+
+			break;
+		}
+		case ToolMode::TOOLMODE_PATHFIND_SLICED:
+		{
+			if (m_sposSet && m_eposSet && m_startRef && m_endRef)
 			{
-				float h{};
+#ifdef DUMP_REQS
+				printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
+					m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
+				m_npolys = 0;
+				m_nstraightPath = 0;
 
-				m_navQuery->getPolyHeight(m_polys[m_npolys - 1], m_hitPos, &h);
-				m_hitPos[1] = h;
+				m_pathFindStatus = m_navQuery->initSlicedFindPath(m_startRef, m_endRef, m_spos.data(), m_epos.data(), &m_filter, DT_FINDPATH_ANY_ANGLE);
+			}
+			else
+			{
+				m_npolys = 0;
+				m_nstraightPath = 0;
 			}
 
-			dtVcopy(&m_straightPath[3], m_hitPos.data());
+			break;
 		}
-	}
-	else if (m_toolMode == ToolMode::TOOLMODE_DISTANCE_TO_WALL)
-	{
-		m_distanceToWall = 0;
-		if (m_sposSet && m_startRef)
+		case ToolMode::TOOLMODE_RAYCAST:
 		{
+			m_nstraightPath = 0;
+			if (m_sposSet && m_eposSet && m_startRef)
+			{
 #ifdef DUMP_REQS
-			printf("dw  %f %f %f  %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], 100.0f,
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+				printf("rc  %f %f %f  %f %f %f  0x%x 0x%x\n",
+					m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
-			m_distanceToWall = 0.0f;
-			m_navQuery->findDistanceToWall(m_startRef, m_spos.data(), 100.0f, &m_filter, &m_distanceToWall, m_hitPos.data(), m_hitNormal.data());
+				float t{};
+
+				m_npolys = 0;
+				m_nstraightPath = 2;
+				m_straightPath[0] = m_spos[0];
+				m_straightPath[1] = m_spos[1];
+				m_straightPath[2] = m_spos[2];
+
+				m_navQuery->raycast(m_startRef, m_spos.data(), m_epos.data(), &m_filter, &t, m_hitNormal.data(), m_polys.data(), &m_npolys, MAX_POLYS);
+
+				if (t > 1)
+				{
+					// No hit
+					m_hitPos = m_epos;
+					m_hitResult = false;
+				}
+				else
+				{
+					// Hit
+					dtVlerp(&m_hitPos, m_spos, m_epos, t);
+					m_hitResult = true;
+				}
+				// Adjust height.
+				if (m_npolys > 0)
+				{
+					float h{};
+
+					m_navQuery->getPolyHeight(m_polys[m_npolys - 1], m_hitPos, &h);
+					m_hitPos[1] = h;
+				}
+
+				dtVcopy(&m_straightPath[3], m_hitPos.data());
+			}
+
+			break;
 		}
-	}
-	else if (m_toolMode == ToolMode::TOOLMODE_FIND_POLYS_IN_CIRCLE)
-	{
-		if (m_sposSet && m_startRef && m_eposSet)
+		case ToolMode::TOOLMODE_DISTANCE_TO_WALL:
 		{
-			const float dx = m_epos[0] - m_spos[0];
-			const float dz = m_epos[2] - m_spos[2];
-			float dist = sqrtf(dx * dx + dz * dz);
+			m_distanceToWall = 0;
+			if (m_sposSet && m_startRef)
+			{
 #ifdef DUMP_REQS
-			printf("fpc  %f %f %f  %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], dist,
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+				printf("dw  %f %f %f  %f  0x%x 0x%x\n",
+					m_spos[0], m_spos[1], m_spos[2], 100.0f,
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
-			m_navQuery->findPolysAroundCircle(m_startRef, m_spos.data(), dist, &m_filter,
-				m_polys.data(), m_parent.data(), 0, &m_npolys, MAX_POLYS);
+				m_distanceToWall = 0.0f;
+				m_navQuery->findDistanceToWall(
+					m_startRef, m_spos, 100.0f, &m_filter, &m_distanceToWall, &m_hitPos, &m_hitNormal);
+			}
+
+			break;
 		}
-	}
-	else if (m_toolMode == ToolMode::TOOLMODE_FIND_POLYS_IN_SHAPE)
-	{
-		if (m_sposSet && m_startRef && m_eposSet)
+		case ToolMode::TOOLMODE_FIND_POLYS_IN_CIRCLE:
 		{
-			const float nx = (m_epos[2] - m_spos[2]) * 0.25f;
-			const float nz = -(m_epos[0] - m_spos[0]) * 0.25f;
-			const float agentHeight = m_sample ? m_sample->getAgentHeight() : 0;
-
-			m_queryPoly[0] = m_spos[0] + nx * 1.2f;
-			m_queryPoly[1] = m_spos[1] + agentHeight / 2;
-			m_queryPoly[2] = m_spos[2] + nz * 1.2f;
-
-			m_queryPoly[3] = m_spos[0] - nx * 1.3f;
-			m_queryPoly[4] = m_spos[1] + agentHeight / 2;
-			m_queryPoly[5] = m_spos[2] - nz * 1.3f;
-
-			m_queryPoly[6] = m_epos[0] - nx * 0.8f;
-			m_queryPoly[7] = m_epos[1] + agentHeight / 2;
-			m_queryPoly[8] = m_epos[2] - nz * 0.8f;
-
-			m_queryPoly[9] = m_epos[0] + nx;
-			m_queryPoly[10] = m_epos[1] + agentHeight / 2;
-			m_queryPoly[11] = m_epos[2] + nz;
-
+			if (m_sposSet && m_startRef && m_eposSet)
+			{
+				const float dx = m_epos[0] - m_spos[0];
+				const float dz = m_epos[2] - m_spos[2];
+				float dist = sqrtf(dx * dx + dz * dz);
 #ifdef DUMP_REQS
-			printf("fpp  %f %f %f  %f %f %f  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_queryPoly[0], m_queryPoly[1], m_queryPoly[2],
-				m_queryPoly[3], m_queryPoly[4], m_queryPoly[5],
-				m_queryPoly[6], m_queryPoly[7], m_queryPoly[8],
-				m_queryPoly[9], m_queryPoly[10], m_queryPoly[11],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+				printf("fpc  %f %f %f  %f  0x%x 0x%x\n",
+					m_spos[0], m_spos[1], m_spos[2], dist,
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
-			m_navQuery->findPolysAroundShape(m_startRef, m_queryPoly.data(), 4, &m_filter,
-				m_polys.data(), m_parent.data(), 0, &m_npolys, MAX_POLYS);
+				m_navQuery->findPolysAroundCircle(m_startRef, m_spos.data(), dist, &m_filter,
+					m_polys.data(), m_parent.data(), 0, &m_npolys, MAX_POLYS);
+			}
+
+			break;
 		}
-	}
-	else if (m_toolMode == ToolMode::TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD)
-	{
-		if (m_sposSet && m_startRef)
+		case ToolMode::TOOLMODE_FIND_POLYS_IN_SHAPE:
 		{
+			if (m_sposSet && m_startRef && m_eposSet)
+			{
+				const float nx = (m_epos[2] - m_spos[2]) * 0.25f;
+				const float nz = -(m_epos[0] - m_spos[0]) * 0.25f;
+				const float agentHeight = m_sample ? m_sample->getAgentHeight() : 0;
+
+				m_queryPoly[0] = m_spos[0] + nx * 1.2f;
+				m_queryPoly[1] = m_spos[1] + agentHeight / 2;
+				m_queryPoly[2] = m_spos[2] + nz * 1.2f;
+
+				m_queryPoly[3] = m_spos[0] - nx * 1.3f;
+				m_queryPoly[4] = m_spos[1] + agentHeight / 2;
+				m_queryPoly[5] = m_spos[2] - nz * 1.3f;
+
+				m_queryPoly[6] = m_epos[0] - nx * 0.8f;
+				m_queryPoly[7] = m_epos[1] + agentHeight / 2;
+				m_queryPoly[8] = m_epos[2] - nz * 0.8f;
+
+				m_queryPoly[9] = m_epos[0] + nx;
+				m_queryPoly[10] = m_epos[1] + agentHeight / 2;
+				m_queryPoly[11] = m_epos[2] + nz;
+
 #ifdef DUMP_REQS
-			printf("fln  %f %f %f  %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_neighbourhoodRadius,
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+				printf("fpp  %f %f %f  %f %f %f  %f %f %f  %f %f %f  0x%x 0x%x\n",
+					m_queryPoly[0], m_queryPoly[1], m_queryPoly[2],
+					m_queryPoly[3], m_queryPoly[4], m_queryPoly[5],
+					m_queryPoly[6], m_queryPoly[7], m_queryPoly[8],
+					m_queryPoly[9], m_queryPoly[10], m_queryPoly[11],
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif
-			m_navQuery->findLocalNeighbourhood(m_startRef, m_spos.data(), m_neighbourhoodRadius, &m_filter,
-				m_polys.data(), m_parent.data(), &m_npolys, MAX_POLYS);
+				m_navQuery->findPolysAroundShape(m_startRef, m_queryPoly.data(), 4, &m_filter,
+					m_polys.data(), m_parent.data(), 0, &m_npolys, MAX_POLYS);
+			}
+
+			break;
+		}
+		case ToolMode::TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD:
+		{
+			if (m_sposSet && m_startRef)
+			{
+#ifdef DUMP_REQS
+				printf("fln  %f %f %f  %f  0x%x 0x%x\n",
+					m_spos[0], m_spos[1], m_spos[2], m_neighbourhoodRadius,
+					m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
+				m_navQuery->findLocalNeighbourhood(m_startRef, m_spos.data(), m_neighbourhoodRadius, &m_filter,
+					m_polys.data(), m_parent.data(), &m_npolys, MAX_POLYS);
+			}
+
+			break;
 		}
 	}
 }

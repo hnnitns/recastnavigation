@@ -3796,9 +3796,9 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 // The normal will become unpredicable if @p hitDist is a very small number.
 // hitDistが非常に小さい場合、法線は予測不能になります。
 //
-dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* centerPos, const float maxRadius,
-	const dtQueryFilter* filter,
-	float* hitDist, float* hitPos, float* hitNormal) const
+dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const std::array<float, 3>& centerPos,
+	const float maxRadius, const dtQueryFilter* filter, float* hitDist, std::array<float, 3>* hitPos,
+	std::array<float, 3>* hitNormal) const
 {
 	dtAssert(m_nav);
 	dtAssert(m_nodePool);
@@ -3812,7 +3812,8 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	m_openList->clear();
 
 	dtNode* startNode = m_nodePool->getNode(startRef);
-	dtVcopy(startNode->pos.data(), centerPos);
+
+	startNode->pos = centerPos;
 	startNode->pidx = 0;
 	startNode->cost = 0;
 	startNode->total = 0;
@@ -3886,8 +3887,8 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 			// Calc distance to the edge.
 			const float* vj = &bestTile->verts[bestPoly->verts[j] * 3];
 			const float* vi = &bestTile->verts[bestPoly->verts[i] * 3];
-			float tseg;
-			float distSqr = dtDistancePtSegSqr2D(centerPos, vj, vi, tseg);
+			float tseg{};
+			float distSqr = dtDistancePtSegSqr2D(centerPos.data(), vj, vi, tseg);
 
 			// Edge is too far, skip.
 			if (distSqr > radiusSqr)
@@ -3896,9 +3897,9 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 			// Hit wall, update radius.
 			radiusSqr = distSqr;
 			// Calculate hit pos.
-			hitPos[0] = vj[0] + (vi[0] - vj[0]) * tseg;
-			hitPos[1] = vj[1] + (vi[1] - vj[1]) * tseg;
-			hitPos[2] = vj[2] + (vi[2] - vj[2]) * tseg;
+			hitPos->at(0) = vj[0] + (vi[0] - vj[0]) * tseg;
+			hitPos->at(1) = vj[1] + (vi[1] - vj[1]) * tseg;
+			hitPos->at(2) = vj[2] + (vi[2] - vj[2]) * tseg;
 			bestvj = vj;
 			bestvi = vi;
 		}
@@ -3924,7 +3925,7 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 			const float* va = &bestTile->verts[bestPoly->verts[link->edge] * 3];
 			const float* vb = &bestTile->verts[bestPoly->verts[(link->edge + 1) % bestPoly->vertCount] * 3];
 			float tseg;
-			float distSqr = dtDistancePtSegSqr2D(centerPos, va, vb, tseg);
+			float distSqr = dtDistancePtSegSqr2D(centerPos.data(), va, vb, tseg);
 
 			// If the circle is not touching the next polygon, skip it.
 			if (distSqr > radiusSqr)
@@ -3976,12 +3977,12 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	// Calc hit normal.
 	if (bestvj && bestvi)
 	{
-		float tangent[3];
-		dtVsub(tangent, bestvi, bestvj);
+		ArrayF tangent{};
+		dtVsub(tangent.data(), bestvi, bestvj);
 
-		hitNormal[0] = tangent[2];
-		hitNormal[1] = 0;
-		hitNormal[2] = -tangent[0];
+		hitNormal->at(0) = tangent[2];
+		hitNormal->at(1) = 0;
+		hitNormal->at(2) = -tangent[0];
 
 		dtVnormalize(hitNormal);
 	}

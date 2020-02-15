@@ -22,13 +22,10 @@
 #include <string>
 #include <cfloat>
 #include <new>
+#include <unordered_map>
 #include "SDL.h"
 #include "SDL_opengl.h"
-#ifdef __APPLE__
-#	include <OpenGL/glu>
-#else
-#	include <GL/glu.h>
-#endif
+#include <GL/glu.h>
 #include "imgui.h"
 #include "InputGeom.h"
 #include "Sample.h"
@@ -50,7 +47,7 @@
 #include "fastlz.h"
 
 #ifdef WIN32
-#	define snprintf _snprintf
+#	define snprintf _snprintf_s
 #endif
 
 namespace
@@ -616,11 +613,11 @@ void drawDetailOverlay(const dtTileCache* tc, const int tx, const int ty, double
 		if (gluProject((GLdouble)pos[0], (GLdouble)pos[1], (GLdouble)pos[2],
 			model, proj, view, &x, &y, &z))
 		{
-			snprintf(text, 128, "(%d,%d)/%d", tile->header->tx, tile->header->ty, tile->header->tlayer);
+			snprintf(text, 128, _TRUNCATE, "(%d,%d)/%d", tile->header->tx, tile->header->ty, tile->header->tlayer);
 			imguiDrawText((int)x, (int)y - 25, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 220));
-			snprintf(text, 128, "Compressed: %.1f kB", tile->dataSize / 1024.0f);
+			snprintf(text, 128, _TRUNCATE, "Compressed: %.1f kB", tile->dataSize / 1024.0f);
 			imguiDrawText((int)x, (int)y - 45, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 128));
-			snprintf(text, 128, "Raw:%.1fkB", rawSize / 1024.0f);
+			snprintf(text, 128, _TRUNCATE, "Raw:%.1fkB", rawSize / 1024.0f);
 			imguiDrawText((int)x, (int)y - 65, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 128));
 		}
 	}
@@ -782,16 +779,16 @@ public:
 	{
 	}
 
-	virtual int type() { return TOOL_TEMP_OBSTACLE; }
+	int type() noexcept override { return TOOL_TEMP_OBSTACLE; }
 
-	virtual void init(Sample* sample)
+	void init(Sample* sample) override
 	{
 		m_sample = (Sample_TempObstacles*)sample;
 	}
 
-	virtual void reset() {}
+	void reset() override {}
 
-	virtual void handleMenu()
+	void handleMenu() override
 	{
 		imguiLabel("Create Temp Obstacles");
 
@@ -804,7 +801,7 @@ public:
 		imguiValue("Shift+LMB to remove an obstacle.");
 	}
 
-	virtual void handleClick(const float* s, const float* p, bool shift)
+	void handleClick(const float* s, const float* p, bool shift) override
 	{
 		if (m_sample)
 		{
@@ -815,11 +812,11 @@ public:
 		}
 	}
 
-	virtual void handleToggle() {}
-	virtual void handleStep() {}
-	virtual void handleUpdate(const float /*dt*/) {}
-	virtual void handleRender() {}
-	virtual void handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/) { }
+	void handleToggle() override {}
+	void handleStep() override {}
+	void handleUpdate(const float /*dt*/) override {}
+	void handleRender() override {}
+	void handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/) override { }
 };
 
 Sample_TempObstacles::Sample_TempObstacles() :
@@ -830,7 +827,7 @@ Sample_TempObstacles::Sample_TempObstacles() :
 	m_cacheRawSize(0),
 	m_cacheLayerCount(0),
 	m_cacheBuildMemUsage(0),
-	m_drawMode(DRAWMODE_NAVMESH),
+	m_drawMode(DrawMode::DRAWMODE_NAVMESH),
 	m_maxTiles(0),
 	m_maxPolysPerTile(0),
 	m_tileSize(48)
@@ -875,7 +872,7 @@ void Sample_TempObstacles::handleSettings()
 		const int tw = (gw + ts - 1) / ts;
 		const int th = (gh + ts - 1) / ts;
 
-		snprintf(text.data(), text.size(), "Tiles  %d x %d", tw, th);
+		snprintf(text.data(), text.size(), _TRUNCATE, "Tiles  %d x %d", tw, th);
 		imguiValue(text.data());
 
 		// Max tiles and max polys affect how the tile IDs are caculated.
@@ -891,9 +888,9 @@ void Sample_TempObstacles::handleSettings()
 		m_maxTiles = 1 << tileBits;
 		m_maxPolysPerTile = 1 << polyBits;
 
-		snprintf(text.data(), text.size(), "Max Tiles  %d", m_maxTiles);
+		snprintf(text.data(), text.size(), _TRUNCATE, "Max Tiles  %d", m_maxTiles);
 		imguiValue(text.data());
-		snprintf(text.data(), text.size(), "Max Polys  %d", m_maxPolysPerTile);
+		snprintf(text.data(), text.size(), _TRUNCATE, "Max Polys  %d", m_maxPolysPerTile);
 		imguiValue(text.data());
 
 		gridSize = tw * th;
@@ -911,16 +908,16 @@ void Sample_TempObstacles::handleSettings()
 
 	const float compressionRatio = (float)m_cacheCompressedSize / (float)(m_cacheRawSize + 1);
 
-	snprintf(msg.data(), msg.size(), "Layers  %d", m_cacheLayerCount);
+	snprintf(msg.data(), msg.size(), _TRUNCATE, "Layers  %d", m_cacheLayerCount);
 	imguiValue(msg.data());
-	snprintf(msg.data(), msg.size(), "Layers (per tile)  %.1f", (float)m_cacheLayerCount / (float)gridSize);
+	snprintf(msg.data(), msg.size(), _TRUNCATE, "Layers (per tile)  %.1f", (float)m_cacheLayerCount / (float)gridSize);
 	imguiValue(msg.data());
 
-	snprintf(msg.data(), msg.size(), "Memory  %.1f kB / %.1f kB (%.1f%%)", m_cacheCompressedSize / 1024.0f, m_cacheRawSize / 1024.0f, compressionRatio * 100.0f);
+	snprintf(msg.data(), msg.size(), _TRUNCATE, "Memory  %.1f kB / %.1f kB (%.1f%%)", m_cacheCompressedSize / 1024.0f, m_cacheRawSize / 1024.0f, compressionRatio * 100.f);
 	imguiValue(msg.data());
-	snprintf(msg.data(), msg.size(), "Navmesh Build Time  %.1f ms", m_cacheBuildTimeMs);
+	snprintf(msg.data(), msg.size(), _TRUNCATE, "Navmesh Build Time  %.1f ms", m_cacheBuildTimeMs);
 	imguiValue(msg.data());
-	snprintf(msg.data(), msg.size(), "Build Peak Mem Usage  %.1f kB", m_cacheBuildMemUsage / 1024.0f);
+	snprintf(msg.data(), msg.size(), _TRUNCATE, "Build Peak Mem Usage  %.1f kB", m_cacheBuildMemUsage / 1024.0f);
 	imguiValue(msg.data());
 
 	imguiSeparator();
@@ -988,49 +985,60 @@ void Sample_TempObstacles::handleTools()
 
 void Sample_TempObstacles::handleDebugMode()
 {
+	constexpr size_t MaxDrawModeSize{ static_cast<size_t>(DrawMode::MAX_DRAWMODE) };
+
 	// Check which modes are valid.
-	bool valid[MAX_DRAWMODE];
-	for (int i = 0; i < MAX_DRAWMODE; ++i)
-		valid[i] = false;
+
+	std::unordered_map<DrawMode, bool> valids(MaxDrawModeSize);
 
 	if (m_geom)
 	{
-		valid[DRAWMODE_NAVMESH] = m_navMesh != 0;
-		valid[DRAWMODE_NAVMESH_TRANS] = m_navMesh != 0;
-		valid[DRAWMODE_NAVMESH_BVTREE] = m_navMesh != 0;
-		valid[DRAWMODE_NAVMESH_NODES] = m_navQuery != 0;
-		valid[DRAWMODE_NAVMESH_PORTALS] = m_navMesh != 0;
-		valid[DRAWMODE_NAVMESH_INVIS] = m_navMesh != 0;
-		valid[DRAWMODE_MESH] = true;
-		valid[DRAWMODE_CACHE_BOUNDS] = true;
+		valids[DrawMode::DRAWMODE_NAVMESH]         = m_navMesh != 0;
+		valids[DrawMode::DRAWMODE_NAVMESH_TRANS]   = m_navMesh != 0;
+		valids[DrawMode::DRAWMODE_NAVMESH_BVTREE]  = m_navMesh != 0;
+		valids[DrawMode::DRAWMODE_NAVMESH_NODES]   = m_navQuery != 0;
+		valids[DrawMode::DRAWMODE_NAVMESH_PORTALS] = m_navMesh != 0;
+		valids[DrawMode::DRAWMODE_NAVMESH_INVIS]   = m_navMesh != 0;
+		valids[DrawMode::DRAWMODE_MESH]            = true;
+		valids[DrawMode::DRAWMODE_CACHE_BOUNDS]    = true;
 	}
 
-	int unavail = 0;
-	for (int i = 0; i < MAX_DRAWMODE; ++i)
-		if (!valid[i]) unavail++;
+	uint16_t unavail{};
 
-	if (unavail == MAX_DRAWMODE)
-		return;
+	for (auto& valid : valids)
+	{
+		if(valid.second) unavail++;
+	}
+
+	if (unavail == MaxDrawModeSize) return;
 
 	imguiLabel("Draw");
-	if (imguiCheck("Input Mesh", m_drawMode == DRAWMODE_MESH, valid[DRAWMODE_MESH]))
-		m_drawMode = DRAWMODE_MESH;
-	if (imguiCheck("Navmesh", m_drawMode == DRAWMODE_NAVMESH, valid[DRAWMODE_NAVMESH]))
-		m_drawMode = DRAWMODE_NAVMESH;
-	if (imguiCheck("Navmesh Invis", m_drawMode == DRAWMODE_NAVMESH_INVIS, valid[DRAWMODE_NAVMESH_INVIS]))
-		m_drawMode = DRAWMODE_NAVMESH_INVIS;
-	if (imguiCheck("Navmesh Trans", m_drawMode == DRAWMODE_NAVMESH_TRANS, valid[DRAWMODE_NAVMESH_TRANS]))
-		m_drawMode = DRAWMODE_NAVMESH_TRANS;
-	if (imguiCheck("Navmesh BVTree", m_drawMode == DRAWMODE_NAVMESH_BVTREE, valid[DRAWMODE_NAVMESH_BVTREE]))
-		m_drawMode = DRAWMODE_NAVMESH_BVTREE;
-	if (imguiCheck("Navmesh Nodes", m_drawMode == DRAWMODE_NAVMESH_NODES, valid[DRAWMODE_NAVMESH_NODES]))
-		m_drawMode = DRAWMODE_NAVMESH_NODES;
-	if (imguiCheck("Navmesh Portals", m_drawMode == DRAWMODE_NAVMESH_PORTALS, valid[DRAWMODE_NAVMESH_PORTALS]))
-		m_drawMode = DRAWMODE_NAVMESH_PORTALS;
-	if (imguiCheck("Cache Bounds", m_drawMode == DRAWMODE_CACHE_BOUNDS, valid[DRAWMODE_CACHE_BOUNDS]))
-		m_drawMode = DRAWMODE_CACHE_BOUNDS;
 
-	if (unavail)
+	if (imguiCheck("Input Mesh", m_drawMode == DrawMode::DRAWMODE_MESH, valids[DrawMode::DRAWMODE_MESH]))
+		m_drawMode = DrawMode::DRAWMODE_MESH;
+
+	if (imguiCheck("Navmesh", m_drawMode == DrawMode::DRAWMODE_NAVMESH, valids[DrawMode::DRAWMODE_NAVMESH]))
+		m_drawMode = DrawMode::DRAWMODE_NAVMESH;
+
+	if (imguiCheck("Navmesh Invis", m_drawMode == DrawMode::DRAWMODE_NAVMESH_INVIS, valids[DrawMode::DRAWMODE_NAVMESH_INVIS]))
+		m_drawMode = DrawMode::DRAWMODE_NAVMESH_INVIS;
+
+	if (imguiCheck("Navmesh Trans", m_drawMode == DrawMode::DRAWMODE_NAVMESH_TRANS, valids[DrawMode::DRAWMODE_NAVMESH_TRANS]))
+		m_drawMode = DrawMode::DRAWMODE_NAVMESH_TRANS;
+
+	if (imguiCheck("Navmesh BVTree", m_drawMode == DrawMode::DRAWMODE_NAVMESH_BVTREE, valids[DrawMode::DRAWMODE_NAVMESH_BVTREE]))
+		m_drawMode = DrawMode::DRAWMODE_NAVMESH_BVTREE;
+
+	if (imguiCheck("Navmesh Nodes", m_drawMode == DrawMode::DRAWMODE_NAVMESH_NODES, valids[DrawMode::DRAWMODE_NAVMESH_NODES]))
+		m_drawMode = DrawMode::DRAWMODE_NAVMESH_NODES;
+
+	if (imguiCheck("Navmesh Portals", m_drawMode == DrawMode::DRAWMODE_NAVMESH_PORTALS, valids[DrawMode::DRAWMODE_NAVMESH_PORTALS]))
+		m_drawMode = DrawMode::DRAWMODE_NAVMESH_PORTALS;
+
+	if (imguiCheck("Cache Bounds", m_drawMode == DrawMode::DRAWMODE_CACHE_BOUNDS, valids[DrawMode::DRAWMODE_CACHE_BOUNDS]))
+		m_drawMode = DrawMode::DRAWMODE_CACHE_BOUNDS;
+
+	if (unavail != 0u)
 	{
 		imguiValue("Tick 'Keep Itermediate Results'");
 		imguiValue("rebuild some tiles to see");
@@ -1046,7 +1054,7 @@ void Sample_TempObstacles::handleRender()
 	const float texScale = 1.f / (m_cellSize * 10.0f);
 
 	// Draw mesh // ƒƒbƒVƒ…‚ð•`‰æ
-	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
+	if (m_drawMode != DrawMode::DRAWMODE_NAVMESH_TRANS)
 	{
 		// Draw mesh // ƒƒbƒVƒ…‚ð•`‰æ
 		duDebugDrawTriMeshSlope(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
@@ -1056,7 +1064,7 @@ void Sample_TempObstacles::handleRender()
 		m_geom->drawOffMeshConnections(&m_dd);
 	}
 
-	if (m_tileCache && m_drawMode == DRAWMODE_CACHE_BOUNDS)
+	if (m_tileCache && m_drawMode == DrawMode::DRAWMODE_CACHE_BOUNDS)
 		drawTiles(&m_dd, m_tileCache);
 
 	if (m_tileCache)
@@ -1083,21 +1091,25 @@ void Sample_TempObstacles::handleRender()
 	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
 	if (m_navMesh && m_navQuery &&
-		(m_drawMode == DRAWMODE_NAVMESH ||
-			m_drawMode == DRAWMODE_NAVMESH_TRANS ||
-			m_drawMode == DRAWMODE_NAVMESH_BVTREE ||
-			m_drawMode == DRAWMODE_NAVMESH_NODES ||
-			m_drawMode == DRAWMODE_NAVMESH_PORTALS ||
-			m_drawMode == DRAWMODE_NAVMESH_INVIS))
+		(m_drawMode == DrawMode::DRAWMODE_NAVMESH ||
+			m_drawMode == DrawMode::DRAWMODE_NAVMESH_TRANS ||
+			m_drawMode == DrawMode::DRAWMODE_NAVMESH_BVTREE ||
+			m_drawMode == DrawMode::DRAWMODE_NAVMESH_NODES ||
+			m_drawMode == DrawMode::DRAWMODE_NAVMESH_PORTALS ||
+			m_drawMode == DrawMode::DRAWMODE_NAVMESH_INVIS))
 	{
-		if (m_drawMode != DRAWMODE_NAVMESH_INVIS)
+		if (m_drawMode != DrawMode::DRAWMODE_NAVMESH_INVIS)
 			duDebugDrawNavMeshWithClosedList(&m_dd, *m_navMesh, *m_navQuery, m_navMeshDrawFlags/*|DU_DRAWNAVMESH_COLOR_TILES*/);
-		if (m_drawMode == DRAWMODE_NAVMESH_BVTREE)
+
+		if (m_drawMode == DrawMode::DRAWMODE_NAVMESH_BVTREE)
 			duDebugDrawNavMeshBVTree(&m_dd, *m_navMesh);
-		if (m_drawMode == DRAWMODE_NAVMESH_PORTALS)
+
+		if (m_drawMode == DrawMode::DRAWMODE_NAVMESH_PORTALS)
 			duDebugDrawNavMeshPortals(&m_dd, *m_navMesh);
-		if (m_drawMode == DRAWMODE_NAVMESH_NODES)
+
+		if (m_drawMode == DrawMode::DRAWMODE_NAVMESH_NODES)
 			duDebugDrawNavMeshNodes(&m_dd, *m_navQuery);
+
 		duDebugDrawNavMeshPolysWithFlags(&m_dd, *m_navMesh, SAMPLE_POLYFLAGS_DISABLED, duRGBA(0, 0, 0, 128));
 	}
 
@@ -1136,18 +1148,18 @@ void Sample_TempObstacles::handleRenderOverlay(double* proj, double* model, int*
 	char text[64];
 	int y = 110-30;
 
-	snprintf(text,64,"Lean Data: %.1fkB", m_tileCache->getRawSize()/1024.0f);
+	snprintf(text,64, _TRUNCATE,"Lean Data: %.1fkB", m_tileCache->getRawSize()/1024.0f);
 	imguiDrawText(300, y, IMGUI_ALIGN_LEFT, text, imguiRGBA(255,255,255,255));
 	y -= 20;
 
-	snprintf(text,64,"Compressed: %.1fkB (%.1f%%)", m_tileCache->getCompressedSize()/1024.0f,
+	snprintf(text,64, _TRUNCATE,"Compressed: %.1fkB (%.1f%%)", m_tileCache->getCompressedSize()/1024.0f,
 			 m_tileCache->getRawSize() > 0 ? 100.0f*(float)m_tileCache->getCompressedSize()/(float)m_tileCache->getRawSize() : 0);
 	imguiDrawText(300, y, IMGUI_ALIGN_LEFT, text, imguiRGBA(255,255,255,255));
 	y -= 20;
 
 	if (m_rebuildTileCount > 0 && m_rebuildTime > 0.0f)
 	{
-		snprintf(text,64,"Changed obstacles, rebuild %d tiles: %.3f ms", m_rebuildTileCount, m_rebuildTime);
+		snprintf(text,64, _TRUNCATE,"Changed obstacles, rebuild %d tiles: %.3f ms", m_rebuildTileCount, m_rebuildTime);
 		imguiDrawText(300, y, IMGUI_ALIGN_LEFT, text, imguiRGBA(255,192,0,255));
 		y -= 20;
 	}

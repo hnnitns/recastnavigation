@@ -65,21 +65,21 @@ protected:
 
 public:
 	Sample_SoloMesh();
-	virtual ~Sample_SoloMesh();
+	~Sample_SoloMesh();
 
-	virtual void handleSettings();
-	virtual void handleTools();
-	virtual void handleDebugMode();
+	void handleSettings() override;
+	void handleTools() override;
+	void handleDebugMode() override;
 
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
-	virtual void handleMeshChanged(class InputGeom* geom);
-	virtual bool handleBuild();
+	void handleRender() override;
+	void handleRenderOverlay(double* proj, double* model, int* view) override;
+	void handleMeshChanged(class InputGeom* geom) override;
+	bool handleBuild() override;
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	Sample_SoloMesh(const Sample_SoloMesh&);
-	Sample_SoloMesh& operator=(const Sample_SoloMesh&);
+	Sample_SoloMesh(const Sample_SoloMesh&) = delete;
+	Sample_SoloMesh& operator=(const Sample_SoloMesh&) = delete;
 };
 
 #endif // RECASTSAMPLESOLOMESHSIMPLE_H

@@ -41,7 +41,7 @@ protected:
 	int m_cacheLayerCount;
 	int m_cacheBuildMemUsage;
 
-	enum DrawMode
+	enum class DrawMode
 	{
 		DRAWMODE_NAVMESH,
 		DRAWMODE_NAVMESH_TRANS,
@@ -62,16 +62,16 @@ protected:
 
 public:
 	Sample_TempObstacles();
-	virtual ~Sample_TempObstacles();
+	~Sample_TempObstacles();
 
-	virtual void handleSettings();
-	virtual void handleTools();
-	virtual void handleDebugMode();
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
-	virtual void handleMeshChanged(class InputGeom* geom);
-	virtual bool handleBuild();
-	virtual void handleUpdate(const float dt);
+	void handleSettings() override;
+	void handleTools() override;
+	void handleDebugMode() override;
+	void handleRender() override;
+	void handleRenderOverlay(double* proj, double* model, int* view) override;
+	void handleMeshChanged(class InputGeom* geom) override;
+	bool handleBuild() override;
+	void handleUpdate(const float dt) override;
 
 	void getTilePos(const float* pos, int& tx, int& ty);
 
@@ -87,8 +87,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	Sample_TempObstacles(const Sample_TempObstacles&);
-	Sample_TempObstacles& operator=(const Sample_TempObstacles&);
+	Sample_TempObstacles(const Sample_TempObstacles&) = delete;
+	Sample_TempObstacles& operator=(const Sample_TempObstacles&) = delete;
 
 	int rasterizeTileLayers(const int tx, const int ty, const rcConfig& cfg, struct TileCacheData* tiles, const int maxTiles);
 };

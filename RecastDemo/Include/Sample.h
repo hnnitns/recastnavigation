@@ -114,7 +114,7 @@ enum SamplePartitionType
 
 struct SampleTool
 {
-	virtual ~SampleTool() {}
+	virtual ~SampleTool() = default;
 	virtual int type() = 0;
 	virtual void init(class Sample* sample) = 0;
 	virtual void reset() = 0;
@@ -127,8 +127,9 @@ struct SampleTool
 	virtual void handleUpdate(const float dt) = 0;
 };
 
-struct SampleToolState {
-	virtual ~SampleToolState() {}
+struct SampleToolState
+{
+	virtual ~SampleToolState() = default;
 	virtual void init(class Sample* sample) = 0;
 	virtual void reset() = 0;
 	virtual void handleRender() = 0;

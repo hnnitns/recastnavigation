@@ -26,7 +26,6 @@
 #include "Sample_SoloMesh.h"
 #include "Sample_TileMesh.h"
 #include "Sample_TempObstacles.h"
-#include "Sample_Debug.h"
 
 #ifdef WIN32
 #	define snprintf _snprintf_s
@@ -46,7 +45,6 @@ namespace
 	Sample* createSolo() { return new Sample_SoloMesh(); }
 	Sample* createTile() { return new Sample_TileMesh(); }
 	Sample* createTempObstacle() { return new Sample_TempObstacles(); }
-	Sample* createDebug() { return new Sample_Debug(); }
 
 	std::array<SampleItem, 3> g_samples =
 	{ {

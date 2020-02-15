@@ -485,7 +485,7 @@ bool dtPathCorridor::movePosition(
 
 		// Adjust the position to stay on top of the navmesh.
 		float h = m_pos[1];
-		navquery->getPolyHeight(m_path[0], result.data(), &h);
+		navquery->getPolyHeight(m_path[0], result, &h);
 		result[1] = h;
 		m_pos = result;
 

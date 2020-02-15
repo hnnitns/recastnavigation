@@ -344,7 +344,7 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 	dtRandomPointInConvexPoly(verts, poly->vertCount, areas.data(), s, t, pt.data());
 
 	float ht{};
-	dtStatus status = getPolyHeight(polyRef, pt.data(), &ht);
+	dtStatus status = getPolyHeight(polyRef, pt, &ht);
 
 	if (dtStatusFailed(status))
 		return status;
@@ -554,7 +554,7 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(
 	dtRandomPointInConvexPoly(verts, randomPoly->vertCount, areas.data(), s, t, pt.data());
 
 	float h{};
-	dtStatus stat = getPolyHeight(randomPolyRef, pt.data(), &h);
+	dtStatus stat = getPolyHeight(randomPolyRef, pt, &h);
 
 	if (dtStatusFailed(status)) return stat;
 
@@ -744,7 +744,7 @@ dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(
 // of the polygon.
 // 指定された位置がポリゴンのxz境界の外側にある場合、＃DT_FAILUREを返します。
 //
-dtStatus dtNavMeshQuery::getPolyHeight(dtPolyRef ref, const float* pos, float* height) const
+dtStatus dtNavMeshQuery::getPolyHeight(dtPolyRef ref, const std::array<float, 3>& pos, float* height) const
 {
 	dtAssert(m_nav);
 
@@ -757,21 +757,25 @@ dtStatus dtNavMeshQuery::getPolyHeight(dtPolyRef ref, const float* pos, float* h
 	{
 		const float* v0 = &tile->verts[poly->verts[0] * 3];
 		const float* v1 = &tile->verts[poly->verts[1] * 3];
-		const float d0 = dtVdist2D(pos, v0);
-		const float d1 = dtVdist2D(pos, v1);
+		const float d0 = dtVdist2D(pos.data(), v0);
+		const float d1 = dtVdist2D(pos.data(), v1);
 		const float u = d0 / (d0 + d1);
-		if (height)
-			*height = v0[1] + (v1[1] - v0[1]) * u;
+
+		if (height) *height = v0[1] + (v1[1] - v0[1]) * u;
+
 		return DT_SUCCESS;
 	}
 	else
 	{
 		const uint32_t ip = (uint32_t)(poly - tile->polys);
 		const dtPolyDetail* pd = &tile->detailMeshes[ip];
+
 		for (int j = 0; j < pd->triCount; ++j)
 		{
 			const uint8_t* t = &tile->detailTris[(pd->triBase + j) * 4];
-			const float* v[3];
+			std::array<const float*, 3> v{};
+			float h{};
+
 			for (int k = 0; k < 3; ++k)
 			{
 				if (t[k] < poly->vertCount)
@@ -779,11 +783,11 @@ dtStatus dtNavMeshQuery::getPolyHeight(dtPolyRef ref, const float* pos, float* h
 				else
 					v[k] = &tile->detailVerts[(pd->vertBase + (t[k] - poly->vertCount)) * 3];
 			}
-			float h;
-			if (dtClosestHeightPointTriangle(pos, v[0], v[1], v[2], h))
+
+			if (dtClosestHeightPointTriangle(pos.data(), v[0], v[1], v[2], h))
 			{
-				if (height)
-					*height = h;
+				if (height) *height = h;
+
 				return DT_SUCCESS;
 			}
 		}

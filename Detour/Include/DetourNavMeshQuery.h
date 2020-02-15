@@ -713,7 +713,7 @@ public:
 	//  @param[in]		pos			A position within the xz-bounds of the polygon. [(x, y, z)]
 	//  @param[out]	height		The height at the surface of the polygon.
 	// @returns The status flags for the query.
-	dtStatus getPolyHeight(dtPolyRef ref, const float* pos, float* height) const;
+	dtStatus getPolyHeight(dtPolyRef ref, const std::array<float, 3>& pos, float* height) const;
 
 	// @}
 	// @name Miscellaneous Functions その他の関数

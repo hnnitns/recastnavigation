@@ -629,7 +629,7 @@ void NavMeshTesterTool::handleToggle()
 	m_pathIterPolyCount = fixupCorridor(&m_pathIterPolys, m_pathIterPolyCount, MAX_POLYS, visited, nvisited);
 	m_pathIterPolyCount = fixupShortcuts(&m_pathIterPolys, m_pathIterPolyCount, m_navQuery);
 
-	m_navQuery->getPolyHeight(m_pathIterPolys[0], result.data(), &h);
+	m_navQuery->getPolyHeight(m_pathIterPolys[0], result, &h);
 
 	result[1] = h;
 	m_iterPos = result;
@@ -689,7 +689,7 @@ void NavMeshTesterTool::handleToggle()
 
 			float eh{};
 
-			m_navQuery->getPolyHeight(m_pathIterPolys[0], m_iterPos.data(), &eh);
+			m_navQuery->getPolyHeight(m_pathIterPolys[0], m_iterPos, &eh);
 			m_iterPos[1] = eh;
 		}
 	}
@@ -848,7 +848,7 @@ void NavMeshTesterTool::recalc()
 					npolys = fixupCorridor(&polys, npolys, MAX_POLYS, visited, nvisited);
 					npolys = fixupShortcuts(&polys, npolys, m_navQuery);
 
-					m_navQuery->getPolyHeight(polys[0], result.data(), &h);
+					m_navQuery->getPolyHeight(polys[0], result, &h);
 					result[1] = h;
 					iterPos = result;
 
@@ -907,7 +907,7 @@ void NavMeshTesterTool::recalc()
 							iterPos = endPos;
 
 							float eh{};
-							m_navQuery->getPolyHeight(polys[0], iterPos.data(), &eh);
+							m_navQuery->getPolyHeight(polys[0], iterPos, &eh);
 							iterPos[1] = eh;
 						}
 					}
@@ -1017,7 +1017,7 @@ void NavMeshTesterTool::recalc()
 			{
 				float h{};
 
-				m_navQuery->getPolyHeight(m_polys[m_npolys - 1], m_hitPos.data(), &h);
+				m_navQuery->getPolyHeight(m_polys[m_npolys - 1], m_hitPos, &h);
 				m_hitPos[1] = h;
 			}
 

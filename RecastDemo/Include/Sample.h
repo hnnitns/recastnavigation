@@ -42,31 +42,31 @@ enum SampleToolType
 // エリアid（下位3ビット）のceil部分のマスク、値0（RC_NULL_AREA）は未使用のまま
 // the 0 value (RC_NULL_AREA) is left unused
 // 0の値（RC_NULL_AREA）は未使用のままになります
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_MASK = 0x07;
+constexpr uint8_t SAMPLE_POLYAREA_TYPE_MASK = 0x07;
 
 // Value for the kind of ceil "ground"
 // 「グランド」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_GROUND = 0x1;
+constexpr uint8_t SAMPLE_POLYAREA_TYPE_GROUND = 0x1;
 
 // Value for the kind of ceil "water"
 // 「水」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_WATER = 0x2;
+constexpr uint8_t SAMPLE_POLYAREA_TYPE_WATER = 0x2;
 
 // Value for the kind of ceil "road"
 // 「道路」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_ROAD = 0x3;
+constexpr uint8_t SAMPLE_POLYAREA_TYPE_ROAD = 0x3;
 
 // Value for the kind of ceil "grass"
 // 「草」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_GRASS = 0x4;
+constexpr uint8_t SAMPLE_POLYAREA_TYPE_GRASS = 0x4;
 
 // Flag for door area. Can be combined with area types and jump flag.
 // ドア領域のフラグ。 領域タイプおよびジャンプフラグと組み合わせることができます。
-constexpr unsigned char SAMPLE_POLYAREA_FLAG_DOOR = 0x08;
+constexpr uint8_t SAMPLE_POLYAREA_FLAG_DOOR = 0x08;
 
 // Flag for jump area. Can be combined with area types and door flag.
 // ジャンプ領域のフラグ。 領域タイプおよびドアフラグと組み合わせることができます。
-constexpr unsigned char SAMPLE_POLYAREA_FLAG_JUMP = 0x10;
+constexpr uint8_t SAMPLE_POLYAREA_FLAG_JUMP = 0x10;
 
 extern rcAreaModification const SAMPLE_AREAMOD_GROUND;
 
@@ -97,12 +97,12 @@ enum SamplePolyFlags
 	SAMPLE_POLYFLAGS_ALL = 0xffff
 };
 
-unsigned short sampleAreaToFlags(unsigned char area);
+uint16_t sampleAreaToFlags(uint8_t area);
 
 class SampleDebugDraw : public DebugDrawGL
 {
 public:
-	virtual unsigned int areaToCol(unsigned int area);
+	virtual uint32_t areaToCol(uint32_t area);
 };
 
 enum SamplePartitionType
@@ -144,7 +144,7 @@ protected:
 	class dtNavMeshQuery* m_navQuery;
 	class dtCrowd* m_crowd;
 
-	unsigned char m_navMeshDrawFlags;
+	uint8_t m_navMeshDrawFlags;
 
 	float m_cellSize;
 	float m_cellHeight;
@@ -205,8 +205,8 @@ public:
 	virtual float getAgentHeight() { return m_agentHeight; }
 	virtual float getAgentClimb() { return m_agentMaxClimb; }
 
-	unsigned char getNavMeshDrawFlags() const { return m_navMeshDrawFlags; }
-	void setNavMeshDrawFlags(unsigned char flags) { m_navMeshDrawFlags = flags; }
+	uint8_t getNavMeshDrawFlags() const { return m_navMeshDrawFlags; }
+	void setNavMeshDrawFlags(uint8_t flags) { m_navMeshDrawFlags = flags; }
 
 	void updateToolStates(const float dt);
 	void initToolStates(Sample* sample);
@@ -219,8 +219,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	Sample(const Sample&);
-	Sample& operator=(const Sample&);
+	Sample(const Sample&) = delete;
+	Sample& operator=(const Sample&) = delete;
 };
 
 #endif // RECASTSAMPLE_H

@@ -36,10 +36,10 @@
 #	define snprintf _snprintf
 #endif
 
-unsigned short sampleAreaToFlags(unsigned char area)
+uint16_t sampleAreaToFlags(uint8_t area)
 {
-	unsigned char areaType = (area & SAMPLE_POLYAREA_TYPE_MASK);
-	unsigned short flags = (unsigned short)((areaType == SAMPLE_POLYAREA_TYPE_WATER) ? SAMPLE_POLYFLAGS_SWIM : SAMPLE_POLYFLAGS_WALK);
+	uint8_t areaType = (area & SAMPLE_POLYAREA_TYPE_MASK);
+	uint16_t flags = (uint16_t)((areaType == SAMPLE_POLYAREA_TYPE_WATER) ? SAMPLE_POLYFLAGS_SWIM : SAMPLE_POLYFLAGS_WALK);
 	if ((areaType & SAMPLE_POLYAREA_FLAG_DOOR) != 0)
 	{
 		flags |= SAMPLE_POLYFLAGS_DOOR;
@@ -51,11 +51,11 @@ unsigned short sampleAreaToFlags(unsigned char area)
 	return flags;
 }
 
-unsigned int SampleDebugDraw::areaToCol(unsigned int area)
+uint32_t SampleDebugDraw::areaToCol(uint32_t area)
 {
-	unsigned int col;
+	uint32_t col;
 
-	unsigned char ceil = (area & SAMPLE_POLYAREA_TYPE_MASK);
+	uint8_t ceil = (area & SAMPLE_POLYAREA_TYPE_MASK);
 	switch (ceil)
 	{
 		// Ground : light blue
@@ -144,7 +144,7 @@ void Sample::handleRender()
 		m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.f);
 
 	/// Draw bounds // ‹«ŠE‚ð•`‚­
-	constexpr auto Color{ duRGBA(255, 255, 255, 128) };
+	constexpr uint32_t Color{ duRGBA(255, 255, 255, 128) };
 	const auto& bmin = m_geom->getMeshBoundsMin();
 	const auto& bmax = m_geom->getMeshBoundsMax();
 

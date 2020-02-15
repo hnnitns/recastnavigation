@@ -440,7 +440,7 @@ bool dtPathCorridor::moveOverOffmeshConnection(dtPolyRef offMeshConRef, std::arr
 	dtAssert(nav);
 
 	dtStatus status =
-		nav->getOffMeshConnectionPolyEndPoints(refs->at(0), refs->at(1), startPos->data(), endPos->data());
+		nav->getOffMeshConnectionPolyEndPoints(refs->at(0), refs->at(1), startPos, endPos);
 	if (dtStatusSucceed(status))
 	{
 		m_pos = *endPos;

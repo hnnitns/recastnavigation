@@ -1436,7 +1436,8 @@ dtStatus dtNavMesh::restoreTileState(dtMeshTile* tile, const uint8_t* data, cons
 // inside a normal polygon. So an off-mesh connection is "entered" from a
 // normal polygon at one of its endpoints. This is the polygon identified by
 // the prevRef parameter.
-dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyRef polyRef, float* startPos, float* endPos) const
+dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyRef polyRef,
+	std::array<float, 3>* startPos, std::array<float, 3>* endPos) const
 {
 	uint32_t salt, it, ip;
 
@@ -1472,8 +1473,8 @@ dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyR
 		}
 	}
 
-	dtVcopy(startPos, &tile->verts[poly->verts[idx0] * 3]);
-	dtVcopy(endPos, &tile->verts[poly->verts[idx1] * 3]);
+	dtVcopy(startPos->data(), &tile->verts[poly->verts[idx0] * 3]);
+	dtVcopy(endPos->data() , &tile->verts[poly->verts[idx1] * 3]);
 
 	return DT_SUCCESS;
 }

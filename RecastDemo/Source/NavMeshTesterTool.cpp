@@ -669,7 +669,7 @@ void NavMeshTesterTool::handleToggle()
 		m_pathIterPolyCount -= npos;
 
 		// Handle the connection.
-		dtStatus status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos.data(), endPos.data());
+		dtStatus status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, &startPos, &endPos);
 
 		if (dtStatusSucceed(status))
 		{
@@ -868,7 +868,7 @@ void NavMeshTesterTool::recalc()
 					else if (offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.f))
 					{
 						// Reached off-mesh connection.
-						ArrayF startPos, endPos;
+						ArrayF startPos{}, endPos{};
 
 						// Advance the path up to and over the off-mesh connection.
 						dtPolyRef prevRef{}, polyRef = polys[0];
@@ -887,7 +887,8 @@ void NavMeshTesterTool::recalc()
 						npolys -= npos;
 
 						// Handle the connection.
-						dtStatus status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos.data(), endPos.data());
+						dtStatus status =
+							m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, &startPos, &endPos);
 
 						if (dtStatusSucceed(status))
 						{

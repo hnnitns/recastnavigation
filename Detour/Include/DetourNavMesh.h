@@ -604,7 +604,8 @@ public:
 	//  @param[out]	startPos	The start position of the off-mesh connection. [(x, y, z)]
 	//  @param[out]	endPos		The end position of the off-mesh connection. [(x, y, z)]
 	// @return The status flags for the operation.
-	dtStatus getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyRef polyRef, float* startPos, float* endPos) const;
+	dtStatus getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyRef polyRef,
+		std::array<float, 3>* startPos, std::array<float, 3>* endPos) const;
 
 	// Gets the specified off-mesh connection.
 	//  @param[in]	ref		The polygon reference of the off-mesh connection.

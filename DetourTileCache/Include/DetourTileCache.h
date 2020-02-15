@@ -135,7 +135,7 @@ public:
 
 	dtStatus removeObstacle(const dtObstacleRef ref);
 
-	dtStatus queryTiles(const float* bmin, const float* bmax,
+	dtStatus queryTiles(const std::array<float, 3>& bmin, const std::array<float, 3>& bmax,
 		std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES>* results, int* resultCount, const int maxResults) const;
 
 	// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests.
@@ -156,9 +156,11 @@ public:
 
 	dtStatus buildNavMeshTile(const dtCompressedTileRef ref, class dtNavMesh* navmesh);
 
-	void calcTightTileBounds(const struct dtTileCacheLayerHeader* header, float* bmin, float* bmax) const;
+	void calcTightTileBounds(const struct dtTileCacheLayerHeader* header,
+		std::array<float, 3>* bmin, std::array<float, 3>* bmax) const;
 
-	void getObstacleBounds(const struct dtTileCacheObstacle* ob, float* bmin, float* bmax) const;
+	void getObstacleBounds(
+		const struct dtTileCacheObstacle* ob, std::array<float, 3>* bmin, std::array<float, 3>* bmax) const;
 
 	// Encodes a tile id.
 	// タイルIDをエンコードします。

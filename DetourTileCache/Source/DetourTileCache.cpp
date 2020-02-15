@@ -9,6 +9,8 @@
 #include <cstring>
 #include <new>
 
+using namespace DtOperator;
+
 dtTileCache* dtAllocTileCache()
 {
 	void* mem = dtAlloc(sizeof(dtTileCache), DT_ALLOC_PERM);
@@ -283,7 +285,8 @@ dtStatus dtTileCache::addTile(uint8_t* data, const int dataSize, uint8_t flags, 
 	m_posLookup[h] = tile;
 
 	// Init tile.
-	const int headerSize = dtAlign4(sizeof(dtTileCacheLayerHeader));
+	constexpr int headerSize = dtAlign4(sizeof(dtTileCacheLayerHeader));
+
 	tile->header = (dtTileCacheLayerHeader*)data;
 	tile->data = data;
 	tile->dataSize = dataSize;
@@ -446,7 +449,7 @@ dtStatus dtTileCache::removeObstacle(const dtObstacleRef ref)
 	return DT_SUCCESS;
 }
 
-dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
+dtStatus dtTileCache::queryTiles(const std::array<float, 3>& bmin, const std::array<float, 3>& bmax,
 	std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES>* results, int* resultCount, const int maxResults) const
 {
 	const int MAX_TILES = 32;
@@ -470,8 +473,9 @@ dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 			for (int i = 0; i < ntiles; ++i)
 			{
 				const dtCompressedTile* tile = &m_tiles[decodeTileIdTile(tiles[i])];
-				float tbmin[3], tbmax[3];
-				calcTightTileBounds(tile->header, tbmin, tbmax);
+				ArrayF tbmin{}, tbmax{};
+
+				calcTightTileBounds(tile->header, &tbmin, &tbmax);
 
 				if (dtOverlapBounds(bmin, bmax, tbmin, tbmax))
 				{
@@ -509,15 +513,18 @@ dtStatus dtTileCache::update([[maybe_unused]]const float dt, dtNavMesh* navmesh,
 			if (req->action == REQUEST_ADD)
 			{
 				// Find touched tiles.
-				float bmin[3], bmax[3];
-				getObstacleBounds(ob, bmin, bmax);
+				ArrayF bmin{}, bmax{};
+				getObstacleBounds(ob, &bmin, &bmax);
 
-				int ntouched = 0;
+				int ntouched{};
+
 				queryTiles(bmin, bmax, &ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
+
 				ob->ntouched = (uint8_t)ntouched;
 				// Add tiles to update list.
 				// 更新リストにタイルを追加します。
 				ob->npending = 0;
+
 				for (int j = 0; j < ob->ntouched; ++j)
 				{
 					if (m_nupdate < MAX_UPDATE)
@@ -760,33 +767,36 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	return DT_SUCCESS;
 }
 
-void dtTileCache::calcTightTileBounds(const dtTileCacheLayerHeader* header, float* bmin, float* bmax) const
+void dtTileCache::calcTightTileBounds(const dtTileCacheLayerHeader* header,
+	std::array<float, 3>* bmin, std::array<float, 3>* bmax) const
 {
 	const float cs = m_params.cs;
-	bmin[0] = header->bmin[0] + header->minx * cs;
-	bmin[1] = header->bmin[1];
-	bmin[2] = header->bmin[2] + header->miny * cs;
-	bmax[0] = header->bmin[0] + (header->maxx + 1) * cs;
-	bmax[1] = header->bmax[1];
-	bmax[2] = header->bmin[2] + (header->maxy + 1) * cs;
+
+	bmin->at(0) = header->bmin[0] + header->minx * cs;
+	bmin->at(1) = header->bmin[1];
+	bmin->at(2) = header->bmin[2] + header->miny * cs;
+	bmax->at(0) = header->bmin[0] + (header->maxx + 1) * cs;
+	bmax->at(1) = header->bmax[1];
+	bmax->at(2) = header->bmin[2] + (header->maxy + 1) * cs;
 }
 
-void dtTileCache::getObstacleBounds(const struct dtTileCacheObstacle* ob, float* bmin, float* bmax) const
+void dtTileCache::getObstacleBounds(
+	const struct dtTileCacheObstacle* ob, std::array<float, 3>* bmin, std::array<float, 3>* bmax) const
 {
 	if (ob->type == DT_OBSTACLE_CYLINDER)
 	{
 		const dtObstacleCylinder& cl = ob->cylinder;
 
-		bmin[0] = cl.pos[0] - cl.radius;
-		bmin[1] = cl.pos[1];
-		bmin[2] = cl.pos[2] - cl.radius;
-		bmax[0] = cl.pos[0] + cl.radius;
-		bmax[1] = cl.pos[1] + cl.height;
-		bmax[2] = cl.pos[2] + cl.radius;
+		bmin->at(0) = cl.pos[0] - cl.radius;
+		bmin->at(1) = cl.pos[1];
+		bmin->at(2) = cl.pos[2] - cl.radius;
+		bmax->at(0) = cl.pos[0] + cl.radius;
+		bmax->at(1) = cl.pos[1] + cl.height;
+		bmax->at(2) = cl.pos[2] + cl.radius;
 	}
 	else if (ob->type == DT_OBSTACLE_BOX)
 	{
-		dtVcopy(bmin, ob->box.bmin.data());
-		dtVcopy(bmax, ob->box.bmax.data());
+		*bmin = ob->box.bmin;
+		*bmax = ob->box.bmax;
 	}
 }

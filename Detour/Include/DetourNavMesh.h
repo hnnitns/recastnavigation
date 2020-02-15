@@ -526,7 +526,7 @@ public:
 	//  @param[in]	pos  The world position for the query. [(x, y, z)]
 	//  @param[out]	tx		The tile's x-location. (x, y)
 	//  @param[out]	ty		The tile's y-location. (x, y)
-	void calcTileLoc(const float* pos, int* tx, int* ty) const;
+	void calcTileLoc(const std::array<float, 3>& pos, int* tx, int* ty) const;
 
 	// Gets the tile at the specified grid location.
 	//  @param[in]	x		The tile's x-location. (x, y, layer)
@@ -792,7 +792,8 @@ private:
 	// TODO: These methods are duplicates from dtNavMeshQuery, but are needed for off-mesh connection finding.
 
 	// Queries polygons within a tile.
-	int queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, const float* qmax,
+	int queryPolygonsInTile(
+		const dtMeshTile* tile, const std::array<float, 3>& qmin, const std::array<float, 3>& qmax,
 		dtPolyRef* polys, const int maxPolys) const;
 	// Find nearest polygon within a tile.
 	dtPolyRef findNearestPolyInTile(const dtMeshTile* tile, const float* center,

@@ -27,6 +27,8 @@
 #include "DetourAssert.h"
 #include <new>
 
+using namespace DtOperator;
+
 namespace
 {
 	inline bool overlapSlabs(const float* amin, const float* amax,
@@ -708,9 +710,9 @@ dtPolyRef dtNavMesh::findNearestPolyInTile(const dtMeshTile* tile,
 	const float* center, const float* extents,
 	float* nearestPt) const
 {
-	float bmin[3], bmax[3];
-	dtVsub(bmin, center, extents);
-	dtVadd(bmax, center, extents);
+	ArrayF bmin{}, bmax{};
+	dtVsub(bmin.data(), center, extents);
+	dtVadd(bmax.data(), center, extents);
 
 	// Get nearby polygons from proximity grid.
 	dtPolyRef polys[128];
@@ -752,7 +754,8 @@ dtPolyRef dtNavMesh::findNearestPolyInTile(const dtMeshTile* tile,
 	return nearest;
 }
 
-int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, const float* qmax,
+int dtNavMesh::queryPolygonsInTile(
+	const dtMeshTile* tile, const std::array<float, 3>& qmin, const std::array<float, 3>& qmax,
 	dtPolyRef* polys, const int maxPolys) const
 {
 	if (tile->bvTree)
@@ -807,24 +810,29 @@ int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, co
 	}
 	else
 	{
-		float bmin[3], bmax[3];
-		int n = 0;
+		ArrayF bmin{}, bmax{};
+		int n{};
 		dtPolyRef base = getPolyRefBase(tile);
+
 		for (int i = 0; i < tile->header->polyCount; ++i)
 		{
 			dtPoly* p = &tile->polys[i];
+
 			// Do not return off-mesh connection polygons.
 			if (p->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
 				continue;
+
 			// Calc polygon bounds.
 			const float* v = &tile->verts[p->verts[0] * 3];
-			dtVcopy(bmin, v);
-			dtVcopy(bmax, v);
+
+			dtVcopy(bmin.data(), v);
+			dtVcopy(bmax.data(), v);
+
 			for (int j = 1; j < p->vertCount; ++j)
 			{
 				v = &tile->verts[p->verts[j] * 3];
-				dtVmin(bmin, v);
-				dtVmax(bmax, v);
+				dtVmin(bmin.data(), v);
+				dtVmax(bmax.data(), v);
 			}
 			if (dtOverlapBounds(qmin, qmax, bmin, bmax))
 			{
@@ -1161,7 +1169,7 @@ const dtMeshTile* dtNavMesh::getTile(int i) const
 	return &m_tiles[i];
 }
 
-void dtNavMesh::calcTileLoc(const float* pos, int* tx, int* ty) const
+void dtNavMesh::calcTileLoc(const std::array<float, 3>& pos, int* tx, int* ty) const
 {
 	*tx = (int)floorf((pos[0] - m_orig[0]) / m_tileWidth);
 	*ty = (int)floorf((pos[2] - m_orig[2]) / m_tileHeight);

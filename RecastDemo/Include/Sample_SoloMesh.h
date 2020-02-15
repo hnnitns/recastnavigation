@@ -37,7 +37,7 @@ protected:
 	rcConfig m_cfg;
 	rcPolyMeshDetail* m_dmesh;
 
-	enum DrawMode
+	enum class DrawMode
 	{
 		DRAWMODE_NAVMESH,
 		DRAWMODE_NAVMESH_TRANS,

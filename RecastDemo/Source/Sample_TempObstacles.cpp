@@ -50,6 +50,8 @@
 #	define snprintf _snprintf_s
 #endif
 
+using namespace DtOperator;
+
 namespace
 {
 	// This value specifies how many layers (or "floors") each navmesh tile is expected to have.
@@ -57,7 +59,7 @@ namespace
 	constexpr int EXPECTED_LAYERS_PER_TILE = 4;
 
 	bool isectSegAABB(const float* sp, const float* sq,
-		const float* amin, const float* amax,
+		const ArrayF& amin, const ArrayF& amax,
 		float& tmin, float& tmax)
 	{
 		constexpr float EPS = 1e-6f;
@@ -466,17 +468,17 @@ int Sample_TempObstacles::rasterizeTileLayers(
 
 void drawTiles(duDebugDraw* dd, dtTileCache* tc)
 {
-	unsigned int fcol[6];
-	float bmin[3], bmax[3];
+	uint32_t fcol[6];
+	ArrayF bmin{}, bmax{};
 
 	for (int i = 0; i < tc->getTileCount(); ++i)
 	{
 		const dtCompressedTile* tile = tc->getTile(i);
 		if (!tile->header) continue;
 
-		tc->calcTightTileBounds(tile->header, bmin, bmax);
+		tc->calcTightTileBounds(tile->header, &bmin, &bmax);
 
-		const unsigned int col = duIntToCol(i, 64);
+		const uint32_t col = duIntToCol(i, 64);
 		duCalcBoxColors(fcol, col, col);
 		duDebugDrawBox(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], fcol);
 	}
@@ -486,9 +488,9 @@ void drawTiles(duDebugDraw* dd, dtTileCache* tc)
 		const dtCompressedTile* tile = tc->getTile(i);
 		if (!tile->header) continue;
 
-		tc->calcTightTileBounds(tile->header, bmin, bmax);
+		tc->calcTightTileBounds(tile->header, &bmin, &bmax);
 
-		const unsigned int col = duIntToCol(i, 255);
+		const uint32_t col = duIntToCol(i, 255);
 		const float pad = tc->getParams()->cs * 0.1f;
 		duDebugDrawBoxWire(dd, bmin[0] - pad, bmin[1] - pad, bmin[2] - pad,
 			bmax[0] + pad, bmax[1] + pad, bmax[2] + pad, col, 2.0f);
@@ -633,8 +635,10 @@ dtObstacleRef hitTestObstacle(const dtTileCache* tc, const float* sp, const floa
 		if (ob->state == DT_OBSTACLE_EMPTY)
 			continue;
 
-		float bmin[3], bmax[3], t0, t1;
-		tc->getObstacleBounds(ob, bmin, bmax);
+		ArrayF bmin{}, bmax{};
+		float t0{}, t1{};
+
+		tc->getObstacleBounds(ob, &bmin, &bmax);
 
 		if (isectSegAABB(sp, sq, bmin, bmax, t0, t1))
 		{
@@ -655,10 +659,10 @@ void drawObstacles(duDebugDraw* dd, const dtTileCache* tc)
 	{
 		const dtTileCacheObstacle* ob = tc->getObstacle(i);
 		if (ob->state == DT_OBSTACLE_EMPTY) continue;
-		float bmin[3], bmax[3];
-		tc->getObstacleBounds(ob, bmin, bmax);
+		ArrayF bmin{}, bmax{};
+		tc->getObstacleBounds(ob, &bmin, &bmax);
 
-		unsigned int col = 0;
+		uint32_t col = 0;
 		if (ob->state == DT_OBSTACLE_PROCESSING)
 			col = duRGBA(255, 255, 0, 128);
 		else if (ob->state == DT_OBSTACLE_PROCESSED)
@@ -988,18 +992,18 @@ void Sample_TempObstacles::handleDebugMode()
 	constexpr size_t MaxDrawModeSize{ static_cast<size_t>(DrawMode::MAX_DRAWMODE) };
 
 	// Check which modes are valid.
-
+	// 有効なモードを確認します。
 	std::unordered_map<DrawMode, bool> valids(MaxDrawModeSize);
 
 	if (m_geom)
 	{
-		valids[DrawMode::DRAWMODE_NAVMESH]         = m_navMesh != 0;
-		valids[DrawMode::DRAWMODE_NAVMESH_TRANS]   = m_navMesh != 0;
-		valids[DrawMode::DRAWMODE_NAVMESH_BVTREE]  = m_navMesh != 0;
-		valids[DrawMode::DRAWMODE_NAVMESH_NODES]   = m_navQuery != 0;
-		valids[DrawMode::DRAWMODE_NAVMESH_PORTALS] = m_navMesh != 0;
-		valids[DrawMode::DRAWMODE_NAVMESH_INVIS]   = m_navMesh != 0;
 		valids[DrawMode::DRAWMODE_MESH]            = true;
+		valids[DrawMode::DRAWMODE_NAVMESH]         = m_navMesh != nullptr;
+		valids[DrawMode::DRAWMODE_NAVMESH_INVIS]   = m_navMesh != nullptr;
+		valids[DrawMode::DRAWMODE_NAVMESH_TRANS]   = m_navMesh != nullptr;
+		valids[DrawMode::DRAWMODE_NAVMESH_BVTREE]  = m_navMesh != nullptr;
+		valids[DrawMode::DRAWMODE_NAVMESH_NODES]   = m_navQuery != nullptr;
+		valids[DrawMode::DRAWMODE_NAVMESH_PORTALS] = m_navMesh != nullptr;
 		valids[DrawMode::DRAWMODE_CACHE_BOUNDS]    = true;
 	}
 
@@ -1007,36 +1011,26 @@ void Sample_TempObstacles::handleDebugMode()
 
 	for (auto& valid : valids)
 	{
-		if(valid.second) unavail++;
+		if(!valid.second) unavail++;
 	}
 
 	if (unavail == MaxDrawModeSize) return;
 
 	imguiLabel("Draw");
 
-	if (imguiCheck("Input Mesh", m_drawMode == DrawMode::DRAWMODE_MESH, valids[DrawMode::DRAWMODE_MESH]))
-		m_drawMode = DrawMode::DRAWMODE_MESH;
+	constexpr std::array<std::string_view, MaxDrawModeSize> PrintText
+	{
+		{ "Input Mesh", "Navmesh", "Navmesh Invis", "Navmesh Trans", "Navmesh BVTree", "Navmesh Nodes", "Navmesh Portals", "Cache Bounds"  }
+	};
 
-	if (imguiCheck("Navmesh", m_drawMode == DrawMode::DRAWMODE_NAVMESH, valids[DrawMode::DRAWMODE_NAVMESH]))
-		m_drawMode = DrawMode::DRAWMODE_NAVMESH;
+	size_t i{};
+	for (auto& valid : valids)
+	{
+		const auto mode{ valid.first };
 
-	if (imguiCheck("Navmesh Invis", m_drawMode == DrawMode::DRAWMODE_NAVMESH_INVIS, valids[DrawMode::DRAWMODE_NAVMESH_INVIS]))
-		m_drawMode = DrawMode::DRAWMODE_NAVMESH_INVIS;
-
-	if (imguiCheck("Navmesh Trans", m_drawMode == DrawMode::DRAWMODE_NAVMESH_TRANS, valids[DrawMode::DRAWMODE_NAVMESH_TRANS]))
-		m_drawMode = DrawMode::DRAWMODE_NAVMESH_TRANS;
-
-	if (imguiCheck("Navmesh BVTree", m_drawMode == DrawMode::DRAWMODE_NAVMESH_BVTREE, valids[DrawMode::DRAWMODE_NAVMESH_BVTREE]))
-		m_drawMode = DrawMode::DRAWMODE_NAVMESH_BVTREE;
-
-	if (imguiCheck("Navmesh Nodes", m_drawMode == DrawMode::DRAWMODE_NAVMESH_NODES, valids[DrawMode::DRAWMODE_NAVMESH_NODES]))
-		m_drawMode = DrawMode::DRAWMODE_NAVMESH_NODES;
-
-	if (imguiCheck("Navmesh Portals", m_drawMode == DrawMode::DRAWMODE_NAVMESH_PORTALS, valids[DrawMode::DRAWMODE_NAVMESH_PORTALS]))
-		m_drawMode = DrawMode::DRAWMODE_NAVMESH_PORTALS;
-
-	if (imguiCheck("Cache Bounds", m_drawMode == DrawMode::DRAWMODE_CACHE_BOUNDS, valids[DrawMode::DRAWMODE_CACHE_BOUNDS]))
-		m_drawMode = DrawMode::DRAWMODE_CACHE_BOUNDS;
+		if (imguiCheck(PrintText[i++].data(), m_drawMode == mode, valids[mode]))
+			m_drawMode = mode;
+	}
 
 	if (unavail != 0u)
 	{

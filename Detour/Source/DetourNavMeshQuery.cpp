@@ -886,7 +886,8 @@ dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* exten
 }
 
 // タイル内のポリゴンを照会します。
-void dtNavMeshQuery::queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, const float* qmax,
+void dtNavMeshQuery::queryPolygonsInTile(
+	const dtMeshTile* tile, const std::array<float, 3>& qmin, const std::array<float, 3>& qmax,
 	const dtQueryFilter* filter, dtPolyQuery* query) const
 {
 	dtAssert(m_nav);
@@ -963,8 +964,9 @@ void dtNavMeshQuery::queryPolygonsInTile(const dtMeshTile* tile, const float* qm
 	}
 	else
 	{
-		float bmin[3], bmax[3];
+		ArrayF bmin{}, bmax{};
 		const dtPolyRef base = m_nav->getPolyRefBase(tile);
+
 		for (int i = 0; i < tile->header->polyCount; ++i)
 		{
 			dtPoly* p{ &tile->polys[i] };
@@ -983,14 +985,14 @@ void dtNavMeshQuery::queryPolygonsInTile(const dtMeshTile* tile, const float* qm
 			// Calc polygon bounds.
 			// ポリゴンの境界を計算します。
 			const float* v = &tile->verts[p->verts[0] * 3];
-			dtVcopy(bmin, v);  // コピー
-			dtVcopy(bmax, v);  // コピー
+			dtVcopy(bmin.data(), v);  // コピー
+			dtVcopy(bmax.data(), v);  // コピー
 
 			for (int j = 1; j < p->vertCount; ++j)
 			{
 				v = &tile->verts[p->verts[j] * 3];
-				dtVmin(bmin, v);
-				dtVmax(bmax, v);
+				dtVmin(bmin.data(), v);
+				dtVmax(bmax.data(), v);
 			}
 			if (dtOverlapBounds(qmin, qmax, bmin, bmax))
 			{
@@ -1097,9 +1099,9 @@ dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents
 	if (!center || !extents || !filter || !query)
 		return DT_FAILURE | DT_INVALID_PARAM;
 
-	float bmin[3], bmax[3];
-	dtVsub(bmin, center, extents);
-	dtVadd(bmax, center, extents);
+	ArrayF bmin{}, bmax{};
+	dtVsub(bmin.data(), center, extents);
+	dtVadd(bmax.data(), center, extents);
 
 	// Find tiles the query touches.
 	// クエリが触れるタイルを見つけます。

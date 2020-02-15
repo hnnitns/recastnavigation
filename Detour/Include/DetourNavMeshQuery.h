@@ -751,12 +751,13 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator
-	dtNavMeshQuery(const dtNavMeshQuery&);
-	dtNavMeshQuery& operator=(const dtNavMeshQuery&);
+	dtNavMeshQuery(const dtNavMeshQuery&) = delete;
+	dtNavMeshQuery& operator=(const dtNavMeshQuery&) = delete;
 
 	// Queries polygons within a tile.
 	// タイル内のポリゴンを照会します。
-	void queryPolygonsInTile(const dtMeshTile* tile, const float* qmin, const float* qmax,
+	void queryPolygonsInTile(
+		const dtMeshTile* tile, const std::array<float, 3>& qmin, const std::array<float, 3>& qmax,
 		const dtQueryFilter* filter, dtPolyQuery* query) const;
 
 	// Returns portal points between two polygons.

@@ -21,12 +21,10 @@
 #include "Recast.h"
 #include "RecastDebugDraw.h"
 #include "InputGeom.h"
-#include "TestCase.h"
 #include "Filelist.h"
 #include "Sample_SoloMesh.h"
 #include "Sample_TileMesh.h"
 #include "Sample_TempObstacles.h"
-#include "Sample_Debug.h"
 
 #ifdef WIN32
 #	define snprintf _snprintf_s
@@ -46,7 +44,7 @@ namespace
 	Sample* createSolo() { return new Sample_SoloMesh(); }
 	Sample* createTile() { return new Sample_TileMesh(); }
 	Sample* createTempObstacle() { return new Sample_TempObstacles(); }
-	Sample* createDebug() { return new Sample_Debug(); }
+	//Sample* createDebug() { return new Sample_Debug(); }
 
 	std::array<SampleItem, 3> g_samples =
 	{ {
@@ -693,7 +691,7 @@ void EditManager::PropertiesUpdate()
 			ctx.dumpLog("Build log %s:", meshName.c_str());
 
 			// Clear test.
-			test = nullptr;
+			//test = nullptr;
 		}
 
 		imguiSeparator();
@@ -857,6 +855,7 @@ void EditManager::MeshSelect()
 
 void EditManager::TestUpdate()
 {
+#if false
 	static int testScroll{};
 
 	if (imguiBeginScrollArea("Choose Test To Run", screen_size.x - 10 - 250 - 10 - 200, screen_size.y - 10 - 450, 200, 450, &testScroll))
@@ -963,6 +962,7 @@ void EditManager::TestUpdate()
 	}
 
 	imguiEndScrollArea();
+#endif
 }
 
 void EditManager::HandleDraw()
@@ -972,7 +972,7 @@ void EditManager::HandleDraw()
 	// メッシュと四角の描画
 	if (sample) sample->handleRender();
 
-	if (test) test->handleRender();
+	//if (test) test->handleRender();
 
 	glDisable(GL_FOG);
 
@@ -992,8 +992,8 @@ void EditManager::HandleDraw()
 	if (sample)
 		sample->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport);
 
-	if (test && test->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport))
-		mouseOverMenu = true;
+	//if (test && test->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport))
+	//	mouseOverMenu = true;
 
 	// マーカー
 	if (markerPositionSet)

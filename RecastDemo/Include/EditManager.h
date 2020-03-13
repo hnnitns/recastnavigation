@@ -76,7 +76,7 @@ private:
 	std::unique_ptr<class Sample> sample;
 
 	const std::string testCasesFolder{ "TestCases" };
-	std::unique_ptr<class TestCase> test;
+	//std::unique_ptr<class TestCase> test;
 
 	class BuildContext ctx{};
 

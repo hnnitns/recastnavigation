@@ -182,13 +182,16 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 
-	m_mesh = std::make_unique<rcMeshLoaderObj>();
-
-	if (!m_mesh)
+	try
+	{
+		m_mesh = std::make_unique<rcMeshLoaderObj>();
+	}
+	catch (const std::exception&)
 	{
 		ctx->log(RC_LOG_ERROR, "loadMesh: Out of memory 'm_mesh'."); // メモリー不足「m_mesh」
 		return false;
 	}
+
 	if (!m_mesh->load(filepath))
 	{
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not load '%s'", filepath.c_str()); // 読み込めない
@@ -197,13 +200,16 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 
 	rcCalcBounds(m_mesh->getVerts(), m_mesh->getVertCount(), m_meshBMin.data(), m_meshBMax.data());
 
-	m_chunkyMesh = std::make_unique<rcChunkyTriMesh>();
-
-	if (!m_chunkyMesh)
+	try
+	{
+		m_chunkyMesh = std::make_unique<rcChunkyTriMesh>();
+	}
+	catch (const std::exception&)
 	{
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Out of memory 'm_chunkyMesh'."); // メモリー不足「m_chunkyMesh」
 		return false;
 	}
+
 	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, m_chunkyMesh.get()))
 	{
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Failed to build chunky mesh."); // チャンキーメッシュの構築に失敗しました
@@ -560,8 +566,9 @@ void InputGeom::deleteOffMeshConnection(int i)
 
 void InputGeom::drawOffMeshConnections(duDebugDraw* dd, bool hilight)
 {
-	unsigned int conColor = duRGBA(192, 0, 128, 192);
-	unsigned int baseColor = duRGBA(0, 0, 0, 64);
+	constexpr unsigned int conColor = duRGBA(192, 0, 128, 192);
+	constexpr unsigned int baseColor = duRGBA(0, 0, 0, 64);
+
 	dd->depthMask(false);
 
 	dd->begin(DU_DRAW_LINES, 2.0f);

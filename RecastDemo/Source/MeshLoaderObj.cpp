@@ -22,6 +22,7 @@
 #include <cstring>
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <algorithm>
 
 rcMeshLoaderObj::rcMeshLoaderObj() :
 	m_scale(1.f),
@@ -35,7 +36,6 @@ rcMeshLoaderObj::rcMeshLoaderObj() :
 
 rcMeshLoaderObj::~rcMeshLoaderObj()
 {
-	delete[] m_verts;
 	delete[] m_normals;
 	delete[] m_tris;
 }
@@ -45,10 +45,18 @@ void rcMeshLoaderObj::addVertex(float x, float y, float z, int& cap)
 	if (m_vertCount + 1 > cap)
 	{
 		cap = !cap ? 8 : cap * 2;
-		float* nv = new float[cap * 3];
+		std::vector<float> nv(cap * 3, 0.f);
+		//float* nv = new float[cap * 3];
+
 		if (m_vertCount)
-			memcpy(nv, m_verts, m_vertCount * 3 * sizeof(float));
-		delete[] m_verts;
+			//memcpy(nv, m_verts, m_vertCount * 3 * sizeof(float));
+			for (size_t i = 0; i < m_vertCount * 3; i++)
+			{
+				nv[i] = m_verts[i];
+			};
+
+		//delete[] m_verts;
+
 		m_verts = nv;
 	}
 	float* dst = &m_verts[m_vertCount * 3];

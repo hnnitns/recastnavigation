@@ -20,6 +20,7 @@
 #define MESHLOADER_OBJ
 
 #include <string>
+#include <vector>
 
 class rcMeshLoaderObj
 {

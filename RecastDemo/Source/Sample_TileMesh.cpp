@@ -1309,7 +1309,6 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 		dtNavMeshCreateParams params{};
 
-		memset(&params, 0, sizeof(params));
 		params.verts = m_pmesh->verts;
 		params.vertCount = m_pmesh->nverts;
 		params.polys = m_pmesh->polys;

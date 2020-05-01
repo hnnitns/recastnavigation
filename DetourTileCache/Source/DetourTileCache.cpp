@@ -658,6 +658,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		const dtTileCacheObstacle* ob = &m_obstacles[i];
 		if (ob->state == DT_OBSTACLE_EMPTY || ob->state == DT_OBSTACLE_REMOVING)
 			continue;
+
 		if (contains(ob->touched, ob->ntouched, ref))
 		{
 			if (ob->type == DT_OBSTACLE_CYLINDER)

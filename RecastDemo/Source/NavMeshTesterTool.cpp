@@ -557,10 +557,13 @@ void NavMeshTesterTool::handleToggle()
 	bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ? true : false;
 
 	// Find movement delta.
+	// 動きのデルタを見つけます。
 	float delta[3], len;
 	dtVsub(delta, steerPos, m_iterPos);
 	len = sqrtf(dtVdot(delta, delta));
+
 	// If the steer target is end of path or off-mesh link, do not move past the location.
+	// ステアターゲットがパスの終わりまたはオフメッシュリンクの場合、その場所を通過しないでください。
 	if ((endOfPath || offMeshConnection) && len < STEP_SIZE)
 		len = 1;
 	else
@@ -583,9 +586,11 @@ void NavMeshTesterTool::handleToggle()
 	dtVcopy(m_iterPos, result);
 
 	// Handle end of path and off-mesh links when close enough.
+	// 十分に近いときにパスの終わりとオフメッシュリンクを処理します。
 	if (endOfPath && inRange(m_iterPos, steerPos, SLOP, 1.f))
 	{
 		// Reached end of path.
+		// パスの終わりに到達しました。
 		dtVcopy(m_iterPos, m_targetPos);
 		if (m_nsmoothPath < MAX_SMOOTH)
 		{
@@ -597,9 +602,11 @@ void NavMeshTesterTool::handleToggle()
 	else if (offMeshConnection && inRange(m_iterPos, steerPos, SLOP, 1.f))
 	{
 		// Reached off-mesh connection.
+		// オフメッシュ接続に到達しました。
 		float startPos[3], endPos[3];
 
 		// Advance the path up to and over the off-mesh connection.
+		// オフメッシュ接続までパスを進めます。
 		dtPolyRef prevRef = 0, polyRef = m_pathIterPolys[0];
 		int npos = 0;
 		while (npos < m_pathIterPolyCount && polyRef != steerPosRef)
@@ -620,14 +627,18 @@ void NavMeshTesterTool::handleToggle()
 			{
 				dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos);
 				m_nsmoothPath++;
+
 				// Hack to make the dotted path not visible during off-mesh connection.
+				//オフメッシュ接続中に点線のパスが表示されないようにするハック。
 				if (m_nsmoothPath & 1)
 				{
 					dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos);
 					m_nsmoothPath++;
 				}
 			}
+
 			// Move position at the other side of the off-mesh link.
+			// オフメッシュリンクの反対側の位置に移動します。
 			dtVcopy(m_iterPos, endPos);
 			float eh = 0.0f;
 			m_navQuery->getPolyHeight(m_pathIterPolys[0], m_iterPos, &eh);

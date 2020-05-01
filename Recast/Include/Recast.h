@@ -1146,8 +1146,8 @@ inline constexpr void rcVmax(float* mx, const float* v)
 
 // Performs a vector copy.
 // ベクターコピーを実行します。
-//  @param[out]	dest	The result. [(x, y, z)]
-//  @param[in]		v		The vector to copy. [(x, y, z)]
+//  @param[out]	dest		The result. [(x, y, z)]
+//  @param[in]	v		The vector to copy. [(x, y, z)]
 inline constexpr void rcVcopy(float* dest, const float* v)
 {
 	dest[0] = v[0];

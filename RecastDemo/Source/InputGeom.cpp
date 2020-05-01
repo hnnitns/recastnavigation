@@ -162,14 +162,9 @@ namespace
 	}
 }
 
-InputGeom::InputGeom() :
-	m_chunkyMesh(nullptr),
-	m_mesh(nullptr),
-	m_hasBuildSettings(false),
-	m_offMeshConCount(0),
-	m_volumeCount(0)
-{
-}
+InputGeom::InputGeom()
+	: m_hasBuildSettings(false), m_offMeshConCount{}, m_volumeCount{}, m_meshBMin{}, m_meshBMax{}
+{}
 
 bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 {
@@ -394,7 +389,7 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 
 	filepath += ".gset";
 
-	FILE* fp{ nullptr };
+	FILE* fp{};
 
 	if (fopen_s(&fp, filepath.c_str(), "w") != 0)
 		return false;

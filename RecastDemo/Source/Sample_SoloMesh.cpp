@@ -458,9 +458,8 @@ bool Sample_SoloMesh::handleBuild()
 
 	// Allocate array that can hold triangle area types.
 	// 三角形領域タイプを保持できる配列を割り当てます。
-	// If you have multiple meshes you need to process, allocate
-	// and array which can hold the max number of triangles you need to process.
-	// 複数のメッシュを処理する必要がある場合、処理する必要のある三角形の最大数を保持できる配列、割り当て、および配列。
+	// If you have multiple meshes you need to process, allocate and array which can hold the max number of triangles you need to process.
+	// 処理する必要があるメッシュが複数ある場合は、処理する必要がある三角形の最大数を保持できる配列と割り当てを行います。
 	m_triareas = new unsigned char[ntris];
 	if (!m_triareas)
 	{
@@ -470,9 +469,8 @@ bool Sample_SoloMesh::handleBuild()
 
 	// Find triangles which are walkable based on their slope and rasterize them.
 	// 傾斜に基づいて歩行可能な三角形を見つけ、ラスタライズします。
-	// If your input data is multiple meshes, you can transform them here, calculate
-	// the are type for each of the meshes and rasterize them.
-	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュの面積タイプを計算して、それらをラスタライズできます。
+	// If your input data is multiple meshes, you can transform them here, calculate the are type for each of the meshes and rasterize them.
+	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュのareタイプを計算して、それらをラスタライズできます。
 	memset(m_triareas, 0, ntris * sizeof(unsigned char));
 	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts, nverts, tris, ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
 

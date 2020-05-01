@@ -29,7 +29,7 @@ public:
 
 	bool load(const std::string& fileName);
 
-	const float* getVerts() const { return m_verts; }
+	const float* getVerts() const { return m_verts.data(); }
 	const float* getNormals() const { return m_normals; }
 	const int* getTris() const { return m_tris; }
 	int getVertCount() const { return m_vertCount; }
@@ -46,7 +46,7 @@ private:
 
 	std::string m_filename;
 	float m_scale;
-	float* m_verts;
+	std::vector<float> m_verts;
 	int* m_tris;
 	float* m_normals;
 	int m_vertCount;

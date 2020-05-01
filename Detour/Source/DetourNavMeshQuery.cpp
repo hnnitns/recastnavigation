@@ -2104,23 +2104,29 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 				{
 					// Failed to get portal points, in practice this means that path[i+1] is invalid polygon.
 					// Clamp the end point to path[i], and return the path so far.
+					// ポータルポイントの取得に失敗しました。実際には、これはpath [i + 1]が無効なポリゴンであることを意味します。
+					// 終点をpath [i]にクランプし、それまでのパスを返します。
 
 					if (dtStatusFailed(closestPointOnPolyBoundary(path[i], endPos, closestEndPos)))
 					{
 						// This should only happen when the first polygon is invalid.
+						// これは、最初のポリゴンが無効な場合にのみ発生します。
 						return DT_FAILURE | DT_INVALID_PARAM;
 					}
 
 					// Apeend portals along the current straight path segment.
+					// 現在の直線パスセグメントに沿ってポータルを追加します。
 					if (options & (DT_STRAIGHTPATH_AREA_CROSSINGS | DT_STRAIGHTPATH_ALL_CROSSINGS))
 					{
 						// Ignore status return value as we're just about to return anyway.
+						// とにかく戻るので、ステータスの戻り値を無視します。
 						appendPortals(apexIndex, i, closestEndPos, path,
 							straightPath, straightPathFlags, straightPathRefs,
 							straightPathCount, maxStraightPath, options);
 					}
 
 					// Ignore status return value as we're just about to return anyway.
+					// とにかく戻るので、ステータスの戻り値を無視します。
 					appendVertex(closestEndPos, 0, path[i],
 						straightPath, straightPathFlags, straightPathRefs,
 						straightPathCount, maxStraightPath);
@@ -2129,6 +2135,7 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 				}
 
 				// If starting really close the portal, advance.
+				// ポータルが本当に閉じている場合は、先に進みます。
 				if (i == 0)
 				{
 					float t;
@@ -2158,6 +2165,7 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 				else
 				{
 					// Append portals along the current straight path segment.
+					// 現在の直線パスセグメントに沿ってポータルを追加します。
 					if (options & (DT_STRAIGHTPATH_AREA_CROSSINGS | DT_STRAIGHTPATH_ALL_CROSSINGS))
 					{
 						stat = appendPortals(apexIndex, leftIndex, portalLeft, path,
@@ -2249,6 +2257,7 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 		}
 
 		// Append portals along the current straight path segment.
+		// 現在の直線パスセグメントに沿ってポータルを追加します。
 		if (options & (DT_STRAIGHTPATH_AREA_CROSSINGS | DT_STRAIGHTPATH_ALL_CROSSINGS))
 		{
 			stat = appendPortals(apexIndex, pathSize - 1, closestEndPos, path,
@@ -2260,6 +2269,7 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 	}
 
 	// Ignore status return value as we're just about to return anyway.
+	// とにかく戻るので、ステータスの戻り値を無視します。
 	appendVertex(closestEndPos, DT_STRAIGHTPATH_END, 0,
 		straightPath, straightPathFlags, straightPathRefs,
 		straightPathCount, maxStraightPath);

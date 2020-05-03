@@ -1059,6 +1059,7 @@ float rcSqrt(float x);
 // @}
 // @name Vector helper functions.
 // @{
+
 // Derives the cross product of two vectors. (@p v1 x @p v2)
 // 2つのベクトルの外積を導出します。
 //  @param[out]	dest	The cross product. [(x, y, z)]
@@ -1071,6 +1072,22 @@ inline constexpr void rcVcross(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[0] * v2[1] - v1[1] * v2[0];
 }
 
+namespace RcMath
+{
+	// Derives the cross product of two vectors. (@p v1 x @p v2)
+	// 2つのベクトルの外積を導出します。
+	//  @param[out]	dest	The cross product. [(x, y, z)]
+	//  @param[in]		v1		A Vector [(x, y, z)]
+	//  @param[in]		v2		A vector [(x, y, z)]
+	inline constexpr void rcVcross(
+		std::array<float, 3>* dest, const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		dest->at(0) = v1[1] * v2[2] - v1[2] * v2[1];
+		dest->at(1) = v1[2] * v2[0] - v1[0] * v2[2];
+		dest->at(2) = v1[0] * v2[1] - v1[1] * v2[0];
+	}
+}
+
 // Derives the dot product of two vectors. (@p v1 . @p v2)
 // 2つのベクトルのドット積を導出します。
 //  @param[in]		v1	A Vector [(x, y, z)]
@@ -1079,6 +1096,19 @@ inline constexpr void rcVcross(float* dest, const float* v1, const float* v2)
 inline constexpr float rcVdot(const float* v1, const float* v2)
 {
 	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+namespace RcMath
+{
+	// Derives the dot product of two vectors. (@p v1 . @p v2)
+	// 2つのベクトルのドット積を導出します。
+	//  @param[in]		v1	A Vector [(x, y, z)]
+	//  @param[in]		v2	A vector [(x, y, z)]
+	// @return The dot product.
+	inline constexpr float rcVdot(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+	}
 }
 
 // Performs a scaled vector addition. (@p v1 + (@p v2 * @p s))
@@ -1120,6 +1150,14 @@ inline constexpr void rcVsub(float* dest, const float* v1, const float* v2)
 	dest[0] = v1[0] - v2[0];
 	dest[1] = v1[1] - v2[1];
 	dest[2] = v1[2] - v2[2];
+}
+
+namespace RcMath
+{
+	inline std::array<float, 3> operator-(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		return { v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]  };
+	}
 }
 
 // Selects the minimum value of each element from the specified vectors.

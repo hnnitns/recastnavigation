@@ -541,7 +541,7 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 
 		// マウスの指すレイと読み込まれたメッシュとの当たり判定
 		// ※ このエディタの場合はスタート地点やゴール地点をメッシュデータ上にマウスで配置するので、経路探索をこの中に持ってこれる
-		if (geom->RaycastMesh(ray_start.data(), ray_end.data(), hit_dis))
+		if (geom->RaycastMesh(ray_start, ray_end, hit_dis))
 		{
 			std::array<float, 3u> ray_vec{};
 

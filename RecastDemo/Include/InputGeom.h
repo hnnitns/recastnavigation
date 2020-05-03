@@ -180,7 +180,7 @@ public:
 
 	// メッシュデータとマウスのレイとの判定
 	// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
-	bool RaycastMesh(float* src, float* dst, float& tmin);
+	bool RaycastMesh(const std::array<float, 3>& start_ray, const std::array<float, 3>& end_ray, float& tmin);
 
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。

@@ -32,22 +32,24 @@
 #include "DetourNavMesh.h"
 #include "Sample.h"
 
+using namespace RcMath;
+
 namespace
 {
-	bool intersectSegmentTriangle(const float* sp, const float* sq,
-		const float* a, const float* b, const float* c,
-		float& t)
+	bool intersectSegmentTriangle(const std::array<float, 3>& sp, const std::array<float, 3>& sq,
+		const float* a, const float* b, const float* c, float& t)
 	{
-		float v, w;
-		float ab[3], ac[3], qp[3], ap[3], norm[3], e[3];
-		rcVsub(ab, b, a);
-		rcVsub(ac, c, a);
-		rcVsub(qp, sp, sq);
+		float v{}, w{};
+		std::array<float, 3> ab{}, ac{}, qp{}, ap{}, norm{}, e{};
+
+		rcVsub(ab.data(), b, a);
+		rcVsub(ac.data(), c, a);
+		qp = sp - sq;
 
 		// Compute triangle normal. Can be precalculated or cached if
 		// intersecting multiple segments against the same triangle
 		// 三角形の法線を計算します。 同じ三角形に対して複数のセグメントを交差させる場合、事前計算またはキャッシュできます
-		rcVcross(norm, ab, ac);
+		rcVcross(&norm, ab, ac);
 
 		// Compute denominator d. If d <= 0, segment is parallel to or points
 		// away from triangle, so exit early
@@ -61,14 +63,14 @@ namespace
 		// 三角形の平面とのpqの交差t値を計算します。
 		// 0 <= tの場合、光線は交差します。 0 <= t <= 1の場合、セグメントは交差します。
 		// 交差点が三角形を突き抜けていることがわかるまで、dによる除算を遅らせます。
-		rcVsub(ap, sp, a);
+		rcVsub(ap.data(), sp.data(), a);
 		t = rcVdot(ap, norm);
 		if (t < 0.0f) return false;
 		if (t > d) return false; // For segment; exclude this code line for a ray test セグメント; 光線テストのためにこのコード行を除外します
 
 		// Compute barycentric coordinate components and test if within bounds
 		// 重心座標成分を計算し、範囲内かどうかをテストします。
-		rcVcross(e, qp, ap);
+		rcVcross(&e, qp, ap);
 		v = rcVdot(ac, e);
 		if (v < 0.0f || v > d) return false;
 		w = -rcVdot(ab, e);
@@ -115,16 +117,13 @@ namespace
 	}
 
 	// メッシュデータの全てを囲む四角とレイとの判定
-	bool isectSegAABB(const float* sp, const float* sq,
-		const float* amin, const float* amax,
+	bool isectSegAABB(const std::array<float, 3>& sp, const std::array<float, 3>& sq,
+		const std::array<float, 3>& amin, const std::array<float, 3>& amax,
 		float& tmin, float& tmax)
 	{
 		constexpr float EPS = 1e-6f;
 
-		float d[3];
-		d[0] = sq[0] - sp[0];
-		d[1] = sq[1] - sp[1];
-		d[2] = sq[2] - sp[2];
+		std::array<float, 3> d{ sq - sp };
 
 		// 線上で最初のヒットを、-FLT_MAXに設定
 		tmin = 0.0;
@@ -479,35 +478,34 @@ bool InputGeom::SaveGeomSet(const BuildSettings* settings)
 }
 
 // メッシュデータとマウスのレイとの判定
-// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
-bool InputGeom::RaycastMesh(float* src, float* dst, float& tmin)
+// start_ray : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
+bool InputGeom::RaycastMesh(
+	const std::array<float, 3>& start_ray, const std::array<float, 3>& end_ray, float& tmin)
 {
 	if (load_geom_meshes.empty())	return false;
 
 	for (auto& load_mesh : load_geom_meshes)
 	{
 		// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
-		float p_min[2]{}, q_max[2]{};
+		std::array<float, 2> p_min{}, q_max{};
 
 		// スラブとレイとの判定と交点を求める
 		{
-			float ray_vec[3]{};
+			std::array<float, 3> ray_vec{ end_ray - start_ray };
 
 			// 始点を０で終点を１とした時、スラブとの交点のレイ上の位置（最小値：最大値）
 			float btmin{ 0.f }, btmax{ 0.f };
 
-			rcVsub(ray_vec, dst, src);  // マウスのレイのベクトルを求める
-
 			// Prune hit ray.
 			// スラブとレイとの判定
-			if (!isectSegAABB(src, dst, load_mesh.m_meshBMin.data(), load_mesh.m_meshBMax.data(), btmin, btmax))
+			if (!isectSegAABB(start_ray, end_ray, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin, btmax))
 				return false;
 
 			// スラブとレイの２交点（最大値、最小値）を求める
-			p_min[0] = src[0] + (ray_vec[0]) * btmin;
-			p_min[1] = src[2] + (ray_vec[2]) * btmin;
-			q_max[0] = src[0] + (ray_vec[0]) * btmax;
-			q_max[1] = src[2] + (ray_vec[2]) * btmax;
+			p_min[0] = start_ray[0] + (ray_vec[0]) * btmin;
+			p_min[1] = start_ray[2] + (ray_vec[2]) * btmin;
+			q_max[0] = start_ray[0] + (ray_vec[0]) * btmax;
+			q_max[1] = start_ray[2] + (ray_vec[2]) * btmax;
 		}
 
 		int cid[512]{};
@@ -533,7 +531,7 @@ bool InputGeom::RaycastMesh(float* src, float* dst, float& tmin)
 				float t = 1;
 
 				// レイとポリゴンとの判定
-				if (intersectSegmentTriangle(src, dst,
+				if (intersectSegmentTriangle(start_ray, end_ray,
 					&verts[tris[j] * 3],
 					&verts[tris[j + 1] * 3],
 					&verts[tris[j + 2] * 3], t))

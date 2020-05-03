@@ -146,7 +146,7 @@ namespace
 		}
 	}
 
-	bool checkOverlapSegment(const float p[2], const float q[2],
+	bool checkOverlapSegment(const std::array<float, 2>& p, const std::array<float, 2>& q,
 		const std::array<float, 2>& bmin, const std::array<float, 2>& bmax)
 	{
 		constexpr float EPSILON = 1e-6f;
@@ -299,8 +299,7 @@ int rcGetChunksOverlappingRect(const rcChunkyTriMesh* cm,
 }
 
 int rcGetChunksOverlappingSegment(const rcChunkyTriMesh* cm,
-	float p[2], float q[2],
-	int* ids, const int maxIds)
+	const std::array<float, 2>& p, const std::array<float, 2>& q, int* ids, const int maxIds)
 {
 	// Traverse tree
 	int i = 0;

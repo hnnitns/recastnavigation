@@ -23,6 +23,7 @@
 #include "MeshLoaderObj.h"
 #include "Recast.h"
 #include <optional>
+#include <deque>
 
 constexpr int MAX_CONVEXVOL_PTS = 12;
 
@@ -92,9 +93,63 @@ struct BuildSettings
 
 class InputGeom
 {
+	struct LoadGeometryMesh
+	{
+		LoadGeometryMesh() : m_meshBMax{}, m_meshBMin{}
+		{}
+		~LoadGeometryMesh() = default;
+
+		std::optional<rcChunkyTriMesh> m_chunkyMesh;
+		std::optional<rcMeshLoaderObj> m_mesh;
+		std::array<float, 3> m_meshBMin, m_meshBMax; // メッシュデータの位置的な最大値、最小値
+
+		LoadGeometryMesh(const LoadGeometryMesh& _rt) noexcept
+		{
+			m_chunkyMesh = (_rt.m_chunkyMesh);
+			m_mesh = (_rt.m_mesh);
+			m_meshBMin = (_rt.m_meshBMin);
+			m_meshBMax = (_rt.m_meshBMax);
+		}
+		LoadGeometryMesh& operator=(const LoadGeometryMesh& _rt) noexcept
+		{
+			if (this != &_rt)
+			{
+				m_chunkyMesh = (_rt.m_chunkyMesh);
+				m_mesh = (_rt.m_mesh);
+				m_meshBMin = (_rt.m_meshBMin);
+				m_meshBMax = (_rt.m_meshBMax);
+			}
+		}
+
+		LoadGeometryMesh(LoadGeometryMesh&& _rt) noexcept
+		{
+			using std::move;
+
+			m_chunkyMesh = move(_rt.m_chunkyMesh);
+			m_mesh = move(_rt.m_mesh);
+			m_meshBMin = move(_rt.m_meshBMin);
+			m_meshBMax = move(_rt.m_meshBMax);
+		}
+		LoadGeometryMesh& operator=(LoadGeometryMesh&& _rt) noexcept
+		{
+			using std::move;
+
+			if (this != &_rt)
+			{
+				m_chunkyMesh = move(_rt.m_chunkyMesh);
+				m_mesh = move(_rt.m_mesh);
+				m_meshBMin = move(_rt.m_meshBMin);
+				m_meshBMax = move(_rt.m_meshBMax);
+			}
+		}
+	};
+
 	std::unique_ptr<rcChunkyTriMesh> m_chunkyMesh;
 	std::unique_ptr<rcMeshLoaderObj> m_mesh;
 	std::array<float, 3> m_meshBMin, m_meshBMax; // メッシュデータの位置的な最大値、最小値
+
+	std::deque<LoadGeometryMesh> load_geom_meshes; // 読み込んだメッシュ
+	std::array<float, 3> m_all_meshBMin, m_all_meshBMax; // 全メッシュデータの位置的な最大値、最小値
 	BuildSettings m_buildSettings;
 	bool m_hasBuildSettings;
 

@@ -163,7 +163,8 @@ namespace
 }
 
 InputGeom::InputGeom()
-	: m_hasBuildSettings(false), m_offMeshConCount{}, m_volumeCount{}, m_meshBMin{}, m_meshBMax{}
+	: m_hasBuildSettings{}, m_offMeshConCount{}, m_volumeCount{}, m_meshBMin{}, m_meshBMax{},
+	m_all_meshBMin{}, m_all_meshBMax{}
 {}
 
 bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)

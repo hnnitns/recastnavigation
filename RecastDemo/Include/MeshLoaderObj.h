@@ -28,6 +28,62 @@ public:
 	rcMeshLoaderObj();
 	~rcMeshLoaderObj();
 
+	rcMeshLoaderObj(rcMeshLoaderObj&& _rt) noexcept
+	{
+		using std::move;
+
+		m_filename = move(_rt.m_filename);
+		m_scale = (_rt.m_scale);
+		m_verts = move(_rt.m_verts);
+		m_tris = (_rt.m_tris);
+		m_normals = (_rt.m_normals);
+		m_vertCount = (_rt.m_vertCount);
+		m_triCount = (_rt.m_triCount);
+	}
+	rcMeshLoaderObj& operator=(rcMeshLoaderObj&& _rt) noexcept
+	{
+		using std::move;
+
+		if (this != &_rt)
+		{
+			m_filename = move(_rt.m_filename);
+			m_scale = (_rt.m_scale);
+			m_verts = move(_rt.m_verts);
+			m_tris = (_rt.m_tris);
+			m_normals = (_rt.m_normals);
+			m_vertCount = (_rt.m_vertCount);
+			m_triCount = (_rt.m_triCount);
+		}
+	}
+
+	rcMeshLoaderObj(const rcMeshLoaderObj& _rt) noexcept
+	{
+		using std::move;
+
+		m_filename = (_rt.m_filename);
+		m_scale = (_rt.m_scale);
+		m_verts = (_rt.m_verts);
+		m_tris = (_rt.m_tris);
+		m_normals = (_rt.m_normals);
+		m_vertCount = (_rt.m_vertCount);
+		m_triCount = (_rt.m_triCount);
+	}
+	rcMeshLoaderObj& operator=(const rcMeshLoaderObj& _rt) noexcept
+	{
+		using std::move;
+
+		if (this != &_rt)
+		{
+			m_filename = (_rt.m_filename);
+			m_scale = (_rt.m_scale);
+			m_verts = (_rt.m_verts);
+			m_tris = (_rt.m_tris);
+			m_normals = (_rt.m_normals);
+			m_vertCount = (_rt.m_vertCount);
+			m_triCount = (_rt.m_triCount);
+		}
+	}
+
 	bool load(const std::string& fileName);
 
 	const float* getVerts() const { return m_verts.data(); }
@@ -38,9 +94,6 @@ public:
 	const std::string& getFileName() const { return m_filename; }
 
 private:
-	// Explicitly disabled copy constructor and copy assignment operator.
-	rcMeshLoaderObj(const rcMeshLoaderObj&);
-	rcMeshLoaderObj& operator=(const rcMeshLoaderObj&);
 
 	void addVertex(float x, float y, float z, int& cap);
 	void addTriangle(int a, int b, int c, int& cap);

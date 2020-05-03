@@ -40,12 +40,49 @@ struct rcChunkyTriMesh
 	int ntris;
 	int maxTrisPerChunk;
 
-private:
-	// Explicitly disabled copy constructor and copy assignment operator.
-	rcChunkyTriMesh(const rcChunkyTriMesh&) = delete;
-	rcChunkyTriMesh(rcChunkyTriMesh&&) = delete;
-	rcChunkyTriMesh& operator=(const rcChunkyTriMesh&) = delete;
-	rcChunkyTriMesh& operator=(rcChunkyTriMesh&&) = delete;
+public:
+	rcChunkyTriMesh(rcChunkyTriMesh&& _rt) noexcept
+	{
+		using std::move;
+
+		nodes = move(_rt.nodes);
+		nnodes = (_rt.nnodes);
+		tris = move(_rt.tris);
+		ntris = (_rt.ntris);
+		maxTrisPerChunk = (_rt.maxTrisPerChunk);
+	}
+	rcChunkyTriMesh& operator=(rcChunkyTriMesh&& _rt) noexcept
+	{
+		using std::move;
+
+		if (this != &_rt)
+		{
+			nodes = move(_rt.nodes);
+			nnodes = (_rt.nnodes);
+			tris = move(_rt.tris);
+			ntris = (_rt.ntris);
+			maxTrisPerChunk = (_rt.maxTrisPerChunk);
+		}
+	}
+	rcChunkyTriMesh(const rcChunkyTriMesh& _rt) noexcept
+	{
+		nodes = (_rt.nodes);
+		nnodes = (_rt.nnodes);
+		tris = (_rt.tris);
+		ntris = (_rt.ntris);
+		maxTrisPerChunk = (_rt.maxTrisPerChunk);
+	}
+	rcChunkyTriMesh& operator=(const rcChunkyTriMesh& _rt) noexcept
+	{
+		if (this != &_rt)
+		{
+			nodes = (_rt.nodes);
+			nnodes = (_rt.nnodes);
+			tris = (_rt.tris);
+			ntris = (_rt.ntris);
+			maxTrisPerChunk = (_rt.maxTrisPerChunk);
+		}
+	}
 };
 
 // Creates partitioned triangle mesh (AABB tree), where each node contains at max trisPerChunk triangles.

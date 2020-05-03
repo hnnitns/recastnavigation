@@ -163,16 +163,11 @@ namespace
 }
 
 InputGeom::InputGeom()
-	: m_offMeshConCount{}, m_volumeCount{},	m_all_meshBMin{}, m_all_meshBMax{}
+	: m_offMeshConCount{}, m_volumeCount{}, all_meshBMin{}, all_meshBMax{}
 {}
 
-bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
+bool InputGeom::LoadMesh(rcContext* ctx, const std::string& filepath)
 {
-	if (!load_geom_meshes.empty())
-	{
-		load_geom_meshes.clear();
-	}
-
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 
@@ -197,6 +192,8 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 	rcCalcBounds(load_meshes.m_mesh->getVerts(), load_meshes.m_mesh->getVertCount(),
 		load_meshes.m_meshBMin.data(), load_meshes.m_meshBMax.data());
 
+	CalcAllMeshBounds();
+
 	try
 	{
 		load_meshes.m_chunkyMesh.emplace();
@@ -216,7 +213,7 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 	return true;
 }
 
-bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
+bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 {
 	std::vector<char> buf;
 	FILE* fp = fopen(filepath.c_str(), "rb");
@@ -286,7 +283,7 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 
 			if (*name)
 			{
-				if (!loadMesh(ctx, name))
+				if (!LoadMesh(ctx, name))
 				{
 					return false;
 				}
@@ -361,7 +358,22 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 	return true;
 }
 
-bool InputGeom::load(rcContext* ctx, const std::string& filepath)
+void InputGeom::CalcAllMeshBounds()
+{
+	for (auto& mesh : load_geom_meshes)
+	{
+		for (size_t i = 0; i < 3u; i++)
+		{
+			if (all_meshBMax[i] < mesh.m_meshBMax[i])
+				all_meshBMax[i] = mesh.m_meshBMax[i];
+
+			if (all_meshBMin[i] > mesh.m_meshBMin[i])
+				all_meshBMin[i] = mesh.m_meshBMin[i];
+		}
+	}
+}
+
+bool InputGeom::Load(rcContext* ctx, const std::string& filepath)
 {
 	size_t extensionPos = filepath.find_last_of('.');
 	if (extensionPos == std::string::npos)
@@ -371,15 +383,15 @@ bool InputGeom::load(rcContext* ctx, const std::string& filepath)
 	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
 
 	if (extension == ".gset")
-		return loadGeomSet(ctx, filepath);
+		return LoadGeomSet(ctx, filepath);
 
 	if (extension == ".obj")
-		return loadMesh(ctx, filepath);
+		return LoadMesh(ctx, filepath);
 
 	return false;
 }
 
-bool InputGeom::saveGeomSet(const BuildSettings* settings)
+bool InputGeom::SaveGeomSet(const BuildSettings* settings)
 {
 	if (load_geom_meshes.empty()) return false;
 
@@ -468,74 +480,75 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 
 // メッシュデータとマウスのレイとの判定
 // src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
-bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
+bool InputGeom::RaycastMesh(float* src, float* dst, float& tmin)
 {
 	if (load_geom_meshes.empty())	return false;
 
-	auto& load_mesh{ load_geom_meshes.front() };
-
-	// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
-	float p_min[2]{}, q_max[2]{};
-
-	// スラブとレイとの判定と交点を求める
+	for (auto& load_mesh : load_geom_meshes)
 	{
-		float ray_vec[3]{};
+		// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
+		float p_min[2]{}, q_max[2]{};
 
-		// 始点を０で終点を１とした時、スラブとの交点のレイ上の位置（最小値：最大値）
-		float btmin{ 0.f }, btmax{ 0.f };
-
-		rcVsub(ray_vec, dst, src);  // マウスのレイのベクトルを求める
-
-		// Prune hit ray.
-		// スラブとレイとの判定
-		if (!isectSegAABB(src, dst, load_mesh.m_meshBMin.data(), load_mesh.m_meshBMax.data(), btmin, btmax))
-			return false;
-
-		// スラブとレイの２交点（最大値、最小値）を求める
-		p_min[0] = src[0] + (ray_vec[0]) * btmin;
-		p_min[1] = src[2] + (ray_vec[2]) * btmin;
-		q_max[0] = src[0] + (ray_vec[0]) * btmax;
-		q_max[1] = src[2] + (ray_vec[2]) * btmax;
-	}
-
-	int cid[512]{};
-	// 入力セグメントとオーバーラップするチャンクインデックスを返す
-	const int ncid = rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid, 512);
-
-	if (!ncid) return false;
-
-	tmin = 1.f;
-
-	bool hit = false;
-	const float* verts = load_mesh.m_mesh->getVerts();
-
-	// メッシュデータとレイの判定
-	for (int i = 0; i < ncid; ++i)
-	{
-		const rcChunkyTriMeshNode& node = load_mesh.m_chunkyMesh->nodes[cid[i]];
-		const int* tris = &load_mesh.m_chunkyMesh->tris[node.i * 3];
-		const int ntris = node.n;
-
-		for (int j = 0; j < ntris * 3; j += 3)
+		// スラブとレイとの判定と交点を求める
 		{
-			float t = 1;
+			float ray_vec[3]{};
 
-			// レイとポリゴンとの判定
-			if (intersectSegmentTriangle(src, dst,
-				&verts[tris[j] * 3],
-				&verts[tris[j + 1] * 3],
-				&verts[tris[j + 2] * 3], t))
+			// 始点を０で終点を１とした時、スラブとの交点のレイ上の位置（最小値：最大値）
+			float btmin{ 0.f }, btmax{ 0.f };
+
+			rcVsub(ray_vec, dst, src);  // マウスのレイのベクトルを求める
+
+			// Prune hit ray.
+			// スラブとレイとの判定
+			if (!isectSegAABB(src, dst, load_mesh.m_meshBMin.data(), load_mesh.m_meshBMax.data(), btmin, btmax))
+				return false;
+
+			// スラブとレイの２交点（最大値、最小値）を求める
+			p_min[0] = src[0] + (ray_vec[0]) * btmin;
+			p_min[1] = src[2] + (ray_vec[2]) * btmin;
+			q_max[0] = src[0] + (ray_vec[0]) * btmax;
+			q_max[1] = src[2] + (ray_vec[2]) * btmax;
+		}
+
+		int cid[512]{};
+		// 入力セグメントとオーバーラップするチャンクインデックスを返す
+		const int ncid = rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid, 512);
+
+		if (!ncid) return false;
+
+		tmin = 1.f;
+
+		bool hit = false;
+		const float* verts = load_mesh.m_mesh->getVerts();
+
+		// メッシュデータとレイの判定
+		for (int i = 0; i < ncid; ++i)
+		{
+			const rcChunkyTriMeshNode& node = load_mesh.m_chunkyMesh->nodes[cid[i]];
+			const int* tris = &load_mesh.m_chunkyMesh->tris[node.i * 3];
+			const int ntris = node.n;
+
+			for (int j = 0; j < ntris * 3; j += 3)
 			{
-				// 終点の距離より短いなら
-				if (t < tmin)
-					tmin = t;  // 交点上の距離を代入
+				float t = 1;
 
-				hit = true;  // 当たっている
+				// レイとポリゴンとの判定
+				if (intersectSegmentTriangle(src, dst,
+					&verts[tris[j] * 3],
+					&verts[tris[j + 1] * 3],
+					&verts[tris[j + 2] * 3], t))
+				{
+					// 終点の距離より短いなら
+					if (t < tmin)
+						tmin = t;  // 交点上の距離を代入
+
+					hit = true;  // 当たっている
+				}
 			}
 		}
-	}
 
-	return hit;
+		return hit;
+	}
 }
 
 void InputGeom::addOffMeshConnection(const float* spos, const float* epos, const float rad,

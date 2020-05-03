@@ -145,37 +145,42 @@ class InputGeom
 	};
 
 	std::deque<LoadGeometryMesh> load_geom_meshes; // 読み込んだメッシュ
-	std::array<float, 3> m_all_meshBMin, m_all_meshBMax; // 全メッシュデータの位置的な最大値、最小値
+	std::array<float, 3> all_meshBMin, all_meshBMax; // 全メッシュデータの位置的な最大値、最小値
 	std::optional<BuildSettings> m_buildSettings;
 
 	// @name Off-Mesh connections. // オフメッシュ接続。
 	//@{
 	static constexpr int MAX_OFFMESH_CONNECTIONS{ 256 };
 
-	std::array<float, MAX_OFFMESH_CONNECTIONS * 3 * 2> m_offMeshConVerts;
-	std::array<float, MAX_OFFMESH_CONNECTIONS> m_offMeshConRads;
-	std::array<uint8_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConDirs;
-	std::array<uint8_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConAreas;
-	std::array<uint16_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConFlags;
-	std::array<uint32_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConId;
+	std::array<float, MAX_OFFMESH_CONNECTIONS * 3 * 2> m_offMeshConVerts{};
+	std::array<float, MAX_OFFMESH_CONNECTIONS> m_offMeshConRads{};
+	std::array<uint8_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConDirs{};
+	std::array<uint8_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConAreas{};
+	std::array<uint16_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConFlags{};
+	std::array<uint32_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConId{};
 	int m_offMeshConCount;
 	//@}
 
 	// @name Convex Volumes. // 凸ボリューム。
 	//@{
 	static constexpr int MAX_VOLUMES = 256;
-	std::array<ConvexVolume, MAX_VOLUMES> m_volumes;
+	std::array<ConvexVolume, MAX_VOLUMES> m_volumes{};
 	int m_volumeCount;
 	//@}
 
-	bool loadMesh(class rcContext* ctx, const std::string& filepath);
-	bool loadGeomSet(class rcContext* ctx, const std::string& filepath);
+	bool LoadMesh(class rcContext* ctx, const std::string& filepath);
+	bool LoadGeomSet(class rcContext* ctx, const std::string& filepath);
+	void CalcAllMeshBounds();
 public:
 	InputGeom();
 	~InputGeom() noexcept = default;
 
-	bool load(class rcContext* ctx, const std::string& filepath);
-	bool saveGeomSet(const BuildSettings* settings);
+	bool Load(class rcContext* ctx, const std::string& filepath);
+	bool SaveGeomSet(const BuildSettings* settings);
+
+	// メッシュデータとマウスのレイとの判定
+	// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
+	bool RaycastMesh(float* src, float* dst, float& tmin);
 
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。
@@ -188,10 +193,6 @@ public:
 	const auto& getNavMeshBoundsMax() const { return m_buildSettings ? m_buildSettings->navMeshBMax : load_geom_meshes.front().m_meshBMax; }
 	const auto& getChunkyMesh() const { return load_geom_meshes.front().m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_buildSettings ? &(*m_buildSettings) : nullptr; }
-
-	// メッシュデータとマウスのレイとの判定
-	// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
-	bool raycastMesh(float* src, float* dst, float& tmin);
 
 	// @name Off-Mesh connections. // オフメッシュ接続。
 	//@{

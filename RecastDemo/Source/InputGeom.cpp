@@ -57,11 +57,11 @@ namespace
 		float d = rcVdot(qp, norm);
 		if (d <= 0.0f) return false;
 
-		// Compute intersection t value of pq with plane of triangle. A ray
-		// intersects iff 0 <= t. Segment intersects iff 0 <= t <= 1. Delay
+		// Compute intersection dis value of pq with plane of triangle. A ray
+		// intersects iff 0 <= dis. Segment intersects iff 0 <= dis <= 1. Delay
 		// dividing by d until intersection has been found to pierce triangle
 		// 三角形の平面とのpqの交差t値を計算します。
-		// 0 <= tの場合、光線は交差します。 0 <= t <= 1の場合、セグメントは交差します。
+		// 0 <= tの場合、光線は交差します。 0 <= dis <= 1の場合、セグメントは交差します。
 		// 交差点が三角形を突き抜けていることがわかるまで、dによる除算を遅らせます。
 		rcVsub(ap.data(), sp.data(), a);
 		t = rcVdot(ap, norm);
@@ -478,11 +478,14 @@ bool InputGeom::SaveGeomSet(const BuildSettings* settings)
 }
 
 // メッシュデータとマウスのレイとの判定
-// start_ray : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
-bool InputGeom::RaycastMesh(
-	const std::array<float, 3>& start_ray, const std::array<float, 3>& end_ray, float& tmin)
+// ray_start : レイの始点、dst：レイの終点
+bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::array<float, 3>& ray_end,
+	RaycastMeshHitInfo* hit_info)
 {
 	if (load_geom_meshes.empty())	return false;
+
+	float hit_dis{ 1.f }; // レイの長さを1とした時のメッシュデータとの距離上の交点
+	bool is_hit{};
 
 	for (auto& load_mesh : load_geom_meshes)
 	{
@@ -491,33 +494,30 @@ bool InputGeom::RaycastMesh(
 
 		// スラブとレイとの判定と交点を求める
 		{
-			std::array<float, 3> ray_vec{ end_ray - start_ray };
+			std::array<float, 3> ray_vec{ ray_end - ray_start };
 
 			// 始点を０で終点を１とした時、スラブとの交点のレイ上の位置（最小値：最大値）
-			float btmin{ 0.f }, btmax{ 0.f };
+			float btmin{}, btmax{};
 
-			// Prune hit ray.
+			// Prune is_hit ray.
 			// スラブとレイとの判定
-			if (!isectSegAABB(start_ray, end_ray, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin, btmax))
-				return false;
+			if (!isectSegAABB(ray_start, ray_end, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin, btmax))
+				continue;
 
 			// スラブとレイの２交点（最大値、最小値）を求める
-			p_min[0] = start_ray[0] + (ray_vec[0]) * btmin;
-			p_min[1] = start_ray[2] + (ray_vec[2]) * btmin;
-			q_max[0] = start_ray[0] + (ray_vec[0]) * btmax;
-			q_max[1] = start_ray[2] + (ray_vec[2]) * btmax;
+			p_min[0] = ray_start[0] + (ray_vec[0]) * btmin;
+			p_min[1] = ray_start[2] + (ray_vec[2]) * btmin;
+			q_max[0] = ray_start[0] + (ray_vec[0]) * btmax;
+			q_max[1] = ray_start[2] + (ray_vec[2]) * btmax;
 		}
 
 		int cid[512]{};
 		// 入力セグメントとオーバーラップするチャンクインデックスを返す
 		const int ncid = rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid, 512);
 
-		if (!ncid) return false;
+		if (!ncid) continue;
 
-		tmin = 1.f;
-
-		bool hit = false;
-		const float* verts = load_mesh.m_mesh->getVerts();
+		const float* verts{ load_mesh.m_mesh->getVerts() };
 
 		// メッシュデータとレイの判定
 		for (int i = 0; i < ncid; ++i)
@@ -528,25 +528,39 @@ bool InputGeom::RaycastMesh(
 
 			for (int j = 0; j < ntris * 3; j += 3)
 			{
-				float t = 1;
+				float dis{ 1 };
 
 				// レイとポリゴンとの判定
-				if (intersectSegmentTriangle(start_ray, end_ray,
+				if (intersectSegmentTriangle(ray_start, ray_end,
 					&verts[tris[j] * 3],
 					&verts[tris[j + 1] * 3],
-					&verts[tris[j + 2] * 3], t))
+					&verts[tris[j + 2] * 3], dis))
 				{
 					// 終点の距離より短いなら
-					if (t < tmin)
-						tmin = t;  // 交点上の距離を代入
+					if (dis < hit_dis)
+						hit_dis = dis;  // 交点上の距離を代入
 
-					hit = true;  // 当たっている
+					is_hit = true;  // 当たっている
 				}
 			}
 		}
-
-		return hit;
 	}
+
+	if (!is_hit)	return false;
+
+	if (hit_info)
+	{
+		// レイのベクトルを求める
+		hit_info->vec = ray_end - ray_start;
+
+		// 実際の交点を計算
+		hit_info->pos = ray_start + (hit_info->vec * hit_dis);
+
+		// レイの始点から衝突地点までの距離を計算
+		hit_info->dis = rcVdist(ray_start, hit_info->pos);
+	}
+
+	return true;
 }
 
 void InputGeom::addOffMeshConnection(const float* spos, const float* epos, const float rad,

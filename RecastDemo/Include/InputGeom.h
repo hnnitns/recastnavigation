@@ -93,6 +93,7 @@ struct BuildSettings
 
 class InputGeom
 {
+public:
 	struct LoadGeometryMesh
 	{
 		LoadGeometryMesh() : m_meshBMax{}, m_meshBMin{}
@@ -143,7 +144,14 @@ class InputGeom
 			}
 		}
 	};
+	struct RaycastMeshHitInfo
+	{
+		float dis{}; // 衝突地点までの距離
+		std::array<float, 3> pos{}; // 衝突地点
+		std::array<float, 3> vec{}; // 衝突へのベクトル
+	};
 
+private:
 	std::deque<LoadGeometryMesh> load_geom_meshes; // 読み込んだメッシュ
 	std::array<float, 3> all_meshBMin, all_meshBMax; // 全メッシュデータの位置的な最大値、最小値
 	std::optional<BuildSettings> m_buildSettings;
@@ -179,8 +187,9 @@ public:
 	bool SaveGeomSet(const BuildSettings* settings);
 
 	// メッシュデータとマウスのレイとの判定
-	// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
-	bool RaycastMesh(const std::array<float, 3>& start_ray, const std::array<float, 3>& end_ray, float& tmin);
+	// src : レイの始点、dst：レイの終点
+	bool RaycastMesh(const std::array<float, 3>& ray_start, const std::array<float, 3>& ray_end,
+		RaycastMeshHitInfo* hit_info = nullptr);
 
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。

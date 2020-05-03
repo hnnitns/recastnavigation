@@ -1140,6 +1140,14 @@ inline constexpr void rcVadd(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[2] + v2[2];
 }
 
+namespace RcMath
+{
+	inline std::array<float, 3> operator+(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		return { v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2] };
+	}
+}
+
 // Performs a vector subtraction. (@p v1 - @p v2)
 // ベクトル減算を実行します。（@p v1-@p v2）
 //  @param[out]	dest	The result vector. [(x, y, z)]
@@ -1157,6 +1165,16 @@ namespace RcMath
 	inline std::array<float, 3> operator-(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
 	{
 		return { v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]  };
+	}
+
+	inline std::array<float, 3> operator*(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		return { v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]  };
+	}
+
+	inline std::array<float, 3> operator*(const std::array<float, 3>& v1, const float num)
+	{
+		return { v1[0] * num, v1[1] * num, v1[2] * num };
 	}
 }
 
@@ -1206,6 +1224,22 @@ inline float rcVdist(const float* v1, const float* v2)
 	return rcSqrt(dx * dx + dy * dy + dz * dz);
 }
 
+namespace RcMath
+{
+	// Returns the distance between two points.
+	// 2点間の距離を返します。
+	//  @param[in]		v1	A point. [(x, y, z)]
+	//  @param[in]		v2	A point. [(x, y, z)]
+	// @return The distance between the two points.
+	inline float rcVdist(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		float dx = v2[0] - v1[0];
+		float dy = v2[1] - v1[1];
+		float dz = v2[2] - v1[2];
+		return rcSqrt(dx * dx + dy * dy + dz * dz);
+	}
+}
+
 // Returns the square of the distance between two points.
 // 2点間の距離の2乗を返します。
 //  @param[in]		v1	A point. [(x, y, z)]
@@ -1228,6 +1262,20 @@ inline void rcVnormalize(float* v)
 	v[0] *= d;
 	v[1] *= d;
 	v[2] *= d;
+}
+
+namespace RcMath
+{
+	// Normalizes the vector.
+	// ベクトルを正規化します。
+	//  @param[in,out]	v	The vector to normalize. [(x, y, z)]
+	inline void rcVnormalize(std::array<float, 3>* v)
+	{
+		float d = 1.f / rcSqrt(rcSqr(v->at(0)) + rcSqr(v->at(1)) + rcSqr(v->at(2)));
+		v->at(0) *= d;
+		v->at(1) *= d;
+		v->at(2) *= d;
+	}
 }
 
 // @}

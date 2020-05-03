@@ -537,18 +537,12 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 	// マウスの左ボタン・右ボタンを離した瞬間、メッシュデータが存在し、サンプルも選択している状態
 	if (processHitTest && geom && sample)
 	{
-		float hit_dis{};
+		InputGeom::RaycastMeshHitInfo hit_info{};
 
 		// マウスの指すレイと読み込まれたメッシュとの当たり判定
 		// ※ このエディタの場合はスタート地点やゴール地点をメッシュデータ上にマウスで配置するので、経路探索をこの中に持ってこれる
-		if (geom->RaycastMesh(ray_start, ray_end, hit_dis))
+		if (geom->RaycastMesh(ray_start, ray_end, &hit_info))
 		{
-			std::array<float, 3u> ray_vec{};
-
-			// レイのベクトルを求める
-			for (size_t i = 0; i < 3u; i++)
-				ray_vec[i] = ray_end[i] - ray_start[i];
-
 			// マーカー
 			if (SDL_GetModState() & KMOD_CTRL)
 			{
@@ -556,20 +550,13 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 				markerPositionSet = true;
 
 				// 実際の交点を計算
-				for (size_t i = 0; i < 3u; i++)
-					markerPosition[i] = ray_start[i] + (ray_vec[i] * hit_dis);
+				markerPosition = hit_info.pos;
 			}
 			// 通常時
 			else
 			{
-				std::array<float, 3u> pos{};
-
-				// 実際の交点を計算
-				for (size_t i = 0; i < 3u; i++)
-					pos[i] = ray_start[i] + (ray_vec[i] * hit_dis);
-
 				// 経路探索を行う
-				sample->handleClick(ray_start.data(), pos.data(), processHitTestShift);
+				sample->handleClick(ray_start.data(), hit_info.pos.data(), processHitTestShift);
 			}
 		}
 		else

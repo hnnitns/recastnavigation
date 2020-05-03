@@ -246,9 +246,11 @@ void Sample_SoloMesh::handleRender()
 
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
+		const auto& mesh{ m_geom->getMesh() };
+
 		// Draw mesh
-		duDebugDrawTriMeshSlope(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
-			m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(),
+		duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
+			mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
 			m_agentMaxSlope, texScale);
 		m_geom->drawOffMeshConnections(&m_dd);
 	}

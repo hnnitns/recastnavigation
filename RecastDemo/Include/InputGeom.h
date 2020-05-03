@@ -144,10 +144,6 @@ class InputGeom
 		}
 	};
 
-	std::unique_ptr<rcChunkyTriMesh> m_chunkyMesh;
-	std::unique_ptr<rcMeshLoaderObj> m_mesh;
-	std::array<float, 3> m_meshBMin, m_meshBMax; // メッシュデータの位置的な最大値、最小値
-
 	std::deque<LoadGeometryMesh> load_geom_meshes; // 読み込んだメッシュ
 	std::array<float, 3> m_all_meshBMin, m_all_meshBMax; // 全メッシュデータの位置的な最大値、最小値
 	std::optional<BuildSettings> m_buildSettings;
@@ -183,14 +179,14 @@ public:
 
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。
-	const auto& getMesh() const { return m_mesh; }
-	const auto& getMeshBoundsMin() const { return m_meshBMin; } // メッシュ境界の最小値を取得
-	const auto& getMeshBoundsMax() const { return m_meshBMax; } // メッシュ境界の最大値を取得
+	const auto& getMesh() const { return load_geom_meshes.front().m_mesh; }
+	const auto& getMeshBoundsMin() const { return load_geom_meshes.front().m_meshBMin; } // メッシュ境界の最小値を取得
+	const auto& getMeshBoundsMax() const { return load_geom_meshes.front().m_meshBMax; } // メッシュ境界の最大値を取得
 	// ナビメッシュ境界の最小値を取得
-	const auto& getNavMeshBoundsMin() const { return m_buildSettings ? m_buildSettings->navMeshBMin : m_meshBMin; }
+	const auto& getNavMeshBoundsMin() const { return m_buildSettings ? m_buildSettings->navMeshBMin : load_geom_meshes.front().m_meshBMin; }
 	// ナビメッシュ境界の最大値を取得
-	const auto& getNavMeshBoundsMax() const { return m_buildSettings ? m_buildSettings->navMeshBMax : m_meshBMax; }
-	const auto& getChunkyMesh() const { return m_chunkyMesh; }
+	const auto& getNavMeshBoundsMax() const { return m_buildSettings ? m_buildSettings->navMeshBMax : load_geom_meshes.front().m_meshBMax; }
+	const auto& getChunkyMesh() const { return load_geom_meshes.front().m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_buildSettings ? &(*m_buildSettings) : nullptr; }
 
 	// メッシュデータとマウスのレイとの判定

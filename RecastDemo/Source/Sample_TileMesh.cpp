@@ -555,10 +555,13 @@ void Sample_TileMesh::handleRender()
 	// Draw mesh // メッシュを描画
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
+		const auto& mesh{ m_geom->getMesh() };
+
 		// Draw mesh // メッシュを描画
-		duDebugDrawTriMeshSlope(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
-			m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(),
+		duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
+			mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
 			m_agentMaxSlope, texScale);
+
 		m_geom->drawOffMeshConnections(&m_dd);
 	}
 
@@ -1051,7 +1054,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	tbmax[1] = m_cfg.bmax[2];
 
 	int cid[512]{}; // TODO: Make grow when returning too many items. // 戻るアイテムが多すぎる場合はサイズを大きくさせる。
-	const int ncid = rcGetChunksOverlappingRect(chunkyMesh.get(), tbmin, tbmax, cid, 512);
+	const int ncid = rcGetChunksOverlappingRect(&(*chunkyMesh), tbmin, tbmax, cid, 512);
 
 	if (!ncid) return nullptr;
 

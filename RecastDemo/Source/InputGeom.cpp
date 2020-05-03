@@ -163,24 +163,24 @@ namespace
 }
 
 InputGeom::InputGeom()
-	: m_offMeshConCount{}, m_volumeCount{}, m_meshBMin{}, m_meshBMax{},
-	m_all_meshBMin{}, m_all_meshBMax{}
+	: m_offMeshConCount{}, m_volumeCount{},	m_all_meshBMin{}, m_all_meshBMax{}
 {}
 
 bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 {
-	if (m_mesh)
+	if (!load_geom_meshes.empty())
 	{
-		m_chunkyMesh = nullptr;
-		m_mesh = nullptr;
+		load_geom_meshes.clear();
 	}
 
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 
+	auto& load_meshes{ load_geom_meshes.emplace_back() };
+
 	try
 	{
-		m_mesh = std::make_unique<rcMeshLoaderObj>();
+		load_meshes.m_mesh.emplace();
 	}
 	catch (const std::exception&)
 	{
@@ -188,17 +188,18 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 		return false;
 	}
 
-	if (!m_mesh->load(filepath))
+	if (!load_meshes.m_mesh->load(filepath))
 	{
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Could not load '%s'", filepath.c_str()); // 読み込めない
 		return false;
 	}
 
-	rcCalcBounds(m_mesh->getVerts(), m_mesh->getVertCount(), m_meshBMin.data(), m_meshBMax.data());
+	rcCalcBounds(load_meshes.m_mesh->getVerts(), load_meshes.m_mesh->getVertCount(),
+		load_meshes.m_meshBMin.data(), load_meshes.m_meshBMax.data());
 
 	try
 	{
-		m_chunkyMesh = std::make_unique<rcChunkyTriMesh>();
+		load_meshes.m_chunkyMesh.emplace();
 	}
 	catch (const std::exception&)
 	{
@@ -206,7 +207,7 @@ bool InputGeom::loadMesh(rcContext* ctx, const std::string& filepath)
 		return false;
 	}
 
-	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, m_chunkyMesh.get()))
+	if (!rcCreateChunkyTriMesh(load_meshes.m_mesh->getVerts(), load_meshes.m_mesh->getTris(), load_meshes.m_mesh->getTriCount(), 256, &(*load_meshes.m_chunkyMesh)))
 	{
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Failed to build chunky mesh."); // チャンキーメッシュの構築に失敗しました
 		return false;
@@ -261,7 +262,7 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
-	m_mesh = nullptr;
+	load_geom_meshes.clear();
 
 	char* src = buf.data();
 	char* srcEnd = buf.data() + bufSize;
@@ -380,11 +381,13 @@ bool InputGeom::load(rcContext* ctx, const std::string& filepath)
 
 bool InputGeom::saveGeomSet(const BuildSettings* settings)
 {
-	if (!m_mesh) return false;
+	if (load_geom_meshes.empty()) return false;
+
+	auto& load_mesh{ load_geom_meshes.front() };
 
 	// Change extension
 	// 拡張子を変更します
-	std::string filepath = m_mesh->getFileName();
+	std::string filepath = load_mesh.m_mesh->getFileName();
 	size_t extPos = filepath.find_last_of('.');
 
 	if (extPos != std::string::npos)
@@ -401,7 +404,7 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 
 	// Store mesh filename.
 	// メッシュファイル名を保存します。
-	fprintf_s(fp, "f %s\n", m_mesh->getFileName().c_str());
+	fprintf_s(fp, "f %s\n", load_mesh.m_mesh->getFileName().c_str());
 
 	// Store settings if any
 	// 設定があれば保存します
@@ -467,6 +470,10 @@ bool InputGeom::saveGeomSet(const BuildSettings* settings)
 // src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点
 bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 {
+	if (load_geom_meshes.empty())	return false;
+
+	auto& load_mesh{ load_geom_meshes.front() };
+
 	// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
 	float p_min[2]{}, q_max[2]{};
 
@@ -481,7 +488,7 @@ bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 
 		// Prune hit ray.
 		// スラブとレイとの判定
-		if (!isectSegAABB(src, dst, m_meshBMin.data(), m_meshBMax.data(), btmin, btmax))
+		if (!isectSegAABB(src, dst, load_mesh.m_meshBMin.data(), load_mesh.m_meshBMax.data(), btmin, btmax))
 			return false;
 
 		// スラブとレイの２交点（最大値、最小値）を求める
@@ -493,20 +500,20 @@ bool InputGeom::raycastMesh(float* src, float* dst, float& tmin)
 
 	int cid[512]{};
 	// 入力セグメントとオーバーラップするチャンクインデックスを返す
-	const int ncid = rcGetChunksOverlappingSegment(m_chunkyMesh.get(), p_min, q_max, cid, 512);
+	const int ncid = rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid, 512);
 
 	if (!ncid) return false;
 
 	tmin = 1.f;
 
 	bool hit = false;
-	const float* verts = m_mesh->getVerts();
+	const float* verts = load_mesh.m_mesh->getVerts();
 
 	// メッシュデータとレイの判定
 	for (int i = 0; i < ncid; ++i)
 	{
-		const rcChunkyTriMeshNode& node = m_chunkyMesh->nodes[cid[i]];
-		const int* tris = &m_chunkyMesh->tris[node.i * 3];
+		const rcChunkyTriMeshNode& node = load_mesh.m_chunkyMesh->nodes[cid[i]];
+		const int* tris = &load_mesh.m_chunkyMesh->tris[node.i * 3];
 		const int ntris = node.n;
 
 		for (int j = 0; j < ntris * 3; j += 3)

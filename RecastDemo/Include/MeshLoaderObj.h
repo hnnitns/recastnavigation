@@ -26,7 +26,7 @@ class rcMeshLoaderObj
 {
 public:
 	rcMeshLoaderObj();
-	~rcMeshLoaderObj();
+	~rcMeshLoaderObj() = default;
 
 	rcMeshLoaderObj(rcMeshLoaderObj&& _rt) noexcept
 	{
@@ -35,8 +35,8 @@ public:
 		m_filename = move(_rt.m_filename);
 		m_scale = (_rt.m_scale);
 		m_verts = move(_rt.m_verts);
-		m_tris = (_rt.m_tris);
-		m_normals = (_rt.m_normals);
+		m_tris = move(_rt.m_tris);
+		m_normals = move(_rt.m_normals);
 		m_vertCount = (_rt.m_vertCount);
 		m_triCount = (_rt.m_triCount);
 	}
@@ -49,8 +49,8 @@ public:
 			m_filename = move(_rt.m_filename);
 			m_scale = (_rt.m_scale);
 			m_verts = move(_rt.m_verts);
-			m_tris = (_rt.m_tris);
-			m_normals = (_rt.m_normals);
+			m_tris = move(_rt.m_tris);
+			m_normals = move(_rt.m_normals);
 			m_vertCount = (_rt.m_vertCount);
 			m_triCount = (_rt.m_triCount);
 		}
@@ -87,8 +87,8 @@ public:
 	bool load(const std::string& fileName);
 
 	const float* getVerts() const { return m_verts.data(); }
-	const float* getNormals() const { return m_normals; }
-	const int* getTris() const { return m_tris; }
+	const float* getNormals() const { return m_normals.data(); }
+	const int* getTris() const { return m_tris.data(); }
 	int getVertCount() const { return m_vertCount; }
 	int getTriCount() const { return m_triCount; }
 	const std::string& getFileName() const { return m_filename; }
@@ -101,8 +101,8 @@ private:
 	std::string m_filename;
 	float m_scale;
 	std::vector<float> m_verts;
-	int* m_tris;
-	float* m_normals;
+	std::vector<int> m_tris;
+	std::vector<float> m_normals;
 	int m_vertCount;
 	int m_triCount;
 };

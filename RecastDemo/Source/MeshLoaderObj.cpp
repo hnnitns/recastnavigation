@@ -25,29 +25,24 @@
 #include <algorithm>
 
 rcMeshLoaderObj::rcMeshLoaderObj() :
-	m_scale(1.f), m_verts{}, m_tris{}, m_normals{}, m_vertCount{}, m_triCount{}
+	m_scale(1.f), m_vertCount{}, m_triCount{}
 {}
-
-rcMeshLoaderObj::~rcMeshLoaderObj()
-{
-	delete[] m_normals;
-	delete[] m_tris;
-}
 
 void rcMeshLoaderObj::addVertex(float x, float y, float z, int& cap)
 {
 	if (m_vertCount + 1 > cap)
 	{
 		cap = !cap ? 8 : cap * 2;
-		std::vector<float> nv(cap * 3, 0.f);
+
 		//float* nv = new float[cap * 3];
+		std::vector<float> nv(cap * 3, 0.f);
 
 		if (m_vertCount)
 			//memcpy(nv, m_verts, m_vertCount * 3 * sizeof(float));
 			for (size_t i = 0; i < m_vertCount * 3; i++)
 			{
 				nv[i] = m_verts[i];
-			};
+			}
 
 		//delete[] m_verts;
 
@@ -65,12 +60,18 @@ void rcMeshLoaderObj::addTriangle(int a, int b, int c, int& cap)
 	if (m_triCount + 1 > cap)
 	{
 		cap = !cap ? 8 : cap * 2;
-		int* nv = new int[cap * 3];
+
+		//int* nv = new int[cap * 3];
+		std::vector<int> nv(cap * 3, 0);
 
 		if (m_triCount)
-			memcpy(nv, m_tris, m_triCount * 3 * sizeof(int));
+			//memcpy(nv, m_tris, m_triCount * 3 * sizeof(int));
+			for (size_t i = 0; i < m_triCount * 3; i++)
+			{
+				nv[i] = m_tris[i];
+			}
 
-		delete[] m_tris;
+		//delete[] m_tris;
 		m_tris = nv;
 	}
 
@@ -249,7 +250,7 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 
 	// Calculate normals.
 	// –@ü‚ðŒvŽZ‚µ‚Ü‚·B
-	m_normals = new float[m_triCount * 3];
+	m_normals.resize(m_triCount * 3);
 
 	for (int i = 0; i < m_triCount * 3; i += 3)
 	{

@@ -1010,7 +1010,7 @@ void CrowdTool::handleClick(const float* s, const float* p, bool shift)
 {
 	if (!m_sample) return;
 	if (!m_state) return;
-	InputGeom* geom = m_sample->getInputGeom();
+	auto& geom = m_sample->getInputGeom();
 	if (!geom) return;
 	dtCrowd* crowd = m_sample->getCrowd();
 	if (!crowd) return;

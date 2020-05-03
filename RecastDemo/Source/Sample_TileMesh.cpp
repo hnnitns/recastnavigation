@@ -547,8 +547,7 @@ void Sample_TileMesh::handleDebugMode()
 
 void Sample_TileMesh::handleRender()
 {
-	if (!m_geom || !m_geom->getMesh())
-		return;
+	if (m_geom->isLoadGeomMeshEmpty()) return;
 
 	const float texScale = 1.f / (m_cellSize * 10.0f);
 
@@ -694,11 +693,11 @@ void Sample_TileMesh::handleRenderOverlay(double* proj, double* model, int* view
 	renderOverlayToolStates(proj, model, view);
 }
 
-void Sample_TileMesh::handleMeshChanged(InputGeom* geom)
+void Sample_TileMesh::handleMeshChanged()
 {
-	Sample::handleMeshChanged(geom);
+	Sample::handleMeshChanged();
 
-	const BuildSettings* buildSettings = geom->getBuildSettings();
+	const BuildSettings* buildSettings = m_geom->getBuildSettings();
 	if (buildSettings && buildSettings->tileSize > 0)
 		m_tileSize = buildSettings->tileSize;
 

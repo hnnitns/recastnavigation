@@ -96,13 +96,13 @@ class InputGeom
 public:
 	struct LoadGeometryMesh
 	{
-		LoadGeometryMesh() : m_meshBMax{}, m_meshBMin{}
-		{}
+		LoadGeometryMesh() = default;
 		~LoadGeometryMesh() = default;
 
 		std::optional<rcChunkyTriMesh> m_chunkyMesh;
 		std::optional<rcMeshLoaderObj> m_mesh;
-		std::array<float, 3> m_meshBMin, m_meshBMax; // メッシュデータの位置的な最大値、最小値
+		std::array<float, 3> m_meshBMin{}, m_meshBMax{}; // メッシュデータの位置的な最大値、最小値
+		bool is_selected{ true };
 
 		LoadGeometryMesh(const LoadGeometryMesh& _rt) noexcept
 		{
@@ -110,6 +110,7 @@ public:
 			m_mesh = (_rt.m_mesh);
 			m_meshBMin = (_rt.m_meshBMin);
 			m_meshBMax = (_rt.m_meshBMax);
+			is_selected = (_rt.is_selected);
 		}
 		LoadGeometryMesh& operator=(const LoadGeometryMesh& _rt) noexcept
 		{
@@ -119,6 +120,7 @@ public:
 				m_mesh = (_rt.m_mesh);
 				m_meshBMin = (_rt.m_meshBMin);
 				m_meshBMax = (_rt.m_meshBMax);
+				is_selected = (_rt.is_selected);
 			}
 		}
 
@@ -130,6 +132,7 @@ public:
 			m_mesh = move(_rt.m_mesh);
 			m_meshBMin = move(_rt.m_meshBMin);
 			m_meshBMax = move(_rt.m_meshBMax);
+			is_selected = (_rt.is_selected);
 		}
 		LoadGeometryMesh& operator=(LoadGeometryMesh&& _rt) noexcept
 		{
@@ -141,6 +144,7 @@ public:
 				m_mesh = move(_rt.m_mesh);
 				m_meshBMin = move(_rt.m_meshBMin);
 				m_meshBMax = move(_rt.m_meshBMax);
+				is_selected = (_rt.is_selected);
 			}
 		}
 	};
@@ -191,9 +195,16 @@ public:
 	bool RaycastMesh(const std::array<float, 3>& ray_start, const std::array<float, 3>& ray_end,
 		RaycastMeshHitInfo* hit_info = nullptr);
 
+	void ClearLoadGeomMesh() { load_geom_meshes.clear(); }
+
+
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。
+	const auto& getLoadGeomMesh() const noexcept { return load_geom_meshes; }
+	size_t getLoadGeomMeshSize() const noexcept { return load_geom_meshes.size(); }
+	bool isLoadGeomMeshEmpty() const noexcept { return load_geom_meshes.empty(); }
 	const auto& getMesh() const { return load_geom_meshes.front().m_mesh; }
+	const auto& getMeshAt(const size_t num) const { return load_geom_meshes.at(num).m_mesh; }
 	const auto& getMeshBoundsMin() const { return load_geom_meshes.front().m_meshBMin; } // メッシュ境界の最小値を取得
 	const auto& getMeshBoundsMax() const { return load_geom_meshes.front().m_meshBMax; } // メッシュ境界の最大値を取得
 	// ナビメッシュ境界の最小値を取得
@@ -201,17 +212,18 @@ public:
 	// ナビメッシュ境界の最大値を取得
 	const auto& getNavMeshBoundsMax() const { return m_buildSettings ? m_buildSettings->navMeshBMax : load_geom_meshes.front().m_meshBMax; }
 	const auto& getChunkyMesh() const { return load_geom_meshes.front().m_chunkyMesh; }
+	const auto& getChunkyMeshAt(const size_t num) const { return load_geom_meshes.at(num).m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_buildSettings ? &(*m_buildSettings) : nullptr; }
 
 	// @name Off-Mesh connections. // オフメッシュ接続。
 	//@{
-	int getOffMeshConnectionCount() const { return m_offMeshConCount; }
-	const auto& getOffMeshConnectionVerts() const { return m_offMeshConVerts; }
-	const auto& getOffMeshConnectionRads() const { return m_offMeshConRads; }
-	const auto& getOffMeshConnectionDirs() const { return m_offMeshConDirs; }
-	const auto& getOffMeshConnectionAreas() const { return m_offMeshConAreas; }
-	const auto& getOffMeshConnectionFlags() const { return m_offMeshConFlags; }
-	const auto& getOffMeshConnectionId() const { return m_offMeshConId; }
+	int getOffMeshConnectionCount() const noexcept { return m_offMeshConCount; }
+	const auto& getOffMeshConnectionVerts() const noexcept { return m_offMeshConVerts; }
+	const auto& getOffMeshConnectionRads() const noexcept { return m_offMeshConRads; }
+	const auto& getOffMeshConnectionDirs() const noexcept { return m_offMeshConDirs; }
+	const auto& getOffMeshConnectionAreas() const noexcept { return m_offMeshConAreas; }
+	const auto& getOffMeshConnectionFlags() const noexcept { return m_offMeshConFlags; }
+	const auto& getOffMeshConnectionId() const noexcept { return m_offMeshConId; }
 	void addOffMeshConnection(const float* spos, const float* epos, const float rad,
 		unsigned char bidir, unsigned char area, unsigned short flags);
 	void deleteOffMeshConnection(int i);
@@ -220,8 +232,8 @@ public:
 
 	// @name Box Volumes. // ボックスボリューム。
 	//@{
-	int getConvexVolumeCount() const { return m_volumeCount; }
-	const auto* getConvexVolumes() const { return &m_volumes; }
+	int getConvexVolumeCount() const noexcept { return m_volumeCount; }
+	const auto* getConvexVolumes() const noexcept { return &m_volumes; }
 	void addConvexVolume(const float* verts, const int nverts,
 		const float minh, const float maxh, rcAreaModification areaMod);
 	void deleteConvexVolume(int i);

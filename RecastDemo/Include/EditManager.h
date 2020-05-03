@@ -31,7 +31,6 @@ private:
 	void PropertiesUpdate();
 	void SampleSelect();
 	void MeshSelect();
-	void TestUpdate();
 	void HandleDraw();
 
 private:
@@ -56,7 +55,7 @@ private:
 	bool rotate{}, movedDuringRotate{};
 	std::array<float, 3> ray_start{}, ray_end{};
 	bool mouseOverMenu{}; // ImGui上のウィンドウにマウスが存在する
-	bool showMenu{}, showLog{}, showTools{}, showLevels{}, showSample{}, showTestCases{};
+	bool showMenu{}, showLog{}, showTools{}, showLevels{}, showSample{};
 
 	// Window scroll positions.
 	// ウィンドウのスクロール位置。
@@ -72,11 +71,7 @@ private:
 	bool markerPositionSet{};
 
 	/// 流石に見える部分で生ポインタで扱いたくなかった
-	std::unique_ptr<class InputGeom> geom;
 	std::unique_ptr<class Sample> sample;
-
-	const std::string testCasesFolder{ "TestCases" };
-	//std::unique_ptr<class TestCase> test;
 
 	class BuildContext ctx{};
 

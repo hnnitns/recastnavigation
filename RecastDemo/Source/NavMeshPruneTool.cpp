@@ -250,7 +250,7 @@ void NavMeshPruneTool::handleClick(const float* s, const float* p, bool shift)
 	rcIgnoreUnused(shift);
 
 	if (!m_sample) return;
-	InputGeom* geom = m_sample->getInputGeom();
+	auto& geom = m_sample->getInputGeom();
 	if (!geom) return;
 	dtNavMesh* nav = m_sample->getNavMesh();
 	if (!nav) return;

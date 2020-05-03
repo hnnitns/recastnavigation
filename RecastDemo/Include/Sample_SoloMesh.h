@@ -67,14 +67,14 @@ public:
 	Sample_SoloMesh();
 	virtual ~Sample_SoloMesh();
 
-	virtual void handleSettings();
-	virtual void handleTools();
-	virtual void handleDebugMode();
+	virtual void handleSettings() override;
+	virtual void handleTools() override;
+	virtual void handleDebugMode() override;
 
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
-	virtual void handleMeshChanged(class InputGeom* geom);
-	virtual bool handleBuild();
+	virtual void handleRender() override;
+	virtual void handleRenderOverlay(double* proj, double* model, int* view) override;
+	virtual void handleMeshChanged() override;
+	virtual bool handleBuild() override;
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

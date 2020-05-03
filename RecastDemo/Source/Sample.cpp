@@ -85,20 +85,15 @@ unsigned int SampleDebugDraw::areaToCol(unsigned int area)
 }
 
 Sample::Sample() :
-	m_geom(0),
-	m_navMesh(0),
-	m_navQuery(0),
-	m_crowd(0),
+	m_navMesh{}, m_navQuery{}, m_crowd{},
 	m_navMeshDrawFlags(DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST),
-	m_filterLowHangingObstacles(true),
-	m_filterLedgeSpans(true),
-	m_filterWalkableLowHeightSpans(true),
-	m_tool(0),
-	m_ctx(0)
+	m_filterLowHangingObstacles(true), m_filterLedgeSpans(true), m_filterWalkableLowHeightSpans(true),
+	m_tool{}, m_ctx{}
 {
 	resetCommonSettings();
 	m_navQuery = dtAllocNavMeshQuery();
 	m_crowd = dtAllocCrowd();
+	m_geom.emplace();
 
 	for (int i = 0; i < MAX_TOOLS; i++)
 		m_toolStates[i] = 0;
@@ -155,11 +150,9 @@ void Sample::handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*vie
 {
 }
 
-void Sample::handleMeshChanged(InputGeom* geom)
+void Sample::handleMeshChanged()
 {
-	m_geom = geom;
-
-	const BuildSettings* buildSettings{ geom->getBuildSettings() };
+	const BuildSettings* buildSettings{ m_geom->getBuildSettings() };
 
 	if (buildSettings)
 	{

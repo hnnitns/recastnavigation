@@ -218,6 +218,31 @@ namespace
 
 		return true;
 	}
+
+	void getPolyCenter(dtNavMesh* navMesh, dtPolyRef ref, float* center)
+	{
+		center[0] = 0;
+		center[1] = 0;
+		center[2] = 0;
+
+		const dtMeshTile* tile = 0;
+		const dtPoly* poly = 0;
+		dtStatus status = navMesh->getTileAndPolyByRef(ref, &tile, &poly);
+		if (dtStatusFailed(status))
+			return;
+
+		for (int i = 0; i < (int)poly->vertCount; ++i)
+		{
+			const float* v = &tile->verts[poly->verts[i] * 3];
+			center[0] += v[0];
+			center[1] += v[1];
+			center[2] += v[2];
+		}
+		const float s = 1.f / poly->vertCount;
+		center[0] *= s;
+		center[1] *= s;
+		center[2] *= s;
+	}
 }
 
 NavMeshTesterTool::NavMeshTesterTool() :
@@ -1033,31 +1058,6 @@ void NavMeshTesterTool::recalc()
 				m_polys, m_parent, &m_npolys, MAX_POLYS);
 		}
 	}
-}
-
-static void getPolyCenter(dtNavMesh* navMesh, dtPolyRef ref, float* center)
-{
-	center[0] = 0;
-	center[1] = 0;
-	center[2] = 0;
-
-	const dtMeshTile* tile = 0;
-	const dtPoly* poly = 0;
-	dtStatus status = navMesh->getTileAndPolyByRef(ref, &tile, &poly);
-	if (dtStatusFailed(status))
-		return;
-
-	for (int i = 0; i < (int)poly->vertCount; ++i)
-	{
-		const float* v = &tile->verts[poly->verts[i] * 3];
-		center[0] += v[0];
-		center[1] += v[1];
-		center[2] += v[2];
-	}
-	const float s = 1.f / poly->vertCount;
-	center[0] *= s;
-	center[1] *= s;
-	center[2] *= s;
 }
 
 void NavMeshTesterTool::handleRender()

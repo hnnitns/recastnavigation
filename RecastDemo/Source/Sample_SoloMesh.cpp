@@ -236,8 +236,7 @@ void Sample_SoloMesh::handleDebugMode()
 
 void Sample_SoloMesh::handleRender()
 {
-	if (!m_geom || !m_geom->getMesh())
-		return;
+	if (m_geom->isLoadGeomMeshEmpty()) return;
 
 	glEnable(GL_FOG);
 	glDepthMask(GL_TRUE);
@@ -364,9 +363,9 @@ void Sample_SoloMesh::handleRenderOverlay(double* proj, double* model, int* view
 	renderOverlayToolStates(proj, model, view);
 }
 
-void Sample_SoloMesh::handleMeshChanged(class InputGeom* geom)
+void Sample_SoloMesh::handleMeshChanged()
 {
-	Sample::handleMeshChanged(geom);
+	Sample::handleMeshChanged();
 
 	dtFreeNavMesh(m_navMesh);
 	m_navMesh = 0;

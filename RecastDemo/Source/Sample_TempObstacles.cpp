@@ -1040,8 +1040,7 @@ void Sample_TempObstacles::handleDebugMode()
 
 void Sample_TempObstacles::handleRender()
 {
-	if (!m_geom || !m_geom->getMesh())
-		return;
+	if (m_geom->isLoadGeomMeshEmpty()) return;
 
 	const float texScale = 1.f / (m_cellSize * 10.0f);
 
@@ -1156,9 +1155,9 @@ void Sample_TempObstacles::handleRenderOverlay(double* proj, double* model, int*
 	*/
 }
 
-void Sample_TempObstacles::handleMeshChanged(class InputGeom* geom)
+void Sample_TempObstacles::handleMeshChanged()
 {
-	Sample::handleMeshChanged(geom);
+	Sample::handleMeshChanged();
 
 	dtFreeTileCache(m_tileCache);
 	m_tileCache = 0;
@@ -1170,7 +1169,7 @@ void Sample_TempObstacles::handleMeshChanged(class InputGeom* geom)
 	{
 		m_tool->reset();
 		m_tool->init(this);
-		m_tmproc->init(m_geom);
+		m_tmproc->init(&(*m_geom));
 	}
 	resetToolStates();
 	initToolStates(this);
@@ -1216,7 +1215,7 @@ bool Sample_TempObstacles::handleBuild()
 		return false;
 	}
 
-	m_tmproc->init(m_geom);
+	m_tmproc->init(&(*m_geom));
 
 	// Init cache // ƒLƒƒƒbƒVƒ…‚Ì‰Šú‰»
 	const auto& bmin = m_geom->getNavMeshBoundsMin();

@@ -179,9 +179,6 @@ bool EditManager::Update()
 	// Chose Meshを選択している
 	if (showLevels)	MeshSelect();
 
-	// テスト画面
-	if (showTestCases) TestUpdate();
-
 	// ログ
 	if (showLog && showMenu)
 	{
@@ -196,7 +193,7 @@ bool EditManager::Update()
 
 	// Left column tools menu // 左列ツールメニュー
 	// 左のウィンドウ画面（Tools）
-	if (!showTestCases && showTools && showMenu && geom && sample)
+	if (showTools && showMenu && sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
 	{
 		if (imguiBeginScrollArea("Tools", 10, 10, 250, screen_size.y - 20, &toolsScroll))
 			mouseOverMenu = true;
@@ -248,16 +245,15 @@ bool EditManager::InputUpdate()
 						return false;
 						break;
 					}
-					// テストを行う
-					case SDLK_t:
-					{
-						showLevels = false;
-						showSample = false;
-						showTestCases = true;
-						scanDirectory(testCasesFolder, ".txt", files); // ファイルのスキャンして、一覧をfilesに保存
-
-						break;
-					}
+					//// テストを行う
+					//case SDLK_t:
+					//{
+					//	showLevels = false;
+					//	showSample = false;
+					//	showTestCases = true;
+					//	scanDirectory(testCasesFolder, ".txt", files); // ファイルのスキャンして、一覧をfilesに保存
+					//	break;
+					//}
 					// ImGuiの表示非表示
 					case SDLK_TAB:
 					{
@@ -281,11 +277,13 @@ bool EditManager::InputUpdate()
 					// ナビメッシュ設定のファイル書き出し
 					case SDLK_9:
 					{
-						if (sample && geom)
+						if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
 						{
 							std::string savePath = meshesFolder + "/";
 
 							BuildSettings settings{}; // 保存用構造体
+
+							auto& geom{ sample->getInputGeom() };
 
 							// コピー
 							settings.navMeshBMin = geom->getNavMeshBoundsMin();
@@ -535,9 +533,10 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 	// Hit test mesh.
 	// テストメッシュをヒットします。
 	// マウスの左ボタン・右ボタンを離した瞬間、メッシュデータが存在し、サンプルも選択している状態
-	if (processHitTest && geom && sample)
+	if (processHitTest && sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
 	{
 		InputGeom::RaycastMeshHitInfo hit_info{};
+		auto& geom{ sample->getInputGeom() };
 
 		// マウスの指すレイと読み込まれたメッシュとの当たり判定
 		// ※ このエディタの場合はスタート地点やゴール地点をメッシュデータ上にマウスで配置するので、経路探索をこの中に持ってこれる
@@ -616,7 +615,6 @@ void EditManager::PropertiesUpdate()
 		{
 			showSample = true;
 			showLevels = false;
-			showTestCases = false;
 		}
 	}
 
@@ -634,7 +632,6 @@ void EditManager::PropertiesUpdate()
 		else
 		{
 			showSample = false;
-			showTestCases = false;
 			showLevels = true;
 
 			// 「.obj」・「.gset」をfilesに追加
@@ -644,20 +641,21 @@ void EditManager::PropertiesUpdate()
 	}
 
 	// 頂点数、ポリゴン数の表示
-	if (geom)
+	if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
 	{
 		std::array<char, 64u> text{};
 
+		auto& geom{ sample->getInputGeom()->getMesh() };
+
 		snprintf(text.data(), text.size(), _TRUNCATE, "Verts: %.1fk  Tris: %.1fk",
-			geom->getMesh()->getVertCount() / 1000.f,
-			geom->getMesh()->getTriCount() / 1000.f);
+			geom->getVertCount() / 1000.f, geom->getTriCount() / 1000.f);
 
 		imguiValue(text.data());
 	}
 
 	imguiSeparator(); // 区切り
 
-	if (geom && sample)
+	if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
 	{
 		imguiSeparatorLine();
 
@@ -676,9 +674,6 @@ void EditManager::PropertiesUpdate()
 			}
 
 			ctx.dumpLog("Build log %s:", meshName.c_str());
-
-			// Clear test.
-			//test = nullptr;
 		}
 
 		imguiSeparator();
@@ -722,14 +717,16 @@ void EditManager::SampleSelect()
 		sample.reset(newSample);
 		sample->setContext(&ctx);
 
-		if (geom) sample->handleMeshChanged(geom.get());
+		if (sample) sample->handleMeshChanged();
 
 		showSample = false;
 	}
 
-	if (geom || sample)
+	if (sample)
 	{
-		if (geom)
+		auto& geom{ sample->getInputGeom() };
+
+		if (!geom->isLoadGeomMeshEmpty())
 		{
 			const auto& bmin{ geom->getNavMeshBoundsMin() };
 			const auto& bmax{ geom->getNavMeshBoundsMax() };
@@ -756,6 +753,8 @@ void EditManager::SampleSelect()
 
 void EditManager::MeshSelect()
 {
+	if (!sample) return;
+
 	static int levelScroll;
 
 	if (imguiBeginScrollArea("Choose Level", screen_size.x - 10 - 250 - 10 - 200, screen_size.y - 10 - 450, 200, 450, &levelScroll))
@@ -780,18 +779,15 @@ void EditManager::MeshSelect()
 		showLevels = false;
 
 		// 既に読み込まれているジオメトリを削除
-		geom = nullptr;
+		sample->getInputGeom()->ClearLoadGeomMesh();
 
 		// 読み込むパスを決定
 		std::string path = meshesFolder + "/" + meshName;
 
-		// ジオメトリを構築し
-		geom = std::make_unique<InputGeom>();
-
 		// 読み込む
-		if (!geom->Load(&ctx, path))
+		if (!sample->getInputGeom()->Load(&ctx, path))
 		{
-			geom = nullptr;
+			sample->getInputGeom()->ClearLoadGeomMesh();
 
 			// Destroy the sample if it already had geometry loaded, as we've just deleted it!
 			// 削除したばかりのジオメトリが既にロードされている場合、サンプルを破壊します！
@@ -803,31 +799,25 @@ void EditManager::MeshSelect()
 
 			ctx.dumpLog("Geom load log %s:", meshName.c_str());
 		}
-
-		if (sample && geom)
+		else
 		{
-			sample->handleMeshChanged(geom.get());
-		}
+			sample->handleMeshChanged();
 
-		if (geom || sample)
-		{
-			if (geom)
-			{
-				const auto& bmin{ geom->getNavMeshBoundsMin() };
-				const auto& bmax{ geom->getNavMeshBoundsMax() };
+			const auto& geom{ sample->getInputGeom() };
+			const auto& bmin{ geom->getNavMeshBoundsMin() };
+			const auto& bmax{ geom->getNavMeshBoundsMax() };
 
-				// Reset camera and fog to match the mesh bounds.
-				// メッシュの境界に一致するようにカメラとフォグをリセットします。
-				camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
-					rcSqr(bmax[1] - bmin[1]) +
-					rcSqr(bmax[2] - bmin[2])) / 2.f;
+			// Reset camera and fog to match the mesh bounds.
+			// メッシュの境界に一致するようにカメラとフォグをリセットします。
+			camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
+				rcSqr(bmax[1] - bmin[1]) +
+				rcSqr(bmax[2] - bmin[2])) / 2.f;
 
-				cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
-				cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
-				cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
+			cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
+			cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
+			cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
 
-				camr *= 3;
-			}
+			camr *= 3;
 
 			cameraEulers[0] = 45;
 			cameraEulers[1] = -45;
@@ -838,118 +828,6 @@ void EditManager::MeshSelect()
 	}
 
 	imguiEndScrollArea();
-}
-
-void EditManager::TestUpdate()
-{
-#if false
-	static int testScroll{};
-
-	if (imguiBeginScrollArea("Choose Test To Run", screen_size.x - 10 - 250 - 10 - 200, screen_size.y - 10 - 450, 200, 450, &testScroll))
-		mouseOverMenu = true;
-
-	auto filesEnd = files.end();
-	auto testToLoad = filesEnd;
-
-	for (auto fileIter = files.begin(); fileIter != filesEnd; ++fileIter)
-	{
-		if (imguiItem(fileIter->c_str()))
-			testToLoad = fileIter;
-	}
-
-	if (testToLoad != filesEnd)
-	{
-		std::string path = testCasesFolder + "/" + *testToLoad;
-		test = std::make_unique<TestCase>();
-
-		if (test)
-		{
-			// Load the test.
-			if (!test->load(path)) test = nullptr;
-
-			// Create sample
-			std::unique_ptr<Sample> newSample;
-
-			for (auto& g_sample : g_samples)
-			{
-				if (g_sample.name == test->getSampleName())
-				{
-					newSample.reset(g_sample.create());
-
-					if (newSample) sampleName = g_sample.name;
-				}
-			}
-
-			sample = std::move(newSample);
-
-			if (sample)
-			{
-				sample->setContext(&ctx);
-				showSample = false;
-			}
-
-			// Load geom.
-			meshName = test->getGeomFileName();
-
-			path = meshesFolder + "/" + meshName;
-
-			geom = std::make_unique<InputGeom>();
-
-			if (!geom || !geom->load(&ctx, path))
-			{
-				geom = nullptr;
-				sample = nullptr;
-				showLog = true;
-				logScroll = 0;
-				ctx.dumpLog("Geom load log %s:", meshName.c_str());
-			}
-
-			if (sample && geom) { sample->handleMeshChanged(geom.get()); }
-
-			// This will ensure that tile & poly bits are updated in tiled sample.
-			// これにより、タイルサンプルでタイルビットとポリビットが更新されます。
-			if (sample) sample->handleSettings();
-
-			ctx.resetLog();
-
-			if (sample && !sample->handleBuild())
-			{
-				ctx.dumpLog("Build log %s:", meshName.c_str());
-			}
-
-			if (geom || sample)
-			{
-				if (geom)
-				{
-					const auto& bmin{ geom->getNavMeshBoundsMin() };
-					const auto& bmax{ geom->getNavMeshBoundsMax() };
-
-					// Reset camera and fog to match the mesh bounds.
-					// メッシュの境界に一致するようにカメラとフォグをリセットします。
-					camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
-						rcSqr(bmax[1] - bmin[1]) +
-						rcSqr(bmax[2] - bmin[2])) / 2.f;
-
-					cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
-					cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
-					cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
-
-					camr *= 3;
-				}
-
-				cameraEulers[0] = 45;
-				cameraEulers[1] = -45;
-				glFogf(GL_FOG_START, camr * 0.2f);
-				glFogf(GL_FOG_END, camr * 1.25f);
-			}
-
-			// Do the tests. // テストを行います。
-			if (sample) test->doTests(sample->getNavMesh(), sample->getNavMeshQuery());
-		}
-	}
-
-	imguiEndScrollArea();
-#endif
 }
 
 void EditManager::HandleDraw()
@@ -979,9 +857,6 @@ void EditManager::HandleDraw()
 	if (sample)
 		sample->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport);
 
-	//if (test && test->handleRenderOverlay((double*)projectionMatrix, (double*)modelviewMatrix, (int*)viewport))
-	//	mouseOverMenu = true;
-
 	// マーカー
 	if (markerPositionSet)
 	{
@@ -990,7 +865,7 @@ void EditManager::HandleDraw()
 		// gluProject（オブジェクト座標系をウィンドウ座標系に変換）
 		// http://ja.manpages.org/gluproject/3
 		if (gluProject((GLdouble)markerPosition[0], (GLdouble)markerPosition[1], (GLdouble)markerPosition[2],
-				modelviewMatrix, projectionMatrix, viewport, &x, &y, &z) != 0)
+			modelviewMatrix, projectionMatrix, viewport, &x, &y, &z) != 0)
 		{
 			// Draw marker circle // マーカー円を描きます
 			glLineWidth(5.0f);

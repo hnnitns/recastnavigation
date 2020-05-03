@@ -19,6 +19,9 @@
 #ifndef RECASTSAMPLE_H
 #define RECASTSAMPLE_H
 
+#include <optional>
+
+#include "InputGeom.h"
 #include "Recast.h"
 #include "SampleInterfaces.h"
 
@@ -138,7 +141,7 @@ struct SampleToolState {
 class Sample
 {
 protected:
-	class InputGeom* m_geom;
+	std::optional<class InputGeom> m_geom;
 	class dtNavMesh* m_navMesh;
 	class dtNavMeshQuery* m_navQuery;
 	class dtCrowd* m_crowd;
@@ -191,18 +194,18 @@ public:
 	virtual void handleStep();
 	virtual void handleRender();
 	virtual void handleRenderOverlay(double* proj, double* model, int* view);
-	virtual void handleMeshChanged(class InputGeom* geom);
+	virtual void handleMeshChanged();
 	virtual bool handleBuild();
 	virtual void handleUpdate(const float dt);
 	virtual void collectSettings(struct BuildSettings& settings);
 
-	virtual class InputGeom* getInputGeom() { return m_geom; }
-	virtual class dtNavMesh* getNavMesh() { return m_navMesh; }
-	virtual class dtNavMeshQuery* getNavMeshQuery() { return m_navQuery; }
-	virtual class dtCrowd* getCrowd() { return m_crowd; }
-	virtual float getAgentRadius() { return m_agentRadius; }
-	virtual float getAgentHeight() { return m_agentHeight; }
-	virtual float getAgentClimb() { return m_agentMaxClimb; }
+	std::optional<class InputGeom>& getInputGeom() { return m_geom; }
+	class dtNavMesh* getNavMesh() { return m_navMesh; }
+	class dtNavMeshQuery* getNavMeshQuery() { return m_navQuery; }
+	class dtCrowd* getCrowd() { return m_crowd; }
+	float getAgentRadius() { return m_agentRadius; }
+	float getAgentHeight() { return m_agentHeight; }
+	float getAgentClimb() { return m_agentMaxClimb; }
 
 	unsigned char getNavMeshDrawFlags() const { return m_navMeshDrawFlags; }
 	void setNavMeshDrawFlags(unsigned char flags) { m_navMeshDrawFlags = flags; }

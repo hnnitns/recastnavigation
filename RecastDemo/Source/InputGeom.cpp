@@ -23,6 +23,7 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <execution>
 #include "Recast.h"
 #include "InputGeom.h"
 #include "ChunkyTriMesh.h"
@@ -170,6 +171,9 @@ bool InputGeom::LoadMesh(rcContext* ctx, const std::string& filepath)
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 
+	std::for_each(std::execution::par_unseq, load_geom_meshes.begin(), load_geom_meshes.end(),
+		[](LoadGeometryMesh& mesh) { mesh.is_selected = false; });
+
 	auto& load_meshes{ load_geom_meshes.emplace_back() };
 
 	try
@@ -208,6 +212,8 @@ bool InputGeom::LoadMesh(rcContext* ctx, const std::string& filepath)
 		ctx->log(RC_LOG_ERROR, "buildTiledNavigation: Failed to build chunky mesh."); // チャンキーメッシュの構築に失敗しました
 		return false;
 	}
+
+	load_meshes.is_selected = true;
 
 	return true;
 }
@@ -486,11 +492,14 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 
 	float hit_dis{ 1.f }; // レイの長さを1とした時のメッシュデータとの距離上の交点
 	bool is_hit{};
+	LoadGeometryMesh* is_hit_mesh{};
 
 	for (auto& load_mesh : load_geom_meshes)
 	{
 		// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
 		std::array<float, 2> p_min{}, q_max{};
+
+		load_mesh.is_selected = false;
 
 		// スラブとレイとの判定と交点を求める
 		{
@@ -538,7 +547,10 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 				{
 					// 終点の距離より短いなら
 					if (dis < hit_dis)
+					{
 						hit_dis = dis;  // 交点上の距離を代入
+						is_hit_mesh = &load_mesh;
+					}
 
 					is_hit = true;  // 当たっている
 				}
@@ -547,6 +559,8 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 	}
 
 	if (!is_hit)	return false;
+
+	is_hit_mesh->is_selected = true;
 
 	if (hit_info)
 	{

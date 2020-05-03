@@ -86,14 +86,14 @@ public:
 	Sample_TileMesh();
 	virtual ~Sample_TileMesh();
 
-	virtual void handleSettings();
-	virtual void handleTools();
-	virtual void handleDebugMode();
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
-	virtual void handleMeshChanged(class InputGeom* geom);
-	virtual bool handleBuild();
-	virtual void collectSettings(struct BuildSettings& settings);
+	virtual void handleSettings() override;
+	virtual void handleTools() override;
+	virtual void handleDebugMode() override;
+	virtual void handleRender() override;
+	virtual void handleRenderOverlay(double* proj, double* model, int* view) override;
+	virtual void handleMeshChanged() override;
+	virtual bool handleBuild() override;
+	virtual void collectSettings(struct BuildSettings& settings) override;
 
 	void getTilePos(const float* pos, int& tx, int& ty);
 

@@ -64,14 +64,14 @@ public:
 	Sample_TempObstacles();
 	virtual ~Sample_TempObstacles();
 
-	virtual void handleSettings();
-	virtual void handleTools();
-	virtual void handleDebugMode();
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
-	virtual void handleMeshChanged(class InputGeom* geom);
-	virtual bool handleBuild();
-	virtual void handleUpdate(const float dt);
+	virtual void handleSettings() override;
+	virtual void handleTools() override;
+	virtual void handleDebugMode() override;
+	virtual void handleRender() override;
+	virtual void handleRenderOverlay(double* proj, double* model, int* view) override;
+	virtual void handleMeshChanged() override;
+	virtual bool handleBuild() override;
+	virtual void handleUpdate(const float dt) override;
 
 	void getTilePos(const float* pos, int& tx, int& ty);
 

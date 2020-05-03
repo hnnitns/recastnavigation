@@ -25,14 +25,8 @@
 #include <algorithm>
 
 rcMeshLoaderObj::rcMeshLoaderObj() :
-	m_scale(1.f),
-	m_verts(0),
-	m_tris(0),
-	m_normals(0),
-	m_vertCount(0),
-	m_triCount(0)
-{
-}
+	m_scale(1.f), m_verts{}, m_tris{}, m_normals{}, m_vertCount{}, m_triCount{}
+{}
 
 rcMeshLoaderObj::~rcMeshLoaderObj()
 {

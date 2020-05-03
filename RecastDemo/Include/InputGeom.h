@@ -150,8 +150,7 @@ class InputGeom
 
 	std::deque<LoadGeometryMesh> load_geom_meshes; // 読み込んだメッシュ
 	std::array<float, 3> m_all_meshBMin, m_all_meshBMax; // 全メッシュデータの位置的な最大値、最小値
-	BuildSettings m_buildSettings;
-	bool m_hasBuildSettings;
+	std::optional<BuildSettings> m_buildSettings;
 
 	// @name Off-Mesh connections. // オフメッシュ接続。
 	//@{
@@ -188,11 +187,11 @@ public:
 	const auto& getMeshBoundsMin() const { return m_meshBMin; } // メッシュ境界の最小値を取得
 	const auto& getMeshBoundsMax() const { return m_meshBMax; } // メッシュ境界の最大値を取得
 	// ナビメッシュ境界の最小値を取得
-	const auto& getNavMeshBoundsMin() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMin : m_meshBMin; }
+	const auto& getNavMeshBoundsMin() const { return m_buildSettings ? m_buildSettings->navMeshBMin : m_meshBMin; }
 	// ナビメッシュ境界の最大値を取得
-	const auto& getNavMeshBoundsMax() const { return m_hasBuildSettings ? m_buildSettings.navMeshBMax : m_meshBMax; }
+	const auto& getNavMeshBoundsMax() const { return m_buildSettings ? m_buildSettings->navMeshBMax : m_meshBMax; }
 	const auto& getChunkyMesh() const { return m_chunkyMesh; }
-	const BuildSettings* getBuildSettings() const { return m_hasBuildSettings ? &m_buildSettings : nullptr; }
+	const BuildSettings* getBuildSettings() const { return m_buildSettings ? &(*m_buildSettings) : nullptr; }
 
 	// メッシュデータとマウスのレイとの判定
 	// src : レイの始点、dst：レイの終点、レイの長さを1とした時のメッシュデータとの距離上の交点

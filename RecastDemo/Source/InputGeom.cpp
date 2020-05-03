@@ -163,7 +163,7 @@ namespace
 }
 
 InputGeom::InputGeom()
-	: m_hasBuildSettings{}, m_offMeshConCount{}, m_volumeCount{}, m_meshBMin{}, m_meshBMax{},
+	: m_offMeshConCount{}, m_volumeCount{}, m_meshBMin{}, m_meshBMax{},
 	m_all_meshBMin{}, m_all_meshBMax{}
 {}
 
@@ -329,29 +329,31 @@ bool InputGeom::loadGeomSet(rcContext* ctx, const std::string& filepath)
 		else if (row[0] == 's')
 		{
 			// Settings
-			m_hasBuildSettings = true;
+			m_buildSettings.emplace();
+			m_buildSettings = {};
+
 			sscanf_s(row.data() + 1, "%f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
-				&m_buildSettings.cellSize,
-				&m_buildSettings.cellHeight,
-				&m_buildSettings.agentHeight,
-				&m_buildSettings.agentRadius,
-				&m_buildSettings.agentMaxClimb,
-				&m_buildSettings.agentMaxSlope,
-				&m_buildSettings.regionMinSize,
-				&m_buildSettings.regionMergeSize,
-				&m_buildSettings.edgeMaxLen,
-				&m_buildSettings.edgeMaxError,
-				&m_buildSettings.vertsPerPoly,
-				&m_buildSettings.detailSampleDist,
-				&m_buildSettings.detailSampleMaxError,
-				&m_buildSettings.partitionType,
-				&m_buildSettings.navMeshBMin[0],
-				&m_buildSettings.navMeshBMin[1],
-				&m_buildSettings.navMeshBMin[2],
-				&m_buildSettings.navMeshBMax[0],
-				&m_buildSettings.navMeshBMax[1],
-				&m_buildSettings.navMeshBMax[2],
-				&m_buildSettings.tileSize);
+				&m_buildSettings->cellSize,
+				&m_buildSettings->cellHeight,
+				&m_buildSettings->agentHeight,
+				&m_buildSettings->agentRadius,
+				&m_buildSettings->agentMaxClimb,
+				&m_buildSettings->agentMaxSlope,
+				&m_buildSettings->regionMinSize,
+				&m_buildSettings->regionMergeSize,
+				&m_buildSettings->edgeMaxLen,
+				&m_buildSettings->edgeMaxError,
+				&m_buildSettings->vertsPerPoly,
+				&m_buildSettings->detailSampleDist,
+				&m_buildSettings->detailSampleMaxError,
+				&m_buildSettings->partitionType,
+				&m_buildSettings->navMeshBMin[0],
+				&m_buildSettings->navMeshBMin[1],
+				&m_buildSettings->navMeshBMin[2],
+				&m_buildSettings->navMeshBMax[0],
+				&m_buildSettings->navMeshBMax[1],
+				&m_buildSettings->navMeshBMax[2],
+				&m_buildSettings->tileSize);
 		}
 	}
 

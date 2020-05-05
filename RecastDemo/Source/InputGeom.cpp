@@ -24,6 +24,8 @@
 #include <vector>
 #include <algorithm>
 #include <execution>
+#include <atomic>
+
 #include "Recast.h"
 #include "InputGeom.h"
 #include "ChunkyTriMesh.h"
@@ -491,11 +493,11 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 {
 	if (load_geom_meshes.empty())	return false;
 
-	float hit_dis{ 1.f }; // レイの長さを1とした時のメッシュデータとの距離上の交点
-	bool is_hit{};
-	LoadGeomMesh* is_hit_mesh{};
+	std::atomic<float> hit_dis{ 1.f }; // レイの長さを1とした時のメッシュデータとの距離上の交点
+	std::atomic_bool is_hit{ false };
+	std::atomic<LoadGeomMesh*> is_hit_mesh{};
 
-	for (auto& load_mesh : load_geom_meshes)
+	For_Each(load_geom_meshes, [&](LoadGeomMesh& load_mesh)
 	{
 		// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
 		std::array<float, 2> p_min{}, q_max{};
@@ -511,8 +513,8 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 
 			// Prune is_hit ray.
 			// スラブとレイとの判定
-			if (!isectSegAABB(ray_start, ray_end, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin, btmax))
-				continue;
+			if (!isectSegAABB(ray_start, ray_end, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin,btmax))
+				return;
 
 			// スラブとレイの２交点（最大値、最小値）を求める
 			p_min[0] = ray_start[0] + (ray_vec[0]) * btmin;
@@ -521,18 +523,19 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 			q_max[1] = ray_start[2] + (ray_vec[2]) * btmax;
 		}
 
-		int cid[512]{};
+		std::array<int, 512> cid{};
 		// 入力セグメントとオーバーラップするチャンクインデックスを返す
-		const int ncid = rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid, 512);
+		const int ncid
+		{ rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid.data(), 512) };
 
-		if (!ncid) continue;
+		if (!ncid) return;
 
 		const float* verts{ load_mesh.m_mesh->getVerts() };
 
 		// メッシュデータとレイの判定
-		for (int i = 0; i < ncid; ++i)
+		For_Each_N(cid, ncid, [&](const int id)
 		{
-			const rcChunkyTriMeshNode& node = load_mesh.m_chunkyMesh->nodes[cid[i]];
+			const rcChunkyTriMeshNode& node = load_mesh.m_chunkyMesh->nodes[id];
 			const int* tris = &load_mesh.m_chunkyMesh->tris[node.i * 3];
 			const int ntris = node.n;
 
@@ -556,17 +559,17 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 					is_hit = true;  // 当たっている
 				}
 			}
-		}
-	}
+		}, exec::par);
+	}, exec::par);
 
-	if (!is_hit)	return false;
+	if (!is_hit || !is_hit_mesh)	return false;
 
-	is_hit_mesh->is_selected = true;
+	is_hit_mesh.load()->is_selected = true;
 
 	if (hit_info)
 	{
 		// レイのベクトルを求める
-		hit_info->vec = ray_end - ray_start;
+		hit_info->vec = ray_end -ray_start;
 
 		// 実際の交点を計算
 		hit_info->pos = ray_start + (hit_info->vec * hit_dis);

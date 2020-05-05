@@ -200,8 +200,6 @@ public:
 		RaycastMeshHitInfo* hit_info = nullptr);
 
 	void ClearLoadGeomMesh() noexcept { load_geom_meshes.clear(); }
-	size_t GetLoadGeomMeshSize() const noexcept { return load_geom_meshes.size(); }
-	bool IsLoadGeomMeshEmpty() const noexcept { return load_geom_meshes.empty(); }
 	auto EraseSelectLoadGeomMesh() noexcept;
 
 	// Method to return static mesh data.

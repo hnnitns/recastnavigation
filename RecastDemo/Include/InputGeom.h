@@ -94,17 +94,17 @@ struct BuildSettings
 class InputGeom
 {
 public:
-	struct LoadGeometryMesh
+	struct LoadGeomMesh
 	{
-		LoadGeometryMesh() = default;
-		~LoadGeometryMesh() = default;
+		LoadGeomMesh() = default;
+		~LoadGeomMesh() = default;
 
 		std::optional<rcChunkyTriMesh> m_chunkyMesh;
 		std::optional<rcMeshLoaderObj> m_mesh;
 		std::array<float, 3> m_meshBMin{}, m_meshBMax{}; // メッシュデータの位置的な最大値、最小値
 		bool is_selected{ true };
 
-		LoadGeometryMesh(const LoadGeometryMesh& _rt) noexcept
+		LoadGeomMesh(const LoadGeomMesh& _rt) noexcept
 		{
 			m_chunkyMesh = (_rt.m_chunkyMesh);
 			m_mesh = (_rt.m_mesh);
@@ -112,7 +112,7 @@ public:
 			m_meshBMax = (_rt.m_meshBMax);
 			is_selected = (_rt.is_selected);
 		}
-		LoadGeometryMesh& operator=(const LoadGeometryMesh& _rt) noexcept
+		LoadGeomMesh& operator=(const LoadGeomMesh& _rt) noexcept
 		{
 			if (this != &_rt)
 			{
@@ -122,9 +122,11 @@ public:
 				m_meshBMax = (_rt.m_meshBMax);
 				is_selected = (_rt.is_selected);
 			}
+
+			return (*this);
 		}
 
-		LoadGeometryMesh(LoadGeometryMesh&& _rt) noexcept
+		LoadGeomMesh(LoadGeomMesh&& _rt) noexcept
 		{
 			using std::move;
 
@@ -134,7 +136,7 @@ public:
 			m_meshBMax = move(_rt.m_meshBMax);
 			is_selected = (_rt.is_selected);
 		}
-		LoadGeometryMesh& operator=(LoadGeometryMesh&& _rt) noexcept
+		LoadGeomMesh& operator=(LoadGeomMesh&& _rt) noexcept
 		{
 			using std::move;
 
@@ -146,6 +148,8 @@ public:
 				m_meshBMax = move(_rt.m_meshBMax);
 				is_selected = (_rt.is_selected);
 			}
+
+			return (*this);
 		}
 	};
 	struct RaycastMeshHitInfo
@@ -156,7 +160,7 @@ public:
 	};
 
 private:
-	std::deque<LoadGeometryMesh> load_geom_meshes; // 読み込んだメッシュ
+	std::deque<LoadGeomMesh> load_geom_meshes; // 読み込んだメッシュ
 	std::array<float, 3> all_meshBMin, all_meshBMax; // 全メッシュデータの位置的な最大値、最小値
 	std::optional<BuildSettings> m_buildSettings;
 
@@ -195,8 +199,10 @@ public:
 	bool RaycastMesh(const std::array<float, 3>& ray_start, const std::array<float, 3>& ray_end,
 		RaycastMeshHitInfo* hit_info = nullptr);
 
-	void ClearLoadGeomMesh() { load_geom_meshes.clear(); }
-
+	void ClearLoadGeomMesh() noexcept { load_geom_meshes.clear(); }
+	size_t GetLoadGeomMeshSize() const noexcept { return load_geom_meshes.size(); }
+	bool IsLoadGeomMeshEmpty() const noexcept { return load_geom_meshes.empty(); }
+	auto EraseSelectLoadGeomMesh() noexcept;
 
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。
@@ -205,12 +211,14 @@ public:
 	bool isLoadGeomMeshEmpty() const noexcept { return load_geom_meshes.empty(); }
 	const auto& getMesh() const { return load_geom_meshes.front().m_mesh; }
 	const auto& getMeshAt(const size_t num) const { return load_geom_meshes.at(num).m_mesh; }
-	const auto& getMeshBoundsMin() const { return load_geom_meshes.front().m_meshBMin; } // メッシュ境界の最小値を取得
-	const auto& getMeshBoundsMax() const { return load_geom_meshes.front().m_meshBMax; } // メッシュ境界の最大値を取得
+	const auto& getMeshBoundsMin() const { return all_meshBMin; } // メッシュ境界の最小値を取得
+	const auto& getMeshBoundsMax() const { return all_meshBMax; } // メッシュ境界の最大値を取得
 	// ナビメッシュ境界の最小値を取得
-	const auto& getNavMeshBoundsMin() const { return m_buildSettings ? m_buildSettings->navMeshBMin : load_geom_meshes.front().m_meshBMin; }
+	const auto& getNavMeshBoundsMin() const
+	{ return m_buildSettings ? m_buildSettings->navMeshBMin : all_meshBMin; }
 	// ナビメッシュ境界の最大値を取得
-	const auto& getNavMeshBoundsMax() const { return m_buildSettings ? m_buildSettings->navMeshBMax : load_geom_meshes.front().m_meshBMax; }
+	const auto& getNavMeshBoundsMax() const
+	{ return m_buildSettings ? m_buildSettings->navMeshBMax : all_meshBMax; }
 	const auto& getChunkyMesh() const { return load_geom_meshes.front().m_chunkyMesh; }
 	const auto& getChunkyMeshAt(const size_t num) const { return load_geom_meshes.at(num).m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_buildSettings ? &(*m_buildSettings) : nullptr; }

@@ -54,6 +54,8 @@ public:
 			m_vertCount = (_rt.m_vertCount);
 			m_triCount = (_rt.m_triCount);
 		}
+
+		return (*this);
 	}
 
 	rcMeshLoaderObj(const rcMeshLoaderObj& _rt) noexcept
@@ -82,6 +84,8 @@ public:
 			m_vertCount = (_rt.m_vertCount);
 			m_triCount = (_rt.m_triCount);
 		}
+
+		return (*this);
 	}
 
 	bool load(const std::string& fileName);

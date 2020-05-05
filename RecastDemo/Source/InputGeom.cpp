@@ -32,8 +32,10 @@
 #include "RecastDebugDraw.h"
 #include "DetourNavMesh.h"
 #include "Sample.h"
+#include "AlgorithmHelper.h"
 
 using namespace RcMath;
+namespace exec = std::execution;
 
 namespace
 {
@@ -171,8 +173,7 @@ bool InputGeom::LoadMesh(rcContext* ctx, const std::string& filepath)
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 
-	std::for_each(std::execution::par_unseq, load_geom_meshes.begin(), load_geom_meshes.end(),
-		[](LoadGeometryMesh& mesh) { mesh.is_selected = false; });
+	For_Each(load_geom_meshes, [](LoadGeomMesh& mesh) { mesh.is_selected = false; }, exec::par);
 
 	auto& load_meshes{ load_geom_meshes.emplace_back() };
 
@@ -492,7 +493,7 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 
 	float hit_dis{ 1.f }; // レイの長さを1とした時のメッシュデータとの距離上の交点
 	bool is_hit{};
-	LoadGeometryMesh* is_hit_mesh{};
+	LoadGeomMesh* is_hit_mesh{};
 
 	for (auto& load_mesh : load_geom_meshes)
 	{
@@ -575,6 +576,18 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 	}
 
 	return true;
+}
+
+auto InputGeom::EraseSelectLoadGeomMesh() noexcept
+{
+	auto itr{ Erase_Remove_If(
+		load_geom_meshes, [](const LoadGeomMesh& mesh) { return mesh.is_selected; }, exec::par) };
+
+	// 削除した場合は再計算
+	if (itr != load_geom_meshes.end())
+		CalcAllMeshBounds();
+
+	return (itr);
 }
 
 void InputGeom::addOffMeshConnection(const float* spos, const float* epos, const float rad,

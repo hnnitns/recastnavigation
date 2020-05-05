@@ -63,6 +63,8 @@ public:
 			ntris = (_rt.ntris);
 			maxTrisPerChunk = (_rt.maxTrisPerChunk);
 		}
+
+		return (*this);
 	}
 	rcChunkyTriMesh(const rcChunkyTriMesh& _rt) noexcept
 	{
@@ -82,6 +84,8 @@ public:
 			ntris = (_rt.ntris);
 			maxTrisPerChunk = (_rt.maxTrisPerChunk);
 		}
+
+		return (*this);
 	}
 };
 

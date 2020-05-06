@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 #include <array>
+#include <filesystem>
 
 #include "imgui.h"
 #include "imguiRenderGL.h"
@@ -230,6 +231,7 @@ bool EditManager::InputUpdate()
 	processHitTest = {};
 	processHitTestShift = {};
 	event = {};
+	delete_mesh = false;
 
 	while (SDL_PollEvent(&event))
 	{
@@ -300,6 +302,8 @@ bool EditManager::InputUpdate()
 						}
 						break;
 					}
+					// メッシュの削除
+					case SDLK_DELETE:	delete_mesh = true;
 				}
 				break;
 			}
@@ -765,7 +769,8 @@ void EditManager::MeshSelect()
 {
 	if (!sample) return;
 
-	static int levelScroll;
+	static int levelScroll{};
+	static bool is_selected{};
 
 	if (imguiBeginScrollArea("Choose Level", screen_size.x - 10 - 250 - 10 - 200, screen_size.y - 10 - 450, 200, 450, &levelScroll))
 		mouseOverMenu = true;
@@ -779,62 +784,82 @@ void EditManager::MeshSelect()
 		if (imguiItem(fileIter->c_str()))
 		{
 			levelToLoad = fileIter;
+			is_selected = true;
 		}
 	}
 
 	// ジオメトリが選択されたとき
-	if (levelToLoad != filesEnd)
+	// ジオメトリの追加
+	if (is_selected)
 	{
-		meshName = *levelToLoad;
-		showLevels = false;
-
-		// 既に読み込まれているジオメトリを削除
-		sample->getInputGeom()->ClearLoadGeomMesh();
+		if (levelToLoad != filesEnd)
+			meshName = *levelToLoad;
 
 		// 読み込むパスを決定
 		std::string path = meshesFolder + "/" + meshName;
 
-		// 読み込む
-		if (!sample->getInputGeom()->Load(&ctx, path))
+		if (imguiButton(("Load: "s + std::filesystem::path(path).stem().string()).c_str()))
 		{
-			sample->getInputGeom()->ClearLoadGeomMesh();
+			showLevels = false;
 
-			// Destroy the sample if it already had geometry loaded, as we've just deleted it!
-			// 削除したばかりのジオメトリが既にロードされている場合、サンプルを破壊します！
-			if (sample && sample->getInputGeom())
-				sample = nullptr;
+			// 読み込む
+			if (!sample->getInputGeom()->Load(&ctx, path))
+			{
+				sample->getInputGeom()->ClearLoadGeomMesh();
 
-			showLog = true;
-			logScroll = 0;
+				// Destroy the sample if it already had geometry loaded, as we've just deleted it!
+				// 削除したばかりのジオメトリが既にロードされている場合、サンプルを破壊します！
+				if (sample && sample->getInputGeom())
+					sample = nullptr;
 
-			ctx.dumpLog("Geom load log %s:", meshName.c_str());
+				showLog = true;
+				logScroll = 0;
+
+				ctx.dumpLog("Geom load log %s:", meshName.c_str());
+			}
+			else
+			{
+				sample->handleMeshChanged();
+
+				const auto& geom{ sample->getInputGeom() };
+				const auto& bmin{ geom->getNavMeshBoundsMin() };
+				const auto& bmax{ geom->getNavMeshBoundsMax() };
+
+				// Reset camera and fog to match the mesh bounds.
+				// メッシュの境界に一致するようにカメラとフォグをリセットします。
+				camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
+					rcSqr(bmax[1] - bmin[1]) +
+					rcSqr(bmax[2] - bmin[2])) / 2.f;
+
+				cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
+				cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
+				cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
+
+				camr *= 3;
+
+				cameraEulers[0] = 45;
+				cameraEulers[1] = -45;
+
+				glFogf(GL_FOG_START, camr * 0.1f);
+				glFogf(GL_FOG_END, camr * 1.25f);
+			}
+
+			is_selected = false;
+			meshName.clear();
 		}
-		else
+
+		if (imguiButton("Cancel"))
 		{
-			sample->handleMeshChanged();
-
-			const auto& geom{ sample->getInputGeom() };
-			const auto& bmin{ geom->getNavMeshBoundsMin() };
-			const auto& bmax{ geom->getNavMeshBoundsMax() };
-
-			// Reset camera and fog to match the mesh bounds.
-			// メッシュの境界に一致するようにカメラとフォグをリセットします。
-			camr = sqrtf(rcSqr(bmax[0] - bmin[0]) +
-				rcSqr(bmax[1] - bmin[1]) +
-				rcSqr(bmax[2] - bmin[2])) / 2.f;
-
-			cameraPos[0] = (bmax[0] + bmin[0]) / 2 + camr;
-			cameraPos[1] = (bmax[1] + bmin[1]) / 2 + camr;
-			cameraPos[2] = (bmax[2] + bmin[2]) / 2 + camr;
-
-			camr *= 3;
-
-			cameraEulers[0] = 45;
-			cameraEulers[1] = -45;
-
-			glFogf(GL_FOG_START, camr * 0.1f);
-			glFogf(GL_FOG_END, camr * 1.25f);
+			is_selected = false;
+			meshName.clear();
 		}
+	}
+
+	// ジオメトリの削除
+	if (!is_selected && delete_mesh)
+	{
+		delete_mesh = false;
+		sample->getInputGeom()->EraseSelectLoadGeomMesh();
 	}
 
 	imguiEndScrollArea();

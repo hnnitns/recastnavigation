@@ -55,7 +55,7 @@ private:
 	bool rotate{}, movedDuringRotate{};
 	std::array<float, 3> ray_start{}, ray_end{};
 	bool mouseOverMenu{}; // ImGui上のウィンドウにマウスが存在する
-	bool showMenu{}, showLog{}, showTools{}, showLevels{}, showSample{};
+	bool showMenu{}, showLog{}, showTools{}, showLevels{}, showSample{}, delete_mesh{};
 
 	// Window scroll positions.
 	// ウィンドウのスクロール位置。

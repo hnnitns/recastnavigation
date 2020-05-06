@@ -581,7 +581,7 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 	return true;
 }
 
-auto InputGeom::EraseSelectLoadGeomMesh() noexcept
+std::deque<InputGeom::LoadGeomMesh>::iterator InputGeom::EraseSelectLoadGeomMesh() noexcept
 {
 	auto itr{ Erase_Remove_If(
 		load_geom_meshes, [](const LoadGeomMesh& mesh) { return mesh.is_selected; }, exec::par) };

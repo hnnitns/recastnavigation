@@ -161,20 +161,20 @@ void Sample::handleMeshChanged()
 
 	if (buildSettings)
 	{
-		m_cellSize = buildSettings->cellSize;
-		m_cellHeight = buildSettings->cellHeight;
-		m_agentHeight = buildSettings->agentHeight;
-		m_agentRadius = buildSettings->agentRadius;
-		m_agentMaxClimb = buildSettings->agentMaxClimb;
-		m_agentMaxSlope = buildSettings->agentMaxSlope;
-		m_regionMinSize = buildSettings->regionMinSize;
-		m_regionMergeSize = buildSettings->regionMergeSize;
-		m_edgeMaxLen = buildSettings->edgeMaxLen;
-		m_edgeMaxError = buildSettings->edgeMaxError;
-		m_vertsPerPoly = buildSettings->vertsPerPoly;
-		m_detailSampleDist = buildSettings->detailSampleDist;
+		m_cellSize             = buildSettings->cellSize;
+		m_cellHeight           = buildSettings->cellHeight;
+		m_agentHeight          = buildSettings->agentHeight;
+		m_agentRadius          = buildSettings->agentRadius;
+		m_agentMaxClimb        = buildSettings->agentMaxClimb;
+		m_agentMaxSlope        = buildSettings->agentMaxSlope;
+		m_regionMinSize        = buildSettings->regionMinSize;
+		m_regionMergeSize      = buildSettings->regionMergeSize;
+		m_edgeMaxLen           = buildSettings->edgeMaxLen;
+		m_edgeMaxError         = buildSettings->edgeMaxError;
+		m_vertsPerPoly         = buildSettings->vertsPerPoly;
+		m_detailSampleDist     = buildSettings->detailSampleDist;
 		m_detailSampleMaxError = buildSettings->detailSampleMaxError;
-		m_partitionType = buildSettings->partitionType;
+		m_partitionType        = buildSettings->partitionType;
 	}
 }
 

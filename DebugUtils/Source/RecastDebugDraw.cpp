@@ -79,7 +79,7 @@ void duDebugDrawTriMesh(duDebugDraw* dd, const float* verts, int /*nverts*/,
 
 void duDebugDrawTriMeshSlope(duDebugDraw* dd, const float* verts, int /*nverts*/,
 	const int* tris, const float* normals, int ntris,
-	const float walkableSlopeAngle, const float texScale)
+	const float walkableSlopeAngle, const float texScale, bool is_select)
 {
 	if (!dd) return;
 	if (!verts) return;
@@ -94,18 +94,22 @@ void duDebugDrawTriMeshSlope(duDebugDraw* dd, const float* verts, int /*nverts*/
 
 	dd->texture(true);
 
-	const unsigned int unwalkable = duRGBA(192, 128, 0, 255);
+	constexpr unsigned int unwalkable = duRGBA(192, 128, 0, 255);
 
 	dd->begin(DU_DRAW_TRIS);
 	for (int i = 0; i < ntris * 3; i += 3)
 	{
 		const float* norm = &normals[i];
-		unsigned int color;
-		unsigned char a = (unsigned char)(220 * (2 + norm[0] + norm[1]) / 4);
-		if (norm[1] < walkableThr)
-			color = duLerpCol(duRGBA(a, a, a, 255), unwalkable, 64);
+		unsigned int color{};
+		uint8_t a = (uint8_t)(220 * (2 + norm[0] + norm[1]) / 4);
+
+		if (is_select)
+			color = duRGBA(255, a, a, 255);
 		else
 			color = duRGBA(a, a, a, 255);
+
+		if (norm[1] < walkableThr)
+			color = duLerpCol(color, unwalkable, 64);
 
 		const float* va = &verts[tris[i + 0] * 3];
 		const float* vb = &verts[tris[i + 1] * 3];

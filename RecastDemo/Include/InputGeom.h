@@ -200,7 +200,7 @@ public:
 		RaycastMeshHitInfo* hit_info = nullptr);
 
 	void ClearLoadGeomMesh() noexcept { load_geom_meshes.clear(); }
-	auto EraseSelectLoadGeomMesh() noexcept;
+	std::deque<LoadGeomMesh>::iterator EraseSelectLoadGeomMesh() noexcept;
 
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。

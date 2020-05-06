@@ -561,7 +561,7 @@ void Sample_TileMesh::handleRender()
 			// Draw mesh // ƒƒbƒVƒ…‚ð•`‰æ
 			duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
 				mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
-				m_agentMaxSlope, texScale);
+				m_agentMaxSlope, texScale, geom.is_selected);
 		}
 
 		m_geom->drawOffMeshConnections(&m_dd);
@@ -707,7 +707,7 @@ void Sample_TileMesh::handleMeshChanged()
 	cleanup();
 
 	dtFreeNavMesh(m_navMesh);
-	m_navMesh = 0;
+	m_navMesh = nullptr;
 
 	if (m_tool)
 	{
@@ -735,14 +735,14 @@ bool Sample_TileMesh::handleBuild()
 		return false;
 	}
 
-	dtNavMeshParams params;
+	dtNavMeshParams params{};
+	dtStatus status{};
+
 	rcVcopy(params.orig, m_geom->getNavMeshBoundsMin().data());
 	params.tileWidth = m_tileSize * m_cellSize;
 	params.tileHeight = m_tileSize * m_cellSize;
 	params.maxTiles = m_maxTiles;
 	params.maxPolys = m_maxPolysPerTile;
-
-	dtStatus status;
 
 	status = m_navMesh->init(&params);
 	if (dtStatusFailed(status))

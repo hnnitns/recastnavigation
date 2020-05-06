@@ -269,7 +269,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	TileCacheData* tiles,
 	const int maxTiles)
 {
-	if (m_geom->isLoadGeomMeshEmpty() || !m_geom->getChunkyMesh())
+	if (m_geom->isLoadGeomMeshEmpty())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildTile: Input mesh is not specified."); // 入力メッシュが指定されていません。
 		return 0;
@@ -281,7 +281,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	const auto& mesh{ m_geom->getMeshAt(0) };
 	const float* verts = mesh->getVerts();
 	const int nverts = mesh->getVertCount();
-	const auto& chunkyMesh = m_geom->getChunkyMesh();
+	const auto& chunkyMesh = m_geom->getChunkyMeshAt(0);
 
 	// Tile bounds.
 	// タイル境界

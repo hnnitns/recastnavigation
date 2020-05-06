@@ -934,7 +934,7 @@ void Sample_TileMesh::removeAllTiles()
 
 unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const float* bmin, const float* bmax, int& dataSize)
 {
-	if (m_geom->isLoadGeomMeshEmpty() || !m_geom->getChunkyMesh())
+	if (m_geom->isLoadGeomMeshEmpty())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified.");  // 入力メッシュが指定されていません。
 		return nullptr;
@@ -950,7 +950,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	const float* verts = mesh->getVerts();
 	const int nverts = mesh->getVertCount();
 	const int ntris = mesh->getTriCount();
-	const auto& chunkyMesh = m_geom->getChunkyMesh();
+	const auto& chunkyMesh = m_geom->getChunkyMeshAt(0);
 
 	// Init build configuration from GUI
 	// GUIからのビルド構成の初期化

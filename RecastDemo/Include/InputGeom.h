@@ -216,7 +216,6 @@ public:
 	// ナビメッシュ境界の最大値を取得
 	const auto& getNavMeshBoundsMax() const
 	{ return m_buildSettings ? m_buildSettings->navMeshBMax : all_meshBMax; }
-	const auto& getChunkyMesh() const { return load_geom_meshes.front().m_chunkyMesh; }
 	const auto& getChunkyMeshAt(const size_t num) const { return load_geom_meshes.at(num).m_chunkyMesh; }
 	const BuildSettings* getBuildSettings() const { return m_buildSettings ? &(*m_buildSettings) : nullptr; }
 

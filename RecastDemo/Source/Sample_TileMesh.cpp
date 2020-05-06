@@ -554,12 +554,15 @@ void Sample_TileMesh::handleRender()
 	// Draw mesh // メッシュを描画
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
-		const auto& mesh{ m_geom->getMesh() };
+		for (auto& geom : m_geom->getLoadGeomMesh())
+		{
+			const auto& mesh{ geom.m_mesh };
 
-		// Draw mesh // メッシュを描画
-		duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
-			mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
-			m_agentMaxSlope, texScale);
+			// Draw mesh // メッシュを描画
+			duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
+				mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
+				m_agentMaxSlope, texScale);
+		}
 
 		m_geom->drawOffMeshConnections(&m_dd);
 	}
@@ -717,7 +720,7 @@ void Sample_TileMesh::handleMeshChanged()
 
 bool Sample_TileMesh::handleBuild()
 {
-	if (!m_geom || !m_geom->getMesh())
+	if (m_geom->isLoadGeomMeshEmpty())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: No vertices and triangles."); // 頂点と三角形はありません。
 		return false;
@@ -931,7 +934,7 @@ void Sample_TileMesh::removeAllTiles()
 
 unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const float* bmin, const float* bmax, int& dataSize)
 {
-	if (!m_geom || !m_geom->getMesh() || !m_geom->getChunkyMesh())
+	if (m_geom->isLoadGeomMeshEmpty() || !m_geom->getChunkyMesh())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified.");  // 入力メッシュが指定されていません。
 		return nullptr;
@@ -942,9 +945,11 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	cleanup();
 
-	const float* verts = m_geom->getMesh()->getVerts();
-	const int nverts = m_geom->getMesh()->getVertCount();
-	const int ntris = m_geom->getMesh()->getTriCount();
+	const auto& mesh{ m_geom->getMeshAt(0) };
+
+	const float* verts = mesh->getVerts();
+	const int nverts = mesh->getVertCount();
+	const int ntris = mesh->getTriCount();
 	const auto& chunkyMesh = m_geom->getChunkyMesh();
 
 	// Init build configuration from GUI

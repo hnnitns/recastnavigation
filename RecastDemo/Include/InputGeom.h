@@ -207,7 +207,6 @@ public:
 	const auto& getLoadGeomMesh() const noexcept { return load_geom_meshes; }
 	size_t getLoadGeomMeshSize() const noexcept { return load_geom_meshes.size(); }
 	bool isLoadGeomMeshEmpty() const noexcept { return load_geom_meshes.empty(); }
-	const auto& getMesh() const { return load_geom_meshes.front().m_mesh; }
 	const auto& getMeshAt(const size_t num) const { return load_geom_meshes.at(num).m_mesh; }
 	const auto& getMeshBoundsMin() const { return all_meshBMin; } // メッシュ境界の最小値を取得
 	const auto& getMeshBoundsMax() const { return all_meshBMax; } // メッシュ境界の最大値を取得

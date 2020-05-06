@@ -269,7 +269,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	TileCacheData* tiles,
 	const int maxTiles)
 {
-	if (!m_geom || !m_geom->getMesh() || !m_geom->getChunkyMesh())
+	if (m_geom->isLoadGeomMeshEmpty() || !m_geom->getChunkyMesh())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildTile: Input mesh is not specified."); // 入力メッシュが指定されていません。
 		return 0;
@@ -278,8 +278,9 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	FastLZCompressor comp{};
 	RasterizationContext rc{};
 
-	const float* verts = m_geom->getMesh()->getVerts();
-	const int nverts = m_geom->getMesh()->getVertCount();
+	const auto& mesh{ m_geom->getMeshAt(0) };
+	const float* verts = mesh->getVerts();
+	const int nverts = mesh->getVertCount();
 	const auto& chunkyMesh = m_geom->getChunkyMesh();
 
 	// Tile bounds.
@@ -1047,12 +1048,15 @@ void Sample_TempObstacles::handleRender()
 	// Draw mesh // メッシュを描画
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
-		const auto& mesh{ m_geom->getMesh() };
+		for (auto& geom : m_geom->getLoadGeomMesh())
+		{
+			const auto& mesh{ geom.m_mesh };
 
-		// Draw mesh // メッシュを描画
-		duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
-			mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
-			m_agentMaxSlope, texScale);
+			// Draw mesh // メッシュを描画
+			duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
+				mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
+				m_agentMaxSlope, texScale);
+		}
 
 		m_geom->drawOffMeshConnections(&m_dd);
 	}
@@ -1209,7 +1213,7 @@ bool Sample_TempObstacles::handleBuild()
 {
 	dtStatus status{};
 
-	if (!m_geom || !m_geom->getMesh())
+	if (m_geom->isLoadGeomMeshEmpty())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildTiledNavigation: No vertices and triangles.");
 		return false;

@@ -134,9 +134,14 @@ void Sample::handleRender()
 	if (!m_geom)
 		return;
 
-	// Draw mesh // ƒƒbƒVƒ…‚ð•`‰æ‚µ‚Ü‚·
-	duDebugDrawTriMesh(&m_dd, m_geom->getMesh()->getVerts(), m_geom->getMesh()->getVertCount(),
-		m_geom->getMesh()->getTris(), m_geom->getMesh()->getNormals(), m_geom->getMesh()->getTriCount(), 0, 1.f);
+	// Draw mesh
+	for (auto& geom : m_geom->getLoadGeomMesh())
+	{
+		const auto& mesh{ geom.m_mesh };
+
+		duDebugDrawTriMesh(&m_dd, mesh->getVerts(), mesh->getVertCount(), mesh->getTris(), mesh->getNormals(),
+			mesh->getTriCount(), 0, 1.f);
+	}
 
 	/// Draw bounds // ‹«ŠE‚ð•`‚­
 	constexpr auto Color{ duRGBA(255, 255, 255, 128) };

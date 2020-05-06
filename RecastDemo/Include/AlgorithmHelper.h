@@ -251,6 +251,20 @@ auto Rotate(_Container& _Cont, const size_t _MiddlePos, _ExPo&& _Exec)
 	return (std::rotate(_Exec, _Cont.begin(), _Cont.begin() + _MiddlePos, _Cont.end()));
 }
 
+template <class _Container, class _ExPo>
+auto Accumulate(_Container& _Cont, _ExPo&& _Exec)
+{
+	using Type = typename _Container::value_type;
+
+	return (std::reduce(_Exec, _Cont.begin(), _Cont.end(), Type()));
+}
+
+template <class _Container, class _Ty, class _Fn, class _ExPo>
+auto Accumulate(_Container& _Cont, _Ty _Val, _Fn _Func, _ExPo&& _Exec)
+{
+	return (std::reduce(_Exec, _Cont.begin(), _Cont.end(), _Val, _Func));
+}
+
 template <class _Container, class _Uty, class _ExPo>
 auto Erase_Remove(_Container& _Cont, const _Uty& _Val, _ExPo&& _Exec)
 {
@@ -509,6 +523,20 @@ template <class _Container>
 auto Rotate(_Container& _Cont, const size_t _MiddlePos)
 {
 	return (std::rotate(_Cont.begin(), _Cont.begin() + _MiddlePos, _Cont.end()));
+}
+
+template <class _Container>
+auto Accumulate(_Container& _Cont)
+{
+	using Type = typename _Container::value_type;
+
+	return (std::reduce(_Cont.begin(), _Cont.end(), Type()));
+}
+
+template <class _Container, class _Ty, class _Fn>
+auto Accumulate(_Container& _Cont, _Ty _Val, _Fn _Func)
+{
+	return (std::reduce(_Cont.begin(), _Cont.end(), _Val, _Func));
 }
 
 template <class _Container, class _Uty>

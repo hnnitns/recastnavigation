@@ -245,12 +245,16 @@ void Sample_SoloMesh::handleRender()
 
 	if (m_drawMode != DRAWMODE_NAVMESH_TRANS)
 	{
-		const auto& mesh{ m_geom->getMesh() };
-
 		// Draw mesh
-		duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
-			mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
-			m_agentMaxSlope, texScale);
+		for (auto& geom : m_geom->getLoadGeomMesh())
+		{
+			const auto& mesh{ geom.m_mesh };
+
+			duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
+				mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
+				m_agentMaxSlope, texScale);
+		}
+
 		m_geom->drawOffMeshConnections(&m_dd);
 	}
 
@@ -381,7 +385,7 @@ void Sample_SoloMesh::handleMeshChanged()
 
 bool Sample_SoloMesh::handleBuild()
 {
-	if (!m_geom || !m_geom->getMesh())
+	if (m_geom->isLoadGeomMeshEmpty())
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Input mesh is not specified."); // 入力メッシュが指定されていません。
 		return false;
@@ -391,10 +395,12 @@ bool Sample_SoloMesh::handleBuild()
 
 	const auto& bmin{ m_geom->getNavMeshBoundsMin() };
 	const auto& bmax{ m_geom->getNavMeshBoundsMax() };
-	const float* verts{ m_geom->getMesh()->getVerts() };
-	const int nverts{ m_geom->getMesh()->getVertCount() };
-	const int* tris{ m_geom->getMesh()->getTris() };
-	const int ntris{ m_geom->getMesh()->getTriCount() };
+	const auto& mesh{ m_geom->getMeshAt(0) };
+
+	const float* verts{ mesh->getVerts() };
+	const int nverts{ mesh->getVertCount() };
+	const int* tris{ mesh->getTris() };
+	const int ntris{ mesh->getTriCount() };
 
 	//
 	// Step 1. Initialize build config. ビルド構成を初期化します。

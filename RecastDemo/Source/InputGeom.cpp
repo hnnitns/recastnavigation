@@ -498,69 +498,69 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 	std::atomic<LoadGeomMesh*> is_hit_mesh{};
 
 	For_Each(load_geom_meshes, [&](LoadGeomMesh& load_mesh)
-	{
-		// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
-		std::array<float, 2> p_min{}, q_max{};
-
-		load_mesh.is_selected = false;
-
-		// スラブとレイとの判定と交点を求める
 		{
-			std::array<float, 3> ray_vec{ ray_end - ray_start };
+			// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
+			std::array<float, 2> p_min{}, q_max{};
 
-			// 始点を０で終点を１とした時、スラブとの交点のレイ上の位置（最小値：最大値）
-			float btmin{}, btmax{};
+			load_mesh.is_selected = false;
 
-			// Prune is_hit ray.
-			// スラブとレイとの判定
-			if (!isectSegAABB(ray_start, ray_end, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin,btmax))
-				return;
-
-			// スラブとレイの２交点（最大値、最小値）を求める
-			p_min[0] = ray_start[0] + (ray_vec[0]) * btmin;
-			p_min[1] = ray_start[2] + (ray_vec[2]) * btmin;
-			q_max[0] = ray_start[0] + (ray_vec[0]) * btmax;
-			q_max[1] = ray_start[2] + (ray_vec[2]) * btmax;
-		}
-
-		std::array<int, 512> cid{};
-		// 入力セグメントとオーバーラップするチャンクインデックスを返す
-		const int ncid
-		{ rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid.data(), 512) };
-
-		if (!ncid) return;
-
-		const float* verts{ load_mesh.m_mesh->getVerts() };
-
-		// メッシュデータとレイの判定
-		For_Each_N(cid, ncid, [&](const int id)
-		{
-			const rcChunkyTriMeshNode& node = load_mesh.m_chunkyMesh->nodes[id];
-			const int* tris = &load_mesh.m_chunkyMesh->tris[node.i * 3];
-			const int ntris = node.n;
-
-			for (int j = 0; j < ntris * 3; j += 3)
+			// スラブとレイとの判定と交点を求める
 			{
-				float dis{ 1 };
+				std::array<float, 3> ray_vec{ ray_end - ray_start };
 
-				// レイとポリゴンとの判定
-				if (intersectSegmentTriangle(ray_start, ray_end,
-					&verts[tris[j] * 3],
-					&verts[tris[j + 1] * 3],
-					&verts[tris[j + 2] * 3], dis))
-				{
-					// 終点の距離より短いなら
-					if (dis < hit_dis)
-					{
-						hit_dis = dis;  // 交点上の距離を代入
-						is_hit_mesh = &load_mesh;
-					}
+				// 始点を０で終点を１とした時、スラブとの交点のレイ上の位置（最小値：最大値）
+				float btmin{}, btmax{};
 
-					is_hit = true;  // 当たっている
-				}
+				// Prune is_hit ray.
+				// スラブとレイとの判定
+				if (!isectSegAABB(ray_start, ray_end, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin, btmax))
+					return;
+
+				// スラブとレイの２交点（最大値、最小値）を求める
+				p_min[0] = ray_start[0] + (ray_vec[0]) * btmin;
+				p_min[1] = ray_start[2] + (ray_vec[2]) * btmin;
+				q_max[0] = ray_start[0] + (ray_vec[0]) * btmax;
+				q_max[1] = ray_start[2] + (ray_vec[2]) * btmax;
 			}
+
+			std::array<int, 512> cid{};
+			// 入力セグメントとオーバーラップするチャンクインデックスを返す
+			const int ncid
+			{ rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid.data(), 512) };
+
+			if (!ncid) return;
+
+			const float* verts{ load_mesh.m_mesh->getVerts() };
+
+			// メッシュデータとレイの判定
+			For_Each_N(cid, ncid, [&](const int id)
+				{
+					const rcChunkyTriMeshNode& node{ load_mesh.m_chunkyMesh->nodes[id] };
+					const int* tris{ &load_mesh.m_chunkyMesh->tris[node.i * 3] };
+					const int ntris{ node.n };
+
+					for (int j = 0; j < ntris * 3; j += 3)
+					{
+						float dis{ 1 };
+
+						// レイとポリゴンとの判定
+						if (intersectSegmentTriangle(ray_start, ray_end,
+							&verts[tris[j] * 3],
+							&verts[tris[j + 1] * 3],
+							&verts[tris[j + 2] * 3], dis))
+						{
+							// 終点の距離より短いなら
+							if (dis < hit_dis)
+							{
+								hit_dis = dis;  // 交点上の距離を代入
+								is_hit_mesh = &load_mesh;
+							}
+
+							is_hit = true;  // 当たっている
+						}
+					}
+				}, exec::par);
 		}, exec::par);
-	}, exec::par);
 
 	if (!is_hit || !is_hit_mesh)	return false;
 
@@ -569,7 +569,7 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 	if (hit_info)
 	{
 		// レイのベクトルを求める
-		hit_info->vec = ray_end -ray_start;
+		hit_info->vec = ray_end - ray_start;
 
 		// 実際の交点を計算
 		hit_info->pos = ray_start + (hit_info->vec * hit_dis);

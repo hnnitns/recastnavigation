@@ -25,6 +25,7 @@
 #include "Sample_SoloMesh.h"
 #include "Sample_TileMesh.h"
 #include "Sample_TempObstacles.h"
+#include "AlgorithmHelper.h"
 
 #ifdef WIN32
 #	define snprintf _snprintf_s
@@ -32,6 +33,8 @@
 #endif
 
 using namespace std::string_literals;
+using namespace RcMath;
+namespace exec = std::execution;
 
 namespace
 {
@@ -644,11 +647,18 @@ void EditManager::PropertiesUpdate()
 	if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
 	{
 		std::array<char, 64u> text{};
+		using LGM = InputGeom::LoadGeomMesh;
 
-		auto& geom{ sample->getInputGeom()->getMesh() };
+		const auto& mesh{ sample->getInputGeom()->getLoadGeomMesh() };
+		const size_t size{ sample->getInputGeom()->getLoadGeomMeshSize() };
+		std::atomic_int verts{}, tris{};
 
-		snprintf(text.data(), text.size(), _TRUNCATE, "Verts: %.1fk  Tris: %.1fk",
-			geom->getVertCount() / 1000.f, geom->getTriCount() / 1000.f);
+		// ŒvŽZ
+		For_Each(mesh, [&](const LGM& geom)
+			{ verts += geom.m_mesh->getVertCount(); tris += geom.m_mesh->getTriCount(); }, exec::par);
+
+		snprintf(text.data(), text.size(), _TRUNCATE, "Geometry Size: %u, All Verts: %.1fk, All Tris: %.1fk",
+			size, (verts / 1000.f), (tris / 1000.f));
 
 		imguiValue(text.data());
 	}

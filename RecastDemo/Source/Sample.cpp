@@ -174,7 +174,7 @@ void Sample::handleMeshChanged()
 		m_vertsPerPoly         = buildSettings->vertsPerPoly;
 		m_detailSampleDist     = buildSettings->detailSampleDist;
 		m_detailSampleMaxError = buildSettings->detailSampleMaxError;
-		m_partitionType        = buildSettings->partitionType;
+		m_partitionType        = static_cast<SamplePartitionType>(buildSettings->partitionType);
 	}
 }
 

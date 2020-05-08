@@ -200,12 +200,12 @@ Sample_TileMesh::Sample_TileMesh() :
 
 Sample_TileMesh::~Sample_TileMesh()
 {
-	cleanup();
+	CleanUp();
 	dtFreeNavMesh(m_navMesh);
 	m_navMesh = 0;
 }
 
-void Sample_TileMesh::cleanup()
+void Sample_TileMesh::CleanUp()
 {
 	m_triareas.clear();
 	m_solid = nullptr;
@@ -676,7 +676,7 @@ void Sample_TileMesh::handleRender()
 
 void Sample_TileMesh::handleRenderOverlay(double* proj, double* model, int* view)
 {
-	GLdouble x, y, z;
+	GLdouble x{}, y{}, z{};
 
 	// Draw start and end point labels
 	if (m_tileBuildTime > 0.0f && gluProject((GLdouble)(m_lastBuiltTileBmin[0] + m_lastBuiltTileBmax[0]) / 2, (GLdouble)(m_lastBuiltTileBmin[1] + m_lastBuiltTileBmax[1]) / 2, (GLdouble)(m_lastBuiltTileBmin[2] + m_lastBuiltTileBmax[2]) / 2,
@@ -700,7 +700,7 @@ void Sample_TileMesh::handleMeshChanged()
 	if (buildSettings && buildSettings->tileSize > 0)
 		m_tileSize = buildSettings->tileSize;
 
-	cleanup();
+	CleanUp();
 
 	dtFreeNavMesh(m_navMesh);
 	m_navMesh = nullptr;
@@ -939,7 +939,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	m_tileMemUsage = 0;
 	m_tileBuildTime = 0;
 
-	cleanup();
+	CleanUp();
 
 	const auto& mesh{ m_geom->getMeshAt(0) };
 
@@ -1198,44 +1198,53 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	//		 小さな障害物のある大きな空き領域がある場合（タイルを使用する場合は問題ありません）
 	//		*中サイズと小サイズのタイルでタイル張りされたnavmeshに使用するのに良い選択
 
-	if (m_partitionType == SAMPLE_PARTITION_WATERSHED)
+	switch (m_partitionType)
 	{
-		// Prepare for region partitioning, by calculating distance field along the walkable surface.
-		// 歩行可能な表面に沿った距離フィールドを計算して、領域分割の準備をします。
-		if (!rcBuildDistanceField(m_ctx, *m_chf))
+		case SAMPLE_PARTITION_WATERSHED:
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした。
-			return nullptr;
-		}
+			// Prepare for region partitioning, by calculating distance field along the walkable surface.
+			// 歩行可能な表面に沿った距離フィールドを計算して、領域分割の準備をします。
+			if (!rcBuildDistanceField(m_ctx, *m_chf))
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした。
+				return nullptr;
+			}
 
-		// Partition the walkable surface into simple regions without holes.
-		//　歩行可能な表面を穴のない単純な領域に分割します。
-		if (!rcBuildRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
-		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした。
-			return nullptr;
+			// Partition the walkable surface into simple regions without holes.
+			//　歩行可能な表面を穴のない単純な領域に分割します。
+			if (!rcBuildRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした。
+				return nullptr;
+			}
+
+			break;
 		}
-	}
-	else if (m_partitionType == SAMPLE_PARTITION_MONOTONE)
-	{
-		// Partition the walkable surface into simple regions without holes.
-		// Monotone partitioning does not need distancefield.
-		// 歩行可能な表面を穴のない単純な領域に分割します。
-		// モノトーン分割は距離フィールドを必要としません。
-		if (!rcBuildRegionsMonotone(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
+		case SAMPLE_PARTITION_MONOTONE:
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions."); // モノトーン領域を構築できませんでした。
-			return nullptr;
+			// Partition the walkable surface into simple regions without holes.
+			// Monotone partitioning does not need distancefield.
+			// 歩行可能な表面を穴のない単純な領域に分割します。
+			// モノトーン分割は距離フィールドを必要としません。
+			if (!rcBuildRegionsMonotone(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions."); // モノトーン領域を構築できませんでした。
+				return nullptr;
+			}
+
+			break;
 		}
-	}
-	else // SAMPLE_PARTITION_LAYERS
-	{
-		// Partition the walkable surface into simple regions without holes.
-		// 歩行可能な表面を穴のない単純な領域に分割します。
-		if (!rcBuildLayerRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea))
+		case SAMPLE_PARTITION_LAYERS:
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした。
-			return nullptr;
+			// Partition the walkable surface into simple regions without holes.
+			// 歩行可能な表面を穴のない単純な領域に分割します。
+			if (!rcBuildLayerRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea))
+			{
+				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした。
+				return nullptr;
+			}
+
+			break;
 		}
 	}
 
@@ -1297,8 +1306,9 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		m_cset = 0;
 	}
 
-	unsigned char* navData = 0;
-	int navDataSize = 0;
+	unsigned char* navData{};
+	int navDataSize{};
+
 	if (m_cfg.maxVertsPerPoly <= DT_VERTS_PER_POLYGON)
 	{
 		if (m_pmesh->nverts >= 0xffff)

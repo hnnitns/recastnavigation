@@ -161,7 +161,7 @@ protected:
 	float m_vertsPerPoly;
 	float m_detailSampleDist;
 	float m_detailSampleMaxError;
-	int m_partitionType;
+	SamplePartitionType m_partitionType;
 
 	bool m_filterLowHangingObstacles;
 	bool m_filterLedgeSpans;

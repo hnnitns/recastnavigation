@@ -179,7 +179,6 @@ Sample_TileMesh::Sample_TileMesh() :
 	m_keepInterResults(false),
 	m_buildAll(true),
 	m_totalBuildTimeMs(0),
-	m_chf(0),
 	m_cset(0),
 	m_pmesh(0),
 	m_dmesh(0),
@@ -210,8 +209,8 @@ void Sample_TileMesh::cleanup()
 {
 	m_triareas.clear();
 	m_solid = nullptr;
-	rcFreeCompactHeightfield(m_chf);
-	m_chf = 0;
+	rcFreeCompactHeightfield(m_chf.release());
+	m_chf = nullptr;
 	rcFreeContourSet(m_cset);
 	m_cset = 0;
 	rcFreePolyMesh(m_pmesh);
@@ -1106,13 +1105,16 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// between walkable cells will be calculated.
 	// ハイトフィールドを圧縮して、今後の処理が高速になるようにします。
 	// これにより、より多くのキャッシュコヒーレントデータが生成され、ウォーク可能セル間の隣接セルが計算されます。
-	m_chf = rcAllocCompactHeightfield();
-
-	if (!m_chf)
+	try
+	{
+		m_chf.reset(rcAllocCompactHeightfield());
+	}
+	catch (const std::exception&)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'."); // メモリー不足「chf」
 		return nullptr;
 	}
+
 	if (!rcBuildCompactHeightfield(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid, *m_chf))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data."); // コンパクトなデータを構築できませんでした。
@@ -1289,8 +1291,8 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	if (!m_keepInterResults)
 	{
-		rcFreeCompactHeightfield(m_chf);
-		m_chf = 0;
+		rcFreeCompactHeightfield(m_chf.release());
+		m_chf = nullptr;
 		rcFreeContourSet(m_cset);
 		m_cset = 0;
 	}

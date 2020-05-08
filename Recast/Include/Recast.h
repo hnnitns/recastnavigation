@@ -475,67 +475,67 @@ struct rcCompactHeightfield
 {
 	// The width of the heightfield. (Along the x-axis in cell units.)
 	// 地形の幅。（セル単位のx軸に沿って）
-	int width;
+	int width{};
 
 	// The height of the heightfield. (Along the z-axis in cell units.)
 	// 地形の高さ。（セル単位のz軸に沿って）
-	int height;
+	int height{};
 
 	// The number of spans in the heightfield.
 	// 地形のスパン(人間の手を基準とした長さの単位)の数
-	int spanCount;
+	int spanCount{};
 
 	// The walkable height used during the build of the field.  (See: rcConfig::walkableHeight)
 	// フィールドの構築中に使用される歩行可能な高さ
-	int walkableHeight;
+	int walkableHeight{};
 
 	// The walkable climb used during the build of the field. (See: rcConfig::walkableClimb)
 	// フィールドの構築中に使用される歩行可能な上昇
-	int walkableClimb;
+	int walkableClimb{};
 
 	// The AABB border size used during the build of the field. (See: rcConfig::borderSize)
 	// フィールドのビルド中に使用されるAABB境界サイズ
-	int borderSize;
+	int borderSize{};
 
 	// The maximum distance value of any span within the field.
 	// フィールド内の任意のスパンの最大距離値
-	unsigned short maxDistance;
+	unsigned short maxDistance{};
 
 	// The maximum region id of any span within the field.
 	// フィールド内の任意のスパンの最大領域ID
-	unsigned short maxRegions;
+	unsigned short maxRegions{};
 
 	// The minimum bounds in world space. [(x, y, z)]
 	// ワールド空間の最小境界。[（x、y、z）]
-	float bmin[3];
+	float bmin[3]{};
 
 	// The maximum bounds in world space. [(x, y, z)]
 	// ワールド空間の最大境界。[（x、y、z）]
-	float bmax[3];
+	float bmax[3]{};
 
 	// The size of each cell. (On the xz-plane.)
 	// 各セルのサイズ。（xz平面上。）
-	float cs;
+	float cs{};
 
 	// The height ofeach cell. (The minimum increment along the y-axis.)
 	// 各セルの高さ。（y軸に沿った最小増分。）
-	float ch;
+	float ch{};
 
 	// Array of cells. [Size: #width*#height]
 	// セルの配列
-	rcCompactCell* cells;
+	rcCompactCell* cells{};
 
 	// Array of spans. [Size: #spanCount]
 	// スパンの配列
-	rcCompactSpan* spans;
+	rcCompactSpan* spans{};
 
 	// Array containing border distance data. [Size: #spanCount]
 	// 境界距離データを含む配列
-	unsigned short* dist;
+	unsigned short* dist{};
 
 	// Array containing area id data. [Size: #spanCount]
 	// エリアIDデータを含む配列
-	unsigned char* areas;
+	unsigned char* areas{};
 };
 
 // Represents a heightfield layer within a layer set.

@@ -41,6 +41,7 @@
 #include "OffMeshConnectionTool.h"
 #include "ConvexVolumeTool.h"
 #include "CrowdTool.h"
+#include "AlgorithmHelper.h"
 
 #ifdef WIN32
 #	define snprintf _snprintf
@@ -178,8 +179,6 @@ Sample_TileMesh::Sample_TileMesh() :
 	m_keepInterResults(false),
 	m_buildAll(true),
 	m_totalBuildTimeMs(0),
-	m_triareas(0),
-	m_solid(0),
 	m_chf(0),
 	m_cset(0),
 	m_pmesh(0),
@@ -209,10 +208,8 @@ Sample_TileMesh::~Sample_TileMesh()
 
 void Sample_TileMesh::cleanup()
 {
-	delete[] m_triareas;
-	m_triareas = 0;
-	rcFreeHeightField(m_solid);
-	m_solid = 0;
+	m_triareas.clear();
+	m_solid = nullptr;
 	rcFreeCompactHeightfield(m_chf);
 	m_chf = 0;
 	rcFreeContourSet(m_cset);
@@ -954,7 +951,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	// Init build configuration from GUI
 	// GUIからのビルド構成の初期化
-	memset(&m_cfg, 0, sizeof(m_cfg));
+	m_cfg = {};
 	m_cfg.cs = m_cellSize;
 	m_cfg.ch = m_cellHeight;
 	m_cfg.walkableSlopeAngle = m_agentMaxSlope;
@@ -1023,9 +1020,11 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	// Allocate voxel heightfield where we rasterize our input data to.
 	// 入力データをラスタライズするボクセルハイトフィールドを割り当てます。
-	m_solid = rcAllocHeightfield();
-
-	if (!m_solid)
+	try
+	{
+		m_solid.reset(rcAllocHeightfield());
+	}
+	catch (const std::exception&)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'."); // メモリー不足「solid」
 		return nullptr;
@@ -1042,9 +1041,11 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// and array which can hold the max number of triangles you need to process.
 	// 三角形のフラグを保持できる配列を割り当てます。
 	// 処理する必要のあるメッシュが複数ある場合、処理する必要のある三角形の最大数を保持できる配列および割り当てと配列。
-	m_triareas = new unsigned char[chunkyMesh->maxTrisPerChunk];
-
-	if (!m_triareas)
+	try
+	{
+		m_triareas.resize(chunkyMesh->maxTrisPerChunk);
+	}
+	catch (const std::exception&)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk); // メモリー不足「m_triareas」
 		return nullptr;
@@ -1072,18 +1073,17 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 		m_tileTriCount += nctris;
 
-		memset(m_triareas, 0, nctris * sizeof(unsigned char));
+		Fill(m_triareas, 0);
 		rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle,
-			verts, nverts, ctris, nctris, m_triareas, SAMPLE_AREAMOD_GROUND);
+			verts, nverts, ctris, nctris, m_triareas.data(), SAMPLE_AREAMOD_GROUND);
 
-		if (!rcRasterizeTriangles(m_ctx, verts, nverts, ctris, m_triareas, nctris, *m_solid, m_cfg.walkableClimb))
+		if (!rcRasterizeTriangles(m_ctx, verts, nverts, ctris, m_triareas.data(), nctris, *m_solid, m_cfg.walkableClimb))
 			return 0;
 	}
 
 	if (!m_keepInterResults)
 	{
-		delete[] m_triareas;
-		m_triareas = 0;
+		m_triareas.clear();
 	}
 
 	// Once all geometry is rasterized, we do initial pass of filtering to
@@ -1121,8 +1121,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	if (!m_keepInterResults)
 	{
-		rcFreeHeightField(m_solid);
-		m_solid = 0;
+		m_solid = nullptr;
 	}
 
 	// Erode the walkable area by agent radius.
@@ -1136,6 +1135,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// (Optional) Mark areas.
 	//（オプション）エリアをマークします。
 	const auto* vols = m_geom->getConvexVolumes();
+
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts, vols->at(i).hmin, vols->at(i).hmax,
 			vols->at(i).areaMod, *m_chf);

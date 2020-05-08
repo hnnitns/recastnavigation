@@ -31,8 +31,8 @@ protected:
 	bool m_buildAll;
 	float m_totalBuildTimeMs;
 
-	unsigned char* m_triareas;
-	rcHeightfield* m_solid;
+	std::vector<unsigned char> m_triareas;
+	std::unique_ptr<rcHeightfield> m_solid;
 	rcCompactHeightfield* m_chf;
 	rcContourSet* m_cset;
 	rcPolyMesh* m_pmesh;

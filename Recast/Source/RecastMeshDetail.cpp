@@ -1435,7 +1435,7 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 }
 
 /// @see rcAllocPolyMeshDetail, rcPolyMeshDetail
-bool rcMergePolyMeshDetails(rcContext* ctx, rcPolyMeshDetail** meshes, const int nmeshes, rcPolyMeshDetail& mesh)
+bool rcMergePolyMeshDetails(rcContext* ctx, const std::vector<rcPolyMeshDetail*>& meshes, rcPolyMeshDetail& mesh)
 {
 	rcAssert(ctx);
 
@@ -1445,12 +1445,13 @@ bool rcMergePolyMeshDetails(rcContext* ctx, rcPolyMeshDetail** meshes, const int
 	int maxTris = 0;
 	int maxMeshes = 0;
 
-	for (int i = 0; i < nmeshes; ++i)
+	for (const auto* dmesh : meshes)
 	{
-		if (!meshes[i]) continue;
-		maxVerts += meshes[i]->nverts;
-		maxTris += meshes[i]->ntris;
-		maxMeshes += meshes[i]->nmeshes;
+		if (!dmesh) continue;
+
+		maxVerts += dmesh->nverts;
+		maxTris += dmesh->ntris;
+		maxMeshes += dmesh->nmeshes;
 	}
 
 	mesh.nmeshes = 0;
@@ -1478,14 +1479,13 @@ bool rcMergePolyMeshDetails(rcContext* ctx, rcPolyMeshDetail** meshes, const int
 	}
 
 	// Merge datas.
-	for (int i = 0; i < nmeshes; ++i)
+	for (const auto* dmesh : meshes)
 	{
-		rcPolyMeshDetail* dm = meshes[i];
-		if (!dm) continue;
-		for (int j = 0; j < dm->nmeshes; ++j)
+		if (!dmesh) continue;
+		for (int j = 0; j < dmesh->nmeshes; ++j)
 		{
 			unsigned int* dst = &mesh.meshes[mesh.nmeshes * 4];
-			unsigned int* src = &dm->meshes[j * 4];
+			unsigned int* src = &dmesh->meshes[j * 4];
 			dst[0] = (unsigned int)mesh.nverts + src[0];
 			dst[1] = src[1];
 			dst[2] = (unsigned int)mesh.ntris + src[2];
@@ -1493,17 +1493,17 @@ bool rcMergePolyMeshDetails(rcContext* ctx, rcPolyMeshDetail** meshes, const int
 			mesh.nmeshes++;
 		}
 
-		for (int k = 0; k < dm->nverts; ++k)
+		for (int k = 0; k < dmesh->nverts; ++k)
 		{
-			rcVcopy(&mesh.verts[mesh.nverts * 3], &dm->verts[k * 3]);
+			rcVcopy(&mesh.verts[mesh.nverts * 3], &dmesh->verts[k * 3]);
 			mesh.nverts++;
 		}
-		for (int k = 0; k < dm->ntris; ++k)
+		for (int k = 0; k < dmesh->ntris; ++k)
 		{
-			mesh.tris[mesh.ntris * 4 + 0] = dm->tris[k * 4 + 0];
-			mesh.tris[mesh.ntris * 4 + 1] = dm->tris[k * 4 + 1];
-			mesh.tris[mesh.ntris * 4 + 2] = dm->tris[k * 4 + 2];
-			mesh.tris[mesh.ntris * 4 + 3] = dm->tris[k * 4 + 3];
+			mesh.tris[mesh.ntris * 4 + 0] = dmesh->tris[k * 4 + 0];
+			mesh.tris[mesh.ntris * 4 + 1] = dmesh->tris[k * 4 + 1];
+			mesh.tris[mesh.ntris * 4 + 2] = dmesh->tris[k * 4 + 2];
+			mesh.tris[mesh.ntris * 4 + 3] = dmesh->tris[k * 4 + 3];
 			mesh.ntris++;
 		}
 	}

@@ -26,7 +26,7 @@
 
 class Sample_TileMesh : public Sample
 {
-protected:
+private:
 	bool m_keepInterResults;
 	bool m_buildAll;
 	float m_totalBuildTimeMs;
@@ -76,6 +76,7 @@ protected:
 	int m_tileTriCount;
 
 	unsigned char* buildTileMesh(const int tx, const int ty, const float* bmin, const float* bmax, int& dataSize);
+	bool MergePolyMeshes();
 
 	void CleanUp();
 
@@ -86,14 +87,14 @@ public:
 	Sample_TileMesh();
 	virtual ~Sample_TileMesh();
 
-	virtual void handleSettings() override;
-	virtual void handleTools() override;
-	virtual void handleDebugMode() override;
-	virtual void handleRender() override;
-	virtual void handleRenderOverlay(double* proj, double* model, int* view) override;
-	virtual void handleMeshChanged() override;
-	virtual bool handleBuild() override;
-	virtual void collectSettings(struct BuildSettings& settings) override;
+	void handleSettings() override;
+	void handleTools() override;
+	void handleDebugMode() override;
+	void handleRender() override;
+	void handleRenderOverlay(double* proj, double* model, int* view) override;
+	void handleMeshChanged() override;
+	bool handleBuild() override;
+	void collectSettings(struct BuildSettings& settings) override;
 
 	void getTilePos(const float* pos, int& tx, int& ty);
 
@@ -104,8 +105,10 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	Sample_TileMesh(const Sample_TileMesh&);
-	Sample_TileMesh& operator=(const Sample_TileMesh&);
+	Sample_TileMesh(const Sample_TileMesh&) = delete;
+	Sample_TileMesh& operator=(Sample_TileMesh&) = delete;
+	Sample_TileMesh(const Sample_TileMesh&&) = delete;
+	Sample_TileMesh& operator=(Sample_TileMesh&&) = delete;
 };
 
 #endif // RECASTSAMPLETILEMESH_H

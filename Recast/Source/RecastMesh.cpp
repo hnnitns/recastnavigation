@@ -20,9 +20,11 @@
 #include <cmath>
 #include <cstring>
 #include <cstdio>
+
 #include "Recast.h"
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
+#include "AlgorithmHelper.h"
 
 namespace
 {
@@ -1496,12 +1498,11 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 }
 
 /// @see rcAllocPolyMesh, rcPolyMesh
-bool rcMergePolyMeshes(rcContext* ctx, rcPolyMesh** meshes, const int nmeshes, rcPolyMesh& mesh)
+bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rcPolyMesh& mesh)
 {
 	rcAssert(ctx);
 
-	if (!nmeshes || !meshes)
-		return true;
+	if (meshes.empty()) return false;
 
 	rcScopedTimer timer(ctx, RC_TIMER_MERGE_POLYMESH);
 
@@ -1514,13 +1515,14 @@ bool rcMergePolyMeshes(rcContext* ctx, rcPolyMesh** meshes, const int nmeshes, r
 	int maxVerts = 0;
 	int maxPolys = 0;
 	int maxVertsPerMesh = 0;
-	for (int i = 0; i < nmeshes; ++i)
+
+	for (const auto* pmesh : meshes)
 	{
-		rcVmin(mesh.bmin, meshes[i]->bmin);
-		rcVmax(mesh.bmax, meshes[i]->bmax);
-		maxVertsPerMesh = rcMax(maxVertsPerMesh, meshes[i]->nverts);
-		maxVerts += meshes[i]->nverts;
-		maxPolys += meshes[i]->npolys;
+		rcVmin(mesh.bmin, pmesh->bmin);
+		rcVmax(mesh.bmax, pmesh->bmax);
+		maxVertsPerMesh = rcMax(maxVertsPerMesh, pmesh->nverts);
+		maxVerts += pmesh->nverts;
+		maxPolys += pmesh->npolys;
 	}
 
 	mesh.nverts = 0;
@@ -1589,10 +1591,8 @@ bool rcMergePolyMeshes(rcContext* ctx, rcPolyMesh** meshes, const int nmeshes, r
 	}
 	memset(vremap, 0, sizeof(unsigned short) * maxVertsPerMesh);
 
-	for (int i = 0; i < nmeshes; ++i)
+	for (const auto* pmesh : meshes)
 	{
-		const rcPolyMesh* pmesh = meshes[i];
-
 		const unsigned short ox = (unsigned short)floorf((pmesh->bmin[0] - mesh.bmin[0]) / mesh.cs + 0.5f);
 		const unsigned short oz = (unsigned short)floorf((pmesh->bmin[2] - mesh.bmin[2]) / mesh.cs + 0.5f);
 

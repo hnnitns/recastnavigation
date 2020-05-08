@@ -31,6 +31,8 @@
 #include <algorithm>
 #include <array>
 #include <memory>
+#include <vector>
+
 #include "DebugNewDef.h"
 #include "RecastConfig.h"
 
@@ -1798,7 +1800,7 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 //	結果のポリゴンメッシュ。 （事前に割り当てる必要があります。）
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
-bool rcMergePolyMeshes(rcContext* ctx, rcPolyMesh** meshes, const int nmeshes, rcPolyMesh& mesh);
+bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rcPolyMesh& mesh);
 
 // Builds a detail mesh from the provided polygon mesh.
 //	指定されたポリゴンメッシュから詳細メッシュを構築します。
@@ -1847,7 +1849,8 @@ bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst);
 //	結果の詳細メッシュ。 （事前に割り当てる必要があります。）
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
-bool rcMergePolyMeshDetails(rcContext* ctx, rcPolyMeshDetail** meshes, const int nmeshes, rcPolyMeshDetail& mesh);
+bool rcMergePolyMeshDetails(
+	rcContext* ctx, const std::vector<rcPolyMeshDetail*>& meshes, rcPolyMeshDetail& mesh);
 
 // @}
 

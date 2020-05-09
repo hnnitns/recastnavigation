@@ -34,7 +34,7 @@ private:
 	std::vector<unsigned char> m_triareas;
 	std::unique_ptr<rcHeightfield> m_solid;
 	std::unique_ptr<rcCompactHeightfield> m_chf;
-	rcContourSet* m_cset;
+	std::unique_ptr<rcContourSet> m_cset;
 	rcPolyMesh* m_pmesh;
 	rcPolyMeshDetail* m_dmesh;
 	rcConfig m_cfg;

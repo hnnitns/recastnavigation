@@ -181,7 +181,6 @@ Sample_TileMesh::Sample_TileMesh() :
 	m_keepInterResults(false),
 	m_buildAll(true),
 	m_totalBuildTimeMs(0),
-	m_cset(0),
 	m_pmesh(0),
 	m_dmesh(0),
 	m_drawMode(DRAWMODE_NAVMESH),
@@ -213,12 +212,12 @@ void Sample_TileMesh::CleanUp()
 	m_solid = nullptr;
 	rcFreeCompactHeightfield(m_chf.release());
 	m_chf = nullptr;
-	rcFreeContourSet(m_cset);
-	m_cset = 0;
+	rcFreeContourSet(m_cset.release());
+	m_cset = nullptr;
 	rcFreePolyMesh(m_pmesh);
-	m_pmesh = 0;
+	m_pmesh = nullptr;
 	rcFreePolyMeshDetail(m_dmesh);
-	m_dmesh = 0;
+	m_dmesh = nullptr;
 }
 
 constexpr int NAVMESHSET_MAGIC = 'M' << 24 | 'S' << 16 | 'E' << 8 | 'T'; //'MSET';
@@ -1263,7 +1262,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 		// Create contours.
 		// 輪郭を作成します。
-		m_cset = rcAllocContourSet();
+		m_cset.reset(rcAllocContourSet());
 		if (!m_cset)
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'cset'."); // メモリー不足「cset」
@@ -1320,8 +1319,8 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		{
 			rcFreeCompactHeightfield(m_chf.release());
 			m_chf = nullptr;
-			rcFreeContourSet(m_cset);
-			m_cset = 0;
+			rcFreeContourSet(m_cset.release());
+			m_cset = nullptr;
 		}
 	}
 

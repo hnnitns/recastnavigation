@@ -39,7 +39,7 @@ private:
 	std::unique_ptr<rcPolyMeshDetail> m_dmesh;
 	rcConfig m_cfg;
 
-	enum DrawMode
+	enum class DrawMode
 	{
 		DRAWMODE_NAVMESH,
 		DRAWMODE_NAVMESH_TRANS,
@@ -69,13 +69,13 @@ private:
 	float m_tileSize;
 
 	unsigned int m_tileCol;
-	float m_lastBuiltTileBmin[3];
-	float m_lastBuiltTileBmax[3];
+	std::array<float, 3> m_lastBuiltTileBmin, m_lastBuiltTileBmax;
 	float m_tileBuildTime;
 	float m_tileMemUsage;
 	int m_tileTriCount;
 
-	unsigned char* buildTileMesh(const int tx, const int ty, const float* bmin, const float* bmax, int& dataSize);
+	unsigned char* buildTileMesh(const int tx, const int ty, const std::array<float, 3>& bmin,
+		const std::array<float, 3>& bmax, int& dataSize);
 	bool MergePolyMeshes();
 
 	void CleanUp();

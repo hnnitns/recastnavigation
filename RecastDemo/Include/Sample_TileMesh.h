@@ -35,7 +35,7 @@ private:
 	std::unique_ptr<rcHeightfield> m_solid;
 	std::unique_ptr<rcCompactHeightfield> m_chf;
 	std::unique_ptr<rcContourSet> m_cset;
-	rcPolyMesh* m_pmesh;
+	std::unique_ptr<rcPolyMesh> m_pmesh;
 	rcPolyMeshDetail* m_dmesh;
 	rcConfig m_cfg;
 

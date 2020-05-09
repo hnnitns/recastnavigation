@@ -572,9 +572,8 @@ void Sample_TileMesh::handleRender()
 	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
 	// Draw active tile // 有効なタイル上の直方体（印）を描画
-	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_MIDDLE)
-		duDebugDrawBoxWire(&m_dd, m_lastBuiltTileBmin[0], m_lastBuiltTileBmin[1], m_lastBuiltTileBmin[2],
-			m_lastBuiltTileBmax[0], m_lastBuiltTileBmax[1], m_lastBuiltTileBmax[2], m_tileCol, 1.f);
+	duDebugDrawBoxWire(&m_dd, m_lastBuiltTileBmin[0], m_lastBuiltTileBmin[1], m_lastBuiltTileBmin[2],
+		m_lastBuiltTileBmax[0], m_lastBuiltTileBmax[1], m_lastBuiltTileBmax[2], m_tileCol, 1.f);
 
 	if (m_navMesh && m_navQuery &&
 		(m_drawMode == DrawMode::DRAWMODE_NAVMESH || m_drawMode == DrawMode::DRAWMODE_NAVMESH_TRANS ||
@@ -1010,9 +1009,9 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	for (const auto& geom : m_geom->getLoadGeomMesh())
 	{
 		const auto& mesh{ geom.m_mesh };
-		const auto& chunkyMesh = geom.m_chunkyMesh;
+		const auto& chunkyMesh{ geom.m_chunkyMesh };
 
-		const float* verts = mesh->getVerts();
+		const auto& verts = mesh->getVerts();
 		const int nverts = mesh->getVertCount();
 		const int ntris = mesh->getTriCount();
 
@@ -1077,7 +1076,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 			Fill(m_triareas, 0, exec::par);
 			rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle,
-				verts, nverts, ctris, nctris, m_triareas.data(), SAMPLE_AREAMOD_GROUND);
+				verts.data(), nverts, ctris, nctris, m_triareas.data(), SAMPLE_AREAMOD_GROUND);
 
 			if (!rcRasterizeTriangles(m_ctx, verts, nverts, ctris, m_triareas.data(), nctris, *m_solid, m_cfg.walkableClimb))
 				return 0;

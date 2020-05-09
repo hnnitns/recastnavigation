@@ -90,7 +90,7 @@ public:
 
 	bool load(const std::string& fileName);
 
-	const float* getVerts() const { return m_verts.data(); }
+	const auto& getVerts() const { return m_verts; }
 	const float* getNormals() const { return m_normals.data(); }
 	const int* getTris() const { return m_tris.data(); }
 	int getVertCount() const { return m_vertCount; }

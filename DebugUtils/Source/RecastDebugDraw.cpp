@@ -22,20 +22,17 @@
 #include "RecastDebugDraw.h"
 #include "Recast.h"
 
-void duDebugDrawTriMesh(duDebugDraw* dd, const float* verts, int /*nverts*/,
+void duDebugDrawTriMesh(duDebugDraw* dd, const std::vector<float>& verts, int /*nverts*/,
 	const int* tris, const float* normals, int ntris,
 	const unsigned char* flags, const float texScale)
 {
-	if (!dd) return;
-	if (!verts) return;
-	if (!tris) return;
-	if (!normals) return;
+	if (!(dd && tris && normals) || verts.empty()) return;
 
 	float uva[2];
 	float uvb[2];
 	float uvc[2];
 
-	const unsigned int unwalkable = duRGBA(192, 128, 0, 255);
+	constexpr unsigned int unwalkable = duRGBA(192, 128, 0, 255);
 
 	dd->texture(true);
 
@@ -77,14 +74,9 @@ void duDebugDrawTriMesh(duDebugDraw* dd, const float* verts, int /*nverts*/,
 	dd->texture(false);
 }
 
-void duDebugDrawTriMeshSlope(duDebugDraw* dd, const float* verts, int /*nverts*/,
-	const int* tris, const float* normals, int ntris,
-	const float walkableSlopeAngle, const float texScale, bool is_select)
+void duDebugDrawTriMeshSlope(struct duDebugDraw* dd, const std::vector<float>& verts, int nverts, const int* tris, const float* normals, int ntris, const float walkableSlopeAngle, const float texScale, bool is_select)
 {
-	if (!dd) return;
-	if (!verts) return;
-	if (!tris) return;
-	if (!normals) return;
+	if (!(dd && tris && normals) || verts.empty()) return;
 
 	const float walkableThr = cosf(walkableSlopeAngle / 180.0f * DU_PI);
 

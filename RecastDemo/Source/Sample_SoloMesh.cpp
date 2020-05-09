@@ -397,7 +397,7 @@ bool Sample_SoloMesh::handleBuild()
 	const auto& bmax{ m_geom->getNavMeshBoundsMax() };
 	const auto& mesh{ m_geom->getMeshAt(0) };
 
-	const float* verts{ mesh->getVerts() };
+	const auto& verts{ mesh->getVerts() };
 	const int nverts{ mesh->getVertCount() };
 	const int* tris{ mesh->getTris() };
 	const int ntris{ mesh->getTriCount() };
@@ -479,7 +479,7 @@ bool Sample_SoloMesh::handleBuild()
 	// If your input data is multiple meshes, you can transform them here, calculate the are type for each of the meshes and rasterize them.
 	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュのareタイプを計算して、それらをラスタライズできます。
 	memset(m_triareas, 0, ntris * sizeof(unsigned char));
-	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts, nverts, tris, ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
+	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, tris, ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
 
 	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, m_triareas, ntris, *m_solid, m_cfg.walkableClimb))
 	{

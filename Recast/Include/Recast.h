@@ -1449,7 +1449,7 @@ bool rcRasterizeTriangle(rcContext* ctx, const float* v0, const float* v1, const
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
 // 三角形のラスタライズ
-bool rcRasterizeTriangles(rcContext* ctx, const float* verts, const int nv,
+bool rcRasterizeTriangles(rcContext* ctx, const std::vector<float>& verts, const int nv,
 	const int* tris, const unsigned char* areas, const int nt,
 	rcHeightfield& solid, const int flagMergeThr = 1);
 

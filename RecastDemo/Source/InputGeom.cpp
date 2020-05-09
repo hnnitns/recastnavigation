@@ -195,7 +195,7 @@ bool InputGeom::LoadMesh(rcContext* ctx, const std::string& filepath)
 		return false;
 	}
 
-	rcCalcBounds(load_meshes.m_mesh->getVerts(), load_meshes.m_mesh->getVertCount(),
+	rcCalcBounds(load_meshes.m_mesh->getVerts().data(), load_meshes.m_mesh->getVertCount(),
 		load_meshes.m_meshBMin.data(), load_meshes.m_meshBMax.data());
 
 	CalcAllMeshBounds();
@@ -530,7 +530,7 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 
 			if (!ncid) return;
 
-			const float* verts{ load_mesh.m_mesh->getVerts() };
+			const auto& verts{ load_mesh.m_mesh->getVerts() };
 
 			// メッシュデータとレイの判定
 			For_Each_N(cid, ncid, [&](const int id)

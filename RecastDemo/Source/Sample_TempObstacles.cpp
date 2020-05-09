@@ -279,7 +279,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	RasterizationContext rc{};
 
 	const auto& mesh{ m_geom->getMeshAt(0) };
-	const float* verts = mesh->getVerts();
+	const auto& verts = mesh->getVerts();
 	const int nverts = mesh->getVertCount();
 	const auto& chunkyMesh = m_geom->getChunkyMeshAt(0);
 
@@ -349,7 +349,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 		memset(rc.triareas, 0, ntris * sizeof(unsigned char));
 
 		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle,
-			verts, nverts, tris, ntris, rc.triareas,
+			verts.data(), nverts, tris, ntris, rc.triareas,
 			SAMPLE_AREAMOD_GROUND);
 
 		if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, rc.triareas, ntris, *rc.solid, tcfg.walkableClimb))

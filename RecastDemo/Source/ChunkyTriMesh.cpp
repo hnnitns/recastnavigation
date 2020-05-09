@@ -190,7 +190,8 @@ namespace
 	}
 }
 
-bool rcCreateChunkyTriMesh(const float* verts, const int* tris, int ntris, int trisPerChunk, rcChunkyTriMesh* cm)
+bool rcCreateChunkyTriMesh(const std::vector<float>& verts, const int* tris, int ntris, int trisPerChunk,
+	rcChunkyTriMesh* cm)
 {
 	int nchunks = (ntris + trisPerChunk - 1) / trisPerChunk;
 

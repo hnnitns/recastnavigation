@@ -85,26 +85,23 @@ namespace
 	public:
 
 		NavMeshTileTool() :
-			m_sample(0),
-			m_hitPosSet(false)
+			m_sample(0), m_hitPosSet(false)
 		{
 			m_hitPos[0] = m_hitPos[1] = m_hitPos[2] = 0;
 		}
 
-		virtual ~NavMeshTileTool()
-		{
-		}
+		~NavMeshTileTool() = default;
 
-		virtual int type() { return TOOL_TILE_EDIT; }
+		int type() override { return TOOL_TILE_EDIT; }
 
-		virtual void init(Sample* sample)
+		void init(Sample* sample) override
 		{
 			m_sample = (Sample_TileMesh*)sample;
 		}
 
-		virtual void reset() {}
+		void reset() override {}
 
-		virtual void handleMenu()
+		void handleMenu() override
 		{
 			imguiLabel("Create Tiles");
 			if (imguiButton("Create All"))
@@ -119,7 +116,7 @@ namespace
 			}
 		}
 
-		virtual void handleClick(const float* /*s*/, const float* p, bool shift)
+		void handleClick(const float* /*s*/, const float* p, bool shift) override
 		{
 			m_hitPosSet = true;
 			rcVcopy(m_hitPos, p);
@@ -132,13 +129,13 @@ namespace
 			}
 		}
 
-		virtual void handleToggle() {}
+		void handleToggle() override {}
 
-		virtual void handleStep() {}
+		void handleStep() override {}
 
-		virtual void handleUpdate(const float /*dt*/) {}
+		void handleUpdate(const float /*dt*/) override {}
 
-		virtual void handleRender()
+		void handleRender() override
 		{
 			if (m_hitPosSet)
 			{
@@ -157,7 +154,7 @@ namespace
 			}
 		}
 
-		virtual void handleRenderOverlay(double* proj, double* model, int* view)
+		void handleRenderOverlay(double* proj, double* model, int* view) override
 		{
 			GLdouble x, y, z;
 			if (m_hitPosSet && gluProject((GLdouble)m_hitPos[0], (GLdouble)m_hitPos[1], (GLdouble)m_hitPos[2],
@@ -178,18 +175,9 @@ namespace
 }
 
 Sample_TileMesh::Sample_TileMesh() :
-	m_keepInterResults(false),
-	m_buildAll(true),
-	m_totalBuildTimeMs(0),
-	m_dmesh(0),
-	m_drawMode(DRAWMODE_NAVMESH),
-	m_maxTiles(0),
-	m_maxPolysPerTile(0),
-	m_tileSize(32),
-	m_tileCol(duRGBA(0, 0, 0, 32)),
-	m_tileBuildTime(0),
-	m_tileMemUsage(0),
-	m_tileTriCount(0)
+	m_keepInterResults(false), m_buildAll(true), m_totalBuildTimeMs(0), m_drawMode(DRAWMODE_NAVMESH),
+	m_maxTiles(0), m_maxPolysPerTile(0), m_tileSize(32), m_tileCol(duRGBA(0, 0, 0, 32)), m_tileBuildTime(0),
+	m_tileMemUsage(0), m_tileTriCount(0)
 {
 	resetCommonSettings();
 	memset(m_lastBuiltTileBmin, 0, sizeof(m_lastBuiltTileBmin));
@@ -202,7 +190,7 @@ Sample_TileMesh::~Sample_TileMesh()
 {
 	CleanUp();
 	dtFreeNavMesh(m_navMesh);
-	m_navMesh = 0;
+	m_navMesh = nullptr;
 }
 
 void Sample_TileMesh::CleanUp()
@@ -215,7 +203,7 @@ void Sample_TileMesh::CleanUp()
 	m_cset = nullptr;
 	rcFreePolyMesh(m_pmesh.release());
 	m_pmesh = nullptr;
-	rcFreePolyMeshDetail(m_dmesh);
+	rcFreePolyMeshDetail(m_dmesh.release());
 	m_dmesh = nullptr;
 }
 
@@ -1009,7 +997,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	m_ctx->startTimer(RC_TIMER_TOTAL);
 
 	if (!m_pmesh)	m_pmesh.reset(rcAllocPolyMesh());
-	if (!m_dmesh)	m_dmesh = rcAllocPolyMeshDetail();
+	if (!m_dmesh)	m_dmesh.reset(rcAllocPolyMeshDetail());
 
 	std::vector<rcPolyMesh*> poly_meshes;
 	std::vector<rcPolyMeshDetail*> detail_meshes;

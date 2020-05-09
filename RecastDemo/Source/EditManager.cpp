@@ -625,25 +625,28 @@ void EditManager::PropertiesUpdate()
 		}
 	}
 
-	imguiSeparator();
-	imguiLabel("Input Mesh");
-
-	// 「Choose Mesh...」部分
-	if (imguiButton(meshName.c_str()))
+	if (sample)
 	{
-		if (showLevels)
-		{
-			showLevels = false;
-		}
-		// Input Meshが選ばれた
-		else
-		{
-			showSample = false;
-			showLevels = true;
+		imguiSeparator();
+		imguiLabel("Input Mesh");
 
-			// 「.obj」・「.gset」をfilesに追加
-			scanDirectory(meshesFolder, ".obj", files);
-			scanDirectoryAppend(meshesFolder, ".gset", files);
+		// 「Choose Mesh...」部分
+		if (imguiButton(meshName.c_str()))
+		{
+			if (showLevels)
+			{
+				showLevels = false;
+			}
+			// Input Meshが選ばれた
+			else
+			{
+				showSample = false;
+				showLevels = true;
+
+				// 「.obj」・「.gset」をfilesに追加
+				scanDirectory(meshesFolder, ".obj", files);
+				scanDirectoryAppend(meshesFolder, ".gset", files);
+			}
 		}
 	}
 

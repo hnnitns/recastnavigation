@@ -68,7 +68,7 @@ private:
 	int m_maxPolysPerTile;
 	float m_tileSize;
 
-	unsigned int m_tileCol;
+	uint32_t m_tileCol;
 	std::array<float, 3> m_lastBuiltTileBmin, m_lastBuiltTileBmax;
 	float m_tileBuildTime;
 	float m_tileMemUsage;

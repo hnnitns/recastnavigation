@@ -557,13 +557,13 @@ void Sample_TileMesh::handleRender()
 
 	glDepthMask(GL_FALSE);
 
-	// Draw bounds // ‹«ŠE‚ð•`‚­
+	// Draw bounds // ‹«ŠE‚ð•`‰æ
 	const auto& bmin = m_geom->getNavMeshBoundsMin();
 	const auto& bmax = m_geom->getNavMeshBoundsMax();
 	duDebugDrawBoxWire(&m_dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2],
 		duRGBA(255, 255, 255, 128), 1.f);
 
-	// Tiling grid.
+	// Tiling grid. // Å‰º•”‚É‚ ‚éƒOƒŠƒbƒg‚ð•`‰æ
 	int gw{}, gh{};
 	rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
 	const int tw = (gw + (int)m_tileSize - 1) / (int)m_tileSize;
@@ -571,15 +571,17 @@ void Sample_TileMesh::handleRender()
 	const float s = m_tileSize * m_cellSize;
 	duDebugDrawGridXZ(&m_dd, bmin[0], bmin[1], bmin[2], tw, th, s, duRGBA(0, 0, 0, 64), 1.f);
 
-	// Draw active tile
-	duDebugDrawBoxWire(&m_dd, m_lastBuiltTileBmin[0], m_lastBuiltTileBmin[1], m_lastBuiltTileBmin[2],
-		m_lastBuiltTileBmax[0], m_lastBuiltTileBmax[1], m_lastBuiltTileBmax[2], m_tileCol, 1.f);
+	// Draw active tile // —LŒø‚Èƒ^ƒCƒ‹ã‚Ì’¼•û‘Ìiˆój‚ð•`‰æ
+	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_MIDDLE)
+		duDebugDrawBoxWire(&m_dd, m_lastBuiltTileBmin[0], m_lastBuiltTileBmin[1], m_lastBuiltTileBmin[2],
+			m_lastBuiltTileBmax[0], m_lastBuiltTileBmax[1], m_lastBuiltTileBmax[2], m_tileCol, 1.f);
 
 	if (m_navMesh && m_navQuery &&
 		(m_drawMode == DrawMode::DRAWMODE_NAVMESH || m_drawMode == DrawMode::DRAWMODE_NAVMESH_TRANS ||
 			m_drawMode == DrawMode::DRAWMODE_NAVMESH_BVTREE || m_drawMode == DrawMode::DRAWMODE_NAVMESH_NODES ||
 			m_drawMode == DrawMode::DRAWMODE_NAVMESH_PORTALS || m_drawMode == DrawMode::DRAWMODE_NAVMESH_INVIS))
 	{
+		// ƒiƒrƒƒbƒVƒ…‚Ì•`‰æ
 		if (m_drawMode != DrawMode::DRAWMODE_NAVMESH_INVIS)
 			duDebugDrawNavMeshWithClosedList(&m_dd, *m_navMesh, *m_navQuery, m_navMeshDrawFlags);
 		if (m_drawMode == DrawMode::DRAWMODE_NAVMESH_BVTREE)
@@ -669,8 +671,10 @@ void Sample_TileMesh::handleRenderOverlay(double* proj, double* model, int* view
 	GLdouble x{}, y{}, z{};
 
 	// Draw start and end point labels
-	if (m_tileBuildTime > 0.0f && gluProject((GLdouble)(m_lastBuiltTileBmin[0] + m_lastBuiltTileBmax[0]) / 2, (GLdouble)(m_lastBuiltTileBmin[1] + m_lastBuiltTileBmax[1]) / 2, (GLdouble)(m_lastBuiltTileBmin[2] + m_lastBuiltTileBmax[2]) / 2,
-		model, proj, view, &x, &y, &z))
+	if (m_tileBuildTime > 0.0f &&
+		gluProject((GLdouble)(m_lastBuiltTileBmin[0] + m_lastBuiltTileBmax[0]) / 2,
+			(GLdouble)(m_lastBuiltTileBmin[1] + m_lastBuiltTileBmax[1]) / 2,
+			(GLdouble)(m_lastBuiltTileBmin[2] + m_lastBuiltTileBmax[2]) / 2, model, proj, view, &x, &y, &z))
 	{
 		char text[32];
 		snprintf(text, 32, "%.3fms / %dTris / %.1fkB", m_tileBuildTime, m_tileTriCount, m_tileMemUsage);

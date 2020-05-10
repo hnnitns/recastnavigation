@@ -39,7 +39,7 @@ void rcMeshLoaderObj::addVertex(float x, float y, float z, int& cap)
 
 		if (m_vertCount)
 			//memcpy(nv, m_verts, m_vertCount * 3 * sizeof(float));
-			for (size_t i = 0; i < m_vertCount * 3; i++)
+			for (int i = 0; i < m_vertCount * 3; i++)
 			{
 				nv[i] = m_verts[i];
 			}
@@ -66,7 +66,7 @@ void rcMeshLoaderObj::addTriangle(int a, int b, int c, int& cap)
 
 		if (m_triCount)
 			//memcpy(nv, m_tris, m_triCount * 3 * sizeof(int));
-			for (size_t i = 0; i < m_triCount * 3; i++)
+			for (int i = 0; i < m_triCount * 3; i++)
 			{
 				nv[i] = m_tris[i];
 			}
@@ -222,7 +222,7 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 		if (row[0] == 'v' && row[1] != 'n' && row[1] != 't')
 		{
 			// Vertex pos
-			int temp{ sscanf_s(row + 1, "%f %f %f", &x, &y, &z) };
+			[[maybe_unused]]int temp{ sscanf_s(row + 1, "%f %f %f", &x, &y, &z) };
 			addVertex(x, y, z, vcap);
 		}
 

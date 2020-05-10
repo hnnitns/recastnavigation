@@ -51,6 +51,8 @@
 #	define snprintf _snprintf
 #endif
 
+#define _ENABLE_ATOMIC_ALIGNMENT_FIX
+
 namespace
 {
 	namespace exec = std::execution;
@@ -539,14 +541,14 @@ void Sample_TileMesh::handleRender()
 
 	const float texScale = 1.f / (m_cellSize * 10.0f);
 
-	// Draw mesh // メッシュを描画
+	// Draw mesh1 // メッシュを描画
 	if (m_drawMode != DrawMode::DRAWMODE_NAVMESH_TRANS)
 	{
 		for (auto& geom : m_geom->getLoadGeomMesh())
 		{
 			const auto& mesh{ geom.m_mesh };
 
-			// Draw mesh // メッシュを描画
+			// Draw mesh1 // メッシュを描画
 			duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
 				mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
 				m_agentMaxSlope, texScale, geom.is_selected);
@@ -1006,7 +1008,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	std::vector<rcPolyMesh*> poly_meshes;
 	std::vector<rcPolyMeshDetail*> detail_meshes;
 
-#if false
+#if true
 	for (const auto& geom : m_geom->getLoadGeomMesh())
 	{
 		const auto& mesh{ geom.m_mesh };
@@ -1288,7 +1290,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 			return nullptr;
 		}
 
-		// Build detail mesh.
+		// Build detail mesh1.
 		// 詳細メッシュを作成します。
 		try
 		{
@@ -1317,14 +1319,30 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		}
 	}
 #else
-	const auto& geom{ m_geom->getLoadGeomMesh().front() };
+	const auto& geom1{ m_geom->getLoadGeomMesh().front() };
+	const auto& geom2{ m_geom->getLoadGeomMesh().back() };
 
-	const auto& mesh{ geom.m_mesh };
-	const auto& chunkyMesh{ geom.m_chunkyMesh };
+	rcChunkyTriMesh chunkymesh{};
 
-	const auto& verts = mesh->getVerts();
-	const int nverts = mesh->getVertCount();
-	const int ntris = mesh->getTriCount();
+	const auto& mesh1{ geom1.m_mesh };
+	const auto& mesh2{ geom2.m_mesh };
+	//const auto& chunkyMesh{ geom1.m_chunkyMesh };
+
+	auto verts = mesh1->getVerts(); // コピー
+	const int nverts = mesh1->getVertCount() + mesh2->getVertCount();
+	const int ntris = mesh1->getTriCount() + mesh2->getTriCount();
+
+	// nverts * 3より多い要素を削除
+	verts.erase(verts.begin() + (mesh1->getVertCount() * 3), verts.end());
+
+	std::copy(mesh2->getVerts().cbegin(), mesh2->getVerts().cend(), std::back_inserter(verts));
+
+	// ChunkyTriMeshを結合したうえで再生成
+	if (!rcCreateChunkyTriMesh(verts, mesh1->getTris(), ntris, 256, &chunkymesh))
+	{
+		m_ctx->log(RC_LOG_PROGRESS, "buildNavigation: Could not create solid ChunkyTriMesh.");
+		return nullptr;
+	}
 
 	m_ctx->log(RC_LOG_PROGRESS, "Building navigation:");
 	m_ctx->log(RC_LOG_PROGRESS, " - %d x %d cells", m_cfg.width, m_cfg.height);
@@ -1355,11 +1373,12 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// 処理する必要のあるメッシュが複数ある場合、処理する必要のある三角形の最大数を保持できる配列および割り当てと配列。
 	try
 	{
-		m_triareas.resize(chunkyMesh->maxTrisPerChunk, 0);
+		m_triareas.resize(chunkymesh.maxTrisPerChunk, 0);
 	}
 	catch (const std::exception&)
 	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk); // メモリー不足「m_triareas」
+		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).",
+			chunkymesh.maxTrisPerChunk); // メモリー不足「m_triareas」
 		return nullptr;
 	}
 
@@ -1371,7 +1390,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	tbmax[1] = m_cfg.bmax[2];
 
 	std::array<int, 512> cid{}; // TODO: Make grow when returning too many items. // 戻るアイテムが多すぎる場合はサイズを大きくさせる。
-	const int ncid = rcGetChunksOverlappingRect(&(*chunkyMesh), tbmin, tbmax, cid.data(), 512);
+	const int ncid = rcGetChunksOverlappingRect(&chunkymesh, tbmin, tbmax, cid.data(), 512);
 
 	if (!ncid) return nullptr;
 
@@ -1379,8 +1398,8 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 	for (int i = 0; i < ncid; ++i)
 	{
-		const rcChunkyTriMeshNode& node = chunkyMesh->nodes[cid[i]];
-		const int* ctris = &chunkyMesh->tris[node.i * 3];
+		const rcChunkyTriMeshNode& node = chunkymesh.nodes[cid[i]];
+		const int* ctris = &chunkymesh.tris[node.i * 3];
 		const int nctris = node.n;
 
 		m_tileTriCount += nctris;
@@ -1598,7 +1617,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		return nullptr;
 	}
 
-	// Build detail mesh.
+	// Build detail mesh1.
 	// 詳細メッシュを作成します。
 	try
 	{

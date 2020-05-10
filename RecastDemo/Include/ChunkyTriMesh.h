@@ -92,7 +92,8 @@ public:
 // Creates partitioned triangle mesh (AABB tree), where each node contains at max trisPerChunk triangles.
 // 分割された三角形メッシュ（AABBツリー）を作成します。各ノードには最大でtrisPerChunkの三角形が含まれます。
 // 分厚い三角形メッシュを作成する
-bool rcCreateChunkyTriMesh(const std::vector<float>& verts, const int* tris, int ntris, int trisPerChunk,
+bool rcCreateChunkyTriMesh(
+	const std::vector<float>& verts, const std::vector<int>& tris, int ntris, int trisPerChunk,
 	rcChunkyTriMesh* cm);
 
 // Returns the chunk indices which overlap the input rectable.

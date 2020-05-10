@@ -190,7 +190,8 @@ namespace
 	}
 }
 
-bool rcCreateChunkyTriMesh(const std::vector<float>& verts, const int* tris, int ntris, int trisPerChunk,
+bool rcCreateChunkyTriMesh(
+	const std::vector<float>& verts, const std::vector<int>& tris, int ntris, int trisPerChunk,
 	rcChunkyTriMesh* cm)
 {
 	int nchunks = (ntris + trisPerChunk - 1) / trisPerChunk;
@@ -242,7 +243,7 @@ bool rcCreateChunkyTriMesh(const std::vector<float>& verts, const int* tris, int
 
 	int curTri{}, curNode{};
 
-	subdivide(items, ntris, 0, ntris, trisPerChunk, curNode, cm->nodes, nchunks * 4, curTri, cm->tris, tris);
+	subdivide(items, ntris, 0, ntris, trisPerChunk, curNode, cm->nodes, nchunks * 4, curTri, cm->tris, tris.data());
 
 	cm->nnodes = curNode;
 

@@ -22,10 +22,11 @@
 #include "RecastDebugDraw.h"
 #include "Recast.h"
 
-void duDebugDrawTriMesh(duDebugDraw* dd, const std::vector<float>& verts, int nverts, const int* tris,
+void duDebugDrawTriMesh(
+	duDebugDraw* dd, const std::vector<float>& verts, int nverts, const std::vector<int>& tris,
 	const std::vector<float>& normals, int ntris, const unsigned char* flags, const float texScale)
 {
-	if (!(dd && tris) || normals.empty() || verts.empty()) return;
+	if (!dd || tris.empty() || normals.empty() || verts.empty()) return;
 
 	float uva[2];
 	float uvb[2];
@@ -74,10 +75,10 @@ void duDebugDrawTriMesh(duDebugDraw* dd, const std::vector<float>& verts, int nv
 }
 
 void duDebugDrawTriMeshSlope(duDebugDraw* dd, const std::vector<float>& verts, int nverts,
-	const int* tris, const std::vector<float>& normals, int ntris, const float walkableSlopeAngle,
+	const std::vector<int>& tris, const std::vector<float>& normals, int ntris, const float walkableSlopeAngle,
 	const float texScale, bool is_select)
 {
-	if (!(dd && tris) || normals.empty() || verts.empty()) return;
+	if (!dd || tris.empty() || normals.empty() || verts.empty()) return;
 
 	const float walkableThr = cosf(walkableSlopeAngle / 180.0f * DU_PI);
 

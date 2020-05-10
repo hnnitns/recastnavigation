@@ -399,7 +399,7 @@ bool Sample_SoloMesh::handleBuild()
 
 	const auto& verts{ mesh->getVerts() };
 	const int nverts{ mesh->getVertCount() };
-	const int* tris{ mesh->getTris() };
+	const auto& tris{ mesh->getTris() };
 	const int ntris{ mesh->getTriCount() };
 
 	//
@@ -479,9 +479,9 @@ bool Sample_SoloMesh::handleBuild()
 	// If your input data is multiple meshes, you can transform them here, calculate the are type for each of the meshes and rasterize them.
 	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュのareタイプを計算して、それらをラスタライズできます。
 	memset(m_triareas, 0, ntris * sizeof(unsigned char));
-	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, tris, ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
+	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, tris.data(), ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
 
-	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, m_triareas, ntris, *m_solid, m_cfg.walkableClimb))
+	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris.data(), m_triareas, ntris, *m_solid, m_cfg.walkableClimb))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not rasterize triangles."); // 三角形をラスタライズできませんでした。
 		return false;

@@ -21,10 +21,12 @@
 
 #include <vector>
 
-void duDebugDrawTriMesh(struct duDebugDraw* dd, const std::vector<float>& verts, int nverts, const int* tris,
+void duDebugDrawTriMesh(
+	struct duDebugDraw* dd, const std::vector<float>& verts, int nverts, const std::vector<int>& tris,
 	const std::vector<float>& normals, int ntris, const unsigned char* flags, const float texScale);
 void duDebugDrawTriMeshSlope(struct duDebugDraw* dd, const std::vector<float>& verts, int nverts,
-	const int* tris, const std::vector<float>& normals, int ntris, const float walkableSlopeAngle,
+	const std::vector<int>& tris, const std::vector<float>& normals, int ntris,
+	const float walkableSlopeAngle,
 	const float texScale, bool is_select = false);
 
 void duDebugDrawHeightfieldSolid(struct duDebugDraw* dd, const struct rcHeightfield& hf);

@@ -92,7 +92,7 @@ public:
 
 	const auto& getVerts() const { return m_verts; }
 	const auto& getNormals() const { return m_normals; }
-	const int* getTris() const { return m_tris.data(); }
+	const auto& getTris() const { return m_tris; }
 	int getVertCount() const { return m_vertCount; }
 	int getTriCount() const { return m_triCount; }
 	const std::string& getFileName() const { return m_filename; }

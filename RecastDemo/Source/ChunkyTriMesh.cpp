@@ -248,7 +248,7 @@ bool rcCreateChunkyTriMesh(
 	cm->nnodes = curNode;
 
 	// Calc max tris per node.
-	// ノードごとの最大トリスを計算します。
+	// ノードごとの三角形の最大数を計算します。
 	cm->maxTrisPerChunk = 0;
 	for (int i = 0; i < cm->nnodes; ++i)
 	{

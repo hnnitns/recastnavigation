@@ -38,7 +38,7 @@ struct rcChunkyTriMesh
 	int nnodes;
 	std::vector<int> tris;
 	int ntris;
-	int maxTrisPerChunk;
+	int maxTrisPerChunk; // ノードごとの三角形の最大数
 
 public:
 	rcChunkyTriMesh(rcChunkyTriMesh&& _rt) noexcept

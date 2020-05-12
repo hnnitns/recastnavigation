@@ -24,6 +24,10 @@
 #include <cmath>
 #include <algorithm>
 
+#ifdef _DEBUG
+#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 rcMeshLoaderObj::rcMeshLoaderObj() :
 	m_scale(1.f), m_vertCount{}, m_triCount{}
 {}

@@ -487,7 +487,7 @@ int dtCrowd::getAgentCount() const
 /// @par
 ///
 /// Agents in the pool may not be in use.  Check #dtCrowdAgent.active before using the returned object.
-const dtCrowdAgent* dtCrowd::getAgent(const int idx)
+const dtCrowdAgent* dtCrowd::getAgentAt(const int idx) const
 {
 	if (idx < 0 || idx >= m_maxAgents)
 		return 0;
@@ -496,7 +496,7 @@ const dtCrowdAgent* dtCrowd::getAgent(const int idx)
 
 ///
 /// Agents in the pool may not be in use.  Check #dtCrowdAgent.active before using the returned object.
-dtCrowdAgent* dtCrowd::getEditableAgent(const int idx)
+dtCrowdAgent* dtCrowd::getEditableAgentAt(const int idx)
 {
 	if (idx < 0 || idx >= m_maxAgents)
 		return 0;

@@ -42,6 +42,10 @@
 #	define snprintf _snprintf
 #endif
 
+#ifdef _DEBUG
+#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 Sample_SoloMesh::Sample_SoloMesh() :
 	m_keepInterResults(true),
 	m_totalBuildTimeMs(0),

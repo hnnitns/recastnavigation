@@ -84,30 +84,38 @@ enum CrowdAgentState
 // @ingroup crowd
 struct dtCrowdAgentParams
 {
-	float radius;						//< Agent radius. [Limit: >= 0]
-	float height;						//< Agent height. [Limit: > 0]
-	float maxAcceleration;				//< Maximum allowed acceleration. [Limit: >= 0]
-	float maxSpeed;						//< Maximum allowed speed. [Limit: >= 0]
+	float radius;			//< Agent radius. [Limit: >= 0]
+	float height;			//< Agent height. [Limit: > 0]
+	float maxAcceleration;	//< Maximum allowed acceleration. [Limit: >= 0]
+	float maxSpeed;			//< Maximum allowed speed. [Limit: >= 0]
 
 	// Defines how close a collision element must be before it is considered for steering behaviors. [Limits: > 0]
+	// ステアリング動作と見なされる前に衝突要素がどれだけ近くなければならないかを定義します。 [制限：> 0]
 	float collisionQueryRange;
 
-	float pathOptimizationRange;		//< The path visibility optimization range. [Limit: > 0]
+	//< The path visibility optimization range. [Limit: > 0]
+	// パスの可視化の最適化範囲。[制限： > 0]
+	float pathOptimizationRange;
 
 	// How aggresive the agent manager should be at avoiding collisions with this agent. [Limit: >= 0]
+	// エージェントマネージャがこのエージェントとの衝突を回避するのにどれだけ積極的になるか。 [制限：> = 0]
 	float separationWeight;
 
 	// Flags that impact steering behavior. (See: #UpdateFlags)
+	// ステアリング動作に影響を与えるフラグ。 （参照：#UpdateFlags）
 	unsigned char updateFlags;
 
 	// The index of the avoidance configuration to use for the agent.
+	// エージェントに使用する回避構成のインデックス。
 	// [Limits: 0 <= value <= #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
 	unsigned char obstacleAvoidanceType;
 
 	// The index of the query filter used by this agent.
+	// このエージェントが使用するクエリフィルターのインデックス。
 	unsigned char queryFilterType;
 
 	// User defined data attached to the agent.
+	// エージェントに添付されたユーザー定義データ。
 	void* userData;
 };
 
@@ -127,59 +135,104 @@ enum MoveRequestState
 struct dtCrowdAgent
 {
 	// True if the agent is active, false if the agent is in an unused slot in the agent pool.
+	// エージェントがアクティブな場合はtrue、エージェントがエージェントプールの未使用のスロットにある場合はfalse。
 	bool active;
 
 	// The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
+	// エージェントが通過するメッシュポリゴンのタイプ。 （参照：#CrowdAgentState）
 	unsigned char state;
 
 	// True if the agent has valid path (targetState == DT_CROWDAGENT_TARGET_VALID) and the path does not lead to the requested position, else false.
+	// エージェントに有効なパス（targetState == DT_CROWDAGENT_TARGET_VALID）があり、パスが要求された位置につながらない場合はtrue、それ以外の場合はfalse。
 	bool partial;
 
 	// The path corridor the agent is using.
+	// エージェントが使用しているパスコリドー。
 	dtPathCorridor corridor;
 
 	// The local boundary data for the agent.
+	// エージェントのローカル境界データ。
 	dtLocalBoundary boundary;
 
 	// Time since the agent's path corridor was optimized.
+	// エージェントのパスコリドーが最適化されてからの時間。
 	float topologyOptTime;
 
 	// The known neighbors of the agent.
+	// エージェントの既知のネイバー。
 	dtCrowdNeighbour neis[DT_CROWDAGENT_MAX_NEIGHBOURS];
 
 	// The number of neighbors.
+	// ネイバーの数。
 	int nneis;
 
 	// The desired speed.
+	// 望ましい速度。
 	float desiredSpeed;
 
-	float npos[3];		//< The current agent position. [(x, y, z)]
-	float disp[3];		//< A temporary value used to accumulate agent displacement during iterative collision resolution. [(x, y, z)]
-	float dvel[3];		//< The desired velocity of the agent. Based on the current path, calculated from scratch each frame. [(x, y, z)]
-	float nvel[3];		//< The desired velocity adjusted by obstacle avoidance, calculated from scratch each frame. [(x, y, z)]
-	float vel[3];		//< The actual velocity of the agent. The change from nvel -> vel is constrained by max acceleration. [(x, y, z)]
+	// The current agent position. [(x, y, z)]
+	// 現在のエージェントの位置。 [（x、y、z）]
+	float npos[3];
+
+	//< A temporary value used to accumulate agent displacement during iterative collision resolution. [(x, y, z)]
+	// 反復的な衝突解決中にエージェントの変位を累積するために使用される一時的な値。 [（x、y、z）]
+	float disp[3];
+
+	//< The desired velocity of the agent. Based on the current path, calculated from scratch each frame. [(x, y, z)]
+	// エージェントの望ましい速度。各フレームをゼロから計算した現在のパスに基づきます。 [（x、y、z）]
+	float dvel[3];
+
+	//< The desired velocity adjusted by obstacle avoidance, calculated from scratch each frame. [(x, y, z)]
+	// 各フレームをゼロから計算した、障害物回避によって調整された目的の速度。 [（x、y、z）]
+	float nvel[3];
+
+	//< The actual velocity of the agent. The change from nvel -> vel is constrained by max acceleration. [(x, y, z)]
+	// エージェントの実際の速度。 nvel-> velからの変更は、最大加速度によって制約されます。 [（x、y、z）]
+	float vel[3];
 
 	// The agent's configuration parameters.
+	// エージェントの構成パラメータ。
 	dtCrowdAgentParams params;
 
 	// The local path corridor corners for the agent. (Staight path.) [(x, y, z) * #ncorners]
+	// エージェントのローカルパスコリドーコーナー。 （正しい道。）[（x、y、z）* #ncorners]
 	float cornerVerts[DT_CROWDAGENT_MAX_CORNERS * 3];
 
 	// The local path corridor corner flags. (See: #dtStraightPathFlags) [(flags) * #ncorners]
+	// ローカルパスのコリドーコーナーフラグ。 （参照：#dtStraightPathFlags）[（フラグ）* #ncorners]
 	unsigned char cornerFlags[DT_CROWDAGENT_MAX_CORNERS];
 
 	// The reference id of the polygon being entered at the corner. [(polyRef) * #ncorners]
+	// コーナーに入力されるポリゴンの参照ID。 [（polyRef）* #ncorners]
 	dtPolyRef cornerPolys[DT_CROWDAGENT_MAX_CORNERS];
 
 	// The number of corners.
+	// コーナーの数。
 	int ncorners;
 
-	unsigned char targetState;			//< State of the movement request.
-	dtPolyRef targetRef;				//< Target polyref of the movement request.
-	float targetPos[3];					//< Target position of the movement request (or velocity in case of DT_CROWDAGENT_TARGET_VELOCITY).
-	dtPathQueueRef targetPathqRef;		//< Path finder ref.
-	bool targetReplan;					//< Flag indicating that the current path is being replanned.
-	float targetReplanTime;				// <Time since the agent's target was replanned.
+	//< State of the movement request.
+	// 移動リクエストの状態。
+	unsigned char targetState;
+
+	//< Target polyref of the movement request.
+	// 移動リクエストのターゲットポリリファレンス。
+	dtPolyRef targetRef;
+
+	//< Target position of the movement request (or velocity in case of DT_CROWDAGENT_TARGET_VELOCITY).
+	// 移動リクエストのターゲット位置（DT_CROWDAGENT_TARGET_VELOCITYの場合は速度）
+	float targetPos[3];
+
+	//< Path finder ref.
+	// パスファインダーの参照。
+	dtPathQueueRef targetPathqRef;
+
+	//< Flag indicating that the current path is being replanned.
+	// 現在のパスが再計画されていることを示すフラグ。
+	bool targetReplan;
+
+	// <Time since the agent's target was replanned.
+	// エージェントのターゲットが再計画されてからの時間。
+	float targetReplanTime;
 };
 
 struct dtCrowdAgentAnimation
@@ -259,13 +312,19 @@ public:
 	~dtCrowd();
 
 	// Initializes the crowd.
-	//  @param[in]		maxAgents		The maximum number of agents the crowd can manage. [Limit: >= 1]
-	//  @param[in]		maxAgentRadius	The maximum radius of any agent that will be added to the crowd. [Limit: > 0]
-	//  @param[in]		nav				The navigation mesh to use for planning.
+	// 群集を初期化します。
+	// @param[in]	maxAgents		The maximum number of agents the crowd can manage. [Limit: >= 1]
+	// @param[in]	maxAgents		群集が管理できるエージェントの最大数。 [制限：> = 1]
+	// @param[in]	maxAgentRadius	The maximum radius of any agent that will be added to the crowd. [Limit: > 0]
+	// @param[in]	maxAgentRadius	群集に追加されるエージェントの最大半径。 [制限：> 0]
+	// @param[in]	nav				The navigation mesh to use for planning.
+	// @param[in]	nav				計画に使用するナビゲーションメッシュ。
 	// @return True if the initialization succeeded.
+	// @return初期化が成功した場合はTrue。
 	bool init(const int maxAgents, const float maxAgentRadius, dtNavMesh* nav);
 
 	// Sets the shared avoidance configuration for the specified index.
+	//指定されたインデックスの共有回避構成を設定します。
 	//  @param[in]		idx		The index. [Limits: 0 <= value < #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
 	//  @param[in]		params	The new configuration.
 	void setObstacleAvoidanceParams(const int idx, const dtObstacleAvoidanceParams* params);
@@ -279,12 +338,16 @@ public:
 	// Gets the specified agent from the pool.
 	//	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	// @return The requested agent.
-	const dtCrowdAgent* getAgent(const int idx);
+	const dtCrowdAgent* getAgentAt(const int idx) const;
+
+	const dtCrowdAgent* getAgent() const noexcept { return m_agents; }
 
 	// Gets the specified agent from the pool.
 	//	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	// @return The requested agent.
-	dtCrowdAgent* getEditableAgent(const int idx);
+	dtCrowdAgent* getEditableAgentAt(const int idx);
+
+	dtCrowdAgent* getEditableAgent() noexcept { return m_agents; }
 
 	// The maximum number of agents that can be managed by the object.
 	// @return The maximum number of agents.
@@ -363,8 +426,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtCrowd(const dtCrowd&);
-	dtCrowd& operator=(const dtCrowd&);
+	dtCrowd(const dtCrowd&) = delete;
+	dtCrowd& operator=(const dtCrowd&) = delete;
 };
 
 // Allocates a crowd object using the Detour allocator.

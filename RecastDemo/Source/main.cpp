@@ -16,16 +16,14 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include <crtdbg.h>
-
 #include "SDL.h"
 #include "EditManager.h"
 
 int main(int /*argc*/, char** /*argv*/)
 {
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
 	{
+		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
 		EditManager edit_mng{};
 
 		if (!edit_mng.Init())	return -1;
@@ -33,9 +31,9 @@ int main(int /*argc*/, char** /*argv*/)
 		while (edit_mng.Update());
 
 		edit_mng.UnInit();
-	}
 
-	_CrtDumpMemoryLeaks();
+		//_CrtDumpMemoryLeaks();
+	}
 
 	return 0;
 }

@@ -95,20 +95,21 @@ public:
 	inline bool isRunning() const { return m_run; }
 	inline void setRunning(const bool s) { m_run = s; }
 
-	void addAgent(const float* pos);
+	void addAgent(const float* pos, const float max_accele = 8.f, const float max_speed = 3.5f);
 	void removeAgent(const int idx);
 	void hilightAgent(const int idx);
 	void updateAgentParams();
 	int hitTestAgents(const float* s, const float* p);
-	void setMoveTarget(const float* p, bool adjust);
+	void setMoveTarget(const float* pos, bool adjust);
+	bool setMoveTargetAt(const float* pos, const int idx, bool is_velocity_move);
 	void updateTick(const float dt);
 
 	inline CrowdToolParams* getToolParams() { return &m_toolParams; }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	CrowdToolState(const CrowdToolState&);
-	CrowdToolState& operator=(const CrowdToolState&);
+	CrowdToolState(const CrowdToolState&) = delete;
+	CrowdToolState& operator=(const CrowdToolState&) = delete;
 };
 
 class CrowdTool : public SampleTool

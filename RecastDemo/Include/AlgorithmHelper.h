@@ -83,10 +83,10 @@ _NODISCARD auto Adjacent_Find(_Container& _Cont, _Fn _Func, _ExPo&& _Exec)
 	return (std::adjacent_find(_Exec, _Cont.begin(), _Cont.end(), _Func));
 }
 
-template <class _Container, class _Fn, class _ExPo>
-_NODISCARD auto Count(_Container& _Cont, _Fn _Func, _ExPo&& _Exec)
+template <class _Container, class _Ty, class _ExPo>
+_NODISCARD auto Count(_Container& _Cont, const _Ty& _Val, _ExPo&& _Exec)
 {
-	return (std::count(_Exec, _Cont.begin(), _Cont.end(), _Func));
+	return (std::count(_Exec, _Cont.begin(), _Cont.end(), _Val));
 }
 
 template <class _Container, class _Fn, class _ExPo>
@@ -357,10 +357,10 @@ _NODISCARD auto Adjacent_Find(_Container& _Cont, _Fn _Func)
 	return (std::adjacent_find(_Cont.begin(), _Cont.end(), _Func));
 }
 
-template <class _Container, class _Fn>
-_NODISCARD auto Count(_Container& _Cont, _Fn _Func)
+template <class _Container, class _Ty>
+_NODISCARD auto Count(_Container& _Cont, _Ty _Val)
 {
-	return (std::count(_Cont.begin(), _Cont.end(), _Func));
+	return (std::count(_Cont.begin(), _Cont.end(), _Val));
 }
 
 template <class _Container, class _Fn>

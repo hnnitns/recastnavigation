@@ -25,7 +25,6 @@
 #include <memory>
 #include <vector>
 
-#include "DebugNewDef.h"
 #include "RecastConfig.h"
 
 // The value of PI used by Recast.

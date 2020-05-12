@@ -22,6 +22,10 @@
 #include "DetourMath.h"
 #include "DetourNavMesh.h"
 
+#ifdef _DEBUG
+#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 duDebugDraw::~duDebugDraw()
 {
 	// Empty

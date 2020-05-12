@@ -51,6 +51,10 @@
 #	define snprintf _snprintf
 #endif
 
+#ifdef _DEBUG
+#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 #define _ENABLE_ATOMIC_ALIGNMENT_FIX
 
 namespace
@@ -483,8 +487,6 @@ void Sample_TileMesh::handleDebugMode()
 	std::atomic_int unavail{};
 
 	For_Each(valids, [&](const auto& vaild) { if (!vaild.second) unavail++; }, exec::par);
-	//for (int i = 0; i < MAX_DRAWMODE; ++i)
-	//	if (!valids[i]) unavail++;
 
 	if (unavail == S_Cast(DrawMode::MAX_DRAWMODE)) return;
 

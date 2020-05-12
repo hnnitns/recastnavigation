@@ -43,6 +43,10 @@
 #	define snprintf _snprintf
 #endif
 
+#ifdef _DEBUG
+#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 namespace
 {
 	bool isectSegAABB(const float* sp, const float* sq,
@@ -155,7 +159,7 @@ CrowdToolState::CrowdToolState() :
 	m_vod = dtAllocObstacleAvoidanceDebugData();
 	m_vod->init(2048);
 
-	memset(&m_agentDebug, 0, sizeof(m_agentDebug));
+	m_agentDebug = {};
 	m_agentDebug.idx = -1;
 	m_agentDebug.vod = m_vod;
 }
@@ -257,7 +261,7 @@ void CrowdToolState::handleRender()
 		{
 			if (m_toolParams.m_showDetailAll == false && i != m_agentDebug.idx)
 				continue;
-			const dtCrowdAgent* ag = crowd->getAgent(i);
+			const dtCrowdAgent* ag = crowd->getAgentAt(i);
 			if (!ag->active)
 				continue;
 			const dtPolyRef* path = ag->corridor.getPath();
@@ -276,7 +280,7 @@ void CrowdToolState::handleRender()
 		float gridy = -FLT_MAX;
 		for (int i = 0; i < crowd->getAgentCount(); ++i)
 		{
-			const dtCrowdAgent* ag = crowd->getAgent(i);
+			const dtCrowdAgent* ag = crowd->getAgentAt(i);
 			if (!ag->active) continue;
 			const float* pos = ag->corridor.getPos();
 			gridy = dtMax(gridy, pos[1]);
@@ -306,7 +310,7 @@ void CrowdToolState::handleRender()
 	// Trail
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
 		if (!ag->active) continue;
 
 		const AgentTrail* trail = &m_trails[i];
@@ -333,7 +337,7 @@ void CrowdToolState::handleRender()
 	{
 		if (m_toolParams.m_showDetailAll == false && i != m_agentDebug.idx)
 			continue;
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
 		if (!ag->active)
 			continue;
 
@@ -416,7 +420,7 @@ void CrowdToolState::handleRender()
 			{
 				// Get 'n'th active agent.
 				// TODO: fix this properly.
-				const dtCrowdAgent* nei = crowd->getAgent(ag->neis[j].idx);
+				const dtCrowdAgent* nei = crowd->getAgentAt(ag->neis[j].idx);
 				if (nei)
 				{
 					dd.vertex(pos[0], pos[1] + radius, pos[2], duRGBA(0, 192, 128, 128));
@@ -438,7 +442,7 @@ void CrowdToolState::handleRender()
 	// Agent cylinders.
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
 		if (!ag->active) continue;
 
 		const float radius = ag->params.radius;
@@ -453,7 +457,7 @@ void CrowdToolState::handleRender()
 
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
 		if (!ag->active) continue;
 
 		const float height = ag->params.height;
@@ -480,7 +484,7 @@ void CrowdToolState::handleRender()
 		{
 			if (m_toolParams.m_showDetailAll == false && i != m_agentDebug.idx)
 				continue;
-			const dtCrowdAgent* ag = crowd->getAgent(i);
+			const dtCrowdAgent* ag = crowd->getAgentAt(i);
 			if (!ag->active)
 				continue;
 
@@ -514,7 +518,7 @@ void CrowdToolState::handleRender()
 	// Velocity stuff.
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
 		if (!ag->active) continue;
 
 		const float radius = ag->params.radius;
@@ -597,7 +601,7 @@ void CrowdToolState::handleRenderOverlay(double* proj, double* model, int* view)
 		{
 			for (int i = 0; i < crowd->getAgentCount(); ++i)
 			{
-				const dtCrowdAgent* ag = crowd->getAgent(i);
+				const dtCrowdAgent* ag = crowd->getAgentAt(i);
 				if (!ag->active) continue;
 				const float* pos = ag->npos;
 				const float h = ag->params.height;
@@ -610,6 +614,7 @@ void CrowdToolState::handleRenderOverlay(double* proj, double* model, int* view)
 			}
 		}
 	}
+
 	if (m_agentDebug.idx != -1)
 	{
 		dtCrowd* crowd = m_sample->getCrowd();
@@ -619,7 +624,7 @@ void CrowdToolState::handleRenderOverlay(double* proj, double* model, int* view)
 			{
 				if (m_toolParams.m_showDetailAll == false && i != m_agentDebug.idx)
 					continue;
-				const dtCrowdAgent* ag = crowd->getAgent(i);
+				const dtCrowdAgent* ag = crowd->getAgentAt(i);
 				if (!ag->active)
 					continue;
 				const float radius = ag->params.radius;
@@ -627,7 +632,7 @@ void CrowdToolState::handleRenderOverlay(double* proj, double* model, int* view)
 				{
 					for (int j = 0; j < ag->nneis; ++j)
 					{
-						const dtCrowdAgent* nei = crowd->getAgent(ag->neis[j].idx);
+						const dtCrowdAgent* nei = crowd->getAgentAt(ag->neis[j].idx);
 						if (!nei->active) continue;
 
 						if (gluProject((GLdouble)nei->npos[0], (GLdouble)nei->npos[1] + radius, (GLdouble)nei->npos[2],
@@ -663,20 +668,21 @@ void CrowdToolState::handleUpdate(const float dt)
 		updateTick(dt);
 }
 
-void CrowdToolState::addAgent(const float* p)
+void CrowdToolState::addAgent(const float* pos, const float max_accele, const float max_speed)
 {
 	if (!m_sample) return;
 	dtCrowd* crowd = m_sample->getCrowd();
 
-	dtCrowdAgentParams ap;
-	memset(&ap, 0, sizeof(ap));
+	dtCrowdAgentParams ap{};
+
 	ap.radius = m_sample->getAgentRadius();
 	ap.height = m_sample->getAgentHeight();
-	ap.maxAcceleration = 8.0f;
-	ap.maxSpeed = 3.5f;
+	ap.maxAcceleration = max_accele;
+	ap.maxSpeed = max_speed;
 	ap.collisionQueryRange = ap.radius * 12.0f;
 	ap.pathOptimizationRange = ap.radius * 30.0f;
 	ap.updateFlags = 0;
+
 	if (m_toolParams.m_anticipateTurns)
 		ap.updateFlags |= DT_CROWD_ANTICIPATE_TURNS;
 	if (m_toolParams.m_optimizeVis)
@@ -687,11 +693,11 @@ void CrowdToolState::addAgent(const float* p)
 		ap.updateFlags |= DT_CROWD_OBSTACLE_AVOIDANCE;
 	if (m_toolParams.m_separation)
 		ap.updateFlags |= DT_CROWD_SEPARATION;
+
 	ap.obstacleAvoidanceType = (unsigned char)m_toolParams.m_obstacleAvoidanceType;
 	ap.separationWeight = m_toolParams.m_separationWeight;
 
-	int idx = crowd->addAgent(p, &ap);
-	if (idx != -1)
+	if (const int idx{ crowd->addAgent(pos, &ap) }; idx != -1)
 	{
 		if (m_targetRef)
 			crowd->requestMoveTarget(idx, m_targetRef, m_targetPos);
@@ -699,7 +705,7 @@ void CrowdToolState::addAgent(const float* p)
 		// Init trail
 		AgentTrail* trail = &m_trails[idx];
 		for (int i = 0; i < AGENT_MAX_TRAIL; ++i)
-			dtVcopy(&trail->trail[i * 3], p);
+			dtVcopy(&trail->trail[i * 3], pos);
 		trail->htrail = 0;
 	}
 }
@@ -720,26 +726,28 @@ void CrowdToolState::hilightAgent(const int idx)
 	m_agentDebug.idx = idx;
 }
 
-void CrowdToolState::setMoveTarget(const float* p, bool adjust)
+void CrowdToolState::setMoveTarget(const float* pos, bool adjust)
 {
 	if (!m_sample) return;
 
 	// Find nearest point on navmesh and set move request to that location.
+	// navmeshの最も近いポイントを見つけ、移動要求をその場所に設定します。
 	dtNavMeshQuery* navquery = m_sample->getNavMeshQuery();
 	dtCrowd* crowd = m_sample->getCrowd();
 	const dtQueryFilter* filter = crowd->getFilter(0);
 	const float* ext = crowd->getQueryExtents();
 
+	// 指定した場所へのベクトルの方向へ向かう
 	if (adjust)
 	{
-		float vel[3];
+		float vel[3]{};
 		// Request velocity
 		if (m_agentDebug.idx != -1)
 		{
-			const dtCrowdAgent* ag = crowd->getAgent(m_agentDebug.idx);
+			const dtCrowdAgent* ag = crowd->getAgentAt(m_agentDebug.idx);
 			if (ag && ag->active)
 			{
-				calcVel(vel, ag->npos, p, ag->params.maxSpeed);
+				calcVel(vel, ag->npos, pos, ag->params.maxSpeed);
 				crowd->requestMoveVelocity(m_agentDebug.idx, vel);
 			}
 		}
@@ -747,20 +755,21 @@ void CrowdToolState::setMoveTarget(const float* p, bool adjust)
 		{
 			for (int i = 0; i < crowd->getAgentCount(); ++i)
 			{
-				const dtCrowdAgent* ag = crowd->getAgent(i);
+				const dtCrowdAgent* ag = crowd->getAgentAt(i);
 				if (!ag->active) continue;
-				calcVel(vel, ag->npos, p, ag->params.maxSpeed);
+				calcVel(vel, ag->npos, pos, ag->params.maxSpeed);
 				crowd->requestMoveVelocity(i, vel);
 			}
 		}
 	}
+	// 指定した場所へ向かう
 	else
 	{
-		navquery->findNearestPoly(p, ext, filter, &m_targetRef, m_targetPos);
+		navquery->findNearestPoly(pos, ext, filter, &m_targetRef, m_targetPos);
 
 		if (m_agentDebug.idx != -1)
 		{
-			const dtCrowdAgent* ag = crowd->getAgent(m_agentDebug.idx);
+			const dtCrowdAgent* ag = crowd->getAgentAt(m_agentDebug.idx);
 			if (ag && ag->active)
 				crowd->requestMoveTarget(m_agentDebug.idx, m_targetRef, m_targetPos);
 		}
@@ -768,12 +777,47 @@ void CrowdToolState::setMoveTarget(const float* p, bool adjust)
 		{
 			for (int i = 0; i < crowd->getAgentCount(); ++i)
 			{
-				const dtCrowdAgent* ag = crowd->getAgent(i);
+				const dtCrowdAgent* ag = crowd->getAgentAt(i);
 				if (!ag->active) continue;
 				crowd->requestMoveTarget(i, m_targetRef, m_targetPos);
 			}
 		}
 	}
+}
+
+bool CrowdToolState::setMoveTargetAt(const float* pos, const int idx, bool is_velocity_move)
+{
+	if (!m_sample || idx < 0) return false;
+
+	// Find nearest point on navmesh and set move request to that location.
+	// navmeshの最も近いポイントを見つけ、移動要求をその場所に設定します。
+	dtNavMeshQuery* navquery = m_sample->getNavMeshQuery();
+	dtCrowd* crowd = m_sample->getCrowd();
+	const dtQueryFilter* filter = crowd->getFilter(0);
+	const float* ext = crowd->getQueryExtents();
+
+	const dtCrowdAgent* ag = crowd->getAgentAt(idx);
+
+	if (!(ag && ag->active))	return false;
+
+	// 指定した場所へのベクトルの方向へ向かう
+	if (is_velocity_move)
+	{
+		float vel[3]{};
+
+		// Request velocity
+		calcVel(vel, ag->npos, pos, ag->params.maxSpeed);
+		crowd->requestMoveVelocity(m_agentDebug.idx, vel);
+	}
+	// 指定した場所へ向かう
+	else
+	{
+		navquery->findNearestPoly(pos, ext, filter, &m_targetRef, m_targetPos);
+
+		crowd->requestMoveTarget(m_agentDebug.idx, m_targetRef, m_targetPos);
+	}
+
+	return true;
 }
 
 int CrowdToolState::hitTestAgents(const float* s, const float* p)
@@ -786,11 +830,14 @@ int CrowdToolState::hitTestAgents(const float* s, const float* p)
 
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
+
 		if (!ag->active) continue;
+
 		float bmin[3], bmax[3];
 		getAgentBounds(ag, bmin, bmax);
 		float tmin, tmax;
+
 		if (isectSegAABB(s, p, bmin, bmax, tmin, tmax))
 		{
 			if (tmin > 0 && tmin < tsel)
@@ -832,7 +879,7 @@ void CrowdToolState::updateAgentParams()
 
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
 		if (!ag->active) continue;
 		memcpy(&params, &ag->params, sizeof(dtCrowdAgentParams));
 		params.updateFlags = updateFlags;
@@ -860,7 +907,7 @@ void CrowdToolState::updateTick(const float dt)
 	// Update agent trails
 	for (int i = 0; i < crowd->getAgentCount(); ++i)
 	{
-		const dtCrowdAgent* ag = crowd->getAgent(i);
+		const dtCrowdAgent* ag = crowd->getAgentAt(i);
 		AgentTrail* trail = &m_trails[i];
 		if (!ag->active)
 			continue;
@@ -889,8 +936,7 @@ void CrowdTool::init(Sample* sample)
 		m_sample = sample;
 	}
 
-	if (!sample)
-		return;
+	if (!sample) return;
 
 	m_state = (CrowdToolState*)sample->getToolState(type());
 	if (!m_state)
@@ -907,8 +953,7 @@ void CrowdTool::reset()
 
 void CrowdTool::handleMenu()
 {
-	if (!m_state)
-		return;
+	if (!m_state) return;
 	CrowdToolParams* params = m_state->getToolParams();
 
 	if (imguiCheck("Create Agents", m_mode == TOOLMODE_CREATE))

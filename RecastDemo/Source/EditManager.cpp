@@ -8,6 +8,7 @@
 
 #include "SDL.h"
 #include "SDL_opengl.h"
+
 #include <GL/glu.h>
 
 #include <vector>
@@ -33,6 +34,10 @@
 #	define printf	printf_s
 #endif
 
+#ifdef _DEBUG
+#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 using namespace std::string_literals;
 using namespace RcMath;
 namespace exec = std::execution;
@@ -48,7 +53,6 @@ namespace
 	Sample* createSolo() { return new Sample_SoloMesh(); }
 	Sample* createTile() { return new Sample_TileMesh(); }
 	Sample* createTempObstacle() { return new Sample_TempObstacles(); }
-	//Sample* createDebug() { return new Sample_Debug(); }
 
 	std::array<SampleItem, 3> g_samples =
 	{ {
@@ -61,7 +65,8 @@ namespace
 EditManager::EditManager()
 	: camr{ 2000.f }, prevFrameTime{ SDL_GetTicks() }, showTools{ true }, showMenu{ !presentationMode }
 { }
-EditManager::~EditManager() noexcept { }
+EditManager::~EditManager() noexcept
+{}
 
 bool EditManager::Init()
 {

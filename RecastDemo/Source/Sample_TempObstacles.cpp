@@ -49,6 +49,10 @@
 #include "RecastAssert.h"
 #include "fastlz.h"
 
+#ifdef _DEBUG
+#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 #ifdef WIN32
 #	define snprintf _snprintf
 #endif

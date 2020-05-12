@@ -54,6 +54,17 @@ struct CrowdToolParams
 	float m_separationWeight;
 };
 
+struct AddAgentStruct
+{
+	std::array<float, 3> pos{}; // 現在座標
+	float radius{}; // 半径
+	float height{}; // 高さ
+	float max_accele{ 8.f }; // 最大加速度
+	float max_speed{ 3.5f }; // 最大速度
+	float collision_range{ 12.f }; // ステアリング動作と見なされる前に衝突要素がどれだけ近くなければならないか
+	float path_optimization_range{ 30.f }; // パスの可視化の最適化範囲
+};
+
 class CrowdToolState : public SampleToolState
 {
 	Sample* m_sample;
@@ -95,7 +106,7 @@ public:
 	inline bool isRunning() const { return m_run; }
 	inline void setRunning(const bool s) { m_run = s; }
 
-	void addAgent(const float* pos, const float max_accele = 8.f, const float max_speed = 3.5f);
+	void addAgent(const AddAgentStruct& add_data);
 	void removeAgent(const int idx);
 	void hilightAgent(const int idx);
 	void updateAgentParams();

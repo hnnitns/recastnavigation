@@ -513,7 +513,7 @@ void dtCrowd::updateAgentParameters(const int idx, const dtCrowdAgentParams* par
 /// @par
 ///
 /// The agent's position will be constrained to the surface of the navigation mesh.
-int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
+int dtCrowd::addAgent(const std::array<float, 3>& pos, const dtCrowdAgentParams* params)
 {
 	// Find empty slot.
 	int idx = -1;
@@ -533,17 +533,19 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	updateAgentParameters(idx, params);
 
 	// Find nearest position on navmesh and place the agent there.
-	float nearest[3];
+	// navmeshの最も近い位置を見つけて、そこにエージェントを配置します。
+	std::array<float, 3> nearest{ pos };
 	dtPolyRef ref = 0;
-	dtVcopy(nearest, pos);
-	dtStatus status = m_navquery->findNearestPoly(pos, m_ext, &m_filters[ag->params.queryFilterType], &ref, nearest);
+	dtStatus status = m_navquery->findNearestPoly(
+		pos.data(), m_ext, &m_filters[ag->params.queryFilterType], &ref, nearest.data());
+
 	if (dtStatusFailed(status))
 	{
-		dtVcopy(nearest, pos);
+		nearest = pos;
 		ref = 0;
 	}
 
-	ag->corridor.reset(ref, nearest);
+	ag->corridor.reset(ref, nearest.data());
 	ag->boundary.reset();
 	ag->partial = false;
 
@@ -554,7 +556,7 @@ int dtCrowd::addAgent(const float* pos, const dtCrowdAgentParams* params)
 	dtVset(ag->dvel, 0, 0, 0);
 	dtVset(ag->nvel, 0, 0, 0);
 	dtVset(ag->vel, 0, 0, 0);
-	dtVcopy(ag->npos, nearest);
+	dtVcopy(ag->npos, nearest.data());
 
 	ag->desiredSpeed = 0;
 

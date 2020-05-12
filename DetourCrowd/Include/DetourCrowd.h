@@ -19,6 +19,7 @@
 #ifndef DETOURCROWD_H
 #define DETOURCROWD_H
 
+#include <array>
 #include "DetourNavMeshQuery.h"
 #include "DetourObstacleAvoidance.h"
 #include "DetourLocalBoundary.h"
@@ -357,7 +358,7 @@ public:
 	//  @param[in]		pos		The requested position of the agent. [(x, y, z)]
 	//  @param[in]		params	The configutation of the agent.
 	// @return The index of the agent in the agent pool. Or -1 if the agent could not be added.
-	int addAgent(const float* pos, const dtCrowdAgentParams* params);
+	int addAgent(const std::array<float, 3>& pos, const dtCrowdAgentParams* params);
 
 	// Updates the specified agent's configuration.
 	//  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]

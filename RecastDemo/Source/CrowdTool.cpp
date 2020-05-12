@@ -668,19 +668,19 @@ void CrowdToolState::handleUpdate(const float dt)
 		updateTick(dt);
 }
 
-void CrowdToolState::addAgent(const float* pos, const float max_accele, const float max_speed)
+void CrowdToolState::addAgent(const AddAgentStruct& add_data)
 {
 	if (!m_sample) return;
 	dtCrowd* crowd = m_sample->getCrowd();
 
 	dtCrowdAgentParams ap{};
 
-	ap.radius = m_sample->getAgentRadius();
-	ap.height = m_sample->getAgentHeight();
-	ap.maxAcceleration = max_accele;
-	ap.maxSpeed = max_speed;
-	ap.collisionQueryRange = ap.radius * 12.0f;
-	ap.pathOptimizationRange = ap.radius * 30.0f;
+	ap.radius = add_data.radius;
+	ap.height = add_data.height;
+	ap.maxAcceleration = add_data.max_accele;
+	ap.maxSpeed = add_data.max_speed;
+	ap.collisionQueryRange = ap.radius * add_data.collision_range;
+	ap.pathOptimizationRange = ap.radius * add_data.path_optimization_range;
 	ap.updateFlags = 0;
 
 	if (m_toolParams.m_anticipateTurns)
@@ -697,7 +697,7 @@ void CrowdToolState::addAgent(const float* pos, const float max_accele, const fl
 	ap.obstacleAvoidanceType = (unsigned char)m_toolParams.m_obstacleAvoidanceType;
 	ap.separationWeight = m_toolParams.m_separationWeight;
 
-	if (const int idx{ crowd->addAgent(pos, &ap) }; idx != -1)
+	if (const int idx{ crowd->addAgent(add_data.pos, &ap) }; idx != -1)
 	{
 		if (m_targetRef)
 			crowd->requestMoveTarget(idx, m_targetRef, m_targetPos);
@@ -705,7 +705,7 @@ void CrowdToolState::addAgent(const float* pos, const float max_accele, const fl
 		// Init trail
 		AgentTrail* trail = &m_trails[idx];
 		for (int i = 0; i < AGENT_MAX_TRAIL; ++i)
-			dtVcopy(&trail->trail[i * 3], pos);
+			dtVcopy(&trail->trail[i * 3], add_data.pos.data());
 		trail->htrail = 0;
 	}
 }
@@ -1071,8 +1071,13 @@ void CrowdTool::handleClick(const float* s, const float* p, bool shift)
 		}
 		else
 		{
+			AddAgentStruct add_data;
+			add_data.pos = { p[0], p[1], p[2] };
+			add_data.radius = m_sample->getAgentRadius();
+			add_data.height = m_sample->getAgentHeight();
+
 			// Add
-			m_state->addAgent(p);
+			m_state->addAgent(add_data);
 		}
 	}
 	else if (m_mode == TOOLMODE_MOVE_TARGET)

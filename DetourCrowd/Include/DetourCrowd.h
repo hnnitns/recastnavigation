@@ -20,6 +20,7 @@
 #define DETOURCROWD_H
 
 #include <array>
+#include <deque>
 #include "DetourNavMeshQuery.h"
 #include "DetourObstacleAvoidance.h"
 #include "DetourLocalBoundary.h"
@@ -138,6 +139,9 @@ struct dtCrowdAgent
 	// True if the agent is active, false if the agent is in an unused slot in the agent pool.
 	// エージェントがアクティブな場合はtrue、エージェントがエージェントプールの未使用のスロットにある場合はfalse。
 	bool active;
+
+	// 動作状態かどうか
+	bool is_run;
 
 	// The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
 	// エージェントが通過するメッシュポリゴンのタイプ。 （参照：#CrowdAgentState）
@@ -352,7 +356,7 @@ public:
 
 	// The maximum number of agents that can be managed by the object.
 	// @return The maximum number of agents.
-	int getAgentCount() const;
+	int getAgentCount() const noexcept { return m_maxAgents; };
 
 	// Adds a new agent to the crowd.
 	//  @param[in]		pos		The requested position of the agent. [(x, y, z)]
@@ -367,7 +371,10 @@ public:
 
 	// Removes the agent from the crowd.
 	//  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
-	void removeAgent(const int idx);
+	void removeAgent(const int idx) noexcept;
+
+	void SetRunning(const int idx, const bool is_running) noexcept;
+	bool IsRunning(const int idx) const noexcept;
 
 	// Submits a new move request for the specified agent.
 	//  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]

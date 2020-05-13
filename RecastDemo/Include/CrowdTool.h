@@ -77,11 +77,11 @@ class CrowdToolState : public SampleToolState
 	dtCrowdAgentDebugInfo m_agentDebug;
 	dtObstacleAvoidanceDebugData* m_vod;
 
-	static const int AGENT_MAX_TRAIL = 64;
-	static const int MAX_AGENTS = 128;
+	static constexpr int AGENT_MAX_TRAIL = 64;
+	static constexpr int MAX_AGENTS = 128;
 	struct AgentTrail
 	{
-		float trail[AGENT_MAX_TRAIL * 3];
+		std::array<float, AGENT_MAX_TRAIL * 3> trail;
 		int htrail;
 	};
 	AgentTrail m_trails[MAX_AGENTS];
@@ -91,7 +91,7 @@ class CrowdToolState : public SampleToolState
 
 	CrowdToolParams m_toolParams;
 
-	bool m_run;
+	bool is_all_run;
 
 public:
 	CrowdToolState();
@@ -103,16 +103,19 @@ public:
 	virtual void handleRenderOverlay(double* proj, double* model, int* view);
 	virtual void handleUpdate(const float dt);
 
-	inline bool isRunning() const { return m_run; }
-	inline void setRunning(const bool s) { m_run = s; }
+	inline bool IsAllRunning() const { return is_all_run; }
+	inline void SetAllRunning(const bool s) { is_all_run = s; }
+	inline bool IsRunning(const int idx) noexcept { return m_crowd->IsRunning(idx); }
+	inline void SetRunning(const int idx, const bool is_running) const noexcept
+	{ m_crowd->SetRunning(idx, is_running); }
 
-	void addAgent(const AddAgentStruct& add_data);
-	void removeAgent(const int idx);
+	int AddAgent(const AddAgentStruct& add_data);
+	void RemoveAgent(const int idx);
 	void hilightAgent(const int idx);
 	void updateAgentParams();
 	int hitTestAgents(const float* s, const float* p);
 	void setMoveTarget(const float* pos, bool adjust);
-	bool setMoveTargetAt(const float* pos, const int idx, bool is_velocity_move);
+	bool SetMoveTargetAt(const std::array<float, 3>& tgt_pos, const int idx, bool is_velocity_move = false);
 	void updateTick(const float dt);
 
 	inline CrowdToolParams* getToolParams() { return &m_toolParams; }
@@ -121,6 +124,18 @@ private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	CrowdToolState(const CrowdToolState&) = delete;
 	CrowdToolState& operator=(const CrowdToolState&) = delete;
+};
+
+class CrowdManager
+{
+	Sample* m_sample;
+	std::unique_ptr<CrowdToolState> m_state;
+
+public:
+	CrowdManager(Sample* sample);
+	~CrowdManager() = default;
+
+	void Update(const float dt) { m_state->handleUpdate(dt); }
 };
 
 class CrowdTool : public SampleTool

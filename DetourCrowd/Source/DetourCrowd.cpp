@@ -441,10 +441,13 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
-		new(&m_agents[i]) dtCrowdAgent();
-		m_agents[i].active = false;
+		auto& agent{ m_agents[i] };
 
-		if (!m_agents[i].corridor.init(m_maxPathResult))
+		new(&agent) dtCrowdAgent();
+		agent.active = false;
+		agent.is_run = false;
+
+		if (!agent.corridor.init(m_maxPathResult))
 			return false;
 	}
 
@@ -477,11 +480,6 @@ const dtObstacleAvoidanceParams* dtCrowd::getObstacleAvoidanceParams(const int i
 		return &m_obstacleQueryParams[idx];
 
 	return nullptr;
-}
-
-int dtCrowd::getAgentCount() const
-{
-	return m_maxAgents;
 }
 
 /// @par
@@ -548,6 +546,7 @@ int dtCrowd::addAgent(const std::array<float, 3>& pos, const dtCrowdAgentParams*
 	ag->corridor.reset(ref, nearest.data());
 	ag->boundary.reset();
 	ag->partial = false;
+	ag->is_run = true;
 
 	ag->topologyOptTime = 0;
 	ag->targetReplanTime = 0;
@@ -576,12 +575,37 @@ int dtCrowd::addAgent(const std::array<float, 3>& pos, const dtCrowdAgentParams*
 ///
 /// The agent is deactivated and will no longer be processed.  Its #dtCrowdAgent object
 /// is not removed from the pool.  It is marked as inactive so that it is available for reuse.
-void dtCrowd::removeAgent(const int idx)
+void dtCrowd::removeAgent(const int idx) noexcept
 {
 	if (idx >= 0 && idx < m_maxAgents)
 	{
-		m_agents[idx].active = false;
+		auto& agent{ m_agents[idx] };
+
+		agent.active = false;
+		agent.is_run = false;
 	}
+}
+
+void dtCrowd::SetRunning(const int idx, const bool is_running) noexcept
+{
+	if (idx >= 0 && idx < m_maxAgents)
+	{
+		auto& agent{ m_agents[idx] };
+
+		if (agent.active)	agent.is_run = false;
+	}
+}
+
+bool dtCrowd::IsRunning(const int idx) const noexcept
+{
+	if (idx >= 0 && idx < m_maxAgents)
+	{
+		auto& agent{ m_agents[idx] };
+
+		return (agent.active && agent.is_run);
+	}
+	else
+		return false;
 }
 
 bool dtCrowd::requestMoveTargetReplan(const int idx, dtPolyRef ref, const float* pos)
@@ -673,9 +697,11 @@ int dtCrowd::getActiveAgents(dtCrowdAgent** agents, const int maxAgents)
 	int n = 0;
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
-		if (!m_agents[i].active) continue;
-		if (n < maxAgents)
-			agents[n++] = &m_agents[i];
+		auto& agent{ m_agents[i] };
+
+		if (!(agent.active && agent.is_run)) continue;
+
+		if (n < maxAgents) agents[n++] = &agent;
 	}
 	return n;
 }
@@ -1054,15 +1080,19 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	int nagents = getActiveAgents(agents, m_maxAgents);
 
 	// Check that all agents still have valid paths.
+	// すべてのエージェントにまだ有効なパスがあることを確認します。
 	checkPathValidity(agents, nagents, dt);
 
 	// Update async move request and path finder.
+	// 非同期移動リクエストとパスファインダーを更新します。
 	updateMoveRequest(dt);
 
 	// Optimize path topology.
+	// パストポロジを最適化します。
 	updateTopologyOptimization(agents, nagents, dt);
 
 	// Register agents to proximity grid.
+	// エージェントをプロキシミティグリッドに登録します。
 	m_grid->clear();
 	for (int i = 0; i < nagents; ++i)
 	{
@@ -1073,14 +1103,15 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Get nearby navmesh segments and agents to collide with.
+	// 衝突する近くのnavmeshセグメントとエージェントを取得します。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
 
-		// Update the collision boundary after certain distance has been passed or
-		// if it has become invalid.
+		// Update the collision boundary after certain distance has been passed or if it has become invalid.
+		// 特定の距離が経過した後、または無効になった場合に、衝突境界を更新します。
 		const float updateThr = ag->params.collisionQueryRange * 0.25f;
 		if (dtVdist2DSqr(ag->npos, ag->boundary.getCenter()) > dtSqr(updateThr) ||
 			!ag->boundary.isValid(m_navquery, &m_filters[ag->params.queryFilterType]))
@@ -1088,7 +1119,9 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			ag->boundary.update(ag->corridor.getFirstPoly(), ag->npos, ag->params.collisionQueryRange,
 				m_navquery, &m_filters[ag->params.queryFilterType]);
 		}
+
 		// Query neighbour agents
+		// 近隣エージェントをクエリします
 		ag->nneis = getNeighbours(ag->npos, ag->params.height, ag->params.collisionQueryRange,
 			ag, ag->neis, DT_CROWDAGENT_MAX_NEIGHBOURS,
 			agents, nagents, m_grid);
@@ -1097,6 +1130,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Find next corner to steer to.
+	// 操縦する次のコーナーを見つけます。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];

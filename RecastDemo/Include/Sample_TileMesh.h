@@ -31,10 +31,10 @@ private:
 	bool m_buildAll;
 	float m_totalBuildTimeMs;
 
-	///------------- TempObstackesの機能 -------------
-	std::unique_ptr<struct LinearAllocator> m_talloc;
-	std::unique_ptr<struct FastLZCompressor> m_tcomp;
-	std::unique_ptr<struct MeshProcess> m_tmproc;
+	///----------------- TempObstackesの機能 -----------------
+	struct LinearAllocator* m_talloc;
+	struct FastLZCompressor* m_tcomp;
+	struct MeshProcess* m_tmproc;
 
 	class dtTileCache* m_tileCache;
 
@@ -43,7 +43,7 @@ private:
 	int m_cacheRawSize;
 	int m_cacheLayerCount;
 	int m_cacheBuildMemUsage;
-	///-----------------------------------------------
+	///-------------------------------------------------------
 
 	std::vector<unsigned char> m_triareas;
 	std::unique_ptr<rcHeightfield> m_solid;
@@ -109,13 +109,17 @@ public:
 	void handleRenderOverlay(double* proj, double* model, int* view) override;
 	void handleMeshChanged() override;
 	bool handleBuild() override;
+	void handleUpdate(const float dt) override;
 	void collectSettings(struct BuildSettings& settings) override;
 
 	void getTilePos(const float* pos, int& tx, int& ty);
 
+	///----------------- TempObstackesの機能 -----------------
+	bool buildTileCache(const int tw, const int th);
+
 	void buildTile(const float* pos);
 	void removeTile(const float* pos);
-	void buildAllTiles();
+	bool buildAllTiles();
 	void removeAllTiles();
 
 	void renderCachedTile(const int tx, const int ty, const int type);
@@ -124,6 +128,7 @@ public:
 	void addTempObstacle(const float* pos);
 	void removeTempObstacle(const float* sp, const float* sq);
 	void clearAllTempObstacles();
+	///-------------------------------------------------------
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
@@ -131,6 +136,8 @@ private:
 	Sample_TileMesh& operator=(Sample_TileMesh&) = delete;
 	Sample_TileMesh(const Sample_TileMesh&&) = delete;
 	Sample_TileMesh& operator=(Sample_TileMesh&&) = delete;
+
+	int rasterizeTileLayers(const int tx, const int ty, const rcConfig& cfg, struct TileCacheData* tiles, const int maxTiles);
 };
 
 #endif // RECASTSAMPLETILEMESH_H

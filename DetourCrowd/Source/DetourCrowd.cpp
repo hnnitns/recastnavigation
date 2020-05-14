@@ -592,7 +592,7 @@ void dtCrowd::SetRunning(const int idx, const bool is_running) noexcept
 	{
 		auto& agent{ m_agents[idx] };
 
-		if (agent.active)	agent.is_run = false;
+		if (agent.active)	agent.is_run = is_running;
 	}
 }
 
@@ -1144,14 +1144,15 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
 			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.queryFilterType]);
 
-		// Check to see if the corner after the next corner is directly visible,
-		// and short cut to there.
+		// Check to see if the corner after the next corner is directly visible, and short cut to there.
+		// 次のコーナーの後のコーナーが直接表示されるかどうかを確認し、そこへのショートカット。
 		if ((ag->params.updateFlags & DT_CROWD_OPTIMIZE_VIS) && ag->ncorners > 0)
 		{
 			const float* target = &ag->cornerVerts[dtMin(1, ag->ncorners - 1) * 3];
 			ag->corridor.optimizePathVisibility(target, ag->params.pathOptimizationRange, m_navquery, &m_filters[ag->params.queryFilterType]);
 
 			// Copy data for debug purposes.
+			// デバッグのためにデータをコピーします。
 			if (debugIdx == i)
 			{
 				dtVcopy(debug->optStart, ag->corridor.getPos());
@@ -1161,6 +1162,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		else
 		{
 			// Copy data for debug purposes.
+			// デバッグのためにデータをコピーします。
 			if (debugIdx == i)
 			{
 				dtVset(debug->optStart, 0, 0, 0);
@@ -1170,6 +1172,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Trigger off-mesh connections (depends on corners).
+	// オフメッシュ接続をトリガーします（コーナーによって異なります）。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];
@@ -1184,10 +1187,12 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		if (overOffmeshConnection(ag, triggerRadius))
 		{
 			// Prepare to off-mesh connection.
+			// オフメッシュ接続の準備をします。
 			const int idx = (int)(ag - m_agents);
 			dtCrowdAgentAnimation* anim = &m_agentAnims[idx];
 
 			// Adjust the path over the off-mesh connection.
+			// オフメッシュ接続のパスを調整します。
 			dtPolyRef refs[2];
 			if (ag->corridor.moveOverOffmeshConnection(ag->cornerPolys[ag->ncorners - 1], refs,
 				anim->startPos, anim->endPos, m_navquery))
@@ -1206,11 +1211,13 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			else
 			{
 				// Path validity check will ensure that bad/blocked connections will be replanned.
+				// パスの有効性チェックにより、不良またはブロックされた接続が確実に再計画されます。
 			}
 		}
 	}
 
 	// Calculate steering.
+	// ステアリングを計算します。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];
@@ -1230,12 +1237,14 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		else
 		{
 			// Calculate steering direction.
+			// ステアリング方向を計算します。
 			if (ag->params.updateFlags & DT_CROWD_ANTICIPATE_TURNS)
 				calcSmoothSteerDirection(ag, dvel);
 			else
 				calcStraightSteerDirection(ag, dvel);
 
 			// Calculate speed scale, which tells the agent to slowdown at the end of the path.
+			// 速度スケールを計算します。これは、パスの最後で減速するようにエージェントに指示します。
 			const float slowDownRadius = ag->params.radius * 2;	// TODO: make less hacky.
 			const float speedScale = getDistanceToGoal(ag, slowDownRadius) / slowDownRadius;
 
@@ -1243,7 +1252,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			dtVscale(dvel, dvel, ag->desiredSpeed * speedScale);
 		}
 
-		// Separation
+		// Separation // 分離
 		if (ag->params.updateFlags & DT_CROWD_SEPARATION)
 		{
 			const float separationDist = ag->params.collisionQueryRange;
@@ -1276,8 +1285,10 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			if (w > 0.0001f)
 			{
 				// Adjust desired velocity.
+				// 希望の速度を調整します。
 				dtVmad(dvel, dvel, disp, 1.f / w);
 				// Clamp desired velocity to desired speed.
+				// 希望の速度を希望の速度にクランプします。
 				const float speedSqr = dtVlenSqr(dvel);
 				const float desiredSqr = dtSqr(ag->desiredSpeed);
 				if (speedSqr > desiredSqr)
@@ -1286,10 +1297,12 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		}
 
 		// Set the desired velocity.
+		// 希望の速度を設定します。
 		dtVcopy(ag->dvel, dvel);
 	}
 
 	// Velocity planning.
+	// 速度計画。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];
@@ -1302,6 +1315,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			m_obstacleQuery->reset();
 
 			// Add neighbours as obstacles.
+			// 隣人を障害物として追加します。
 			for (int j = 0; j < ag->nneis; ++j)
 			{
 				const dtCrowdAgent* nei = &m_agents[ag->neis[j].idx];
@@ -1309,6 +1323,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			}
 
 			// Append neighbour segments as obstacles.
+			// 隣接するセグメントを障害物として追加します。
 			for (int j = 0; j < ag->boundary.getSegmentCount(); ++j)
 			{
 				const float* s = ag->boundary.getSegment(j);
@@ -1322,6 +1337,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				vod = debug->vod;
 
 			// Sample new safe velocity.
+			// 新しい安全速度をサンプリングします。
 			bool adaptive = true;
 			int ns = 0;
 
@@ -1342,11 +1358,13 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		else
 		{
 			// If not using velocity planning, new velocity is directly the desired velocity.
+			// 速度計画を使用しない場合、新しい速度は直接望ましい速度です。
 			dtVcopy(ag->nvel, ag->dvel);
 		}
 	}
 
 	// Integrate.
+	// 統合。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];
@@ -1356,6 +1374,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Handle collisions.
+	// 衝突を処理します。
 	static const float COLLISION_RESOLVE_FACTOR = 0.7f;
 
 	for (int iter = 0; iter < 4; ++iter)
@@ -1389,6 +1408,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				if (dist < 0.0001f)
 				{
 					// Agents on top of each other, try to choose diverging separation directions.
+					// エージェントを互いの上に置き、発散する分離方向を選択してみてください。
 					if (idx0 > idx1)
 						dtVset(diff, -ag->dvel[2], 0, ag->dvel[0]);
 					else
@@ -1429,11 +1449,14 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			continue;
 
 		// Move along navmesh.
+		// navmeshに沿って移動します。
 		ag->corridor.movePosition(ag->npos, m_navquery, &m_filters[ag->params.queryFilterType]);
 		// Get valid constrained position back.
+		// 有効な拘束位置を取得します。
 		dtVcopy(ag->npos, ag->corridor.getPos());
 
 		// If not using path, truncate the corridor to just one poly.
+		// パスを使用しない場合は、コリドーを1つのポリゴンに切り詰めます。
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 		{
 			ag->corridor.reset(ag->corridor.getFirstPoly(), ag->npos);
@@ -1442,6 +1465,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Update agents using off-mesh connection.
+	// オフメッシュ接続を使用してエージェントを更新します。
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgentAnimation* anim = &m_agentAnims[i];
@@ -1453,13 +1477,16 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		if (anim->t > anim->tmax)
 		{
 			// Reset animation
+			// アニメーションをリセットします
 			anim->active = false;
 			// Prepare agent for walking.
+			// ウォーキングのためにエージェントを準備します。
 			ag->state = DT_CROWDAGENT_STATE_WALKING;
 			continue;
 		}
 
 		// Update position
+		// 位置を更新します
 		const float ta = anim->tmax * 0.15f;
 		const float tb = anim->tmax;
 		if (anim->t < ta)
@@ -1474,6 +1501,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		}
 
 		// Update velocity.
+		// 速度を更新します。
 		dtVset(ag->vel, 0, 0, 0);
 		dtVset(ag->dvel, 0, 0, 0);
 	}

@@ -103,14 +103,17 @@ public:
 	virtual void handleRenderOverlay(double* proj, double* model, int* view);
 	virtual void handleUpdate(const float dt);
 
-	inline bool IsAllRunning() const { return is_all_run; }
-	inline void SetAllRunning(const bool s) { is_all_run = s; }
+	inline bool IsAllRunning() const noexcept { return is_all_run; }
+	inline void SetAllRunning(const bool s) noexcept { is_all_run = s; }
 	inline bool IsRunning(const int idx) noexcept { return m_crowd->IsRunning(idx); }
 	inline void SetRunning(const int idx, const bool is_running) const noexcept
 	{ m_crowd->SetRunning(idx, is_running); }
+	auto* GetAgent(const int idx) const noexcept { return m_crowd->getAgentAt(idx); }
+	auto* GetEditableAgent(const int idx) const noexcept { return m_crowd->getEditableAgentAt(idx); }
 
 	int AddAgent(const AddAgentStruct& add_data);
 	void RemoveAgent(const int idx);
+	void ClearAgent();
 	void hilightAgent(const int idx);
 	void updateAgentParams();
 	int hitTestAgents(const float* s, const float* p);
@@ -134,8 +137,36 @@ class CrowdManager
 public:
 	CrowdManager(Sample* sample);
 	~CrowdManager() = default;
+	CrowdManager(const CrowdManager&) = delete;
+	auto& operator=(const CrowdManager&) = delete;
+	CrowdManager(CrowdManager&&) = delete;
+	auto& operator=(CrowdManager&&) = delete;
 
+	// XV
 	void Update(const float dt) { m_state->handleUpdate(dt); }
+	// ŒQO‚É’Ç‰Ái’Ç‰Á‚³‚ê‚½ƒG[ƒWƒFƒ“ƒg‚Ì”Ô†F‚±‚Ì”Ô†‚ğIndex‚Æ‚µ‚Äg‚¤‚Ì‚Å•Û‚µ‚Ä‚¨‚­•K—v‚ª‚ ‚éj
+	_NODISCARD int AddAgent(const AddAgentStruct& add_data) { return (m_state->AddAgent(add_data)); }
+	// ŒQO‚©‚çíœ
+	void RemoveAgent(const int index) { m_state->RemoveAgent(index); }
+	// ŒQO‚©‚ç‘S‚Ä‚ğíœ
+	void ClearAgent() { m_state->ClearAgent(); };
+	// ŒQO‚Ìƒ^[ƒQƒbƒgÀ•W‚ğİ’è
+	void SetMoveTarget(const int index, const std::array<float, 3>& tgt_pos, const bool is_moove_velocity = false)
+	{ m_state->SetMoveTargetAt(tgt_pos, index, is_moove_velocity); }
+	// ŒQO‘S‘Ì‚ª“®‚¢‚Ä‚¢‚é‚©‚Ç‚¤‚©
+	_NODISCARD bool IsAllRunning() const noexcept { return m_state->IsAllRunning(); }
+	// ŒQO‘S‘Ì‚Ì“®‚«‚ğİ’è‚·‚é
+	void SetAllRunning(const bool is_run) noexcept { m_state->SetAllRunning(is_run); }
+	// ŒQO‚Ìˆê•”‚ª“®‚¢‚Ä‚¢‚é‚©‚Ç‚¤‚©
+	_NODISCARD bool IsRunning(const int index) noexcept { return m_state->IsRunning(index); }
+	// ŒQO‚Ìˆê•”‚Ì“®‚«‚ğİ’è‚·‚é
+	void SetRunning(const int index, const bool is_run) const noexcept { m_state->SetRunning(index, is_run); }
+	// ŒQO‚Ìˆê•”‚ÌÀ•W‚ÌÄİ’è
+	void SetAgentRePosition(const int index, const std::array<float, 3>& agent_pos) noexcept;
+	// ŒQO‚Ìˆê•”‚ÌÀ•W‚Ìæ“¾
+	_NODISCARD std::array<float, 3> GetAgentPosition(const int index) const noexcept;
+	// ŒQO‚Ìˆê•”‚Ì‘¬“x‚Ìæ“¾
+	_NODISCARD std::array<float, 3> GetAgentVelocity(const int index) const noexcept;
 };
 
 class CrowdTool : public SampleTool

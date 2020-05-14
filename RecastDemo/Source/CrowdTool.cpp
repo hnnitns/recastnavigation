@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cfloat>
+#include <limits>
 #include "SDL.h"
 #include "SDL_opengl.h"
 #ifdef __APPLE__
@@ -724,6 +725,17 @@ void CrowdToolState::RemoveAgent(const int idx)
 		m_agentDebug.idx = -1;
 }
 
+void CrowdToolState::ClearAgent()
+{
+	if (!m_sample) return;
+	dtCrowd* crowd = m_sample->getCrowd();
+
+	for (int i = 0; i < m_crowd->getAgentCount(); i++)
+	{
+		crowd->removeAgent(i);
+	}
+}
+
 void CrowdToolState::hilightAgent(const int idx)
 {
 	m_agentDebug.idx = idx;
@@ -1183,7 +1195,7 @@ void CrowdTool::handleRenderOverlay(double* proj, double* model, int* view)
 }
 
 CrowdManager::CrowdManager(Sample* sample)
-	: m_sample{}, m_state{}
+	: m_sample(nullptr)
 {
 	if (m_sample != sample)
 	{
@@ -1195,4 +1207,35 @@ CrowdManager::CrowdManager(Sample* sample)
 	if (!m_state) { m_state = std::make_unique<CrowdToolState>(); }
 
 	m_state->init(sample);
+}
+
+void CrowdManager::SetAgentRePosition(const int index, const std::array<float, 3>& agent_pos) noexcept
+{
+	auto* agent{ m_state->GetEditableAgent(index) };
+
+	if (agent) rcVcopy(agent->npos, agent_pos.data());
+}
+
+std::array<float, 3> CrowdManager::GetAgentPosition(const int index) const noexcept
+{
+	auto* agent{ m_state->GetAgent(index) };
+	std::array<float, 3> rv{};
+
+	rv.fill((std::numeric_limits<float>::max)());
+
+	if (agent) rcVcopy(rv.data(), agent->npos);
+
+	return rv;
+}
+
+std::array<float, 3> CrowdManager::GetAgentVelocity(const int index) const noexcept
+{
+	auto* agent{ m_state->GetAgent(index) };
+	std::array<float, 3> rv{};
+
+	rv.fill((std::numeric_limits<float>::max)());
+
+	if (agent) rcVcopy(rv.data(), agent->vel);
+
+	return rv;
 }

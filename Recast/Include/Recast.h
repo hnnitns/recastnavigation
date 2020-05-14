@@ -1858,6 +1858,19 @@ bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst);
 bool rcMergePolyMeshDetails(
 	rcContext* ctx, const std::vector<rcPolyMeshDetail*>& meshes, rcPolyMeshDetail& mesh);
 
+// Copies the poly mesh data from src to dst.
+//	詳細メッシュをsrcからdstにコピーします。
+//  @ingroup recast
+//  @param[in,out]	ctx		The build context to use during the operation.
+//	操作中に使用するビルドコンテキスト。
+//  @param[in]		src		The source mesh to copy from.
+//	コピー元のソースメッシュ。
+//  @param[out]	dst		The resulting detail mesh. (Must be pre-allocated, must be empty mesh.)
+//	結果の詳細メッシュ。 （事前に割り当てられている必要があり、空のメッシュである必要があります。）
+//  @returns True if the operation completed successfully.
+//	操作が正常に完了した場合はtrue。
+bool rcCopyPolyMeshDetail(rcContext* ctx, const rcPolyMeshDetail& src, rcPolyMeshDetail& dst);
+
 // @}
 
 #endif // RECAST_H

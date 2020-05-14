@@ -31,6 +31,7 @@ private:
 	bool m_buildAll;
 	float m_totalBuildTimeMs;
 
+	///------------- TempObstackes‚Ì‹@”\ -------------
 	std::unique_ptr<struct LinearAllocator> m_talloc;
 	std::unique_ptr<struct FastLZCompressor> m_tcomp;
 	std::unique_ptr<struct MeshProcess> m_tmproc;
@@ -42,6 +43,7 @@ private:
 	int m_cacheRawSize;
 	int m_cacheLayerCount;
 	int m_cacheBuildMemUsage;
+	///-----------------------------------------------
 
 	std::vector<unsigned char> m_triareas;
 	std::unique_ptr<rcHeightfield> m_solid;

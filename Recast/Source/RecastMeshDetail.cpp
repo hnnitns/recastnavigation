@@ -1510,3 +1510,43 @@ bool rcMergePolyMeshDetails(rcContext* ctx, const std::vector<rcPolyMeshDetail*>
 
 	return true;
 }
+
+bool rcCopyPolyMeshDetail(rcContext* ctx, const rcPolyMeshDetail& src, rcPolyMeshDetail& dst)
+{
+	rcAssert(ctx);
+
+	// Destination must be empty.
+	rcAssert(dst.meshes == 0);
+	rcAssert(dst.verts == 0);
+	rcAssert(dst.tris == 0);
+
+	dst.nmeshes = src.nmeshes;
+	dst.nverts = src.nverts;
+	dst.ntris = src.ntris;
+
+	dst.verts = (float*)rcAlloc(sizeof(float) * src.nverts * 3, RC_ALLOC_PERM);
+	if (!dst.verts)
+	{
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst.verts' (%d).", src.nverts * 3);
+		return false;
+	}
+	memcpy(dst.verts, src.verts, sizeof(float) * src.nverts * 3);
+
+	dst.meshes = (unsigned int*)rcAlloc(sizeof(unsigned int) * src.nmeshes * 4, RC_ALLOC_PERM);
+	if (!dst.meshes)
+	{
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst.meshes' (%d).", src.nmeshes * 4);
+		return false;
+	}
+	memcpy(dst.meshes, src.meshes, sizeof(unsigned int) * src.nmeshes * 4);
+
+	dst.tris = (unsigned char*)rcAlloc(sizeof(unsigned char) * src.ntris * 4, RC_ALLOC_PERM);
+	if (!dst.tris)
+	{
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst.tris' (%d).", src.ntris * 4);
+		return false;
+	}
+	memcpy(dst.tris, src.tris, sizeof(unsigned char) * src.ntris * 4);
+
+	return true;
+}

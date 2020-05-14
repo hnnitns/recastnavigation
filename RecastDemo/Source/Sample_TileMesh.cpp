@@ -409,6 +409,9 @@ Sample_TileMesh::Sample_TileMesh() :
 
 	//m_talloc = std::make_unique<LinearAllocator>(32000);
 
+	m_pmesh.reset(rcAllocPolyMesh());
+	m_dmesh.reset(rcAllocPolyMeshDetail());
+
 	setTool(new NavMeshTileTool);
 }
 
@@ -417,6 +420,10 @@ Sample_TileMesh::~Sample_TileMesh()
 	CleanUp();
 	dtFreeNavMesh(m_navMesh);
 	m_navMesh = nullptr;
+	rcFreePolyMesh(m_pmesh.release());
+	m_pmesh = nullptr;
+	rcFreePolyMeshDetail(m_dmesh.release());
+	m_dmesh = nullptr;
 }
 
 void Sample_TileMesh::CleanUp()
@@ -427,10 +434,10 @@ void Sample_TileMesh::CleanUp()
 	m_chf = nullptr;
 	rcFreeContourSet(m_cset.release());
 	m_cset = nullptr;
-	rcFreePolyMesh(m_pmesh.release());
-	m_pmesh = nullptr;
-	rcFreePolyMeshDetail(m_dmesh.release());
-	m_dmesh = nullptr;
+	rcFreePolyMesh(m_last_pmesh.release());
+	m_last_pmesh = nullptr;
+	rcFreePolyMeshDetail(m_last_dmesh.release());
+	m_last_dmesh = nullptr;
 }
 
 struct NavMeshSetHeader
@@ -1237,13 +1244,12 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// ビルドプロセスを開始します。
 	m_ctx->startTimer(RC_TIMER_TOTAL);
 
-	if (!m_pmesh)	m_pmesh.reset(rcAllocPolyMesh());
-	if (!m_dmesh)	m_dmesh.reset(rcAllocPolyMeshDetail());
-
 	std::vector<rcPolyMesh*> poly_meshes;
 	std::vector<rcPolyMeshDetail*> detail_meshes;
 
-#if true
+	m_last_pmesh.reset(rcAllocPolyMesh());
+	m_last_dmesh.reset(rcAllocPolyMeshDetail());
+
 	for (const auto& geom : m_geom->getLoadGeomMesh())
 	{
 		const auto& mesh{ geom.m_mesh };
@@ -1553,385 +1559,75 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 			m_cset = nullptr;
 		}
 	}
-#else
-	const auto& geom1{ m_geom->getLoadGeomMesh().front() };
-	const auto& geom2{ m_geom->getLoadGeomMesh().back() };
 
-	rcChunkyTriMesh chunkymesh{};
-
-	const auto& mesh1{ geom1.m_mesh };
-	const auto& mesh2{ geom2.m_mesh };
-	//const auto& chunkyMesh{ geom1.m_chunkyMesh };
-
-	auto verts = mesh1->getVerts(); // コピー
-	const int nverts = mesh1->getVertCount() + mesh2->getVertCount();
-	const int ntris = mesh1->getTriCount() + mesh2->getTriCount();
-
-	// nverts * 3より多い要素を削除
-	verts.erase(verts.begin() + (mesh1->getVertCount() * 3), verts.end());
-
-	std::copy(mesh2->getVerts().cbegin(), mesh2->getVerts().cend(), std::back_inserter(verts));
-
-	// ChunkyTriMeshを結合したうえで再生成
-	if (!rcCreateChunkyTriMesh(verts, mesh1->getTris(), ntris, 256, &chunkymesh))
+	// マージ
 	{
-		m_ctx->log(RC_LOG_PROGRESS, "buildNavigation: Could not create solid ChunkyTriMesh.");
-		return nullptr;
-	}
-
-	m_ctx->log(RC_LOG_PROGRESS, "Building navigation:");
-	m_ctx->log(RC_LOG_PROGRESS, " - %d x %d cells", m_cfg.width, m_cfg.height);
-	m_ctx->log(RC_LOG_PROGRESS, " - %.1fK verts, %.1fK tris", nverts / 1000.0f, ntris / 1000.0f);
-
-	// Allocate voxel heightfield where we rasterize our input data to.
-	// 入力データをラスタライズするボクセルハイトフィールドを割り当てます。
-	try
-	{
-		m_solid.reset(rcAllocHeightfield());
-	}
-	catch (const std::exception&)
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'solid'."); // メモリー不足「solid」
-		return nullptr;
-	}
-
-	if (!rcCreateHeightfield(m_ctx, *m_solid, m_cfg.width, m_cfg.height, m_cfg.bmin, m_cfg.bmax, m_cfg.cs, m_cfg.ch))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create solid heightfield."); // ソリッドハイトフィールドを作成できませんでした。
-		return nullptr;
-	}
-
-	// Allocate array that can hold triangle flags.
-	// If you have multiple meshes you need to process, allocate
-	// and array which can hold the max number of triangles you need to process.
-	// 三角形のフラグを保持できる配列を割り当てます。
-	// 処理する必要のあるメッシュが複数ある場合、処理する必要のある三角形の最大数を保持できる配列および割り当てと配列。
-	try
-	{
-		m_triareas.resize(chunkymesh.maxTrisPerChunk, 0);
-	}
-	catch (const std::exception&)
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).",
-			chunkymesh.maxTrisPerChunk); // メモリー不足「m_triareas」
-		return nullptr;
-	}
-
-	float tbmin[2]{}, tbmax[2]{};
-
-	tbmin[0] = m_cfg.bmin[0];
-	tbmin[1] = m_cfg.bmin[2];
-	tbmax[0] = m_cfg.bmax[0];
-	tbmax[1] = m_cfg.bmax[2];
-
-	std::array<int, 512> cid{}; // TODO: Make grow when returning too many items. // 戻るアイテムが多すぎる場合はサイズを大きくさせる。
-	const int ncid = rcGetChunksOverlappingRect(&chunkymesh, tbmin, tbmax, cid.data(), 512);
-
-	if (!ncid) return nullptr;
-
-	m_tileTriCount = 0;
-
-	for (int i = 0; i < ncid; ++i)
-	{
-		const rcChunkyTriMeshNode& node = chunkymesh.nodes[cid[i]];
-		const int* ctris = &chunkymesh.tris[node.i * 3];
-		const int nctris = node.n;
-
-		m_tileTriCount += nctris;
-
-		Fill(m_triareas, 0, exec::par);
-
-		// 表面が歩行可能かどうかを確認
-		rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle,
-			verts.data(), nverts, ctris, nctris, m_triareas.data(), SAMPLE_AREAMOD_GROUND);
-
-		if (!rcRasterizeTriangles(m_ctx, verts, nverts, ctris, m_triareas.data(), nctris, *m_solid, m_cfg.walkableClimb))
-			return 0;
-	}
-
-	if (!m_keepInterResults)
-	{
-		m_triareas.clear();
-	}
-
-	// Once all geometry is rasterized, we do initial pass of filtering to
-	// remove unwanted overhangs caused by the conservative rasterization
-	// as well as filter spans where the character cannot possibly stand.
-	// すべてのジオメトリがラスタライズされると、最初のフィルタリングパスを実行して、
-	// 保守的なラスタライゼーションによって引き起こされる不要なオーバーハングと、
-	// 文字が耐えられない可能性があるフィルタスパンを削除します。
-	if (m_filterLowHangingObstacles)
-		rcFilterLowHangingWalkableObstacles(m_ctx, m_cfg.walkableClimb, *m_solid);
-
-	if (m_filterLedgeSpans)
-		rcFilterLedgeSpans(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid);
-
-	if (m_filterWalkableLowHeightSpans)
-		rcFilterWalkableLowHeightSpans(m_ctx, m_cfg.walkableHeight, *m_solid);
-
-	// Compact the heightfield so that it is faster to handle from now on.
-	// This will result more cache coherent data as well as the neighbours
-	// between walkable cells will be calculated.
-	// ハイトフィールドを圧縮して、今後の処理が高速になるようにします。
-	// これにより、より多くのキャッシュコヒーレントデータが生成され、ウォーク可能セル間の隣接セルが計算されます。
-	try
-	{
-		m_chf.reset(rcAllocCompactHeightfield());
-	}
-	catch (const std::exception&)
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'chf'."); // メモリー不足「chf」
-		return nullptr;
-	}
-
-	if (!rcBuildCompactHeightfield(m_ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid, *m_chf))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build compact data."); // コンパクトなデータを構築できませんでした。
-		return nullptr;
-	}
-
-	if (!m_keepInterResults)
-	{
-		m_solid = nullptr;
-	}
-
-	// Erode the walkable area by agent radius.
-	// エージェントの半径ごとに歩行可能エリアを侵食します。
-	if (!rcErodeWalkableArea(m_ctx, m_cfg.walkableRadius, *m_chf))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not erode.");  // 侵食できませんでした。
-		return nullptr;
-	}
-
-	// (Optional) Mark areas.
-	//（オプション）エリアをマークします。
-	const auto* vols = m_geom->getConvexVolumes();
-
-	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
-		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts, vols->at(i).hmin, vols->at(i).hmax,
-			vols->at(i).areaMod, *m_chf);
-
-	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
-	// There are 3 martitioning methods, each with some pros and cons:
-	// 高さフィールドを分割して、後で簡単なアルゴリズムを使用して歩行可能エリアを三角測量できるようにします。
-	// それぞれ3つの長所と短所がある3つのマトリションメソッドがあります。
-	// 1) Watershed partitioning
-	//   - the classic Recast partitioning
-	//   - creates the nicest tessellation
-	//   - usually slowest
-	//   - partitions the heightfield into nice regions without holes or overlaps
-	//   - the are some corner cases where this method creates produces holes and overlaps
-	//      - holes may appear when a small obstacles is close to large open area (triangulation can handle this)
-	//      - overlaps may occur if you have narrow spiral corridors (i.e stairs), this make triangulation to fail
-	//   * generally the best choice if you precompute the nacmesh, use this if you have large open areas
-	// 2) Monotone partioning
-	//   - fastest
-	//   - partitions the heightfield into regions without holes and overlaps (guaranteed)
-	//   - creates long thin polygons, which sometimes causes paths with detours
-	//   * use this if you want fast navmesh generation
-	// 3) Layer partitoining
-	//   - quite fast
-	//   - partitions the heighfield into non-overlapping regions
-	//   - relies on the triangulation code to cope with holes (thus slower than monotone partitioning)
-	//   - produces better triangles than monotone partitioning
-	//   - does not have the corner cases of watershed partitioning
-	//   - can be slow and create a bit ugly tessellation (still better than monotone)
-	//     if you have large open areas with small obstacles (not a problem if you use tiles)
-	//   * good choice to use for tiled navmesh with medium and small sized tiles
-	//
-	// 高さフィールドを分割して、後で簡単なアルゴリズムを使用して歩行可能エリアを三角測量できるようにします。
-	// それぞれ3つの長所と短所がある3つのマトリションメソッドがあります。
-	//  1）分水界分割
-	//		-従来のリキャストパーティション
-	//		-最も良いテッセレーションを作成します
-	//		-通常は最も遅い
-	//		-高さフィールドを、穴や重なりのない素敵な領域に分割します
-	//		-このメソッドが作成するいくつかのコーナーケースは、穴とオーバーラップを生成します
-	//			-小さな障害物が大きな開口部に近い場合に穴が現れることがあります（三角測量でこれを処理できます）
-	//			-狭い螺旋状の通路（階段など）がある場合、重複が発生する可能性があり、これにより三角測量が失敗します
-	//		*ナクメッシュを事前計算する場合は一般的に最良の選択、大きな空き領域がある場合はこれを使用する
-	//
-	//  2）モノトーン分割
-	//		-最速
-	//		-高さフィールドを穴や重複のない領域に分割します（保証）
-	//		-長くて細いポリゴンを作成します
-	//			* navmeshの高速生成が必要な場合はこれを使用します
-	//
-	//  3）レイヤー分割
-	//		- かなり速いです
-	//		-重なった領域を重複しない領域に分割します
-	//		-穴に対処するために三角形分割コードに依存します（したがって、単調な分割よりも遅い）
-	//		-モノトーン分割よりも優れた三角形を生成します
-	//		-流域分割のコーナーケースはありません
-	//		-遅く、少しいテッセレーションを作成できます（モノトーンよりも優れています）
-	//		 小さな障害物のある大きな空き領域がある場合（タイルを使用する場合は問題ありません）
-	//		*中サイズと小サイズのタイルでタイル張りされたnavmeshに使用するのに良い選択
-
-	switch (m_partitionType)
-	{
-		case SAMPLE_PARTITION_WATERSHED:
+		// poly_mesh
+		if (!rcMergePolyMeshes(m_ctx, poly_meshes, *m_last_pmesh))
 		{
-			// Prepare for region partitioning, by calculating distance field along the walkable surface.
-			// 歩行可能な表面に沿った距離フィールドを計算して、領域分割の準備をします。
-			if (!rcBuildDistanceField(m_ctx, *m_chf))
-			{
-				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build distance field."); // 距離フィールドを構築できませんでした。
-				return nullptr;
-			}
-
-			// Partition the walkable surface into simple regions without holes.
-			//　歩行可能な表面を穴のない単純な領域に分割します。
-			if (!rcBuildRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
-			{
-				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions."); // 流域を構築できませんでした。
-				return nullptr;
-			}
-
-			break;
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
+			return nullptr;
 		}
-		case SAMPLE_PARTITION_MONOTONE:
-		{
-			// Partition the walkable surface into simple regions without holes.
-			// Monotone partitioning does not need distancefield.
-			// 歩行可能な表面を穴のない単純な領域に分割します。
-			// モノトーン分割は距離フィールドを必要としません。
-			if (!rcBuildRegionsMonotone(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
-			{
-				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build monotone regions."); // モノトーン領域を構築できませんでした。
-				return nullptr;
-			}
 
-			break;
-		}
-		case SAMPLE_PARTITION_LAYERS:
+		// detail_mesh
+		if (!rcMergePolyMeshDetails(m_ctx, detail_meshes, *m_last_dmesh))
 		{
-			// Partition the walkable surface into simple regions without holes.
-			// 歩行可能な表面を穴のない単純な領域に分割します。
-			if (!rcBuildLayerRegions(m_ctx, *m_chf, m_cfg.borderSize, m_cfg.minRegionArea))
-			{
-				m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build layer regions."); // レイヤー領域を構築できませんでした。
-				return nullptr;
-			}
-
-			break;
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
+			return nullptr;
 		}
 	}
 
-	// Create contours.
-	// 輪郭を作成します。
-	m_cset.reset(rcAllocContourSet());
-	if (!m_cset)
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'cset'."); // メモリー不足「cset」
-		return nullptr;
-	}
+	// コピー
+	//{
+	//	// poly_mesh
+	//	if (!rcMergePolyMeshes(m_ctx, poly_meshes, *m_last_pmesh))
+	//	{
+	//		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
+	//		return nullptr;
+	//	}
 
-	if (!rcBuildContours(m_ctx, *m_chf, m_cfg.maxSimplificationError, m_cfg.maxEdgeLen, *m_cset))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours."); // 輪郭を作成できませんでした。
-		return nullptr;
-	}
-
-	if (m_cset->nconts == 0) return nullptr;
-
-	// Build polygon navmesh from the contours.
-	// 輪郭からポリゴンナビメッシュを作成します。
-	try
-	{
-		poly_meshes.emplace_back(rcAllocPolyMesh());
-	}
-	catch (const std::exception&)
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'pmesh'."); // メモリー不足「pmesh」
-		return nullptr;
-	}
-
-	if (!rcBuildPolyMesh(m_ctx, *m_cset, m_cfg.maxVertsPerPoly, *poly_meshes.back()))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not triangulate contours."); // 輪郭を三角測量できませんでした。
-		return nullptr;
-	}
-
-	// Build detail mesh1.
-	// 詳細メッシュを作成します。
-	try
-	{
-		detail_meshes.emplace_back(rcAllocPolyMeshDetail());
-	}
-	catch (const std::exception&)
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'dmesh'."); // メモリー不足「dmesh」
-		return nullptr;
-	}
-
-	if (!rcBuildPolyMeshDetail(m_ctx, *poly_meshes.back(), *m_chf,
-		m_cfg.detailSampleDist, m_cfg.detailSampleMaxError,
-		*detail_meshes.back()))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build polymesh detail."); // ポリゴンメッシュの詳細を作成できませんでした。（コメントまさかのnotつけ忘れ(笑)）
-		return nullptr;
-	}
-
-	if (!m_keepInterResults)
-	{
-		rcFreeCompactHeightfield(m_chf.release());
-		m_chf = nullptr;
-		rcFreeContourSet(m_cset.release());
-		m_cset = nullptr;
-	}
-#endif
-
-	// poly_meshをm_pmeshへマージする
-	if (!rcMergePolyMeshes(m_ctx, poly_meshes, *m_pmesh))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
-		return nullptr;
-	}
-
-	// detail_meshをm_dmeshへマージする
-	if (!rcMergePolyMeshDetails(m_ctx, detail_meshes, *m_dmesh))
-	{
-		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
-		return nullptr;
-	}
-
-	For_Each(poly_meshes, [](auto* pmesh) { rcFreePolyMesh(pmesh); pmesh = nullptr; }, exec::par);
-	For_Each(detail_meshes, [](auto* dmesh) { rcFreePolyMeshDetail(dmesh); dmesh = nullptr; }, exec::par);
+	//	// detail_mesh
+	//	if (!rcMergePolyMeshDetails(m_ctx, detail_meshes, *m_last_dmesh))
+	//	{
+	//		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
+	//		return nullptr;
+	//	}
+	//}
 
 	unsigned char* navData{};
 	int navDataSize{};
 
 	if (m_cfg.maxVertsPerPoly <= DT_VERTS_PER_POLYGON)
 	{
-		if (m_pmesh->nverts >= 0xffff)
+		if (m_last_pmesh->nverts >= 0xffff)
 		{
 			// The vertex indices are ushorts, and cannot point to more than 0xffff vertices.
 			// 頂点インデックスはushortsであり、0xffffを超える頂点を指すことはできません。
-			m_ctx->log(RC_LOG_ERROR, "Too many vertices per tile %d (max: %d).", m_pmesh->nverts, 0xffff);
+			m_ctx->log(RC_LOG_ERROR, "Too many vertices per tile %d (max: %d).", m_last_pmesh->nverts, 0xffff);
 			return nullptr;
 		}
 
 		// Update poly flags from areas.
 		// エリアからポリゴンフラグを更新します。
-		for (int i = 0; i < m_pmesh->npolys; ++i)
+		for (int i = 0; i < m_last_pmesh->npolys; ++i)
 		{
-			m_pmesh->flags[i] = sampleAreaToFlags(m_pmesh->areas[i]);
+			m_last_pmesh->flags[i] = sampleAreaToFlags(m_last_pmesh->areas[i]);
 		}
 
 		dtNavMeshCreateParams params{};
 
-		params.verts = m_pmesh->verts;
-		params.vertCount = m_pmesh->nverts;
-		params.polys = m_pmesh->polys;
-		params.polyAreas = m_pmesh->areas;
-		params.polyFlags = m_pmesh->flags;
-		params.polyCount = m_pmesh->npolys;
-		params.nvp = m_pmesh->nvp;
-		params.detailMeshes = m_dmesh->meshes;
-		params.detailVerts = m_dmesh->verts;
-		params.detailVertsCount = m_dmesh->nverts;
-		params.detailTris = m_dmesh->tris;
-		params.detailTriCount = m_dmesh->ntris;
+		params.verts = m_last_pmesh->verts;
+		params.vertCount = m_last_pmesh->nverts;
+		params.polys = m_last_pmesh->polys;
+		params.polyAreas = m_last_pmesh->areas;
+		params.polyFlags = m_last_pmesh->flags;
+		params.polyCount = m_last_pmesh->npolys;
+		params.nvp = m_last_pmesh->nvp;
+		params.detailMeshes = m_last_dmesh->meshes;
+		params.detailVerts = m_last_dmesh->verts;
+		params.detailVertsCount = m_last_dmesh->nverts;
+		params.detailTris = m_last_dmesh->tris;
+		params.detailTriCount = m_last_dmesh->ntris;
 		params.offMeshConVerts = m_geom->getOffMeshConnectionVerts().data();
 		params.offMeshConRad = m_geom->getOffMeshConnectionRads().data();
 		params.offMeshConDir = m_geom->getOffMeshConnectionDirs().data();
@@ -1945,8 +1641,8 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		params.tileX = tx;
 		params.tileY = ty;
 		params.tileLayer = 0;
-		rcVcopy(params.bmin, m_pmesh->bmin);
-		rcVcopy(params.bmax, m_pmesh->bmax);
+		rcVcopy(params.bmin, m_last_pmesh->bmin);
+		rcVcopy(params.bmax, m_last_pmesh->bmax);
 		params.cs = m_cfg.cs;
 		params.ch = m_cfg.ch;
 		params.buildBvTree = true;
@@ -1964,10 +1660,13 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// Show performance stats.
 	// パフォーマンスの統計を表示します。
 	duLogBuildTimes(*m_ctx, m_ctx->getAccumulatedTime(RC_TIMER_TOTAL));
-	m_ctx->log(RC_LOG_PROGRESS, ">> Polymesh: %d vertices  %d polygons", m_pmesh->nverts, m_pmesh->npolys);
+	m_ctx->log(RC_LOG_PROGRESS, ">> Polymesh: %d vertices  %d polygons", m_last_pmesh->nverts, m_last_pmesh->npolys);
 
 	m_tileBuildTime = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
 	dataSize = navDataSize;
+
+	For_Each(poly_meshes, [](auto* pmesh) { rcFreePolyMesh(pmesh); pmesh = nullptr; }, exec::par);
+	For_Each(detail_meshes, [](auto* dmesh) { rcFreePolyMeshDetail(dmesh); dmesh = nullptr; }, exec::par);
 
 	return navData;
 }

@@ -49,8 +49,8 @@ private:
 	std::unique_ptr<rcHeightfield> m_solid;
 	std::unique_ptr<rcCompactHeightfield> m_chf;
 	std::unique_ptr<rcContourSet> m_cset;
-	std::unique_ptr<rcPolyMesh> m_pmesh;
-	std::unique_ptr<rcPolyMeshDetail> m_dmesh;
+	std::unique_ptr<rcPolyMesh> m_pmesh, m_last_pmesh;
+	std::unique_ptr<rcPolyMeshDetail> m_dmesh, m_last_dmesh;
 	rcConfig m_cfg;
 
 	enum class DrawMode

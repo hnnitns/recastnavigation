@@ -1435,7 +1435,7 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 }
 
 /// @see rcAllocPolyMeshDetail, rcPolyMeshDetail
-bool rcMergePolyMeshDetails(rcContext* ctx, const std::vector<rcPolyMeshDetail*>& meshes, rcPolyMeshDetail& mesh)
+bool rcMergePolyMeshDetails(rcContext* ctx, const std::vector<rcPolyMeshDetail*>& meshes, rcPolyMeshDetail* mesh)
 {
 	rcAssert(ctx);
 
@@ -1454,25 +1454,25 @@ bool rcMergePolyMeshDetails(rcContext* ctx, const std::vector<rcPolyMeshDetail*>
 		maxMeshes += dmesh->nmeshes;
 	}
 
-	mesh.nmeshes = 0;
-	mesh.meshes = (unsigned int*)rcAlloc(sizeof(unsigned int) * maxMeshes * 4, RC_ALLOC_PERM);
-	if (!mesh.meshes)
+	mesh->nmeshes = 0;
+	mesh->meshes = (unsigned int*)rcAlloc(sizeof(unsigned int) * maxMeshes * 4, RC_ALLOC_PERM);
+	if (!mesh->meshes)
 	{
 		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'pmdtl.meshes' (%d).", maxMeshes * 4);
 		return false;
 	}
 
-	mesh.ntris = 0;
-	mesh.tris = (unsigned char*)rcAlloc(sizeof(unsigned char) * maxTris * 4, RC_ALLOC_PERM);
-	if (!mesh.tris)
+	mesh->ntris = 0;
+	mesh->tris = (unsigned char*)rcAlloc(sizeof(unsigned char) * maxTris * 4, RC_ALLOC_PERM);
+	if (!mesh->tris)
 	{
 		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.tris' (%d).", maxTris * 4);
 		return false;
 	}
 
-	mesh.nverts = 0;
-	mesh.verts = (float*)rcAlloc(sizeof(float) * maxVerts * 3, RC_ALLOC_PERM);
-	if (!mesh.verts)
+	mesh->nverts = 0;
+	mesh->verts = (float*)rcAlloc(sizeof(float) * maxVerts * 3, RC_ALLOC_PERM);
+	if (!mesh->verts)
 	{
 		ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'dmesh.verts' (%d).", maxVerts * 3);
 		return false;
@@ -1484,69 +1484,69 @@ bool rcMergePolyMeshDetails(rcContext* ctx, const std::vector<rcPolyMeshDetail*>
 		if (!dmesh) continue;
 		for (int j = 0; j < dmesh->nmeshes; ++j)
 		{
-			unsigned int* dst = &mesh.meshes[mesh.nmeshes * 4];
+			unsigned int* dst = &mesh->meshes[mesh->nmeshes * 4];
 			unsigned int* src = &dmesh->meshes[j * 4];
-			dst[0] = (unsigned int)mesh.nverts + src[0];
+			dst[0] = (unsigned int)mesh->nverts + src[0];
 			dst[1] = src[1];
-			dst[2] = (unsigned int)mesh.ntris + src[2];
+			dst[2] = (unsigned int)mesh->ntris + src[2];
 			dst[3] = src[3];
-			mesh.nmeshes++;
+			mesh->nmeshes++;
 		}
 
 		for (int k = 0; k < dmesh->nverts; ++k)
 		{
-			rcVcopy(&mesh.verts[mesh.nverts * 3], &dmesh->verts[k * 3]);
-			mesh.nverts++;
+			rcVcopy(&mesh->verts[mesh->nverts * 3], &dmesh->verts[k * 3]);
+			mesh->nverts++;
 		}
 		for (int k = 0; k < dmesh->ntris; ++k)
 		{
-			mesh.tris[mesh.ntris * 4 + 0] = dmesh->tris[k * 4 + 0];
-			mesh.tris[mesh.ntris * 4 + 1] = dmesh->tris[k * 4 + 1];
-			mesh.tris[mesh.ntris * 4 + 2] = dmesh->tris[k * 4 + 2];
-			mesh.tris[mesh.ntris * 4 + 3] = dmesh->tris[k * 4 + 3];
-			mesh.ntris++;
+			mesh->tris[mesh->ntris * 4 + 0] = dmesh->tris[k * 4 + 0];
+			mesh->tris[mesh->ntris * 4 + 1] = dmesh->tris[k * 4 + 1];
+			mesh->tris[mesh->ntris * 4 + 2] = dmesh->tris[k * 4 + 2];
+			mesh->tris[mesh->ntris * 4 + 3] = dmesh->tris[k * 4 + 3];
+			mesh->ntris++;
 		}
 	}
 
 	return true;
 }
 
-bool rcCopyPolyMeshDetail(rcContext* ctx, const rcPolyMeshDetail& src, rcPolyMeshDetail& dst)
+bool rcCopyPolyMeshDetail(rcContext* ctx, const rcPolyMeshDetail& src, rcPolyMeshDetail* dst)
 {
 	rcAssert(ctx);
 
 	// Destination must be empty.
-	rcAssert(dst.meshes == 0);
-	rcAssert(dst.verts == 0);
-	rcAssert(dst.tris == 0);
+	rcAssert(dst->meshes == 0);
+	rcAssert(dst->verts == 0);
+	rcAssert(dst->tris == 0);
 
-	dst.nmeshes = src.nmeshes;
-	dst.nverts = src.nverts;
-	dst.ntris = src.ntris;
+	dst->nmeshes = src.nmeshes;
+	dst->nverts = src.nverts;
+	dst->ntris = src.ntris;
 
-	dst.verts = (float*)rcAlloc(sizeof(float) * src.nverts * 3, RC_ALLOC_PERM);
-	if (!dst.verts)
+	dst->verts = (float*)rcAlloc(sizeof(float) * src.nverts * 3, RC_ALLOC_PERM);
+	if (!dst->verts)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst.verts' (%d).", src.nverts * 3);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst->verts' (%d).", src.nverts * 3);
 		return false;
 	}
-	memcpy(dst.verts, src.verts, sizeof(float) * src.nverts * 3);
+	memcpy(dst->verts, src.verts, sizeof(float) * src.nverts * 3);
 
-	dst.meshes = (unsigned int*)rcAlloc(sizeof(unsigned int) * src.nmeshes * 4, RC_ALLOC_PERM);
-	if (!dst.meshes)
+	dst->meshes = (unsigned int*)rcAlloc(sizeof(unsigned int) * src.nmeshes * 4, RC_ALLOC_PERM);
+	if (!dst->meshes)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst.meshes' (%d).", src.nmeshes * 4);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst->meshes' (%d).", src.nmeshes * 4);
 		return false;
 	}
-	memcpy(dst.meshes, src.meshes, sizeof(unsigned int) * src.nmeshes * 4);
+	memcpy(dst->meshes, src.meshes, sizeof(unsigned int) * src.nmeshes * 4);
 
-	dst.tris = (unsigned char*)rcAlloc(sizeof(unsigned char) * src.ntris * 4, RC_ALLOC_PERM);
-	if (!dst.tris)
+	dst->tris = (unsigned char*)rcAlloc(sizeof(unsigned char) * src.ntris * 4, RC_ALLOC_PERM);
+	if (!dst->tris)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst.tris' (%d).", src.ntris * 4);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMeshDetail: Out of memory 'dst->tris' (%d).", src.ntris * 4);
 		return false;
 	}
-	memcpy(dst.tris, src.tris, sizeof(unsigned char) * src.ntris * 4);
+	memcpy(dst->tris, src.tris, sizeof(unsigned char) * src.ntris * 4);
 
 	return true;
 }

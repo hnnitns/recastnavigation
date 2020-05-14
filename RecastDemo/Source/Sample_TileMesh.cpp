@@ -1247,8 +1247,8 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	std::vector<rcPolyMesh*> poly_meshes;
 	std::vector<rcPolyMeshDetail*> detail_meshes;
 
-	m_last_pmesh.reset(rcAllocPolyMesh());
-	m_last_dmesh.reset(rcAllocPolyMeshDetail());
+	if (!m_last_pmesh) m_last_pmesh.reset(rcAllocPolyMesh());
+	if (!m_last_dmesh) m_last_dmesh.reset(rcAllocPolyMeshDetail());
 
 	for (const auto& geom : m_geom->getLoadGeomMesh())
 	{
@@ -1563,36 +1563,70 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	// マージ
 	{
 		// poly_mesh
-		if (!rcMergePolyMeshes(m_ctx, poly_meshes, *m_last_pmesh))
+		if (!rcMergePolyMeshes(m_ctx, poly_meshes, m_last_pmesh.get()))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh."); // ポリゴンメッシュのマージに失敗
 			return nullptr;
 		}
 
 		// detail_mesh
-		if (!rcMergePolyMeshDetails(m_ctx, detail_meshes, *m_last_dmesh))
+		if (!rcMergePolyMeshDetails(m_ctx, detail_meshes, m_last_dmesh.get()))
 		{
-			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // 詳細メッシュのマージに失敗
 			return nullptr;
 		}
 	}
 
-	// コピー
-	//{
-	//	// poly_mesh
-	//	if (!rcMergePolyMeshes(m_ctx, poly_meshes, *m_last_pmesh))
-	//	{
-	//		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
-	//		return nullptr;
-	//	}
+	// 一旦リセット
+	For_Each(poly_meshes, [](auto* pmesh) { rcFreePolyMesh(pmesh); }, exec::par);
+	For_Each(detail_meshes, [](auto* dmesh) { rcFreePolyMeshDetail(dmesh); }, exec::par);
 
-	//	// detail_mesh
-	//	if (!rcMergePolyMeshDetails(m_ctx, detail_meshes, *m_last_dmesh))
-	//	{
-	//		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // ポリゴンメッシュのマージに失敗
-	//		return nullptr;
-	//	}
-	//}
+	// 一旦消して
+	poly_meshes.clear();
+	detail_meshes.clear();
+
+	// メモリー再確保
+	for (size_t i = 0; i < 2; i++)
+	{
+		poly_meshes.emplace_back(rcAllocPolyMesh());
+		detail_meshes.emplace_back(rcAllocPolyMeshDetail());
+	}
+
+	// コピー
+	{
+		// poly_mesh
+		if (!(rcCopyPolyMesh(m_ctx, *m_last_pmesh, poly_meshes[0]) &&
+			rcCopyPolyMesh(m_ctx, *m_pmesh, poly_meshes[1])))
+		{
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not copy polymesh."); // ポリゴンメッシュのマージに失敗
+			return nullptr;
+		}
+
+		// detail_mesh
+		if (!(rcCopyPolyMeshDetail(m_ctx, *m_last_dmesh, detail_meshes[0]) &&
+			rcCopyPolyMeshDetail(m_ctx, *m_dmesh, detail_meshes[1])))
+		{
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not copy polymesh detail."); // 詳細メッシュのマージに失敗
+			return nullptr;
+		}
+	}
+
+	// 再マージ
+	{
+		// poly_mesh
+		if (!rcMergePolyMeshes(m_ctx, poly_meshes, m_pmesh.get()))
+		{
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh."); // ポリゴンメッシュのマージに失敗
+			return nullptr;
+		}
+
+		// detail_mesh
+		if (!rcMergePolyMeshDetails(m_ctx, detail_meshes, m_dmesh.get()))
+		{
+			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not merge polymesh detail."); // 詳細メッシュのマージに失敗
+			return nullptr;
+		}
+	}
 
 	unsigned char* navData{};
 	int navDataSize{};

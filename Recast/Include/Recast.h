@@ -1806,7 +1806,7 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 //	結果のポリゴンメッシュ。 （事前に割り当てる必要があります。）
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
-bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rcPolyMesh& mesh);
+bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rcPolyMesh* mesh);
 
 // Builds a detail mesh from the provided polygon mesh.
 //	指定されたポリゴンメッシュから詳細メッシュを構築します。
@@ -1840,7 +1840,7 @@ bool rcBuildPolyMeshDetail(rcContext* ctx, const rcPolyMesh& mesh, const rcCompa
 //	結果の詳細メッシュ。 （事前に割り当てられている必要があり、空のメッシュである必要があります。）
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
-bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst);
+bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh* dst);
 
 // Merges multiple detail meshes into a single detail mesh.
 //	複数の詳細メッシュを単一の詳細メッシュにマージします。
@@ -1856,7 +1856,7 @@ bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst);
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
 bool rcMergePolyMeshDetails(
-	rcContext* ctx, const std::vector<rcPolyMeshDetail*>& meshes, rcPolyMeshDetail& mesh);
+	rcContext* ctx, const std::vector<rcPolyMeshDetail*>& meshes, rcPolyMeshDetail* mesh);
 
 // Copies the poly mesh data from src to dst.
 //	詳細メッシュをsrcからdstにコピーします。
@@ -1869,7 +1869,7 @@ bool rcMergePolyMeshDetails(
 //	結果の詳細メッシュ。 （事前に割り当てられている必要があり、空のメッシュである必要があります。）
 //  @returns True if the operation completed successfully.
 //	操作が正常に完了した場合はtrue。
-bool rcCopyPolyMeshDetail(rcContext* ctx, const rcPolyMeshDetail& src, rcPolyMeshDetail& dst);
+bool rcCopyPolyMeshDetail(rcContext* ctx, const rcPolyMeshDetail& src, rcPolyMeshDetail* dst);
 
 // @}
 

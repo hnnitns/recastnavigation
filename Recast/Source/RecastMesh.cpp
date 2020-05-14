@@ -1498,7 +1498,7 @@ bool rcBuildPolyMesh(rcContext* ctx, rcContourSet& cset, const int nvp, rcPolyMe
 }
 
 /// @see rcAllocPolyMesh, rcPolyMesh
-bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rcPolyMesh& mesh)
+bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rcPolyMesh* mesh)
 {
 	rcAssert(ctx);
 
@@ -1506,11 +1506,11 @@ bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rc
 
 	rcScopedTimer timer(ctx, RC_TIMER_MERGE_POLYMESH);
 
-	mesh.nvp = meshes[0]->nvp;
-	mesh.cs = meshes[0]->cs;
-	mesh.ch = meshes[0]->ch;
-	rcVcopy(mesh.bmin, meshes[0]->bmin);
-	rcVcopy(mesh.bmax, meshes[0]->bmax);
+	mesh->nvp = meshes[0]->nvp;
+	mesh->cs = meshes[0]->cs;
+	mesh->ch = meshes[0]->ch;
+	rcVcopy(mesh->bmin, meshes[0]->bmin);
+	rcVcopy(mesh->bmax, meshes[0]->bmax);
 
 	int maxVerts = 0;
 	int maxPolys = 0;
@@ -1518,53 +1518,53 @@ bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rc
 
 	for (const auto* pmesh : meshes)
 	{
-		rcVmin(mesh.bmin, pmesh->bmin);
-		rcVmax(mesh.bmax, pmesh->bmax);
+		rcVmin(mesh->bmin, pmesh->bmin);
+		rcVmax(mesh->bmax, pmesh->bmax);
 		maxVertsPerMesh = rcMax(maxVertsPerMesh, pmesh->nverts);
 		maxVerts += pmesh->nverts;
 		maxPolys += pmesh->npolys;
 	}
 
-	mesh.nverts = 0;
-	mesh.verts = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxVerts * 3, RC_ALLOC_PERM);
-	if (!mesh.verts)
+	mesh->nverts = 0;
+	mesh->verts = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxVerts * 3, RC_ALLOC_PERM);
+	if (!mesh->verts)
 	{
-		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh.verts' (%d).", maxVerts * 3);
+		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh->verts' (%d).", maxVerts * 3);
 		return false;
 	}
 
-	mesh.npolys = 0;
-	mesh.polys = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxPolys * 2 * mesh.nvp, RC_ALLOC_PERM);
-	if (!mesh.polys)
+	mesh->npolys = 0;
+	mesh->polys = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxPolys * 2 * mesh->nvp, RC_ALLOC_PERM);
+	if (!mesh->polys)
 	{
-		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh.polys' (%d).", maxPolys * 2 * mesh.nvp);
+		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh->polys' (%d).", maxPolys * 2 * mesh->nvp);
 		return false;
 	}
-	memset(mesh.polys, 0xff, sizeof(unsigned short) * maxPolys * 2 * mesh.nvp);
+	memset(mesh->polys, 0xff, sizeof(unsigned short) * maxPolys * 2 * mesh->nvp);
 
-	mesh.regs = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxPolys, RC_ALLOC_PERM);
-	if (!mesh.regs)
+	mesh->regs = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxPolys, RC_ALLOC_PERM);
+	if (!mesh->regs)
 	{
-		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh.regs' (%d).", maxPolys);
+		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh->regs' (%d).", maxPolys);
 		return false;
 	}
-	memset(mesh.regs, 0, sizeof(unsigned short) * maxPolys);
+	memset(mesh->regs, 0, sizeof(unsigned short) * maxPolys);
 
-	mesh.areas = (unsigned char*)rcAlloc(sizeof(unsigned char) * maxPolys, RC_ALLOC_PERM);
-	if (!mesh.areas)
+	mesh->areas = (unsigned char*)rcAlloc(sizeof(unsigned char) * maxPolys, RC_ALLOC_PERM);
+	if (!mesh->areas)
 	{
-		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh.areas' (%d).", maxPolys);
+		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh->areas' (%d).", maxPolys);
 		return false;
 	}
-	memset(mesh.areas, 0, sizeof(unsigned char) * maxPolys);
+	memset(mesh->areas, 0, sizeof(unsigned char) * maxPolys);
 
-	mesh.flags = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxPolys, RC_ALLOC_PERM);
-	if (!mesh.flags)
+	mesh->flags = (unsigned short*)rcAlloc(sizeof(unsigned short) * maxPolys, RC_ALLOC_PERM);
+	if (!mesh->flags)
 	{
-		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh.flags' (%d).", maxPolys);
+		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Out of memory 'mesh->flags' (%d).", maxPolys);
 		return false;
 	}
-	memset(mesh.flags, 0, sizeof(unsigned short) * maxPolys);
+	memset(mesh->flags, 0, sizeof(unsigned short) * maxPolys);
 
 	rcScopedDelete<int> nextVert((int*)rcAlloc(sizeof(int) * maxVerts, RC_ALLOC_TEMP));
 	if (!nextVert)
@@ -1593,31 +1593,31 @@ bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rc
 
 	for (const auto* pmesh : meshes)
 	{
-		const unsigned short ox = (unsigned short)floorf((pmesh->bmin[0] - mesh.bmin[0]) / mesh.cs + 0.5f);
-		const unsigned short oz = (unsigned short)floorf((pmesh->bmin[2] - mesh.bmin[2]) / mesh.cs + 0.5f);
+		const unsigned short ox = (unsigned short)floorf((pmesh->bmin[0] - mesh->bmin[0]) / mesh->cs + 0.5f);
+		const unsigned short oz = (unsigned short)floorf((pmesh->bmin[2] - mesh->bmin[2]) / mesh->cs + 0.5f);
 
 		bool isMinX = (ox == 0);
 		bool isMinZ = (oz == 0);
-		bool isMaxX = ((unsigned short)floorf((mesh.bmax[0] - pmesh->bmax[0]) / mesh.cs + 0.5f)) == 0;
-		bool isMaxZ = ((unsigned short)floorf((mesh.bmax[2] - pmesh->bmax[2]) / mesh.cs + 0.5f)) == 0;
+		bool isMaxX = ((unsigned short)floorf((mesh->bmax[0] - pmesh->bmax[0]) / mesh->cs + 0.5f)) == 0;
+		bool isMaxZ = ((unsigned short)floorf((mesh->bmax[2] - pmesh->bmax[2]) / mesh->cs + 0.5f)) == 0;
 		bool isOnBorder = (isMinX || isMinZ || isMaxX || isMaxZ);
 
 		for (int j = 0; j < pmesh->nverts; ++j)
 		{
 			unsigned short* v = &pmesh->verts[j * 3];
 			vremap[j] = addVertex(v[0] + ox, v[1], v[2] + oz,
-				mesh.verts, firstVert, nextVert, mesh.nverts);
+				mesh->verts, firstVert, nextVert, mesh->nverts);
 		}
 
 		for (int j = 0; j < pmesh->npolys; ++j)
 		{
-			unsigned short* tgt = &mesh.polys[mesh.npolys * 2 * mesh.nvp];
-			unsigned short* src = &pmesh->polys[j * 2 * mesh.nvp];
-			mesh.regs[mesh.npolys] = pmesh->regs[j];
-			mesh.areas[mesh.npolys] = pmesh->areas[j];
-			mesh.flags[mesh.npolys] = pmesh->flags[j];
-			mesh.npolys++;
-			for (int k = 0; k < mesh.nvp; ++k)
+			unsigned short* tgt = &mesh->polys[mesh->npolys * 2 * mesh->nvp];
+			unsigned short* src = &pmesh->polys[j * 2 * mesh->nvp];
+			mesh->regs[mesh->npolys] = pmesh->regs[j];
+			mesh->areas[mesh->npolys] = pmesh->areas[j];
+			mesh->flags[mesh->npolys] = pmesh->flags[j];
+			mesh->npolys++;
+			for (int k = 0; k < mesh->nvp; ++k)
 			{
 				if (src[k] == RC_MESH_NULL_IDX) break;
 				tgt[k] = vremap[src[k]];
@@ -1625,7 +1625,7 @@ bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rc
 
 			if (isOnBorder)
 			{
-				for (int k = mesh.nvp; k < mesh.nvp * 2; ++k)
+				for (int k = mesh->nvp; k < mesh->nvp * 2; ++k)
 				{
 					if (src[k] & 0x8000 && src[k] != 0xffff)
 					{
@@ -1656,85 +1656,85 @@ bool rcMergePolyMeshes(rcContext* ctx, const std::vector<rcPolyMesh*> meshes, rc
 	}
 
 	// Calculate adjacency.
-	if (!buildMeshAdjacency(mesh.polys, mesh.npolys, mesh.nverts, mesh.nvp))
+	if (!buildMeshAdjacency(mesh->polys, mesh->npolys, mesh->nverts, mesh->nvp))
 	{
 		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: Adjacency failed.");
 		return false;
 	}
 
-	if (mesh.nverts > 0xffff)
+	if (mesh->nverts > 0xffff)
 	{
-		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: The resulting mesh has too many vertices %d (max %d). Data can be corrupted.", mesh.nverts, 0xffff);
+		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: The resulting mesh has too many vertices %d (max %d). Data can be corrupted.", mesh->nverts, 0xffff);
 	}
-	if (mesh.npolys > 0xffff)
+	if (mesh->npolys > 0xffff)
 	{
-		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: The resulting mesh has too many polygons %d (max %d). Data can be corrupted.", mesh.npolys, 0xffff);
+		ctx->log(RC_LOG_ERROR, "rcMergePolyMeshes: The resulting mesh has too many polygons %d (max %d). Data can be corrupted.", mesh->npolys, 0xffff);
 	}
 
 	return true;
 }
 
-bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh& dst)
+bool rcCopyPolyMesh(rcContext* ctx, const rcPolyMesh& src, rcPolyMesh* dst)
 {
 	rcAssert(ctx);
 
 	// Destination must be empty.
-	rcAssert(dst.verts == 0);
-	rcAssert(dst.polys == 0);
-	rcAssert(dst.regs == 0);
-	rcAssert(dst.areas == 0);
-	rcAssert(dst.flags == 0);
+	rcAssert(dst->verts == 0);
+	rcAssert(dst->polys == 0);
+	rcAssert(dst->regs == 0);
+	rcAssert(dst->areas == 0);
+	rcAssert(dst->flags == 0);
 
-	dst.nverts = src.nverts;
-	dst.npolys = src.npolys;
-	dst.maxpolys = src.npolys;
-	dst.nvp = src.nvp;
-	rcVcopy(dst.bmin, src.bmin);
-	rcVcopy(dst.bmax, src.bmax);
-	dst.cs = src.cs;
-	dst.ch = src.ch;
-	dst.borderSize = src.borderSize;
-	dst.maxEdgeError = src.maxEdgeError;
+	dst->nverts = src.nverts;
+	dst->npolys = src.npolys;
+	dst->maxpolys = src.npolys;
+	dst->nvp = src.nvp;
+	rcVcopy(dst->bmin, src.bmin);
+	rcVcopy(dst->bmax, src.bmax);
+	dst->cs = src.cs;
+	dst->ch = src.ch;
+	dst->borderSize = src.borderSize;
+	dst->maxEdgeError = src.maxEdgeError;
 
-	dst.verts = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.nverts * 3, RC_ALLOC_PERM);
-	if (!dst.verts)
+	dst->verts = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.nverts * 3, RC_ALLOC_PERM);
+	if (!dst->verts)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst.verts' (%d).", src.nverts * 3);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst->verts' (%d).", src.nverts * 3);
 		return false;
 	}
-	memcpy(dst.verts, src.verts, sizeof(unsigned short) * src.nverts * 3);
+	memcpy(dst->verts, src.verts, sizeof(unsigned short) * src.nverts * 3);
 
-	dst.polys = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.npolys * 2 * src.nvp, RC_ALLOC_PERM);
-	if (!dst.polys)
+	dst->polys = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.npolys * 2 * src.nvp, RC_ALLOC_PERM);
+	if (!dst->polys)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst.polys' (%d).", src.npolys * 2 * src.nvp);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst->polys' (%d).", src.npolys * 2 * src.nvp);
 		return false;
 	}
-	memcpy(dst.polys, src.polys, sizeof(unsigned short) * src.npolys * 2 * src.nvp);
+	memcpy(dst->polys, src.polys, sizeof(unsigned short) * src.npolys * 2 * src.nvp);
 
-	dst.regs = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.npolys, RC_ALLOC_PERM);
-	if (!dst.regs)
+	dst->regs = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.npolys, RC_ALLOC_PERM);
+	if (!dst->regs)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst.regs' (%d).", src.npolys);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst->regs' (%d).", src.npolys);
 		return false;
 	}
-	memcpy(dst.regs, src.regs, sizeof(unsigned short) * src.npolys);
+	memcpy(dst->regs, src.regs, sizeof(unsigned short) * src.npolys);
 
-	dst.areas = (unsigned char*)rcAlloc(sizeof(unsigned char) * src.npolys, RC_ALLOC_PERM);
-	if (!dst.areas)
+	dst->areas = (unsigned char*)rcAlloc(sizeof(unsigned char) * src.npolys, RC_ALLOC_PERM);
+	if (!dst->areas)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst.areas' (%d).", src.npolys);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst->areas' (%d).", src.npolys);
 		return false;
 	}
-	memcpy(dst.areas, src.areas, sizeof(unsigned char) * src.npolys);
+	memcpy(dst->areas, src.areas, sizeof(unsigned char) * src.npolys);
 
-	dst.flags = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.npolys, RC_ALLOC_PERM);
-	if (!dst.flags)
+	dst->flags = (unsigned short*)rcAlloc(sizeof(unsigned short) * src.npolys, RC_ALLOC_PERM);
+	if (!dst->flags)
 	{
-		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst.flags' (%d).", src.npolys);
+		ctx->log(RC_LOG_ERROR, "rcCopyPolyMesh: Out of memory 'dst->flags' (%d).", src.npolys);
 		return false;
 	}
-	memcpy(dst.flags, src.flags, sizeof(unsigned short) * src.npolys);
+	memcpy(dst->flags, src.flags, sizeof(unsigned short) * src.npolys);
 
 	return true;
 }

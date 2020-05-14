@@ -409,9 +409,6 @@ Sample_TileMesh::Sample_TileMesh() :
 
 	//m_talloc = std::make_unique<LinearAllocator>(32000);
 
-	m_pmesh.reset(rcAllocPolyMesh());
-	m_dmesh.reset(rcAllocPolyMeshDetail());
-
 	setTool(new NavMeshTileTool);
 }
 
@@ -1585,26 +1582,29 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 	poly_meshes.clear();
 	detail_meshes.clear();
 
-	// メモリー再確保
-	for (size_t i = 0; i < 2; i++)
-	{
-		poly_meshes.emplace_back(rcAllocPolyMesh());
-		detail_meshes.emplace_back(rcAllocPolyMeshDetail());
-	}
+	// 初回通過時
+	if (!m_pmesh) m_pmesh.reset(rcAllocPolyMesh());
+	if (!m_dmesh) m_dmesh.reset(rcAllocPolyMeshDetail());
+
+	// 再度生成
+	poly_meshes.emplace_back(m_pmesh.release());         // ポインタ先を移動
+	detail_meshes.emplace_back(m_dmesh.release());       // ポインタ先を移動
+	poly_meshes.emplace_back(rcAllocPolyMesh());         // 新規
+	detail_meshes.emplace_back(rcAllocPolyMeshDetail()); // 新規
+	m_pmesh.reset(rcAllocPolyMesh());
+	m_dmesh.reset(rcAllocPolyMeshDetail());
 
 	// コピー
 	{
 		// poly_mesh
-		if (!(rcCopyPolyMesh(m_ctx, *m_last_pmesh, poly_meshes[0]) &&
-			rcCopyPolyMesh(m_ctx, *m_pmesh, poly_meshes[1])))
+		if (!rcCopyPolyMesh(m_ctx, *m_last_pmesh, poly_meshes.back()))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not copy polymesh."); // ポリゴンメッシュのマージに失敗
 			return nullptr;
 		}
 
 		// detail_mesh
-		if (!(rcCopyPolyMeshDetail(m_ctx, *m_last_dmesh, detail_meshes[0]) &&
-			rcCopyPolyMeshDetail(m_ctx, *m_dmesh, detail_meshes[1])))
+		if (!rcCopyPolyMeshDetail(m_ctx, *m_last_dmesh, detail_meshes.back()))
 		{
 			m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not copy polymesh detail."); // 詳細メッシュのマージに失敗
 			return nullptr;

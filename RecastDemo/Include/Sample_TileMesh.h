@@ -31,6 +31,18 @@ private:
 	bool m_buildAll;
 	float m_totalBuildTimeMs;
 
+	std::unique_ptr<struct LinearAllocator> m_talloc;
+	std::unique_ptr<struct FastLZCompressor> m_tcomp;
+	std::unique_ptr<struct MeshProcess> m_tmproc;
+
+	class dtTileCache* m_tileCache;
+
+	float m_cacheBuildTimeMs;
+	int m_cacheCompressedSize;
+	int m_cacheRawSize;
+	int m_cacheLayerCount;
+	int m_cacheBuildMemUsage;
+
 	std::vector<unsigned char> m_triareas;
 	std::unique_ptr<rcHeightfield> m_solid;
 	std::unique_ptr<rcCompactHeightfield> m_chf;
@@ -59,6 +71,7 @@ private:
 		DRAWMODE_CONTOURS,
 		DRAWMODE_POLYMESH,
 		DRAWMODE_POLYMESH_DETAIL,
+		DRAWMODE_CACHE_BOUNDS,
 		MAX_DRAWMODE
 	};
 
@@ -102,6 +115,13 @@ public:
 	void removeTile(const float* pos);
 	void buildAllTiles();
 	void removeAllTiles();
+
+	void renderCachedTile(const int tx, const int ty, const int type);
+	void renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view);
+
+	void addTempObstacle(const float* pos);
+	void removeTempObstacle(const float* sp, const float* sq);
+	void clearAllTempObstacles();
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

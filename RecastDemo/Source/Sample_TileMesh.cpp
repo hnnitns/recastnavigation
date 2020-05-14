@@ -46,6 +46,9 @@
 #include "ConvexVolumeTool.h"
 #include "CrowdTool.h"
 #include "AlgorithmHelper.h"
+#include "DetourCommon.h"
+#include "fastlz.h"
+#include "DetourTileCache.h"
 
 #ifdef WIN32
 #	define snprintf _snprintf
@@ -90,7 +93,7 @@ namespace
 	}
 
 	template<class _Ty>
-	constexpr inline size_t S_Cast(const _Ty draw_mode) { return (static_cast<size_t>(draw_mode)); }
+	constexpr inline int S_Cast(const _Ty draw_mode) { return (static_cast<int>(draw_mode)); }
 
 	class NavMeshTileTool : public SampleTool
 	{
@@ -188,14 +191,224 @@ namespace
 			imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Rebuild hit tile.  Shift+LMB: Clear hit tile.", imguiRGBA(255, 255, 255, 192));
 		}
 	};
+
+	// This value specifies how many layers (or "floors") each navmesh tile is expected to have.
+	//この値は、各navmeshタイルに必要なレイヤー（または「フロア」）の数を指定します。
+	constexpr int EXPECTED_LAYERS_PER_TILE = 4;
+
+	bool isectSegAABB(const float* sp, const float* sq,
+		const float* amin, const float* amax,
+		float& tmin, float& tmax)
+	{
+		constexpr float EPS = 1e-6f;
+
+		float d[3];
+		rcVsub(d, sq, sp);
+		tmin = 0;  // set to -FLT_MAX to get first hit on line
+		// -FLT_MAXに設定して、線上で最初のヒットを取得します
+		tmax = FLT_MAX;		// set to max distance ray can travel (for segment)
+		// 光線が移動できる最大距離に設定します（セグメント用）
+
+		// For all three slabs
+		// 3つのスラブすべて
+		for (int i = 0; i < 3; i++)
+		{
+			if (fabsf(d[i]) < EPS)
+			{
+				// Ray is parallel to slab. No hit if origin not within slab
+				// 光線はスラブに平行です。 原点がスラブ内にない場合はヒットなし
+				if (sp[i] < amin[i] || sp[i] > amax[i])
+					return false;
+			}
+			else
+			{
+				// Compute intersection t value of ray with near and far plane of slab
+				//スラブのニアおよびファープレーンとレイの交差t値を計算します
+				const float ood = 1.f / d[i];
+				float t1 = (amin[i] - sp[i]) * ood;
+				float t2 = (amax[i] - sp[i]) * ood;
+
+				// Make t1 be intersection with near plane, t2 with far plane
+				// t1を近くの平面と交差させ、t2を遠くの平面と交差させます
+				if (t1 > t2) rcSwap(t1, t2);
+
+				// Compute the intersection of slab intersections intervals
+				// スラブの交差間隔との交差を計算
+				if (t1 > tmin) tmin = t1;
+				if (t2 < tmax) tmax = t2;
+
+				// Exit with no collision as soon as slab intersection becomes empty
+				// スラブの交差点が無くなるとすぐに衝突なしで終了
+				if (tmin > tmax) return false;
+			}
+		}
+
+		return true;
+	}
+
+	inline constexpr int calcLayerBufferSize(const int gridWidth, const int gridHeight)
+	{
+		constexpr int headerSize = dtAlign4(sizeof(dtTileCacheLayerHeader));
+		const int gridSize = gridWidth * gridHeight;
+		return headerSize + gridSize * 4;
+	}
+
+	constexpr int MAX_LAYERS = 32;
 }
+
+struct FastLZCompressor : public dtTileCacheCompressor
+{
+	virtual int maxCompressedSize(const int bufferSize)
+	{
+		return (int)(bufferSize * 1.05f);
+	}
+
+	virtual dtStatus compress(const unsigned char* buffer, const int bufferSize,
+		unsigned char* compressed, const int /*maxCompressedSize*/, int* compressedSize)
+	{
+		*compressedSize = fastlz_compress((const void* const)buffer, bufferSize, compressed);
+		return DT_SUCCESS;
+	}
+
+	virtual dtStatus decompress(const unsigned char* compressed, const int compressedSize,
+		unsigned char* buffer, const int maxBufferSize, int* bufferSize)
+	{
+		*bufferSize = fastlz_decompress(compressed, compressedSize, buffer, maxBufferSize);
+		return *bufferSize < 0 ? DT_FAILURE : DT_SUCCESS;
+	}
+};
+
+struct LinearAllocator : public dtTileCacheAlloc
+{
+	unsigned char* buffer;
+	size_t capacity;
+	size_t top;
+	size_t high;
+
+	LinearAllocator(const size_t cap) : buffer(0), capacity(0), top(0), high(0)
+	{
+		resize(cap);
+	}
+
+	~LinearAllocator()
+	{
+		dtFree(buffer);
+	}
+
+	void resize(const size_t cap)
+	{
+		if (buffer) dtFree(buffer);
+		buffer = (unsigned char*)dtAlloc(cap, DT_ALLOC_PERM);
+		capacity = cap;
+	}
+
+	virtual void reset()
+	{
+		high = dtMax(high, top);
+		top = 0;
+	}
+
+	virtual void* alloc(const size_t size)
+	{
+		if (!buffer)
+			return 0;
+		if (top + size > capacity)
+			return 0;
+		unsigned char* mem = &buffer[top];
+		top += size;
+		return mem;
+	}
+
+	virtual void free(void* /*ptr*/)
+	{
+		// Empty
+	}
+};
+
+struct MeshProcess : public dtTileCacheMeshProcess
+{
+	InputGeom* m_geom;
+
+	inline MeshProcess() : m_geom(0)
+	{
+	}
+
+	inline void init(InputGeom* geom)
+	{
+		m_geom = geom;
+	}
+
+	virtual void process(struct dtNavMeshCreateParams* params,
+		unsigned char* polyAreas, unsigned short* polyFlags)
+	{
+		// Update poly flags from areas.
+		for (int i = 0; i < params->polyCount; ++i)
+		{
+			polyFlags[i] = sampleAreaToFlags(polyAreas[i]);
+		}
+
+		// Pass in off-mesh connections.
+		if (m_geom)
+		{
+			params->offMeshConVerts = m_geom->getOffMeshConnectionVerts().data();
+			params->offMeshConRad = m_geom->getOffMeshConnectionRads().data();
+			params->offMeshConDir = m_geom->getOffMeshConnectionDirs().data();
+			params->offMeshConAreas = m_geom->getOffMeshConnectionAreas().data();
+			params->offMeshConFlags = m_geom->getOffMeshConnectionFlags().data();
+			params->offMeshConUserID = m_geom->getOffMeshConnectionId().data();
+			params->offMeshConCount = m_geom->getOffMeshConnectionCount();
+		}
+	}
+};
+
+struct TileCacheData
+{
+	unsigned char* data;
+	int dataSize;
+};
+
+struct RasterizationContext
+{
+	RasterizationContext() :
+		solid(0),
+		triareas(0),
+		lset(0),
+		chf(0),
+		ntiles(0)
+	{
+		memset(tiles, 0, sizeof(TileCacheData) * MAX_LAYERS);
+	}
+
+	~RasterizationContext()
+	{
+		rcFreeHeightField(solid);
+		delete[] triareas;
+		rcFreeHeightfieldLayerSet(lset);
+		rcFreeCompactHeightfield(chf);
+		for (int i = 0; i < MAX_LAYERS; ++i)
+		{
+			dtFree(tiles[i].data);
+			tiles[i].data = 0;
+		}
+	}
+
+	rcHeightfield* solid;
+	unsigned char* triareas;
+	rcHeightfieldLayerSet* lset;
+	rcCompactHeightfield* chf;
+	TileCacheData tiles[MAX_LAYERS];
+	int ntiles;
+};
 
 Sample_TileMesh::Sample_TileMesh() :
 	m_keepInterResults{}, m_buildAll(true), m_totalBuildTimeMs{}, m_drawMode(DrawMode::DRAWMODE_NAVMESH),
 	m_maxTiles{}, m_maxPolysPerTile{}, m_tileSize(32), m_tileCol(duRGBA(0, 0, 0, 32)), m_tileBuildTime{},
-	m_tileMemUsage{}, m_tileTriCount{}, m_lastBuiltTileBmin{}, m_lastBuiltTileBmax{}
+	m_tileMemUsage{}, m_tileTriCount{}, m_lastBuiltTileBmin{}, m_lastBuiltTileBmax{}, m_tileCache{}
 {
 	resetCommonSettings();
+
+	//m_talloc = std::make_unique<LinearAllocator>(32000);
+
 	setTool(new NavMeshTileTool);
 }
 
@@ -925,6 +1138,26 @@ void Sample_TileMesh::removeAllTiles()
 			m_navMesh->removeTile(m_navMesh->getTileRefAt(x, y, 0), 0, 0);
 }
 
+void Sample_TileMesh::renderCachedTile(const int tx, const int ty, const int type)
+{
+}
+
+void Sample_TileMesh::renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view)
+{
+}
+
+void Sample_TileMesh::addTempObstacle(const float* pos)
+{
+}
+
+void Sample_TileMesh::removeTempObstacle(const float* sp, const float* sq)
+{
+}
+
+void Sample_TileMesh::clearAllTempObstacles()
+{
+}
+
 unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const std::array<float, 3>& bmin,
 	const std::array<float, 3>& bmax, int& dataSize)
 {
@@ -1079,7 +1312,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 			m_tileTriCount += nctris;
 
-			Fill(m_triareas, 0, exec::par);
+			Fill(m_triareas, '\0', exec::par);
 
 			// 表面が歩行可能かどうかを確認
 			rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle,

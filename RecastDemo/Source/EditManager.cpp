@@ -880,8 +880,6 @@ void EditManager::HandleDraw()
 	// ƒƒbƒVƒ…‚ÆŽlŠp‚Ì•`‰æ
 	if (sample) sample->handleRender();
 
-	//if (test) test->handleRender();
-
 	glDisable(GL_FOG);
 
 	// Render GUI // GUI•`‰æ

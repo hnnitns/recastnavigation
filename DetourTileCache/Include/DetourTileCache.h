@@ -67,8 +67,8 @@ struct dtTileCacheObstacle
 	dtCompressedTileRef touched[DT_MAX_TOUCHED_TILES];
 	dtCompressedTileRef pending[DT_MAX_TOUCHED_TILES];
 	unsigned short salt;
-	unsigned char type;
-	unsigned char state;
+	ObstacleType type;
+	ObstacleState state;
 	unsigned char ntouched;
 	unsigned char npending;
 	dtTileCacheObstacle* next;

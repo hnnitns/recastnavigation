@@ -288,16 +288,16 @@ void duAppendBox(struct duDebugDraw* dd, float minx, float miny, float minz,
 	if (!dd) return;
 	const float verts[8 * 3] =
 	{
-		minx, miny, minz,
-		maxx, miny, minz,
-		maxx, miny, maxz,
-		minx, miny, maxz,
-		minx, maxy, minz,
-		maxx, maxy, minz,
-		maxx, maxy, maxz,
-		minx, maxy, maxz,
+		minx, miny, minz, // 0, 1, 2
+		maxx, miny, minz, // 3, 4, 5
+		maxx, miny, maxz, // 6, 7, 8
+		minx, miny, maxz, // 9, 10, 11
+		minx, maxy, minz, // 12, 13, 14
+		maxx, maxy, minz, // 15, 16, 17
+		maxx, maxy, maxz, // 18, 19, 20
+		minx, maxy, maxz, // 21, 22, 23
 	};
-	static const unsigned char inds[6 * 4] =
+	constexpr unsigned char inds[6 * 4] =
 	{
 		7, 6, 5, 4,
 		0, 1, 2, 3,
@@ -306,6 +306,13 @@ void duAppendBox(struct duDebugDraw* dd, float minx, float miny, float minz,
 		2, 6, 7, 3,
 		0, 4, 5, 1,
 	};
+
+	/*
+	minx, maxx, maxx,
+	maxx, minx, maxx,
+	maxx, minx, maxxm
+
+	*/
 
 	const unsigned char* in = inds;
 	for (int i = 0; i < 6; ++i)

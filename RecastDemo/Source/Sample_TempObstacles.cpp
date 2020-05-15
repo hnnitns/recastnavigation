@@ -330,7 +330,7 @@ namespace
 
 		TempObstacleCreateTool() : m_sample(0), add_obstacle_cylinder(true), add_pos{}
 		{
-			dtVset(box_size, 1.f, 1.f, 1.f);
+			dtVset(box_size, 3.f, 5.f, 3.f);
 
 			add_data.cylinder = { {}, 1.f, 2.0f };
 			add_data.box = {};
@@ -367,16 +367,16 @@ namespace
 
 				auto& data{ add_data.cylinder };
 
-				imguiSlider("height", &data.height, 0.f, 5.f, 0.1f);
-				imguiSlider("radius", &data.radius, 0.f, 5.f, 0.1f);
+				imguiSlider("height", &data.height, 1.5f, 10.f, 0.1f);
+				imguiSlider("radius", &data.radius, 0.5f, 8.f, 0.1f);
 			}
 			else
 			{
 				imguiValue("Box");
 
-				imguiSlider("Size : x", &box_size[0], 0.1f, 5.f, 0.1f);
-				imguiSlider("Size : y", &box_size[1], 0.1f, 5.f, 0.1f);
-				imguiSlider("Size : z", &box_size[2], 0.1f, 5.f, 0.1f);
+				imguiSlider("Size : x", &box_size[0], 2.5f, 12.f, 0.1f);
+				imguiSlider("Size : y", &box_size[1], 3.0f, 15.f, 0.1f);
+				imguiSlider("Size : z", &box_size[2], 2.5f, 12.f, 0.1f);
 			}
 
 			imguiSeparator();
@@ -396,10 +396,15 @@ namespace
 				else
 				{
 					rcVcopy(add_data.cylinder.pos, add_pos);
-					rcVcopy(add_data.box.bmin, add_pos);
-					rcVcopy(add_data.box.bmax, add_pos);
 
-					rcVadd(add_data.box.bmax, add_data.box.bmin, box_size);
+					constexpr float half[3]{ 2, 2, 2 };
+					float half_size[3]{};
+
+					rcVsub(half_size, box_size, half);
+
+					rcVadd(add_data.box.bmax, add_pos, half_size);
+					rcVcopy(add_data.box.bmin, add_pos);
+					//rcVsub(add_data.box.bmin, add_pos, half_size);
 
 					m_sample->addTempObstacle(add_data, add_obstacle_cylinder);
 				}
@@ -609,8 +614,18 @@ namespace
 			else if (ob->state == DT_OBSTACLE_REMOVING)
 				col = duRGBA(220, 0, 0, 128);
 
-			duDebugDrawCylinder(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], col);
-			duDebugDrawCylinderWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duDarkenCol(col), 2);
+			if (ob->type == DT_OBSTACLE_CYLINDER)
+			{
+				duDebugDrawCylinder(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], col);
+				duDebugDrawCylinderWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duDarkenCol(col), 2);
+			}
+			else
+			{
+				uint32_t col_arr[4]{ col, col, col, col };
+
+				duDebugDrawBox(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], col_arr);
+				duDebugDrawBoxWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duDarkenCol(col), 2);
+			}
 		}
 	}
 }
@@ -1279,7 +1294,7 @@ void Sample_TempObstacles::handleRenderOverlay(double* proj, double* model, int*
 {
 	if (m_tool)
 		m_tool->handleRenderOverlay(proj, model, view);
-	renderOverlayToolStates(proj, model, view);
+	//renderOverlayToolStates(proj, model, view);
 
 	// Stats
 /*	imguiDrawRect(280,10,300,100,imguiRGBA(0,0,0,64));
@@ -1331,23 +1346,23 @@ void Sample_TempObstacles::addTempObstacle(const AddObstacleData& add_data, cons
 
 	if (add_type_cylinder)
 	{
-		auto& data{ add_data.cylinder };
+		const auto& data{ add_data.cylinder };
 
 		float p[3];
 		dtVcopy(p, data.pos);
 		p[1] -= 0.5f;
 
-		m_tileCache->addCylinderObstacle(p, 1.f, 2.0f, nullptr);
+		m_tileCache->addCylinderObstacle(p, data.radius, data.height, nullptr);
 	}
 	else
 	{
-		auto& data{ add_data.box };
+		const auto& data{ add_data.box };
 
 		float p_min[3], p_max[3];
 		dtVcopy(p_min, data.bmin);
-		p_min[1] -= 0.5f;
 		dtVcopy(p_max, data.bmax);
-		p_max[1] -= 0.5f;
+		p_min[1] -= 0.25f;
+		p_max[1] -= 0.25f;
 
 		m_tileCache->addBoxObstacle(p_min, p_max, nullptr);
 	}
@@ -1640,7 +1655,7 @@ void Sample_TempObstacles::removeAllTiles()
 
 	for (int y = 0; y < th; ++y)
 		for (int x = 0; x < tw; ++x)
-			dtStatus state = m_navMesh->removeTile(m_navMesh->getTileRefAt(x, y, 0), 0, 0);
+			m_navMesh->removeTile(m_navMesh->getTileRefAt(x, y, 0), 0, 0);
 
 	for (int y = 0; y < th; ++y)
 		for (int x = 0; x < tw; ++x)

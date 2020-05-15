@@ -33,14 +33,6 @@ namespace
 		return false;
 	}
 
-	inline int computeTileHash(int x, int y, const int mask)
-	{
-		const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
-		const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
-		unsigned int n = h1 * x + h2 * y;
-		return (int)(n & mask);
-	}
-
 	struct NavMeshTileBuildContext
 	{
 		inline NavMeshTileBuildContext(struct dtTileCacheAlloc* a) : layer(0), lcset(0), lmesh(0), alloc(a) {}
@@ -59,6 +51,14 @@ namespace
 		struct dtTileCachePolyMesh* lmesh;
 		struct dtTileCacheAlloc* alloc;
 	};
+
+	inline int computeTileHash(int x, int y, const int mask)
+	{
+		const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
+		const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
+		unsigned int n = h1 * x + h2 * y;
+		return (int)(n & mask);
+	}
 }
 
 dtTileCache::dtTileCache() :
@@ -648,11 +648,13 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	dtStatus status;
 
 	// Decompress tile layer data.
+	// タイルレイヤーデータを解凍します。
 	status = dtDecompressTileCacheLayer(m_talloc, m_tcomp, tile->data, tile->dataSize, &bc.layer);
 	if (dtStatusFailed(status))
 		return status;
 
 	// Rasterize obstacles.
+	// 障害物をラスタライズします。
 	for (int i = 0; i < m_params.maxObstacles; ++i)
 	{
 		const dtTileCacheObstacle* ob = &m_obstacles[i];
@@ -675,6 +677,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	}
 
 	// Build navmesh
+	// ナビメッシュの生成
 	status = dtBuildTileCacheRegions(m_talloc, *bc.layer, walkableClimbVx);
 	if (dtStatusFailed(status))
 		return status;
@@ -695,6 +698,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		return status;
 
 	// Early out if the mesh tile is empty.
+	// メッシュタイルが空の場合は早めに。
 	if (!bc.lmesh->npolys)
 	{
 		// Remove existing tile.
@@ -702,8 +706,8 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		return DT_SUCCESS;
 	}
 
-	dtNavMeshCreateParams params;
-	memset(&params, 0, sizeof(params));
+	dtNavMeshCreateParams params{};
+
 	params.verts = bc.lmesh->verts;
 	params.vertCount = bc.lmesh->nverts;
 	params.polys = bc.lmesh->polys;

@@ -1216,7 +1216,7 @@ void Sample_TempObstacles::handleRender()
 			// Draw mesh // ƒƒbƒVƒ…‚ð•`‰æ
 			duDebugDrawTriMeshSlope(&m_dd, mesh->getVerts(), mesh->getVertCount(),
 				mesh->getTris(), mesh->getNormals(), mesh->getTriCount(),
-				m_agentMaxSlope, texScale);
+				m_agentMaxSlope, texScale, geom.is_selected);
 		}
 
 		m_geom->drawOffMeshConnections(&m_dd);

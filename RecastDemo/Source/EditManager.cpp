@@ -186,7 +186,7 @@ bool EditManager::Update()
 
 	// Level selection dialog. // レベル選択ダイアログ。
 	// Chose Meshを選択している
-	if (showLevels)	MeshSelect();
+	MeshSelect();
 
 	// ログ
 	if (showLog && showMenu)
@@ -777,6 +777,15 @@ void EditManager::MeshSelect()
 {
 	if (!sample) return;
 
+	// ジオメトリの削除
+	if (delete_mesh)
+	{
+		delete_mesh = false;
+		sample->getInputGeom()->EraseSelectLoadGeomMesh();
+	}
+
+	if (!showLevels)	return;
+
 	static int levelScroll{};
 	static bool is_selected{};
 
@@ -861,13 +870,6 @@ void EditManager::MeshSelect()
 			is_selected = false;
 			meshName.clear();
 		}
-	}
-
-	// ジオメトリの削除
-	if (!is_selected && delete_mesh)
-	{
-		delete_mesh = false;
-		sample->getInputGeom()->EraseSelectLoadGeomMesh();
 	}
 
 	imguiEndScrollArea();

@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <execution>
 #include <atomic>
+#include <limits>
 
 #include "Recast.h"
 #include "InputGeom.h"
@@ -368,7 +369,12 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 
 void InputGeom::CalcAllMeshBounds()
 {
-	for (auto& mesh : load_geom_meshes)
+	// ‰Šú‰»
+	all_meshBMax.fill((std::numeric_limits<float>::lowest)());
+	all_meshBMin.fill((std::numeric_limits<float>::max)());
+
+	// ŒvZ
+	for (const auto& mesh : load_geom_meshes)
 	{
 		for (size_t i = 0; i < 3u; i++)
 		{
@@ -583,11 +589,13 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 
 std::deque<InputGeom::LoadGeomMesh>::iterator InputGeom::EraseSelectLoadGeomMesh() noexcept
 {
+	const size_t size{ load_geom_meshes.size() };
+
 	auto itr{ Erase_Remove_If(
 		load_geom_meshes, [](const LoadGeomMesh& mesh) { return mesh.is_selected; }, exec::par) };
 
 	// íœ‚µ‚½ê‡‚ÍÄŒvZ
-	if (itr != load_geom_meshes.end())
+	if (size != load_geom_meshes.size())
 		CalcAllMeshBounds();
 
 	return (itr);

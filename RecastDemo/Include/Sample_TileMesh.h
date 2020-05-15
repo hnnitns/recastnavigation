@@ -24,6 +24,14 @@
 #include "Recast.h"
 #include "ChunkyTriMesh.h"
 
+enum class DrawDetailType
+{
+	DRAWDETAIL_AREAS,
+	DRAWDETAIL_REGIONS,
+	DRAWDETAIL_CONTOURS,
+	DRAWDETAIL_MESH,
+};
+
 class Sample_TileMesh : public Sample
 {
 private:
@@ -91,7 +99,6 @@ private:
 
 	unsigned char* buildTileMesh(const int tx, const int ty, const std::array<float, 3>& bmin,
 		const std::array<float, 3>& bmax, int& dataSize);
-	bool MergePolyMeshes();
 
 	void CleanUp();
 
@@ -122,7 +129,7 @@ public:
 	bool buildAllTiles();
 	void removeAllTiles();
 
-	void renderCachedTile(const int tx, const int ty, const int type);
+	void renderCachedTile(const int tx, const int ty, const DrawDetailType type);
 	void renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view);
 
 	void addTempObstacle(const float* pos);

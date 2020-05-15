@@ -100,6 +100,7 @@ namespace
 		Sample_TileMesh* m_sample;
 		float m_hitPos[3];
 		bool m_hitPosSet;
+		int m_drawType;
 
 	public:
 
@@ -190,6 +191,153 @@ namespace
 			const int h = view[3];
 			imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Rebuild hit tile.  Shift+LMB: Clear hit tile.", imguiRGBA(255, 255, 255, 192));
 		}
+	};
+
+	class TempObstacleHilightTool : public SampleTool
+	{
+		Sample_TileMesh* m_sample;
+		float m_hitPos[3];
+		bool m_hitPosSet;
+		DrawDetailType m_drawType;
+
+	public:
+
+		TempObstacleHilightTool() :
+			m_sample(0),
+			m_hitPosSet(false),
+			m_drawType(DrawDetailType::DRAWDETAIL_AREAS)
+		{
+			m_hitPos[0] = m_hitPos[1] = m_hitPos[2] = 0;
+		}
+
+		virtual ~TempObstacleHilightTool()
+		{
+		}
+
+		virtual int type() { return TOOL_TILE_HIGHLIGHT; }
+
+		virtual void init(Sample* sample)
+		{
+		}
+
+		virtual void reset() {}
+
+		virtual void handleMenu()
+		{
+			imguiLabel("Highlight Tile Cache");
+			imguiValue("Click LMB to highlight a tile.");
+			imguiSeparator();
+			if (imguiCheck("Draw Areas", m_drawType == DrawDetailType::DRAWDETAIL_AREAS))
+				m_drawType = DrawDetailType::DRAWDETAIL_AREAS;
+			if (imguiCheck("Draw Regions", m_drawType == DrawDetailType::DRAWDETAIL_REGIONS))
+				m_drawType = DrawDetailType::DRAWDETAIL_REGIONS;
+			if (imguiCheck("Draw Contours", m_drawType == DrawDetailType::DRAWDETAIL_CONTOURS))
+				m_drawType = DrawDetailType::DRAWDETAIL_CONTOURS;
+			if (imguiCheck("Draw Mesh", m_drawType == DrawDetailType::DRAWDETAIL_MESH))
+				m_drawType = DrawDetailType::DRAWDETAIL_MESH;
+		}
+
+		virtual void handleClick(const float* /*s*/, const float* p, bool /*shift*/)
+		{
+			m_hitPosSet = true;
+			rcVcopy(m_hitPos, p);
+		}
+
+		virtual void handleToggle() {}
+
+		virtual void handleStep() {}
+
+		virtual void handleUpdate(const float /*dt*/) {}
+
+		virtual void handleRender()
+		{
+			if (m_hitPosSet && m_sample)
+			{
+				const float s = m_sample->getAgentRadius();
+				glColor4ub(0, 0, 0, 128);
+				glLineWidth(2.0f);
+				glBegin(GL_LINES);
+				glVertex3f(m_hitPos[0] - s, m_hitPos[1] + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0] + s, m_hitPos[1] + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0], m_hitPos[1] - s + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0], m_hitPos[1] + s + 0.1f, m_hitPos[2]);
+				glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] - s);
+				glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] + s);
+				glEnd();
+				glLineWidth(1.f);
+
+				int tx = 0, ty = 0;
+				m_sample->getTilePos(m_hitPos, tx, ty);
+				m_sample->renderCachedTile(tx, ty, m_drawType);
+			}
+		}
+
+		virtual void handleRenderOverlay(double* proj, double* model, int* view)
+		{
+			if (m_hitPosSet)
+			{
+				if (m_sample)
+				{
+					int tx = 0, ty = 0;
+					m_sample->getTilePos(m_hitPos, tx, ty);
+					m_sample->renderCachedTileOverlay(tx, ty, proj, model, view);
+				}
+			}
+		}
+	};
+
+	class TempObstacleCreateTool : public SampleTool
+	{
+		Sample_TileMesh* m_sample;
+
+	public:
+
+		TempObstacleCreateTool() : m_sample(0)
+		{
+		}
+
+		virtual ~TempObstacleCreateTool()
+		{
+		}
+
+		virtual int type() { return TOOL_TEMP_OBSTACLE; }
+
+		virtual void init(Sample* sample)
+		{
+			m_sample = (Sample_TileMesh*)sample;
+		}
+
+		virtual void reset() {}
+
+		virtual void handleMenu()
+		{
+			imguiLabel("Create Temp Obstacles");
+
+			if (imguiButton("Remove All"))
+				m_sample->clearAllTempObstacles();
+
+			imguiSeparator();
+
+			imguiValue("Click LMB to create an obstacle.");
+			imguiValue("Shift+LMB to remove an obstacle.");
+		}
+
+		virtual void handleClick(const float* s, const float* p, bool shift)
+		{
+			if (m_sample)
+			{
+				if (shift)
+					m_sample->removeTempObstacle(s, p);
+				else
+					m_sample->addTempObstacle(p);
+			}
+		}
+
+		virtual void handleToggle() {}
+		virtual void handleStep() {}
+		virtual void handleUpdate(const float /*dt*/) {}
+		virtual void handleRender() {}
+		virtual void handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/) { }
 	};
 
 	// This value specifies how many layers (or "floors") each navmesh tile is expected to have.
@@ -286,15 +434,7 @@ namespace
 		}
 	}
 
-	enum DrawDetailType
-	{
-		DRAWDETAIL_AREAS,
-		DRAWDETAIL_REGIONS,
-		DRAWDETAIL_CONTOURS,
-		DRAWDETAIL_MESH,
-	};
-
-	void drawDetail(duDebugDraw* dd, dtTileCache* tc, const int tx, const int ty, int type)
+	void drawDetail(duDebugDraw* dd, dtTileCache* tc, const int tx, const int ty, DrawDetailType type)
 	{
 		struct TileCacheBuildContext
 		{
@@ -336,7 +476,7 @@ namespace
 			status = dtDecompressTileCacheLayer(talloc, tcomp, tile->data, tile->dataSize, &bc.layer);
 			if (dtStatusFailed(status))
 				return;
-			if (type == DRAWDETAIL_AREAS)
+			if (type == DrawDetailType::DRAWDETAIL_AREAS)
 			{
 				duDebugDrawTileCacheLayerAreas(dd, *bc.layer, params->cs, params->ch);
 				continue;
@@ -346,7 +486,7 @@ namespace
 			status = dtBuildTileCacheRegions(talloc, *bc.layer, walkableClimbVx);
 			if (dtStatusFailed(status))
 				return;
-			if (type == DRAWDETAIL_REGIONS)
+			if (type == DrawDetailType::DRAWDETAIL_REGIONS)
 			{
 				duDebugDrawTileCacheLayerRegions(dd, *bc.layer, params->cs, params->ch);
 				continue;
@@ -359,7 +499,7 @@ namespace
 				params->maxSimplificationError, *bc.lcset);
 			if (dtStatusFailed(status))
 				return;
-			if (type == DRAWDETAIL_CONTOURS)
+			if (type == DrawDetailType::DRAWDETAIL_CONTOURS)
 			{
 				duDebugDrawTileCacheContours(dd, *bc.lcset, tile->header->bmin, params->cs, params->ch);
 				continue;
@@ -372,7 +512,7 @@ namespace
 			if (dtStatusFailed(status))
 				return;
 
-			if (type == DRAWDETAIL_MESH)
+			if (type == DrawDetailType::DRAWDETAIL_MESH)
 			{
 				duDebugDrawTileCachePolyMesh(dd, *bc.lmesh, tile->header->bmin, params->cs, params->ch);
 				continue;
@@ -606,154 +746,6 @@ struct RasterizationContext
 	TileCacheData tiles[MAX_LAYERS];
 	int ntiles;
 };
-
-//class TempObstacleHilightTool : public SampleTool
-//{
-//	Sample_TempObstacles* m_sample;
-//	float m_hitPos[3];
-//	bool m_hitPosSet;
-//	int m_drawType;
-//
-//public:
-//
-//	TempObstacleHilightTool() :
-//		m_sample(0),
-//		m_hitPosSet(false),
-//		m_drawType(DRAWDETAIL_AREAS)
-//	{
-//		m_hitPos[0] = m_hitPos[1] = m_hitPos[2] = 0;
-//	}
-//
-//	virtual ~TempObstacleHilightTool()
-//	{
-//	}
-//
-//	virtual int type() { return TOOL_TILE_HIGHLIGHT; }
-//
-//	virtual void init(Sample* sample)
-//	{
-//		m_sample = (Sample_TempObstacles*)sample;
-//	}
-//
-//	virtual void reset() {}
-//
-//	virtual void handleMenu()
-//	{
-//		imguiLabel("Highlight Tile Cache");
-//		imguiValue("Click LMB to highlight a tile.");
-//		imguiSeparator();
-//		if (imguiCheck("Draw Areas", m_drawType == DRAWDETAIL_AREAS))
-//			m_drawType = DRAWDETAIL_AREAS;
-//		if (imguiCheck("Draw Regions", m_drawType == DRAWDETAIL_REGIONS))
-//			m_drawType = DRAWDETAIL_REGIONS;
-//		if (imguiCheck("Draw Contours", m_drawType == DRAWDETAIL_CONTOURS))
-//			m_drawType = DRAWDETAIL_CONTOURS;
-//		if (imguiCheck("Draw Mesh", m_drawType == DRAWDETAIL_MESH))
-//			m_drawType = DRAWDETAIL_MESH;
-//	}
-//
-//	virtual void handleClick(const float* /*s*/, const float* p, bool /*shift*/)
-//	{
-//		m_hitPosSet = true;
-//		rcVcopy(m_hitPos, p);
-//	}
-//
-//	virtual void handleToggle() {}
-//
-//	virtual void handleStep() {}
-//
-//	virtual void handleUpdate(const float /*dt*/) {}
-//
-//	virtual void handleRender()
-//	{
-//		if (m_hitPosSet && m_sample)
-//		{
-//			const float s = m_sample->getAgentRadius();
-//			glColor4ub(0, 0, 0, 128);
-//			glLineWidth(2.0f);
-//			glBegin(GL_LINES);
-//			glVertex3f(m_hitPos[0] - s, m_hitPos[1] + 0.1f, m_hitPos[2]);
-//			glVertex3f(m_hitPos[0] + s, m_hitPos[1] + 0.1f, m_hitPos[2]);
-//			glVertex3f(m_hitPos[0], m_hitPos[1] - s + 0.1f, m_hitPos[2]);
-//			glVertex3f(m_hitPos[0], m_hitPos[1] + s + 0.1f, m_hitPos[2]);
-//			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] - s);
-//			glVertex3f(m_hitPos[0], m_hitPos[1] + 0.1f, m_hitPos[2] + s);
-//			glEnd();
-//			glLineWidth(1.f);
-//
-//			int tx = 0, ty = 0;
-//			m_sample->getTilePos(m_hitPos, tx, ty);
-//			m_sample->renderCachedTile(tx, ty, m_drawType);
-//		}
-//	}
-//
-//	virtual void handleRenderOverlay(double* proj, double* model, int* view)
-//	{
-//		if (m_hitPosSet)
-//		{
-//			if (m_sample)
-//			{
-//				int tx = 0, ty = 0;
-//				m_sample->getTilePos(m_hitPos, tx, ty);
-//				m_sample->renderCachedTileOverlay(tx, ty, proj, model, view);
-//			}
-//		}
-//	}
-//};
-//
-//class TempObstacleCreateTool : public SampleTool
-//{
-//	Sample_TempObstacles* m_sample;
-//
-//public:
-//
-//	TempObstacleCreateTool() : m_sample(0)
-//	{
-//	}
-//
-//	virtual ~TempObstacleCreateTool()
-//	{
-//	}
-//
-//	virtual int type() { return TOOL_TEMP_OBSTACLE; }
-//
-//	virtual void init(Sample* sample)
-//	{
-//		m_sample = (Sample_TempObstacles*)sample;
-//	}
-//
-//	virtual void reset() {}
-//
-//	virtual void handleMenu()
-//	{
-//		imguiLabel("Create Temp Obstacles");
-//
-//		if (imguiButton("Remove All"))
-//			m_sample->clearAllTempObstacles();
-//
-//		imguiSeparator();
-//
-//		imguiValue("Click LMB to create an obstacle.");
-//		imguiValue("Shift+LMB to remove an obstacle.");
-//	}
-//
-//	virtual void handleClick(const float* s, const float* p, bool shift)
-//	{
-//		if (m_sample)
-//		{
-//			if (shift)
-//				m_sample->removeTempObstacle(s, p);
-//			else
-//				m_sample->addTempObstacle(p);
-//		}
-//	}
-//
-//	virtual void handleToggle() {}
-//	virtual void handleStep() {}
-//	virtual void handleUpdate(const float /*dt*/) {}
-//	virtual void handleRender() {}
-//	virtual void handleRenderOverlay(double* /*proj*/, double* /*model*/, int* /*view*/) { }
-//};
 
 Sample_TileMesh::Sample_TileMesh() :
 	m_keepInterResults{}, m_buildAll(true), m_totalBuildTimeMs{}, m_drawMode(DrawMode::DRAWMODE_NAVMESH),
@@ -1056,14 +1048,14 @@ void Sample_TileMesh::handleTools()
 	{
 		setTool(new NavMeshTileTool);
 	}
-	//if (imguiCheck("Highlight Tile Cache", type == TOOL_TILE_HIGHLIGHT))
-	//{
-	//	setTool(new TempObstacleHilightTool);
-	//}
-	//if (imguiCheck("Create Temp Obstacles", type == TOOL_TEMP_OBSTACLE))
-	//{
-	//	setTool(new TempObstacleCreateTool);
-	//}
+	if (imguiCheck("Highlight Tile Cache", type == TOOL_TILE_HIGHLIGHT))
+	{
+		setTool(new TempObstacleHilightTool);
+	}
+	if (imguiCheck("Create Temp Obstacles", type == TOOL_TEMP_OBSTACLE))
+	{
+		setTool(new TempObstacleCreateTool);
+	}
 	if (imguiCheck("Create Off-Mesh Links", type == TOOL_OFFMESH_CONNECTION))
 	{
 		setTool(new OffMeshConnectionTool);
@@ -1307,7 +1299,7 @@ void Sample_TileMesh::handleRender()
 	glDepthMask(GL_TRUE);
 }
 
-void Sample_TileMesh::renderCachedTile(const int tx, const int ty, const int type)
+void Sample_TileMesh::renderCachedTile(const int tx, const int ty, const DrawDetailType type)
 {
 	if (m_tileCache)
 		drawDetail(&m_dd, m_tileCache, tx, ty, type);

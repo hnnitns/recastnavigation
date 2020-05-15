@@ -124,13 +124,14 @@ public:
 
 	dtCompressedTile* getTileAt(const int tx, const int ty, const int tlayer);
 	dtCompressedTileRef getTileRef(const dtCompressedTile* tile) const;
+	dtCompressedTileRef getTileRefAt(const int tx, const int ty) const;
 	const dtCompressedTile* getTileByRef(dtCompressedTileRef ref) const;
 
 	dtStatus addTile(unsigned char* data, const int dataSize, unsigned char flags, dtCompressedTileRef* result);
 
 	dtStatus removeTile(dtCompressedTileRef ref, unsigned char** data, int* dataSize);
 
-	dtStatus addObstacle(const float* pos, const float radius, const float height, dtObstacleRef* result);
+	dtStatus addCylinderObstacle(const float* pos, const float radius, const float height, dtObstacleRef* result);
 	dtStatus addBoxObstacle(const float* bmin, const float* bmax, dtObstacleRef* result);
 
 	dtStatus removeObstacle(const dtObstacleRef ref);

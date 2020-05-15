@@ -39,20 +39,6 @@ private:
 	bool m_buildAll;
 	float m_totalBuildTimeMs;
 
-	///----------------- TempObstackesの機能 -----------------
-	struct LinearAllocator* m_talloc;
-	struct FastLZCompressor* m_tcomp;
-	struct MeshProcess* m_tmproc;
-
-	class dtTileCache* m_tileCache;
-
-	float m_cacheBuildTimeMs;
-	int m_cacheCompressedSize;
-	int m_cacheRawSize;
-	int m_cacheLayerCount;
-	int m_cacheBuildMemUsage;
-	///-------------------------------------------------------
-
 	std::vector<unsigned char> m_triareas;
 	std::unique_ptr<rcHeightfield> m_solid;
 	std::unique_ptr<rcCompactHeightfield> m_chf;
@@ -81,7 +67,6 @@ private:
 		DRAWMODE_CONTOURS,
 		DRAWMODE_POLYMESH,
 		DRAWMODE_POLYMESH_DETAIL,
-		DRAWMODE_CACHE_BOUNDS,
 		MAX_DRAWMODE
 	};
 
@@ -121,21 +106,10 @@ public:
 
 	void getTilePos(const float* pos, int& tx, int& ty);
 
-	///----------------- TempObstackesの機能 -----------------
-	bool buildTileCache(const int tw, const int th);
-
 	void buildTile(const float* pos);
 	void removeTile(const float* pos);
 	bool buildAllTiles();
 	void removeAllTiles();
-
-	void renderCachedTile(const int tx, const int ty, const DrawDetailType type);
-	void renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view);
-
-	void addTempObstacle(const float* pos);
-	void removeTempObstacle(const float* sp, const float* sq);
-	void clearAllTempObstacles();
-	///-------------------------------------------------------
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

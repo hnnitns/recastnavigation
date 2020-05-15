@@ -228,6 +228,15 @@ dtCompressedTileRef dtTileCache::getTileRef(const dtCompressedTile* tile) const
 	return (dtCompressedTileRef)encodeTileId(tile->salt, it);
 }
 
+dtCompressedTileRef dtTileCache::getTileRefAt(const int tx, const int ty) const
+{
+	// Find tile based on hash.
+	int h = computeTileHash(tx, ty, m_tileLutMask);
+	dtCompressedTile* tile = m_posLookup[h];
+
+	return getTileRef(tile);
+}
+
 dtObstacleRef dtTileCache::getObstacleRef(const dtTileCacheObstacle* ob) const
 {
 	if (!ob) return 0;
@@ -360,7 +369,7 @@ dtStatus dtTileCache::removeTile(dtCompressedTileRef ref, unsigned char** data, 
 	return DT_SUCCESS;
 }
 
-dtStatus dtTileCache::addObstacle(const float* pos, const float radius, const float height, dtObstacleRef* result)
+dtStatus dtTileCache::addCylinderObstacle(const float* pos, const float radius, const float height, dtObstacleRef* result)
 {
 	if (m_nreqs >= MAX_REQUESTS)
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL;

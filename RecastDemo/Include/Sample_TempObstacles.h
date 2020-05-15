@@ -23,6 +23,13 @@
 #include "DetourNavMesh.h"
 #include "Recast.h"
 #include "ChunkyTriMesh.h"
+#include "DetourTileCache.h"
+
+struct AddObstacleData
+{
+	dtObstacleCylinder cylinder;
+	dtObstacleBox box;
+};
 
 class Sample_TempObstacles : public Sample
 {
@@ -78,19 +85,28 @@ public:
 	void renderCachedTile(const int tx, const int ty, const int type);
 	void renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view);
 
-	void addTempObstacle(const float* pos);
+	void addTempObstacle(const AddObstacleData& add_data, const bool add_type_cylinder);
 	void removeTempObstacle(const float* sp, const float* sq);
 	void clearAllTempObstacles();
+
+	void buildTile(const float* pos);
+	bool removeTile(const float* pos);
+	bool buildAllTiles();
+	void removeAllTiles();
 
 	void saveAll(const char* path);
 	void loadAll(const char* path);
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	Sample_TempObstacles(const Sample_TempObstacles&);
-	Sample_TempObstacles& operator=(const Sample_TempObstacles&);
+	Sample_TempObstacles(const Sample_TempObstacles&) = delete;
+	Sample_TempObstacles& operator=(const Sample_TempObstacles&) = delete;
 
 	int rasterizeTileLayers(const int tx, const int ty, const rcConfig& cfg, struct TileCacheData* tiles, const int maxTiles);
+	void CleanUp();
+	void buildTileMeshLayer(
+		const int tx, const int ty, const rcConfig& cfg, const struct dtTileCacheParams& tcparams);
+	void buildTileMesh(const int tx, const int ty);
 };
 
 #endif // RECASTSAMPLETEMPOBSTACLE_H

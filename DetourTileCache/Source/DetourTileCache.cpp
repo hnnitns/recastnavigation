@@ -508,6 +508,7 @@ void dtTileCache::CalcBoxPos(const float* middle_pos, const float* box_size, dtO
 
 	// ‰º‚ª‚Á‚Ä‚µ‚Ü‚¤‚Ì‚Å–ß‚·
 	box->bmin[1] += half_size[1];
+	box->bmax[1] += half_size[1];
 }
 
 dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,

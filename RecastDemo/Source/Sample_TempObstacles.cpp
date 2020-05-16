@@ -22,6 +22,8 @@
 #include <string>
 #include <cfloat>
 #include <new>
+#include <mutex>
+
 #include "SDL.h"
 #include "SDL_opengl.h"
 #ifdef __APPLE__
@@ -47,6 +49,7 @@
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
 #include "fastlz.h"
+#include "AlgorithmHelper.h"
 
 #ifdef _DEBUG
 #define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -58,6 +61,8 @@
 
 namespace
 {
+	namespace exec = std::execution;
+
 	// This value specifies how many layers (or "floors") each navmesh tile is expected to have.
 	//この値は、各navmeshタイルに必要なレイヤー（または「フロア」）の数を指定します。
 	constexpr int EXPECTED_LAYERS_PER_TILE = 4;
@@ -573,26 +578,30 @@ namespace
 
 	dtObstacleRef hitTestObstacle(const dtTileCache* tc, const float* sp, const float* sq)
 	{
-		float tmin = FLT_MAX;
-		const dtTileCacheObstacle* obmin = 0;
-		for (int i = 0; i < tc->getObstacleCount(); ++i)
-		{
-			const dtTileCacheObstacle* ob = tc->getObstacle(i);
-			if (ob->state == DT_OBSTACLE_EMPTY)
-				continue;
+		float tmin{ (std::numeric_limits<float>::max)() };
+		const dtTileCacheObstacle* obmin{};
+		std::mutex mt;
 
-			float bmin[3], bmax[3], t0, t1;
-			tc->getObstacleBounds(ob, bmin, bmax);
-
-			if (isectSegAABB(sp, sq, bmin, bmax, t0, t1))
+		For_Each(tc->getObstacle(), [&](const dtTileCacheObstacle& ob)
 			{
-				if (t0 < tmin)
+				if (ob.state == DT_OBSTACLE_EMPTY)
+					return;
+
+				float bmin[3], bmax[3], t0, t1;
+				tc->getObstacleBounds(&ob, bmin, bmax);
+
+				if (isectSegAABB(sp, sq, bmin, bmax, t0, t1))
 				{
-					tmin = t0;
-					obmin = ob;
+					if (t0 < tmin)
+					{
+						std::lock_guard ul{ mt };
+
+						tmin = t0;
+						obmin = &ob;
+					}
 				}
-			}
-		}
+			}, exec::par);
+
 		return tc->getObstacleRef(obmin);
 	}
 
@@ -601,7 +610,7 @@ namespace
 		// Draw obstacles
 		for (int i = 0; i < tc->getObstacleCount(); ++i)
 		{
-			const dtTileCacheObstacle* ob = tc->getObstacle(i);
+			const dtTileCacheObstacle* ob = tc->getObstacleAt(i);
 			if (ob->state == DT_OBSTACLE_EMPTY) continue;
 			float bmin[3], bmax[3];
 			tc->getObstacleBounds(ob, bmin, bmax);
@@ -1382,7 +1391,7 @@ void Sample_TempObstacles::clearAllTempObstacles()
 		return;
 	for (int i = 0; i < m_tileCache->getObstacleCount(); ++i)
 	{
-		const dtTileCacheObstacle* ob = m_tileCache->getObstacle(i);
+		const dtTileCacheObstacle* ob = m_tileCache->getObstacleAt(i);
 		if (ob->state == DT_OBSTACLE_EMPTY) continue;
 		m_tileCache->removeObstacle(m_tileCache->getObstacleRef(ob));
 	}

@@ -2,10 +2,13 @@
 #define DETOURTILECACHE_H
 
 #include "DetourStatus.h"
+#include <array>
 
 typedef unsigned int dtObstacleRef;
 
 typedef unsigned int dtCompressedTileRef;
+
+constexpr int MaxObstacleNum{ 128 };
 
 // Flags for addTile // addTile‚Ìƒtƒ‰ƒO
 enum dtCompressedTileFlags
@@ -64,8 +67,8 @@ struct dtTileCacheObstacle
 		dtObstacleBox box;
 	};
 
-	dtCompressedTileRef touched[DT_MAX_TOUCHED_TILES];
-	dtCompressedTileRef pending[DT_MAX_TOUCHED_TILES];
+	std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES> touched;
+	std::array<dtCompressedTileRef, DT_MAX_TOUCHED_TILES> pending;
 	unsigned short salt;
 	ObstacleType type;
 	ObstacleState state;
@@ -109,7 +112,8 @@ public:
 	inline const dtCompressedTile* getTile(const int i) const { return &m_tiles[i]; }
 
 	inline int getObstacleCount() const { return m_params.maxObstacles; }
-	inline const dtTileCacheObstacle* getObstacle(const int i) const { return &m_obstacles[i]; }
+	inline const dtTileCacheObstacle* getObstacleAt(const int i) const { return &m_obstacles[i]; }
+	inline const std::array<dtTileCacheObstacle, MaxObstacleNum>& getObstacle() const noexcept { return m_obstacles; }
 
 	const dtTileCacheObstacle* getObstacleByRef(dtObstacleRef ref);
 
@@ -209,8 +213,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtTileCache(const dtTileCache&);
-	dtTileCache& operator=(const dtTileCache&);
+	dtTileCache(const dtTileCache&) = delete;
+	dtTileCache& operator=(const dtTileCache&) = delete;
 
 	enum ObstacleRequestAction
 	{
@@ -240,11 +244,11 @@ private:
 	dtTileCacheCompressor* m_tcomp;
 	dtTileCacheMeshProcess* m_tmproc;
 
-	dtTileCacheObstacle* m_obstacles;
+	std::array<dtTileCacheObstacle, MaxObstacleNum> m_obstacles;
 	dtTileCacheObstacle* m_nextFreeObstacle;
 
 	static const int MAX_REQUESTS = 64;
-	ObstacleRequest m_reqs[MAX_REQUESTS];
+	std::array<ObstacleRequest, MAX_REQUESTS> m_reqs;
 	int m_nreqs;
 
 	static const int MAX_UPDATE = 64;

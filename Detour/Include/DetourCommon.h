@@ -142,6 +142,18 @@ inline constexpr void dtVadd(float* dest, const float* v1, const float* v2)
 	dest[2] = v1[2] + v2[2];
 }
 
+// Performs a vector addition. (@p v1 + @p v2)
+// ベクトルの加算を実行します。 （v1 + v2）
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  @param[in]		v1		The base vector. [(x, y, z)]
+//  @param[in]		v2		The vector to add to @p v1. [(x, y, z)]
+inline constexpr void dtVaddNum(float* dest, const float* v1, const float t)
+{
+	dest[0] = v1[0] + t;
+	dest[1] = v1[1] + t;
+	dest[2] = v1[2] + t;
+}
+
 // Performs a vector subtraction. (@p v1 - @p v2)
 // ベクトル減算を実行します。（v1 - v2）
 //  @param[out]	dest	The result vector. [(x, y, z)]
@@ -152,6 +164,18 @@ inline constexpr void dtVsub(float* dest, const float* v1, const float* v2)
 	dest[0] = v1[0] - v2[0];
 	dest[1] = v1[1] - v2[1];
 	dest[2] = v1[2] - v2[2];
+}
+
+// Performs a vector subtraction. (@p v1 - @p v2)
+// ベクトル減算を実行します。（v1 - v2）
+//  @param[out]	dest	The result vector. [(x, y, z)]
+//  @param[in]		v1		The base vector. [(x, y, z)]
+//  @param[in]		v2		The vector to subtract from @p v1. [(x, y, z)]
+inline constexpr void dtVsubNum(float* dest, const float* v1, const float t)
+{
+	dest[0] = v1[0] - t;
+	dest[1] = v1[1] - t;
+	dest[2] = v1[2] - t;
 }
 
 // Scales the vector by the specified value. (@p v * @p t)

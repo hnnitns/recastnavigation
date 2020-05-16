@@ -464,6 +464,8 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 	{
 		auto& data{ ob.cylinder };
 
+		// 座標を計算
+		dtVcopy(data.before_pos, data.pos);
 		dtVcopy(data.pos, move_pos);
 		AdjPosCylinder(data.pos);
 	}
@@ -471,12 +473,14 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 	{
 		auto& data{ ob.box };
 
+		/// boxのサイズを計算
 		float box_size[3];
-
 		dtVsub(box_size, data.bmax, data.bmin);
-
 		dtVabs(box_size);
 
+		// 座標を計算
+		dtVcopy(data.before_bmin, data.bmin);
+		dtVcopy(data.before_bmax, data.bmax);
 		CalcBoxPos(move_pos, box_size, &data);
 		AdjPosBox(data.bmin, data.bmax);
 	}
@@ -516,10 +520,10 @@ void dtTileCache::CalcBoxPos(const float* middle_pos, const float* box_size, dtO
 dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 	dtCompressedTileRef* results, int* resultCount, const int maxResults) const
 {
-	const int MAX_TILES = 32;
-	dtCompressedTileRef tiles[MAX_TILES];
+	constexpr int MAX_TILES = 32;
+	std::array<dtCompressedTileRef, MAX_TILES> tiles;
 
-	int n = 0;
+	int n{};
 
 	const float tw = m_params.width * m_params.cs;
 	const float th = m_params.height * m_params.cs;
@@ -532,7 +536,7 @@ dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 	{
 		for (int tx = tx0; tx <= tx1; ++tx)
 		{
-			const int ntiles = getTilesAt(tx, ty, tiles, MAX_TILES);
+			const int ntiles = getTilesAt(tx, ty, tiles.data(), MAX_TILES);
 
 			for (int i = 0; i < ntiles; ++i)
 			{
@@ -554,8 +558,7 @@ dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 	return DT_SUCCESS;
 }
 
-dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
-	bool* upToDate)
+dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh, bool* upToDate)
 {
 	if (m_nupdate == 0)
 	{
@@ -626,9 +629,44 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				}
 				case dtTileCache::REQUEST_MOVE:
 				{
+					/// 大きめのサイズで計算する（でないと、障害物の移動時（タイルを越した時）に取り残されてしまう。）
+					float adj_bounds_dis_rate{};
+					float adj_bounds_distance{};
+
+					if (ob.type == DT_OBSTACLE_CYLINDER)
+					{
+						const auto& data{ ob.cylinder };
+						const float size{ data.radius };
+						const float dis{ dtVdist(data.before_pos, data.pos) }; // 距離を計算
+						float adj_rate{ (std::max)(dis / size, 1.f) }; // 比率を求め
+
+						adj_bounds_distance = size * adj_rate * 2.f; // どれだけ微調整するかを計算
+					}
+					else
+					{
+						const auto& data{ ob.box };
+						std::array<float, 3> box_size;
+
+						// サイズを求める
+						dtVsub(box_size.data(), data.bmax, data.bmin);
+						dtVabs(box_size.data());
+
+						const auto& max_size{ Max_Element(box_size) }; // 一番大きいサイズを基準にする
+						const float size{ *max_size };
+						const float dis{ dtVdist(data.before_bmin, data.bmin) }; // 距離を計算
+						const float adj_rate{ (std::max)(dis / size, 1.f) }; // 比率を求め
+
+						adj_bounds_distance = size * adj_bounds_dis_rate * 2.f; // どれだけ微調整するかを計算
+					}
+
 					float bmin[3], bmax[3];
 					getObstacleBounds(&ob, bmin, bmax);
 
+					// サイズを調整
+					dtVsubNum(bmin, bmin, adj_bounds_distance);
+					dtVaddNum(bmax, bmax, adj_bounds_distance);
+
+					// ナビメッシュの参照を取得する
 					int ntouched = 0;
 					queryTiles(bmin, bmax, ob.touched.data(), &ntouched, DT_MAX_TOUCHED_TILES);
 					ob.ntouched = (unsigned char)ntouched;
@@ -644,7 +682,10 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 						if (m_nupdate < MAX_UPDATE)
 						{
 							if (!contains(m_update, m_nupdate, ob.touched[j]))
+							{
 								m_update[m_nupdate++] = ob.touched[j];
+								//m_update_cache[]
+							}
 
 							ob.pending[ob.npending++] = ob.touched[j];
 						}

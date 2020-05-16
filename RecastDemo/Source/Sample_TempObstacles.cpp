@@ -341,7 +341,7 @@ namespace
 		{
 			dtVset(box_size, 3.f, 5.f, 3.f);
 
-			add_data.cylinder = { {}, 1.f, 2.0f };
+			add_data.cylinder = { {}, {}, 1.f, 2.0f };
 			add_data.box = {};
 			add_data.type = DT_OBSTACLE_CYLINDER;
 		}

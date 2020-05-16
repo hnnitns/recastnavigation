@@ -47,15 +47,15 @@ enum ObstacleType
 
 struct dtObstacleCylinder
 {
-	float pos[3];
+	float pos[3], before_pos[3];
 	float radius;
 	float height;
 };
 
 struct dtObstacleBox
 {
-	float bmin[3];
-	float bmax[3];
+	float bmin[3], bmax[3];
+	float before_bmin[3], before_bmax[3];
 };
 
 constexpr int DT_MAX_TOUCHED_TILES = 8;
@@ -265,6 +265,7 @@ private:
 
 	static constexpr int MAX_UPDATE = 64;
 	std::array<dtCompressedTileRef, MAX_UPDATE> m_update;
+	std::array<dtCompressedTileRef, MAX_UPDATE> m_update_cache;
 	int m_nupdate; // 障害物の更新リクエスト数
 };
 

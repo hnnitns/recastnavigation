@@ -1073,7 +1073,7 @@ void CrowdTool::handleMenu()
 	}
 }
 
-void CrowdTool::handleClick(const float* s, const float* p, bool shift)
+void CrowdTool::handleClickDown(const float* s, const float* p, bool shift)
 {
 	if (!m_sample) return;
 	if (!m_state) return;

@@ -7,6 +7,11 @@
 
 #include "SampleInterfaces.h"
 
+enum class MouseState : uint8_t
+{
+	Down, Pushing, Up, Free
+};
+
 class EditManager
 {
 public:
@@ -77,6 +82,10 @@ private:
 	int mouseScroll{};          // マウスホイールの値
 	bool processHitTest{};      // マウスの処理が行われた
 	bool processHitTestShift{}; // シフトの処理が行われた
+
+	bool mouse_hit_middle{};
+	MouseState mouse_state;
+
 	union SDL_Event event;
 	uint8_t mouseButtonMask{};
 	double modelviewMatrix[16];

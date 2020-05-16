@@ -167,7 +167,7 @@ void ConvexVolumeTool::handleMenu()
 	}
 }
 
-void ConvexVolumeTool::handleClick(const float* /*s*/, const float* p, bool shift)
+void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool shift)
 {
 	if (!m_sample) return;
 

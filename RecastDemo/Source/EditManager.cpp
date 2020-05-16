@@ -63,10 +63,11 @@ namespace
 }
 
 EditManager::EditManager()
-	: camr{ 2000.f }, prevFrameTime{ SDL_GetTicks() }, showTools{ true }, showMenu{ !presentationMode }
+	: camr(2000.f), prevFrameTime(SDL_GetTicks()), showTools(true), showMenu(!presentationMode),
+	mouse_state(MouseState::Free)
 { }
-EditManager::~EditManager() noexcept
-{}
+
+EditManager::~EditManager() noexcept {}
 
 bool EditManager::Init()
 {
@@ -237,6 +238,8 @@ bool EditManager::InputUpdate()
 	processHitTestShift = {};
 	event = {};
 	delete_mesh = false;
+	mouse_hit_middle = false;
+	mouse_state = MouseState::Free;
 
 	while (SDL_PollEvent(&event))
 	{
@@ -255,15 +258,6 @@ bool EditManager::InputUpdate()
 						return false;
 						break;
 					}
-					//// テストを行う
-					//case SDLK_t:
-					//{
-					//	showLevels = false;
-					//	showSample = false;
-					//	showTestCases = true;
-					//	scanDirectory(testCasesFolder, ".txt", files); // ファイルのスキャンして、一覧をfilesに保存
-					//	break;
-					//}
 					// ImGuiの表示非表示
 					case SDLK_TAB:
 					{
@@ -349,6 +343,7 @@ bool EditManager::InputUpdate()
 			// マウスのボタンを押した瞬間
 			case SDL_MOUSEBUTTONDOWN:
 			{
+				mouse_state = MouseState::Down;
 				// 右ボタンでImGuiウィンドウ外
 				if (event.button.button == SDL_BUTTON_RIGHT && !mouseOverMenu)
 				{
@@ -366,6 +361,8 @@ bool EditManager::InputUpdate()
 			// マウスのボタンから離した瞬間
 			case SDL_MOUSEBUTTONUP:
 			{
+				mouse_state = MouseState::Up;
+
 				// Handle mouse clicks here.
 				//　ここでマウスクリックを処理します。
 				switch (event.button.button)
@@ -433,10 +430,22 @@ bool EditManager::InputUpdate()
 
 	// マウス
 	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
+	{
 		mouseButtonMask |= IMGUI_MBUT_LEFT;
+		mouse_state = MouseState::Pushing;
+	}
 
 	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_RMASK)
+	{
 		mouseButtonMask |= IMGUI_MBUT_RIGHT;
+		mouse_state = MouseState::Pushing;
+	}
+
+	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_MIDDLE)
+	{
+		mouse_hit_middle = true;
+		mouse_state = MouseState::Pushing;
+	}
 
 	return true;
 }
@@ -542,6 +551,57 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 	prevFrameTime = time;
 	tim += dt;
 
+	// Update sample simulation.
+	// サンプルシミュレーションを更新します。
+	{
+		constexpr float SIM_RATE = 20;
+		constexpr float DELTA_TIME = 1.f / SIM_RATE;
+		int simIter{};
+
+		timeAcc = rcClamp(timeAcc + dt, -1.f, 1.f);
+
+		while (timeAcc > DELTA_TIME)
+		{
+			timeAcc -= DELTA_TIME;
+
+			if (simIter < 5 && sample)
+				sample->handleUpdate(DELTA_TIME);
+
+			simIter++;
+		}
+	}
+
+	switch (mouse_state)
+	{
+		case MouseState::Down:
+		{
+		}
+		case MouseState::Pushing:
+		{
+			if (mouse_hit_middle && sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
+			{
+				InputGeom::RaycastMeshHitInfo hit_info{};
+				auto& geom{ sample->getInputGeom() };
+
+				if (geom->RaycastMesh(ray_start, ray_end, &hit_info))
+				{
+					sample->handleClick(ray_start.data(), hit_info.pos.data());
+				}
+			}
+
+			break;
+		}
+		case MouseState::Up:
+		{
+			if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
+			{
+				sample->handleClickUp();
+			}
+
+			break;
+		}
+	}
+
 	// Hit test mesh.
 	// テストメッシュをヒットします。
 	// マウスの左ボタン・右ボタンを離した瞬間、メッシュデータが存在し、サンプルも選択している状態
@@ -567,7 +627,7 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 			else
 			{
 				// 経路探索を行う
-				sample->handleClick(ray_start.data(), hit_info.pos.data(), processHitTestShift);
+				sample->handleClickDown(ray_start.data(), hit_info.pos.data(), processHitTestShift);
 			}
 		}
 		else
@@ -577,26 +637,6 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 				// Marker
 				markerPositionSet = false;
 			}
-		}
-	}
-
-	// Update sample simulation.
-	// サンプルシミュレーションを更新します。
-	{
-		constexpr float SIM_RATE = 20;
-		constexpr float DELTA_TIME = 1.f / SIM_RATE;
-		int simIter{};
-
-		timeAcc = rcClamp(timeAcc + dt, -1.f, 1.f);
-
-		while (timeAcc > DELTA_TIME)
-		{
-			timeAcc -= DELTA_TIME;
-
-			if (simIter < 5 && sample)
-				sample->handleUpdate(DELTA_TIME);
-
-			simIter++;
 		}
 	}
 }
@@ -652,6 +692,13 @@ void EditManager::PropertiesUpdate()
 				scanDirectory(meshesFolder, ".obj", files);
 				scanDirectoryAppend(meshesFolder, ".gset", files);
 			}
+		}
+
+		imguiSeparator();
+
+		if (!sample->getInputGeom()->isLoadGeomMeshEmpty() && imguiButton("Clear Mesh"))
+		{
+			sample->getInputGeom()->ClearLoadGeomMesh();
 		}
 	}
 

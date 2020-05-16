@@ -89,9 +89,10 @@ public:
 	void addTempObstacle(const AddObstacleData& add_data);
 	void removeTempObstacle(const float* sp, const float* sq);
 	void clearAllTempObstacles();
-	void MoveTempObstacle(const float* sp, const float* sq);
+	void MoveTempObstacle(const dtObstacleRef ref, const float* move_pos);
 	void CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box) const noexcept
 	{ m_tileCache->CalcBoxPos(middle_pos, box_size, box); }
+	dtObstacleRef HitTestObstacle(const float* sp, const float* sq);
 
 	void buildTile(const float* pos);
 	bool removeTile(const float* pos);

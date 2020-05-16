@@ -173,7 +173,7 @@ namespace
 			}
 		}
 
-		void handleClick(const float* /*s*/, const float* p, bool shift) override
+		void handleClickDown(const float* /*s*/, const float* p, bool shift) override
 		{
 			m_hitPosSet = true;
 			rcVcopy(m_hitPos, p);
@@ -185,6 +185,8 @@ namespace
 					m_sample->buildTile(m_hitPos);
 			}
 		}
+		void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
+		void handleClick(const float* /*s*/, const float* /*p*/) override {}
 
 		void handleToggle() override {}
 
@@ -275,11 +277,13 @@ namespace
 				m_drawType = DRAWDETAIL_MESH;
 		}
 
-		virtual void handleClick(const float* /*s*/, const float* p, bool /*shift*/)
+		virtual void handleClickDown(const float* /*s*/, const float* p, bool /*shift*/)
 		{
 			m_hitPosSet = true;
 			rcVcopy(m_hitPos, p);
 		}
+		void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
+		void handleClick(const float* /*s*/, const float* /*p*/) override {}
 
 		virtual void handleToggle() {}
 
@@ -329,10 +333,11 @@ namespace
 		Sample_TempObstacles* m_sample;
 		AddObstacleData add_data;
 		float add_pos[3], box_size[3];
+		dtObstacleRef m_ref;
 
 	public:
 
-		TempObstacleCreateTool() : m_sample(), add_pos()
+		TempObstacleCreateTool() : m_sample(), add_pos(), m_ref((std::numeric_limits<dtObstacleRef>::max)())
 		{
 			dtVset(box_size, 3.f, 5.f, 3.f);
 
@@ -397,29 +402,35 @@ namespace
 			imguiValue("Shift+LMB to remove an obstacle.");
 		}
 
-		virtual void handleClick(const float* s, const float* p, bool shift)
+		virtual void handleClickDown(const float* s, const float* p, bool shift)
 		{
+			if (!m_sample)	return;
+
 			rcVcopy(add_pos, p);
 
-			if (m_sample)
+			if (shift)
+				m_sample->removeTempObstacle(s, p);
+			else
 			{
-				if (shift)
-					m_sample->removeTempObstacle(s, p);
-				else
+				// cylinder
+				if (add_data.type == DT_OBSTACLE_CYLINDER)
 				{
-					// cylinder
-					if (add_data.type == DT_OBSTACLE_CYLINDER)
-					{
-						rcVcopy(add_data.cylinder.pos, add_pos);
-					}
-					else // box
-					{
-						m_sample->CalcBoxPos(add_pos, box_size, &add_data.box);
-					}
-
-					m_sample->addTempObstacle(add_data);
+					rcVcopy(add_data.cylinder.pos, add_pos);
 				}
+				else // box
+				{
+					m_sample->CalcBoxPos(add_pos, box_size, &add_data.box);
+				}
+
+				m_sample->addTempObstacle(add_data);
 			}
+
+			m_ref = m_sample->HitTestObstacle(s, p);
+		}
+		void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
+		void handleClick(const float* /*s*/, const float* p) override
+		{
+			m_sample->MoveTempObstacle(m_ref, p);
 		}
 
 		virtual void handleToggle() {}
@@ -1399,12 +1410,11 @@ void Sample_TempObstacles::clearAllTempObstacles()
 	}
 }
 
-void Sample_TempObstacles::MoveTempObstacle(const float* sp, const float* sq)
+void Sample_TempObstacles::MoveTempObstacle(const dtObstacleRef ref, const float* move_pos)
 {
 	if (!m_tileCache) return;
 
-	dtObstacleRef ref = hitTestObstacle(m_tileCache, sp, sq);
-	m_tileCache->MoveObstacle(ref, sq);
+	m_tileCache->MoveObstacle(ref, move_pos);
 }
 
 void Sample_TempObstacles::buildTileMeshLayer(
@@ -1437,6 +1447,13 @@ void Sample_TempObstacles::buildTileMeshLayer(
 void Sample_TempObstacles::buildTileMesh(const int tx, const int ty)
 {
 	m_tileCache->buildNavMeshTilesAt(tx, ty, m_navMesh);
+}
+
+dtObstacleRef Sample_TempObstacles::HitTestObstacle(const float* sp, const float* sq)
+{
+	if (!m_tileCache) return (std::numeric_limits<uint32_t>::max)();
+
+	return hitTestObstacle(m_tileCache, sp, sq);
 }
 
 void Sample_TempObstacles::buildTile(const float* pos)

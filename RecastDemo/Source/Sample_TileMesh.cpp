@@ -136,7 +136,7 @@ namespace
 			}
 		}
 
-		void handleClick(const float* /*s*/, const float* p, bool shift) override
+		void handleClickDown(const float* /*s*/, const float* p, bool shift) override
 		{
 			m_hitPosSet = true;
 			rcVcopy(m_hitPos, p);
@@ -148,6 +148,9 @@ namespace
 					m_sample->buildTile(m_hitPos);
 			}
 		}
+
+		void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
+		void handleClick(const float* /*s*/, const float* /*p*/) override {}
 
 		void handleToggle() override {}
 

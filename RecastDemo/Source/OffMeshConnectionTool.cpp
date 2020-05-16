@@ -79,7 +79,7 @@ void OffMeshConnectionTool::handleMenu()
 		m_bidir = true;
 }
 
-void OffMeshConnectionTool::handleClick(const float* /*s*/, const float* p, bool shift)
+void OffMeshConnectionTool::handleClickDown(const float* /*s*/, const float* p, bool shift)
 {
 	if (!m_sample) return;
 

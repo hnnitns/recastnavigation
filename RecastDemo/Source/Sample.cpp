@@ -85,10 +85,10 @@ unsigned int SampleDebugDraw::areaToCol(unsigned int area)
 }
 
 Sample::Sample() :
-	m_navMesh{}, m_navQuery{}, m_crowd{},
+	m_navMesh(), m_navQuery(), m_crowd(),
 	m_navMeshDrawFlags(DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST),
 	m_filterLowHangingObstacles(true), m_filterLedgeSpans(true), m_filterWalkableLowHeightSpans(true),
-	m_tool{}, m_ctx{}
+	m_tool(), m_ctx()
 {
 	resetCommonSettings();
 	m_navQuery = dtAllocNavMeshQuery();
@@ -316,10 +316,22 @@ void Sample::handleCommonSettings()
 	imguiSeparator();
 }
 
-void Sample::handleClick(const float* s, const float* p, bool shift)
+void Sample::handleClickDown(const float* s, const float* p, bool shift)
 {
 	if (m_tool)
-		m_tool->handleClick(s, p, shift);
+		m_tool->handleClickDown(s, p, shift);
+}
+
+void Sample::handleClickUp(const float* s, const float* p)
+{
+	if (m_tool)
+		m_tool->handleClickUp(s, p);
+}
+
+void Sample::handleClick(const float* s, const float* p)
+{
+	if (m_tool)
+		m_tool->handleClick(s, p);
 }
 
 void Sample::handleToggle()

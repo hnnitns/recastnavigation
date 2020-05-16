@@ -248,7 +248,7 @@ void NavMeshPruneTool::handleMenu()
 	}
 }
 
-void NavMeshPruneTool::handleClick(const float* s, const float* p, bool shift)
+void NavMeshPruneTool::handleClickDown(const float* s, const float* p, bool shift)
 {
 	rcIgnoreUnused(s);
 	rcIgnoreUnused(shift);

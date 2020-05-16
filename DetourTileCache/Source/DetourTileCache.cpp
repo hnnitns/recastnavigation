@@ -497,11 +497,10 @@ void dtTileCache::AdjPosBoxObstacle(float* out_pos_min, float* out_pos_max, cons
 
 void dtTileCache::CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box)
 {
-	constexpr float half[3]{ 2, 2, 2 };
 	float half_size[3]{};
 
 	// サイズの半分を求める
-	dtVsub(half_size, box_size, half);
+	dtVscale(half_size, box_size, 0.5f);
 
 	// 追加座標が中心に来るようにする
 	dtVsub(box->bmin, middle_pos, half_size);

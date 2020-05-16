@@ -495,7 +495,7 @@ void NavMeshTesterTool::handleMenu()
 	imguiSeparator();
 }
 
-void NavMeshTesterTool::handleClick(const float* /*s*/, const float* p, bool shift)
+void NavMeshTesterTool::handleClickDown(const float* /*s*/, const float* p, bool shift)
 {
 	// スタート地点設定
 	if (shift)

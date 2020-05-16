@@ -99,7 +99,10 @@ public:
 	virtual void init(Sample* sample);
 	virtual void reset();
 	virtual void handleMenu();
-	virtual void handleClick(const float* s, const float* p, bool shift);
+	virtual void handleClickDown(const float* s, const float* p, bool shift);
+	void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
+	void handleClick(const float* /*s*/, const float* /*p*/) override {}
+
 	// ƒpƒX‚Ì’ÇÕˆ—‚ğs‚¤
 	virtual void handleToggle();
 	virtual void handleStep();

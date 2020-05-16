@@ -412,6 +412,8 @@ dtStatus dtTileCache::addBoxObstacle(const float* bmin, const float* bmax, dtObs
 	dtVcopy(ob->box.bmin, bmin);
 	dtVcopy(ob->box.bmax, bmax);
 
+
+
 	auto& req = m_reqs[m_nreqs++];
 
 	req = {};
@@ -438,6 +440,75 @@ dtStatus dtTileCache::removeObstacle(const dtObstacleRef ref)
 	req.ref = ref;
 
 	return DT_SUCCESS;
+}
+
+dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_pos)
+{
+	if (!ref)
+		return DT_SUCCESS;
+	if (m_nreqs >= MAX_REQUESTS)
+		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+
+	unsigned int idx = decodeObstacleIdObstacle(ref);
+	if ((int)idx >= m_params.maxObstacles)
+		return DT_FAILURE;
+
+	auto& ob = m_obstacles[idx];
+	unsigned int salt = decodeObstacleIdSalt(ref);
+	if (ob.salt != salt)
+		return DT_FAILURE;
+
+	if (ob.type == DT_OBSTACLE_CYLINDER)
+	{
+		auto& data{ ob.cylinder };
+
+		dtVcopy(data.pos, move_pos);
+		AdjPosCylinder(data.pos);
+	}
+	else
+	{
+		auto& data{ ob.box };
+
+		float box_size[3];
+
+		dtVsub(box_size, data.bmax, data.bmin);
+
+		dtVabs(box_size);
+
+		CalcBoxPos(move_pos, box_size, &data);
+		AdjPosBox(data.bmin, data.bmax);
+	}
+
+	return DT_SUCCESS;
+}
+
+void dtTileCache::AdjPosCylinderObstacle(float* out_pos, const dtObstacleCylinder& cylinder) const
+{
+	dtVcopy(out_pos, cylinder.pos);
+	AdjPosCylinder(out_pos);
+}
+
+void dtTileCache::AdjPosBoxObstacle(float* out_pos_min, float* out_pos_max, const dtObstacleBox& box) const
+{
+	dtVcopy(out_pos_min, box.bmin);
+	dtVcopy(out_pos_max, box.bmax);
+	AdjPosBox(out_pos_min, out_pos_max);
+}
+
+void dtTileCache::CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box)
+{
+	constexpr float half[3]{ 2, 2, 2 };
+	float half_size[3]{};
+
+	// サイズの半分を求める
+	dtVsub(half_size, box_size, half);
+
+	// 追加座標が中心に来るようにする
+	dtVsub(box->bmin, middle_pos, half_size);
+	dtVadd(box->bmax, middle_pos, half_size);
+
+	// 下がってしまうので戻す
+	box->bmin[1] += half_size[1];
 }
 
 dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
@@ -515,7 +586,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				{
 					if (m_nupdate < MAX_UPDATE)
 					{
-						if (!contains(m_update, m_nupdate, ob.touched[j]))
+						if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
 							m_update[m_nupdate++] = ob.touched[j];
 
 						ob.pending[ob.npending++] = ob.touched[j];
@@ -536,7 +607,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				{
 					if (m_nupdate < MAX_UPDATE)
 					{
-						if (!contains(m_update, m_nupdate, ob.touched[j]))
+						if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
 							m_update[m_nupdate++] = ob.touched[j];
 
 						ob.pending[ob.npending++] = ob.touched[j];
@@ -557,7 +628,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 		status = buildNavMeshTile(ref, navmesh);
 		m_nupdate--;
 		if (m_nupdate > 0)
-			memmove(m_update, m_update + 1, m_nupdate * sizeof(dtCompressedTileRef));
+			memmove(m_update.data(), m_update.data() + 1, m_nupdate * sizeof(dtCompressedTileRef));
 
 		// Update obstacle states.
 		for (auto& ob : m_obstacles)

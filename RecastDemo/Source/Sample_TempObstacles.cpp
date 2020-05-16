@@ -327,18 +327,18 @@ namespace
 	class TempObstacleCreateTool : public SampleTool
 	{
 		Sample_TempObstacles* m_sample;
-		bool add_obstacle_cylinder;
 		AddObstacleData add_data;
 		float add_pos[3], box_size[3];
 
 	public:
 
-		TempObstacleCreateTool() : m_sample(0), add_obstacle_cylinder(true), add_pos{}
+		TempObstacleCreateTool() : m_sample(), add_pos()
 		{
 			dtVset(box_size, 3.f, 5.f, 3.f);
 
 			add_data.cylinder = { {}, 1.f, 2.0f };
 			add_data.box = {};
+			add_data.type = DT_OBSTACLE_CYLINDER;
 		}
 
 		virtual ~TempObstacleCreateTool()
@@ -364,9 +364,16 @@ namespace
 			imguiSeparator();
 
 			if (imguiButton("Change Obstacles Type"))
-				add_obstacle_cylinder ^= true;
+			{
+				ObstacleType& type{ add_data.type };
 
-			if (add_obstacle_cylinder)
+				if (type == DT_OBSTACLE_CYLINDER)
+					type = DT_OBSTACLE_BOX;
+				else
+					type = DT_OBSTACLE_CYLINDER;
+			}
+
+			if (add_data.type == DT_OBSTACLE_CYLINDER)
 			{
 				imguiValue("Cylinder");
 
@@ -400,18 +407,17 @@ namespace
 					m_sample->removeTempObstacle(s, p);
 				else
 				{
-					rcVcopy(add_data.cylinder.pos, add_pos);
+					// cylinder
+					if (add_data.type == DT_OBSTACLE_CYLINDER)
+					{
+						rcVcopy(add_data.cylinder.pos, add_pos);
+					}
+					else // box
+					{
+						m_sample->CalcBoxPos(add_pos, box_size, &add_data.box);
+					}
 
-					constexpr float half[3]{ 2, 2, 2 };
-					float half_size[3]{};
-
-					rcVsub(half_size, box_size, half);
-
-					rcVadd(add_data.box.bmax, add_pos, half_size);
-					rcVcopy(add_data.box.bmin, add_pos);
-					//rcVsub(add_data.box.bmin, add_pos, half_size);
-
-					m_sample->addTempObstacle(add_data, add_obstacle_cylinder);
+					m_sample->addTempObstacle(add_data);
 				}
 			}
 		}
@@ -1349,18 +1355,17 @@ void Sample_TempObstacles::handleMeshChanged()
 	initToolStates(this);
 }
 
-void Sample_TempObstacles::addTempObstacle(const AddObstacleData& add_data, const bool add_type_cylinder)
+void Sample_TempObstacles::addTempObstacle(const AddObstacleData& add_data)
 {
 	if (!m_tileCache) return;
 
-	if (add_type_cylinder)
+	if (add_data.type == DT_OBSTACLE_CYLINDER)
 	{
 		const auto& data{ add_data.cylinder };
 
 		float p[3];
-		dtVcopy(p, data.pos);
-		p[1] -= 0.5f;
 
+		m_tileCache->AdjPosCylinderObstacle(p, data);
 		m_tileCache->addCylinderObstacle(p, data.radius, data.height, nullptr);
 	}
 	else
@@ -1368,33 +1373,38 @@ void Sample_TempObstacles::addTempObstacle(const AddObstacleData& add_data, cons
 		const auto& data{ add_data.box };
 
 		float p_min[3], p_max[3];
-		dtVcopy(p_min, data.bmin);
-		dtVcopy(p_max, data.bmax);
-		p_min[1] -= 0.25f;
-		p_max[1] -= 0.25f;
 
+		m_tileCache->AdjPosBoxObstacle(p_min, p_max, data);
 		m_tileCache->addBoxObstacle(p_min, p_max, nullptr);
 	}
 }
 
 void Sample_TempObstacles::removeTempObstacle(const float* sp, const float* sq)
 {
-	if (!m_tileCache)
-		return;
+	if (!m_tileCache) return;
+
 	dtObstacleRef ref = hitTestObstacle(m_tileCache, sp, sq);
 	m_tileCache->removeObstacle(ref);
 }
 
 void Sample_TempObstacles::clearAllTempObstacles()
 {
-	if (!m_tileCache)
-		return;
+	if (!m_tileCache) return;
+
 	for (int i = 0; i < m_tileCache->getObstacleCount(); ++i)
 	{
 		const dtTileCacheObstacle* ob = m_tileCache->getObstacleAt(i);
 		if (ob->state == DT_OBSTACLE_EMPTY) continue;
 		m_tileCache->removeObstacle(m_tileCache->getObstacleRef(ob));
 	}
+}
+
+void Sample_TempObstacles::MoveTempObstacle(const float* sp, const float* sq)
+{
+	if (!m_tileCache) return;
+
+	dtObstacleRef ref = hitTestObstacle(m_tileCache, sp, sq);
+	m_tileCache->MoveObstacle(ref, sq);
 }
 
 void Sample_TempObstacles::buildTileMeshLayer(

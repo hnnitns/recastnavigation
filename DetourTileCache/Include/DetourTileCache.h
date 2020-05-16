@@ -140,6 +140,12 @@ public:
 
 	dtStatus removeObstacle(const dtObstacleRef ref);
 
+	dtStatus MoveObstacle(const dtObstacleRef ref, const float* move_pos);
+
+	void AdjPosCylinderObstacle(float* out_pos, const dtObstacleCylinder& cylinder) const;
+	void AdjPosBoxObstacle(float* out_pos_min, float* out_pos_max, const dtObstacleBox& box) const;
+	void CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box);
+
 	dtStatus queryTiles(const float* bmin, const float* bmax,
 		dtCompressedTileRef* results, int* resultCount, const int maxResults) const;
 
@@ -212,6 +218,10 @@ public:
 	}
 
 private:
+	void AdjPosCylinder(float* pos) const noexcept { pos[1] -= 0.5f; }
+	void AdjPosBox(float* p_min, float* p_max) const noexcept { p_min[1] -= 0.25f; p_max[1] -= 0.25f; };
+
+private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	dtTileCache(const dtTileCache&) = delete;
 	dtTileCache& operator=(const dtTileCache&) = delete;
@@ -252,7 +262,7 @@ private:
 	int m_nreqs;
 
 	static const int MAX_UPDATE = 64;
-	dtCompressedTileRef m_update[MAX_UPDATE];
+	std::array<dtCompressedTileRef, MAX_UPDATE> m_update;
 	int m_nupdate;
 };
 

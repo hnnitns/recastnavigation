@@ -29,6 +29,7 @@ struct AddObstacleData
 {
 	dtObstacleCylinder cylinder;
 	dtObstacleBox box;
+	ObstacleType type;
 };
 
 class Sample_TempObstacles : public Sample
@@ -85,9 +86,12 @@ public:
 	void renderCachedTile(const int tx, const int ty, const int type);
 	void renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view);
 
-	void addTempObstacle(const AddObstacleData& add_data, const bool add_type_cylinder);
+	void addTempObstacle(const AddObstacleData& add_data);
 	void removeTempObstacle(const float* sp, const float* sq);
 	void clearAllTempObstacles();
+	void MoveTempObstacle(const float* sp, const float* sq);
+	void CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box) const noexcept
+	{ m_tileCache->CalcBoxPos(middle_pos, box_size, box); }
 
 	void buildTile(const float* pos);
 	bool removeTile(const float* pos);

@@ -210,6 +210,17 @@ inline constexpr void dtVcopy(float* dest, const float* a)
 	dest[2] = a[2];
 }
 
+// Performs a vector copy.
+// ベクターの絶対値を求めます
+//  @param[out]	dest	The result. [(x, y, z)]
+//  @param[in]		a		The vector to copy. [(x, y, z)]
+inline constexpr void dtVabs(float* dest)
+{
+	dest[0] = dtAbs(dest[0]);
+	dest[1] = dtAbs(dest[1]);
+	dest[2] = dtAbs(dest[2]);
+}
+
 // Derives the scalar length of the vector.
 // ベクトルのスカラー長を導出します。
 //  @param[in]		v The vector. [(x, y, z)]

@@ -30,19 +30,19 @@ struct dtCompressedTile
 	dtCompressedTile* next;
 };
 
-enum ObstacleState
+enum ObstacleState // 障害物の状態
 {
-	DT_OBSTACLE_EMPTY,
-	DT_OBSTACLE_PROCESSING,
-	DT_OBSTACLE_PROCESSED,
-	DT_OBSTACLE_REMOVING,
-	DT_OBSTACLE_MOVING,
+	DT_OBSTACLE_EMPTY, // 空
+	DT_OBSTACLE_PROCESSING, // 処理中
+	DT_OBSTACLE_PROCESSED, // 処理完了
+	DT_OBSTACLE_REMOVING, // 削除
+	DT_OBSTACLE_MOVING, // 移動
 };
 
 enum ObstacleType
 {
-	DT_OBSTACLE_CYLINDER,
-	DT_OBSTACLE_BOX,
+	DT_OBSTACLE_CYLINDER, // 円柱
+	DT_OBSTACLE_BOX,      // 箱
 };
 
 struct dtObstacleCylinder
@@ -227,17 +227,17 @@ private:
 	dtTileCache(const dtTileCache&) = delete;
 	dtTileCache& operator=(const dtTileCache&) = delete;
 
-	enum ObstacleRequestAction
+	enum ObstacleRequestAction // 障害物の処理リクエストの種類
 	{
-		REQUEST_ADD,
-		REQUEST_REMOVE,
-		REQUEST_MOVE,
+		REQUEST_ADD, // 追加
+		REQUEST_REMOVE, // 削除
+		REQUEST_MOVE, // 移動
 	};
 
 	struct ObstacleRequest
 	{
-		ObstacleRequestAction action;
-		dtObstacleRef ref;
+		ObstacleRequestAction action; // 処理リクエストの種類
+		dtObstacleRef ref;            // 処理リクエストの障害物リストの添え値
 	};
 
 	int m_tileLutSize; // Tile hash lookup size (must be pot). // タイルハッシュルックアップサイズ（ポットである必要があります）。
@@ -256,16 +256,16 @@ private:
 	dtTileCacheCompressor* m_tcomp;
 	dtTileCacheMeshProcess* m_tmproc;
 
-	std::array<dtTileCacheObstacle, MaxObstacleNum> m_obstacles;
+	std::array<dtTileCacheObstacle, MaxObstacleNum> m_obstacles; // 障害物リスト
 	dtTileCacheObstacle* m_nextFreeObstacle;
 
-	static const int MAX_REQUESTS = 64;
+	static constexpr int MAX_REQUESTS = 64;
 	std::array<ObstacleRequest, MAX_REQUESTS> m_reqs;
-	int m_nreqs;
+	int m_nreqs; // 障害物の処理リクエスト数
 
-	static const int MAX_UPDATE = 64;
+	static constexpr int MAX_UPDATE = 64;
 	std::array<dtCompressedTileRef, MAX_UPDATE> m_update;
-	int m_nupdate;
+	int m_nupdate; // 障害物の更新リクエスト数
 };
 
 dtTileCache* dtAllocTileCache();

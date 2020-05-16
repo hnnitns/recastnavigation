@@ -29,12 +29,10 @@ namespace
 {
 	namespace exec = std::execution;
 
-	inline bool contains(const dtCompressedTileRef* a, const int n, const dtCompressedTileRef v)
+	template<size_t Size>
+	inline bool contains(const std::array<dtCompressedTileRef, Size>& ref, const int n, const dtCompressedTileRef v)
 	{
-		for (int i = 0; i < n; ++i)
-			if (a[i] == v)
-				return true;
-		return false;
+		return (Any_Of_N(ref, n, [=](auto rf) { return rf == v; }, exec::par));
 	}
 
 	struct NavMeshTileBuildContext
@@ -44,11 +42,11 @@ namespace
 		void purge()
 		{
 			dtFreeTileCacheLayer(alloc, layer);
-			layer = 0;
+			layer = nullptr;
 			dtFreeTileCacheContourSet(alloc, lcset);
-			lcset = 0;
+			lcset = nullptr;
 			dtFreeTileCachePolyMesh(alloc, lmesh);
-			lmesh = 0;
+			lmesh = nullptr;
 		}
 		struct dtTileCacheLayer* layer;
 		struct dtTileCacheContourSet* lcset;
@@ -58,8 +56,9 @@ namespace
 
 	inline int computeTileHash(int x, int y, const int mask)
 	{
-		const unsigned int h1 = 0x8da6b343; // Large multiplicative constants;
-		const unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes
+		constexpr unsigned int h1 = 0x8da6b343; // Large multiplicative constants; // 大きな乗法定数。
+		constexpr unsigned int h2 = 0xd8163841; // here arbitrarily chosen primes // ここで任意に選んだ素数
+
 		unsigned int n = h1 * x + h2 * y;
 		return (int)(n & mask);
 	}
@@ -412,11 +411,11 @@ dtStatus dtTileCache::addBoxObstacle(const float* bmin, const float* bmax, dtObs
 	dtVcopy(ob->box.bmin, bmin);
 	dtVcopy(ob->box.bmax, bmax);
 
-	auto& req = m_reqs[m_nreqs++];
+	auto& req = m_reqs[m_nreqs++]; // 処理リクエストに追加
 
 	req = {};
-	req.action = REQUEST_ADD;
-	req.ref = getObstacleRef(ob);
+	req.action = REQUEST_ADD; // 処理リクエストの種類を設定
+	req.ref = getObstacleRef(ob); // 処理リクエストの障害物リストの添え値を設定
 
 	if (result)
 		*result = req.ref;
@@ -431,11 +430,11 @@ dtStatus dtTileCache::removeObstacle(const dtObstacleRef ref)
 	if (m_nreqs >= MAX_REQUESTS)
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 
-	auto& req = m_reqs[m_nreqs++];
+	auto& req = m_reqs[m_nreqs++]; // 処理リクエストに追加
 
 	req = {};
-	req.action = REQUEST_REMOVE;
-	req.ref = ref;
+	req.action = REQUEST_REMOVE; // 処理リクエストの種類を設定
+	req.ref = ref; // 処理リクエストの障害物リストの添え値を設定
 
 	return DT_SUCCESS;
 }
@@ -456,10 +455,10 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 	if (ob.salt != salt)
 		return DT_FAILURE;
 
-	auto& req = m_reqs[idx];
+	auto& req = m_reqs[m_nreqs++]; // 処理リクエストに追加
 
-	req.action = REQUEST_MOVE;
-	req.ref = ref;
+	req.action = REQUEST_MOVE; // 処理リクエストの種類を設定
+	req.ref = ref; // 処理リクエストの障害物リストの添え値を設定
 
 	if (ob.type == DT_OBSTACLE_CYLINDER)
 	{
@@ -594,8 +593,8 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 					{
 						if (m_nupdate < MAX_UPDATE)
 						{
-							if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
-								m_update[m_nupdate++] = ob.touched[j];
+							if (!contains(m_update, m_nupdate, ob.touched[j]))
+								m_update[m_nupdate++] = ob.touched[j]; //
 
 							ob.pending[ob.npending++] = ob.touched[j];
 						}
@@ -616,7 +615,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 					{
 						if (m_nupdate < MAX_UPDATE)
 						{
-							if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
+							if (!contains(m_update, m_nupdate, ob.touched[j]))
 								m_update[m_nupdate++] = ob.touched[j];
 
 							ob.pending[ob.npending++] = ob.touched[j];
@@ -644,7 +643,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 					{
 						if (m_nupdate < MAX_UPDATE)
 						{
-							if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
+							if (!contains(m_update, m_nupdate, ob.touched[j]))
 								m_update[m_nupdate++] = ob.touched[j];
 
 							ob.pending[ob.npending++] = ob.touched[j];
@@ -661,13 +660,14 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 
 	dtStatus status = DT_SUCCESS;
 	// Process updates
-	if (m_nupdate)
+	// 処理しなければならない障害物がある
+	if (m_nupdate != 0)
 	{
 		// Build mesh
 		const dtCompressedTileRef ref = m_update[0];
 		status = buildNavMeshTile(ref, navmesh);
-		m_nupdate--;
-		if (m_nupdate > 0)
+
+		if (--m_nupdate > 0)
 			memmove(m_update.data(), m_update.data() + 1, m_nupdate * sizeof(dtCompressedTileRef));
 
 		// Update obstacle states.
@@ -692,10 +692,12 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				// 保留中のすべてのタイルが処理された場合は、状態を変更します。
 				if (ob.npending == 0)
 				{
-					if (ob.state == DT_OBSTACLE_PROCESSING)
+					// 処理中なら処理完了にする
+					if (ob.state == DT_OBSTACLE_PROCESSING || ob.state == DT_OBSTACLE_MOVING)
 					{
 						ob.state = DT_OBSTACLE_PROCESSED;
 					}
+					// 削除なら空に変更
 					else if (ob.state == DT_OBSTACLE_REMOVING)
 					{
 						ob.state = DT_OBSTACLE_EMPTY;
@@ -772,7 +774,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		if (ob.state == DT_OBSTACLE_EMPTY || ob.state == DT_OBSTACLE_REMOVING)
 			continue;
 
-		if (contains(ob.touched.data(), ob.ntouched, ref))
+		if (contains(ob.touched, ob.ntouched, ref))
 		{
 			if (ob.type == DT_OBSTACLE_CYLINDER)
 			{

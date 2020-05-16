@@ -94,6 +94,9 @@ public:
 	{ m_tileCache->CalcBoxPos(middle_pos, box_size, box); }
 	dtObstacleRef HitTestObstacle(const float* sp, const float* sq);
 
+	void StartMoveObstacles() noexcept;
+	dtStatus EndMoveObstacles();
+
 	void buildTile(const float* pos);
 	bool removeTile(const float* pos);
 	bool buildAllTiles();

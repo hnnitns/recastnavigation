@@ -409,6 +409,7 @@ namespace
 			if (mouse_middle_push)
 			{
 				m_ref = m_sample->HitTestObstacle(s, p);
+				m_sample->StartMoveObstacles();
 				return;
 			}
 
@@ -431,10 +432,15 @@ namespace
 				m_sample->addTempObstacle(add_data);
 			}
 		}
-		void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
+		void handleClickUp(const float* /*s*/, const float* /*p*/) override
+		{
+			if (mouse_middle_push)
+				m_sample->EndMoveObstacles();
+		}
 		void handleClick(const float* /*s*/, const float* p) override
 		{
-			m_sample->MoveTempObstacle(m_ref, p);
+			if (mouse_middle_push)
+				m_sample->MoveTempObstacle(m_ref, p);
 		}
 
 		virtual void handleToggle() {}
@@ -1460,6 +1466,20 @@ dtObstacleRef Sample_TempObstacles::HitTestObstacle(const float* sp, const float
 	return hitTestObstacle(m_tileCache, sp, sq);
 }
 
+void Sample_TempObstacles::StartMoveObstacles() noexcept
+{
+	if (!m_tileCache) return;
+
+	m_tileCache->StartMoveObstacles();
+}
+
+dtStatus Sample_TempObstacles::EndMoveObstacles()
+{
+	if (!m_tileCache) return DT_INVALID_PARAM;
+
+	return (m_tileCache->EndMoveObstacles(m_navMesh));
+}
+
 void Sample_TempObstacles::buildTile(const float* pos)
 {
 	if (!m_geom) return;
@@ -1735,10 +1755,7 @@ void Sample_TempObstacles::handleUpdate(const float dt)
 {
 	Sample::handleUpdate(dt);
 
-	if (!m_navMesh)
-		return;
-	if (!m_tileCache)
-		return;
+	if (!(m_navMesh && m_tileCache)) return;
 
 	m_tileCache->update(dt, m_navMesh);
 }

@@ -66,7 +66,7 @@ namespace
 
 dtTileCache::dtTileCache() :
 	m_tileLutSize(0), m_tileLutMask(0), m_posLookup(0), m_nextFreeTile(0), m_tiles(0), m_saltBits(0), m_tileBits(0),
-	m_talloc(0), m_tcomp(0), m_tmproc(0), m_nextFreeObstacle(0), m_nreqs(0), m_nupdate(0)
+	m_talloc(0), m_tcomp(0), m_tmproc(0), m_nextFreeObstacle(0), m_nreqs(0), m_nupdate(0), is_update_chace()
 {
 	memset(&m_params, 0, sizeof(m_params));
 	m_reqs.fill({});
@@ -558,7 +558,7 @@ dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 	return DT_SUCCESS;
 }
 
-dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh, bool* upToDate)
+dtStatus dtTileCache::update(const float /*dt*/, class dtNavMesh* navmesh, bool* upToDate)
 {
 	if (m_nupdate == 0)
 	{
@@ -640,7 +640,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh, bool* upToD
 						const float dis{ dtVdist(data.before_pos, data.pos) }; // 距離を計算
 						float adj_rate{ (std::max)(dis / size, 1.f) }; // 比率を求め
 
-						adj_bounds_distance = size * adj_rate * 2.f; // どれだけ微調整するかを計算
+						adj_bounds_distance = size * adj_rate * 4.f; // どれだけ微調整するかを計算
 					}
 					else
 					{
@@ -651,12 +651,12 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh, bool* upToD
 						dtVsub(box_size.data(), data.bmax, data.bmin);
 						dtVabs(box_size.data());
 
-						const auto& max_size{ Max_Element(box_size) }; // 一番大きいサイズを基準にする
+						const auto& max_size{ NormalAlgorithm::Max_Element(box_size) }; // 一番大きいサイズを基準にする
 						const float size{ *max_size };
 						const float dis{ dtVdist(data.before_bmin, data.bmin) }; // 距離を計算
 						const float adj_rate{ (std::max)(dis / size, 1.f) }; // 比率を求め
 
-						adj_bounds_distance = size * adj_bounds_dis_rate * 2.f; // どれだけ微調整するかを計算
+						adj_bounds_distance = size * adj_bounds_dis_rate * 4.f; // どれだけ微調整するかを計算
 					}
 
 					float bmin[3], bmax[3];
@@ -683,8 +683,8 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh, bool* upToD
 						{
 							if (!contains(m_update, m_nupdate, ob.touched[j]))
 							{
-								m_update[m_nupdate++] = ob.touched[j];
-								//m_update_cache[]
+								m_update[m_nupdate++] = ob.touched[j]; // 更新リクエストに追加
+								//m_update_cache.emplace(ob.touched[i]); // 更新リクエスト履歴に追加
 							}
 
 							ob.pending[ob.npending++] = ob.touched[j];
@@ -705,11 +705,16 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh, bool* upToD
 	if (m_nupdate != 0)
 	{
 		// Build mesh
-		const dtCompressedTileRef ref = m_update[0];
+		const dtCompressedTileRef ref = m_update.front();
 		status = buildNavMeshTile(ref, navmesh);
 
-		if (--m_nupdate > 0)
-			memmove(m_update.data(), m_update.data() + 1, m_nupdate * sizeof(dtCompressedTileRef));
+		{
+			constexpr size_t size{ sizeof(dtCompressedTileRef) };
+
+			// 更新リクエスト数をデクリメント、使用済みの更新リクエストに次以降の更新リクエストを移動
+			if (--m_nupdate > 0)
+				memmove(m_update.data(), m_update.data() + 1, m_nupdate * size);
+		}
 
 		// Update obstacle states.
 		// 障害物の状態を更新します。
@@ -892,12 +897,15 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		return DT_FAILURE;
 
 	// Remove existing tile.
+	// 既存のタイルを削除します。
 	navmesh->removeTile(navmesh->getTileRefAt(tile->header->tx, tile->header->ty, tile->header->tlayer), 0, 0);
 
 	// Add new tile, or leave the location empty.
+	// 新しいタイルを追加するか、場所を空のままにします。
 	if (navData)
 	{
 		// Let the navmesh own the data.
+		// navmeshにデータを所有させます。
 		status = navmesh->addTile(navData, navDataSize, DT_TILE_FREE_DATA, 0, 0);
 		if (dtStatusFailed(status))
 		{
@@ -938,4 +946,38 @@ void dtTileCache::getObstacleBounds(const struct dtTileCacheObstacle* ob, float*
 		dtVcopy(bmin, ob->box.bmin);
 		dtVcopy(bmax, ob->box.bmax);
 	}
+}
+
+void dtTileCache::StartMoveObstacles() noexcept
+{
+	// 初期化
+	m_update_cache.reserve(10);
+	is_update_chace = true;
+}
+
+dtStatus dtTileCache::EndMoveObstacles(dtNavMesh* navmesh)
+{
+	dtStatus status = DT_SUCCESS;
+
+	// 障害物の移動動作に入っていない
+	if (!is_update_chace)	return status;
+
+	// 別のタイルに移動していないのでナビメッシュ生成を生成する必要はない
+	if (m_update_cache.size() == 1u)	return status;
+
+	// 以前のナビメッシュの削除
+
+	// 障害物の一回でも通ったナビメッシュの再生成
+	for (auto& cache : m_update_cache)
+	{
+		status = buildNavMeshTile(cache, navmesh);
+
+		if (dtStatusFailed(status))	break;
+	}
+
+	// 終了処理
+	m_update_cache.clear();
+	is_update_chace = false;
+
+	return status;
 }

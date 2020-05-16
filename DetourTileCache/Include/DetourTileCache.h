@@ -3,6 +3,7 @@
 
 #include "DetourStatus.h"
 #include <array>
+#include <unordered_set>
 
 typedef unsigned int dtObstacleRef;
 
@@ -172,6 +173,9 @@ public:
 
 	void getObstacleBounds(const struct dtTileCacheObstacle* ob, float* bmin, float* bmax) const;
 
+	void StartMoveObstacles() noexcept;
+	dtStatus EndMoveObstacles(class dtNavMesh* navmesh);
+
 	// Encodes a tile id.
 	// タイルIDをエンコードします。
 	inline dtCompressedTileRef encodeTileId(unsigned int salt, unsigned int it) const
@@ -265,8 +269,11 @@ private:
 
 	static constexpr int MAX_UPDATE = 64;
 	std::array<dtCompressedTileRef, MAX_UPDATE> m_update;
-	std::array<dtCompressedTileRef, MAX_UPDATE> m_update_cache;
 	int m_nupdate; // 障害物の更新リクエスト数
+
+	// ナビメッシュ生成の為に障害物がどのタイルを通ったかを保存する
+	std::unordered_set<dtCompressedTileRef> m_update_cache; /// 重複させないためにunordered_setを使用
+	bool is_update_chace;
 };
 
 dtTileCache* dtAllocTileCache();

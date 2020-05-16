@@ -752,3 +752,13 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 
 	dd->depthMask(true);
 }
+
+void InputGeom::LoadGeomMesh::Update()
+{
+	// XV
+	m_mesh->MoveVerts(pos);
+	m_chunkyMesh->MoveNodes(pos);
+
+	// ÄŒvŽZ
+	rcCalcBounds(m_mesh->getVerts().data(), m_mesh->getVertCount(), m_meshBMin.data(), m_meshBMax.data());
+}

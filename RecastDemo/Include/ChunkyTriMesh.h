@@ -25,6 +25,7 @@
 struct rcChunkyTriMeshNode
 {
 	std::array<float, 2> bmin, bmax;
+	std::array<float, 2> origin_bmin, origin_bmax;
 	int i;
 	int n;
 };
@@ -39,6 +40,8 @@ struct rcChunkyTriMesh
 	std::vector<int> tris;
 	int ntris;
 	int maxTrisPerChunk; // ノードごとの三角形の最大数
+
+	void MoveNodes(std::array<float, 3>& pos);
 
 public:
 	rcChunkyTriMesh(rcChunkyTriMesh&& _rt) noexcept

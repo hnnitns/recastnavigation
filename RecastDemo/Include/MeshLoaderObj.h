@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 
 class rcMeshLoaderObj
 {
@@ -34,9 +35,10 @@ public:
 
 		m_filename = move(_rt.m_filename);
 		m_scale = (_rt.m_scale);
-		m_verts = move(_rt.m_verts);
-		m_tris = move(_rt.m_tris);
-		m_normals = move(_rt.m_normals);
+		m_verts.swap(_rt.m_verts);
+		m_origine_verts.swap(_rt.m_origine_verts);
+		m_tris.swap(_rt.m_tris);
+		m_normals.swap(_rt.m_normals);
 		m_vertCount = (_rt.m_vertCount);
 		m_triCount = (_rt.m_triCount);
 	}
@@ -48,9 +50,10 @@ public:
 		{
 			m_filename = move(_rt.m_filename);
 			m_scale = (_rt.m_scale);
-			m_verts = move(_rt.m_verts);
-			m_tris = move(_rt.m_tris);
-			m_normals = move(_rt.m_normals);
+			m_verts.swap(_rt.m_verts);
+			m_origine_verts.swap(_rt.m_origine_verts);
+			m_tris.swap(_rt.m_tris);
+			m_normals.swap(_rt.m_normals);
 			m_vertCount = (_rt.m_vertCount);
 			m_triCount = (_rt.m_triCount);
 		}
@@ -65,6 +68,7 @@ public:
 		m_filename = (_rt.m_filename);
 		m_scale = (_rt.m_scale);
 		m_verts = (_rt.m_verts);
+		m_origine_verts = (_rt.m_origine_verts);
 		m_tris = (_rt.m_tris);
 		m_normals = (_rt.m_normals);
 		m_vertCount = (_rt.m_vertCount);
@@ -79,6 +83,7 @@ public:
 			m_filename = (_rt.m_filename);
 			m_scale = (_rt.m_scale);
 			m_verts = (_rt.m_verts);
+			m_origine_verts = (_rt.m_origine_verts);
 			m_tris = (_rt.m_tris);
 			m_normals = (_rt.m_normals);
 			m_vertCount = (_rt.m_vertCount);
@@ -89,6 +94,7 @@ public:
 	}
 
 	bool load(const std::string& fileName);
+	void MoveVerts(const std::array<float, 3>& pos);
 
 	const auto& getVerts() const { return m_verts; }
 	const auto& getNormals() const { return m_normals; }
@@ -105,6 +111,7 @@ private:
 	std::string m_filename;
 	float m_scale;
 	std::vector<float> m_verts;
+	std::vector<float> m_origine_verts;
 	std::vector<int> m_tris;
 	std::vector<float> m_normals;
 	int m_vertCount;

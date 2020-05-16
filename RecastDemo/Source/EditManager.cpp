@@ -530,7 +530,7 @@ void EditManager::SystemUpdate(const float dt)
 	// “Š‰es—ñ‚ğŒvZ‚µ‚Ü‚·B
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(50.f, (float)screen_size.x / (float)screen_size.y, 1.f, camr);
+	gluPerspective(90.f, (float)screen_size.x / (float)screen_size.y, 1.f, camr);
 	glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
 
 	// Compute the modelview matrix.

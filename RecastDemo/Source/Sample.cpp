@@ -161,20 +161,20 @@ void Sample::handleMeshChanged()
 
 	if (buildSettings)
 	{
-		m_cellSize             = buildSettings->cellSize;
-		m_cellHeight           = buildSettings->cellHeight;
-		m_agentHeight          = buildSettings->agentHeight;
-		m_agentRadius          = buildSettings->agentRadius;
-		m_agentMaxClimb        = buildSettings->agentMaxClimb;
-		m_agentMaxSlope        = buildSettings->agentMaxSlope;
-		m_regionMinSize        = buildSettings->regionMinSize;
-		m_regionMergeSize      = buildSettings->regionMergeSize;
-		m_edgeMaxLen           = buildSettings->edgeMaxLen;
-		m_edgeMaxError         = buildSettings->edgeMaxError;
-		m_vertsPerPoly         = buildSettings->vertsPerPoly;
-		m_detailSampleDist     = buildSettings->detailSampleDist;
+		m_cellSize = buildSettings->cellSize;
+		m_cellHeight = buildSettings->cellHeight;
+		m_agentHeight = buildSettings->agentHeight;
+		m_agentRadius = buildSettings->agentRadius;
+		m_agentMaxClimb = buildSettings->agentMaxClimb;
+		m_agentMaxSlope = buildSettings->agentMaxSlope;
+		m_regionMinSize = buildSettings->regionMinSize;
+		m_regionMergeSize = buildSettings->regionMergeSize;
+		m_edgeMaxLen = buildSettings->edgeMaxLen;
+		m_edgeMaxError = buildSettings->edgeMaxError;
+		m_vertsPerPoly = buildSettings->vertsPerPoly;
+		m_detailSampleDist = buildSettings->detailSampleDist;
 		m_detailSampleMaxError = buildSettings->detailSampleMaxError;
-		m_partitionType        = static_cast<SamplePartitionType>(buildSettings->partitionType);
+		m_partitionType = static_cast<SamplePartitionType>(buildSettings->partitionType);
 	}
 }
 
@@ -314,6 +314,57 @@ void Sample::handleCommonSettings()
 	imguiSlider("Max Sample Error", &m_detailSampleMaxError, 0.0f, 16.0f, 1.f);
 
 	imguiSeparator();
+	imguiSeparator();
+
+	if (!m_geom->isLoadGeomMeshEmpty())
+	{
+		imguiLabel("Geometry deformation"); // ’nŒ`•ÏX
+
+		for (auto& geom : m_geom->getEditableLoadGeomMesh())
+		{
+			geom.is_changed = false;
+
+			if (!geom.is_selected)	continue;
+
+			constexpr std::array<char*, 3> Contents{ "X", "Y", "Z" };
+
+			bool is_changed{};
+			std::string text{ "Position " };
+
+			for (size_t i = 0; i < Contents.size(); i++)
+			{
+				is_changed = imguiSlider((text + Contents[i]).c_str(), &geom.pos[i], -100.f, 100.f, 1.f);
+
+				if (is_changed)
+					geom.is_changed = true;
+			}
+
+			imguiSeparator();
+			text = "Scale";
+
+			for (size_t i = 0; i < Contents.size(); i++)
+			{
+				imguiSlider((text + Contents[i]).c_str(), &geom.scale[i], -100.f, 100.f, 1.f);
+
+				if (is_changed)
+					geom.is_changed = true;
+			}
+
+			imguiSeparator();
+			text = "Rotate";
+
+			for (size_t i = 0; i < Contents.size(); i++)
+			{
+				imguiSlider((text + Contents[i]).c_str(), &geom.rotate[i], -100.f, 100.f, 1.f);
+
+				if (is_changed)
+					geom.is_changed = true;
+			}
+		}
+	}
+
+	imguiSeparator();
+	imguiSeparator();
 }
 
 void Sample::handleClickDown(const float* s, const float* p, bool shift)
@@ -353,6 +404,19 @@ bool Sample::handleBuild()
 
 void Sample::handleUpdate(const float dt)
 {
+	if (m_geom)
+	{
+		for (auto& geom : m_geom->getEditableLoadGeomMesh())
+		{
+			if (geom.is_changed && geom.is_selected)
+			{
+				geom.Update();
+
+				m_geom->CalcAllMeshBounds();
+			}
+		}
+	}
+
 	if (m_tool)
 		m_tool->handleUpdate(dt);
 	updateToolStates(dt);

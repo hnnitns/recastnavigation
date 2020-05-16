@@ -96,17 +96,28 @@ class InputGeom
 public:
 	struct LoadGeomMesh
 	{
-		LoadGeomMesh() = default;
+		LoadGeomMesh()
+			: pos(), rotate()
+		{
+			scale.fill(1.f);
+		}
 		~LoadGeomMesh() = default;
 
 		std::optional<rcChunkyTriMesh> m_chunkyMesh;
 		std::optional<rcMeshLoaderObj> m_mesh;
 		std::array<float, 3> m_meshBMin{}, m_meshBMax{}; // メッシュデータの位置的な最大値、最小値
 		bool is_selected{ true };
+		std::array<float, 3> pos, scale, rotate;
+		bool is_changed{};
+
+		void Update();
 
 		LoadGeomMesh(const LoadGeomMesh& _rt) noexcept
 		{
 			m_chunkyMesh = (_rt.m_chunkyMesh);
+			pos = _rt.pos;
+			scale = _rt.scale;
+			rotate = _rt.rotate;
 			m_mesh = (_rt.m_mesh);
 			m_meshBMin = (_rt.m_meshBMin);
 			m_meshBMax = (_rt.m_meshBMax);
@@ -118,6 +129,9 @@ public:
 			{
 				m_chunkyMesh = (_rt.m_chunkyMesh);
 				m_mesh = (_rt.m_mesh);
+				pos = _rt.pos;
+				scale = _rt.scale;
+				rotate = _rt.rotate;
 				m_meshBMin = (_rt.m_meshBMin);
 				m_meshBMax = (_rt.m_meshBMax);
 				is_selected = (_rt.is_selected);
@@ -135,6 +149,9 @@ public:
 			m_meshBMin = move(_rt.m_meshBMin);
 			m_meshBMax = move(_rt.m_meshBMax);
 			is_selected = (_rt.is_selected);
+			pos = move(_rt.pos);
+			scale = move(_rt.scale);
+			rotate = move(_rt.rotate);
 		}
 		LoadGeomMesh& operator=(LoadGeomMesh&& _rt) noexcept
 		{
@@ -147,6 +164,9 @@ public:
 				m_meshBMin = move(_rt.m_meshBMin);
 				m_meshBMax = move(_rt.m_meshBMax);
 				is_selected = (_rt.is_selected);
+				pos = move(_rt.pos);
+				scale = move(_rt.scale);
+				rotate = move(_rt.rotate);
 			}
 
 			return (*this);
@@ -184,10 +204,12 @@ private:
 	int m_volumeCount;
 	//@}
 
+public:
+
 	bool LoadMesh(class rcContext* ctx, const std::string& filepath);
 	bool LoadGeomSet(class rcContext* ctx, const std::string& filepath);
 	void CalcAllMeshBounds();
-public:
+
 	InputGeom();
 	~InputGeom() noexcept = default;
 
@@ -205,6 +227,7 @@ public:
 	// Method to return static mesh data.
 	// 静的メッシュデータを返すメソッド。
 	const auto& getLoadGeomMesh() const noexcept { return load_geom_meshes; }
+	auto& getEditableLoadGeomMesh() noexcept { return load_geom_meshes; }
 	size_t getLoadGeomMeshSize() const noexcept { return load_geom_meshes.size(); }
 	bool isLoadGeomMeshEmpty() const noexcept { return load_geom_meshes.empty(); }
 	const auto& getMeshAt(const size_t num) const { return load_geom_meshes.at(num).m_mesh; }

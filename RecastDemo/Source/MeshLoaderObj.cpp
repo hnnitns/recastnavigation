@@ -23,6 +23,11 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
+#include <DirectXMath.h>
+#include <ppl.h>
+#include "Other/XMFLOAT_Hlper.h"
+
+namespace PPL = Concurrency;
 
 #ifdef _DEBUG
 #define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -287,5 +292,22 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 	}
 
 	m_filename = filename;
+	m_origine_verts = m_verts; // Œ´“_‚ð•Û‘¶
+
 	return true;
+}
+
+void rcMeshLoaderObj::MoveVerts(const std::array<float, 3>& pos)
+{
+	PPL::parallel_for(0, m_vertCount * 3, 3, [&](const int i)
+		{
+			m_verts[i + 0] = m_origine_verts[i + 0] + pos[0];
+			m_verts[i + 1] = m_origine_verts[i + 1] + pos[1];
+			m_verts[i + 2] = m_origine_verts[i + 2] + pos[2];
+		});
+
+	//for (auto& i : m_verts)
+	//{
+
+	//}
 }

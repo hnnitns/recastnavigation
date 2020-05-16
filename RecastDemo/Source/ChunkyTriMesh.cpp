@@ -22,10 +22,13 @@
 #include <cmath>
 #include <array>
 #include <vector>
-#include <algorithm>
+
+#include "AlgorithmHelper.h"
 
 namespace
 {
+	namespace exec = std::execution;
+
 	struct BoundsItem
 	{
 		std::array<float, 2> bmin, bmax;
@@ -261,6 +264,12 @@ bool rcCreateChunkyTriMesh(
 			cm->maxTrisPerChunk = node.n;
 	}
 
+	For_Each_N(cm->nodes, cm->nnodes, [](rcChunkyTriMeshNode& node)
+		{
+			node.origin_bmax = node.bmax;
+			node.origin_bmin = node.bmin;
+		}, exec::par);
+
 	return true;
 }
 
@@ -331,4 +340,13 @@ int rcGetChunksOverlappingSegment(const rcChunkyTriMesh* cm,
 	}
 
 	return n;
+}
+
+void rcChunkyTriMesh::MoveNodes(std::array<float, 3>& pos)
+{
+	For_Each_N(nodes, nnodes, [&](rcChunkyTriMeshNode& node)
+		{
+			node.bmax[0] = node.origin_bmax[0] + pos[0];
+			node.bmax[1] = node.origin_bmax[1] + pos[1];
+		}, exec::par);
 }

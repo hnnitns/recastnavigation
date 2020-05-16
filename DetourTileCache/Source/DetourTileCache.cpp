@@ -412,8 +412,6 @@ dtStatus dtTileCache::addBoxObstacle(const float* bmin, const float* bmax, dtObs
 	dtVcopy(ob->box.bmin, bmin);
 	dtVcopy(ob->box.bmax, bmax);
 
-
-
 	auto& req = m_reqs[m_nreqs++];
 
 	req = {};
@@ -457,6 +455,11 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 	unsigned int salt = decodeObstacleIdSalt(ref);
 	if (ob.salt != salt)
 		return DT_FAILURE;
+
+	auto& req = m_reqs[idx];
+
+	req.action = REQUEST_MOVE;
+	req.ref = ref;
 
 	if (ob.type == DT_OBSTACLE_CYLINDER)
 	{
@@ -558,6 +561,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 	if (m_nupdate == 0)
 	{
 		// Process requests.
+		// リクエストを処理します。
 		for (int i = 0; i < m_nreqs; ++i)
 		{
 			auto& req = m_reqs[i];
@@ -571,47 +575,83 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				continue;
 
 			// 障害物の追加
-			if (req.action == REQUEST_ADD)
+			switch (req.action)
 			{
-				// Find touched tiles.
-				float bmin[3], bmax[3];
-				getObstacleBounds(&ob, bmin, bmax);
-
-				int ntouched = 0;
-				queryTiles(bmin, bmax, ob.touched.data(), &ntouched, DT_MAX_TOUCHED_TILES);
-				ob.ntouched = (unsigned char)ntouched;
-				// Add tiles to update list.
-				ob.npending = 0;
-				for (int j = 0; j < ob.ntouched; ++j)
+				case dtTileCache::REQUEST_ADD:
 				{
-					if (m_nupdate < MAX_UPDATE)
-					{
-						if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
-							m_update[m_nupdate++] = ob.touched[j];
+					// Find touched tiles.
+					// タッチされたタイルを見つけます。
+					float bmin[3], bmax[3];
+					getObstacleBounds(&ob, bmin, bmax);
 
-						ob.pending[ob.npending++] = ob.touched[j];
+					int ntouched = 0;
+					queryTiles(bmin, bmax, ob.touched.data(), &ntouched, DT_MAX_TOUCHED_TILES);
+					ob.ntouched = (unsigned char)ntouched;
+					// Add tiles to update list.
+					//タイルを追加してリストを更新します。
+					ob.npending = 0;
+					for (int j = 0; j < ob.ntouched; ++j)
+					{
+						if (m_nupdate < MAX_UPDATE)
+						{
+							if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
+								m_update[m_nupdate++] = ob.touched[j];
+
+							ob.pending[ob.npending++] = ob.touched[j];
+						}
 					}
+
+					break;
 				}
-			}
-			// 障害物の削除
-			else if (req.action == REQUEST_REMOVE)
-			{
-				// Prepare to remove obstacle.
-				// 障害物を取り除く準備をします。
-				ob.state = DT_OBSTACLE_REMOVING;
-				// Add tiles to update list.
-				// 更新リストにタイルを追加します。
-				ob.npending = 0;
-
-				for (int j = 0; j < ob.ntouched; ++j)
+				case dtTileCache::REQUEST_REMOVE:
 				{
-					if (m_nupdate < MAX_UPDATE)
-					{
-						if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
-							m_update[m_nupdate++] = ob.touched[j];
+					// Prepare to remove obstacle.
+					// 障害物を取り除く準備をします。
+					ob.state = DT_OBSTACLE_REMOVING;
+					// Add tiles to update list.
+					// 更新リストにタイルを追加します。
+					ob.npending = 0;
 
-						ob.pending[ob.npending++] = ob.touched[j];
+					for (int j = 0; j < ob.ntouched; ++j)
+					{
+						if (m_nupdate < MAX_UPDATE)
+						{
+							if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
+								m_update[m_nupdate++] = ob.touched[j];
+
+							ob.pending[ob.npending++] = ob.touched[j];
+						}
 					}
+
+					break;
+				}
+				case dtTileCache::REQUEST_MOVE:
+				{
+					float bmin[3], bmax[3];
+					getObstacleBounds(&ob, bmin, bmax);
+
+					int ntouched = 0;
+					queryTiles(bmin, bmax, ob.touched.data(), &ntouched, DT_MAX_TOUCHED_TILES);
+					ob.ntouched = (unsigned char)ntouched;
+
+					// Prepare to remove obstacle.
+					// 障害物を移動させる準備をします。
+					ob.state = DT_OBSTACLE_MOVING;
+					// Add tiles to update list.
+					// 更新リストにタイルを追加します。
+					ob.npending = 0;
+					for (int j = 0; j < ob.ntouched; ++j)
+					{
+						if (m_nupdate < MAX_UPDATE)
+						{
+							if (!contains(m_update.data(), m_nupdate, ob.touched[j]))
+								m_update[m_nupdate++] = ob.touched[j];
+
+							ob.pending[ob.npending++] = ob.touched[j];
+						}
+					}
+
+					break;
 				}
 			}
 		}
@@ -631,11 +671,13 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 			memmove(m_update.data(), m_update.data() + 1, m_nupdate * sizeof(dtCompressedTileRef));
 
 		// Update obstacle states.
+		// 障害物の状態を更新します。
 		for (auto& ob : m_obstacles)
 		{
-			if (ob.state == DT_OBSTACLE_PROCESSING || ob.state == DT_OBSTACLE_REMOVING)
+			if (ob.state == DT_OBSTACLE_PROCESSING || ob.state == DT_OBSTACLE_REMOVING || ob.state == DT_OBSTACLE_MOVING)
 			{
 				// Remove handled tile from pending list.
+				// 処理中のタイルを保留リストから削除します。
 				for (int j = 0; j < (int)ob.npending; j++)
 				{
 					if (ob.pending[j] == ref)
@@ -647,6 +689,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				}
 
 				// If all pending tiles processed, change state.
+				// 保留中のすべてのタイルが処理された場合は、状態を変更します。
 				if (ob.npending == 0)
 				{
 					if (ob.state == DT_OBSTACLE_PROCESSING)
@@ -657,10 +700,12 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 					{
 						ob.state = DT_OBSTACLE_EMPTY;
 						// Update salt, salt should never be zero.
+						// ソルトを更新します。ソルトがゼロになることはありません。
 						ob.salt = (ob.salt + 1) & ((1 << 16) - 1);
 						if (ob.salt == 0)
 							ob.salt++;
 						// Return obstacle to free list.
+						// 障害物をフリーリストに戻します。
 						ob.next = m_nextFreeObstacle;
 						m_nextFreeObstacle = &ob;
 					}

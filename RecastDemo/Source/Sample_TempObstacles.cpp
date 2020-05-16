@@ -406,6 +406,12 @@ namespace
 		{
 			if (!m_sample)	return;
 
+			if (mouse_middle_push)
+			{
+				m_ref = m_sample->HitTestObstacle(s, p);
+				return;
+			}
+
 			rcVcopy(add_pos, p);
 
 			if (shift)
@@ -424,8 +430,6 @@ namespace
 
 				m_sample->addTempObstacle(add_data);
 			}
-
-			m_ref = m_sample->HitTestObstacle(s, p);
 		}
 		void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
 		void handleClick(const float* /*s*/, const float* p) override

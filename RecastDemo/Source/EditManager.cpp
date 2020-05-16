@@ -241,6 +241,25 @@ bool EditManager::InputUpdate()
 	mouse_hit_middle = false;
 	mouse_state = MouseState::Free;
 
+	// マウス
+	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
+	{
+		mouseButtonMask |= IMGUI_MBUT_LEFT;
+		mouse_state = MouseState::Pushing;
+	}
+
+	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_RMASK)
+	{
+		mouseButtonMask |= IMGUI_MBUT_RIGHT;
+		mouse_state = MouseState::Pushing;
+	}
+
+	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_MIDDLE)
+	{
+		mouse_hit_middle = true;
+		mouse_state = MouseState::Pushing;
+	}
+
 	while (SDL_PollEvent(&event))
 	{
 		switch (event.type)
@@ -344,6 +363,12 @@ bool EditManager::InputUpdate()
 			case SDL_MOUSEBUTTONDOWN:
 			{
 				mouse_state = MouseState::Down;
+
+				if (event.button.button == SDL_BUTTON_MIDDLE && !mouseOverMenu)
+				{
+					mouse_hit_middle = true;
+				}
+
 				// 右ボタンでImGuiウィンドウ外
 				if (event.button.button == SDL_BUTTON_RIGHT && !mouseOverMenu)
 				{
@@ -362,6 +387,11 @@ bool EditManager::InputUpdate()
 			case SDL_MOUSEBUTTONUP:
 			{
 				mouse_state = MouseState::Up;
+
+				if (event.button.button == SDL_BUTTON_MIDDLE && !mouseOverMenu)
+				{
+					mouse_hit_middle = true;
+				}
 
 				// Handle mouse clicks here.
 				//　ここでマウスクリックを処理します。
@@ -426,25 +456,6 @@ bool EditManager::InputUpdate()
 			default:
 				break;
 		}
-	}
-
-	// マウス
-	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
-	{
-		mouseButtonMask |= IMGUI_MBUT_LEFT;
-		mouse_state = MouseState::Pushing;
-	}
-
-	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_RMASK)
-	{
-		mouseButtonMask |= IMGUI_MBUT_RIGHT;
-		mouse_state = MouseState::Pushing;
-	}
-
-	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_MIDDLE)
-	{
-		mouse_hit_middle = true;
-		mouse_state = MouseState::Pushing;
 	}
 
 	return true;
@@ -575,6 +586,18 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 	{
 		case MouseState::Down:
 		{
+			if (mouse_hit_middle && sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
+			{
+				sample->GetTool()->mouse_middle_push = true;
+
+				InputGeom::RaycastMeshHitInfo hit_info{};
+				auto& geom{ sample->getInputGeom() };
+
+				if (geom->RaycastMesh(ray_start, ray_end, &hit_info))
+				{
+					sample->handleClickDown(ray_start.data(), hit_info.pos.data(), false);
+				}
+			}
 		}
 		case MouseState::Pushing:
 		{
@@ -582,6 +605,8 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 			{
 				InputGeom::RaycastMeshHitInfo hit_info{};
 				auto& geom{ sample->getInputGeom() };
+
+				sample->GetTool()->mouse_middle_push = true;
 
 				if (geom->RaycastMesh(ray_start, ray_end, &hit_info))
 				{
@@ -596,6 +621,20 @@ void EditManager::HandleUpdate(const float dt, const uint32_t time)
 			if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
 			{
 				sample->handleClickUp();
+
+				if (mouse_hit_middle)
+				{
+					sample->GetTool()->mouse_middle_push = true;
+				}
+			}
+
+			break;
+		}
+		case MouseState::Free:
+		{
+			if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
+			{
+				sample->GetTool()->mouse_middle_push = false;
 			}
 
 			break;

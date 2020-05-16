@@ -36,6 +36,7 @@ enum ObstacleState
 	DT_OBSTACLE_PROCESSING,
 	DT_OBSTACLE_PROCESSED,
 	DT_OBSTACLE_REMOVING,
+	DT_OBSTACLE_MOVING,
 };
 
 enum ObstacleType
@@ -230,11 +231,12 @@ private:
 	{
 		REQUEST_ADD,
 		REQUEST_REMOVE,
+		REQUEST_MOVE,
 	};
 
 	struct ObstacleRequest
 	{
-		int action;
+		ObstacleRequestAction action;
 		dtObstacleRef ref;
 	};
 

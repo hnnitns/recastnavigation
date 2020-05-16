@@ -129,6 +129,8 @@ struct SampleTool
 	virtual void handleToggle() = 0;
 	virtual void handleStep() = 0;
 	virtual void handleUpdate(const float dt) = 0;
+
+	bool mouse_middle_push{};
 };
 
 struct SampleToolState {
@@ -222,6 +224,8 @@ public:
 
 	void resetCommonSettings();
 	void handleCommonSettings(); // ‹¤’Ê‚Ìİ’è(Imguiã‚Å‚Ì•ÏX)
+
+	SampleTool* GetTool() noexcept { return m_tool; }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

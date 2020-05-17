@@ -344,7 +344,7 @@ void Sample::handleCommonSettings()
 
 			for (size_t i = 0; i < Contents.size(); i++)
 			{
-				imguiSlider((text + Contents[i]).c_str(), &geom.scale[i], -100.f, 100.f, 1.f);
+				is_changed = imguiSlider((text + Contents[i]).c_str(), &geom.scale[i], 0.1f, 10.f, 0.1f);
 
 				if (is_changed)
 					geom.is_changed = true;
@@ -355,7 +355,7 @@ void Sample::handleCommonSettings()
 
 			for (size_t i = 0; i < Contents.size(); i++)
 			{
-				imguiSlider((text + Contents[i]).c_str(), &geom.rotate[i], -100.f, 100.f, 1.f);
+				is_changed = imguiSlider((text + Contents[i]).c_str(), &geom.rotate[i], -180.f, 180.f, 1.f);
 
 				if (is_changed)
 					geom.is_changed = true;

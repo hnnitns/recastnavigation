@@ -22,12 +22,16 @@
 #include <cmath>
 #include <array>
 #include <vector>
+#include <ppl.h>
+#include <DirectXMath.h>
+#include "Other/Math.h"
 
 #include "AlgorithmHelper.h"
 
 namespace
 {
 	namespace exec = std::execution;
+	namespace PPL = Concurrency;
 
 	struct BoundsItem
 	{
@@ -61,16 +65,16 @@ namespace
 		bmax[0] = items[imin].bmax[0];
 		bmax[1] = items[imin].bmax[1];
 
-		for (int i = imin + 1; i < imax; ++i)
-		{
-			const BoundsItem& it = items[i];
+		PPL::parallel_for(imin + 1, imax, 1, [&](const int i)
+			{
+				const BoundsItem& it = items[i];
 
-			if (it.bmin[0] < bmin[0]) bmin[0] = it.bmin[0];
-			if (it.bmin[1] < bmin[1]) bmin[1] = it.bmin[1];
+				if (it.bmin[0] < bmin[0]) bmin[0] = it.bmin[0];
+				if (it.bmin[1] < bmin[1]) bmin[1] = it.bmin[1];
 
-			if (it.bmax[0] > bmax[0]) bmax[0] = it.bmax[0];
-			if (it.bmax[1] > bmax[1]) bmax[1] = it.bmax[1];
-		}
+				if (it.bmax[0] > bmax[0]) bmax[0] = it.bmax[0];
+				if (it.bmax[1] > bmax[1]) bmax[1] = it.bmax[1];
+			});
 	}
 
 	inline constexpr int longestAxis(float x, float y)
@@ -224,25 +228,25 @@ bool rcCreateChunkyTriMesh(
 		return false;
 	}
 
-	for (int i = 0; i < ntris; i++)
-	{
-		const int* t = &tris[i * 3];
-		BoundsItem& it = items[i];
-		it.i = i;
-		// Calc triangle XZ bounds.
-		// éOäpå`ÇÃXZã´äEÇåvéZÇµÇ‹Ç∑ÅB
-		it.bmin[0] = it.bmax[0] = verts[t[0] * 3 + 0];
-		it.bmin[1] = it.bmax[1] = verts[t[0] * 3 + 2];
-		for (int j = 1; j < 3; ++j)
+	PPL::parallel_for(0, ntris, 1, [&](const int i)
 		{
-			const float* v = &verts[t[j] * 3];
-			if (v[0] < it.bmin[0]) it.bmin[0] = v[0];
-			if (v[2] < it.bmin[1]) it.bmin[1] = v[2];
+			const int* t = &tris[i * 3];
+			BoundsItem& it = items[i];
+			it.i = i;
+			// Calc triangle XZ bounds.
+			// éOäpå`ÇÃXZã´äEÇåvéZÇµÇ‹Ç∑ÅB
+			it.bmin[0] = it.bmax[0] = verts[t[0] * 3 + 0];
+			it.bmin[1] = it.bmax[1] = verts[t[0] * 3 + 2];
+			for (int j = 1; j < 3; ++j)
+			{
+				const float* v = &verts[t[j] * 3];
+				if (v[0] < it.bmin[0]) it.bmin[0] = v[0];
+				if (v[2] < it.bmin[1]) it.bmin[1] = v[2];
 
-			if (v[0] > it.bmax[0]) it.bmax[0] = v[0];
-			if (v[2] > it.bmax[1]) it.bmax[1] = v[2];
-		}
-	}
+				if (v[0] > it.bmax[0]) it.bmax[0] = v[0];
+				if (v[2] > it.bmax[1]) it.bmax[1] = v[2];
+			}
+		});
 
 	int curTri{}, curNode{};
 
@@ -342,11 +346,44 @@ int rcGetChunksOverlappingSegment(const rcChunkyTriMesh* cm,
 	return n;
 }
 
-void rcChunkyTriMesh::MoveNodes(std::array<float, 3>& pos)
+void rcChunkyTriMesh::MoveNodes(
+	const std::array<float, 3>& pos, const std::array<float, 3>& rotate, const std::array<float, 3>& scale)
 {
 	For_Each_N(nodes, nnodes, [&](rcChunkyTriMeshNode& node)
 		{
 			node.bmax[0] = node.origin_bmax[0] + pos[0];
 			node.bmax[1] = node.origin_bmax[1] + pos[1];
+		}, exec::par);
+
+	using namespace DirectX;
+	using Math::ToRadian;
+
+	const auto S = XMMatrixScaling(scale[0], scale[1], scale[2]);
+	const auto R = XMMatrixRotationRollPitchYaw(ToRadian(rotate[0]), ToRadian(rotate[1]), ToRadian(rotate[2]));
+	const auto T = XMMatrixTranslation(pos[0], pos[1], pos[2]);
+
+	// ÉèÅ[ÉãÉhïœä∑çsóÒ
+	auto W = S * R * T;
+
+	For_Each_N(nodes, nnodes, [&](rcChunkyTriMeshNode& node)
+		{
+			const auto pos_bmax = XMMatrixTranslation(node.origin_bmax.front(), node.origin_bmax.back(), 0);
+			const auto pos_bmin = XMMatrixTranslation(node.origin_bmin.front(), node.origin_bmin.back(), 0);
+
+			{
+				const auto result{ pos_bmax * W };
+				auto& vs_pos{ result.r[3].m128_f32 };
+
+				node.bmax[0] = vs_pos[0];
+				node.bmax[1] = vs_pos[1];
+			}
+
+			{
+				const auto result{ pos_bmin * W };
+				auto& vs_pos{ result.r[3].m128_f32 };
+
+				node.bmin[0] = vs_pos[0];
+				node.bmin[1] = vs_pos[1];
+			}
 		}, exec::par);
 }

@@ -756,8 +756,13 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 void InputGeom::LoadGeomMesh::Update()
 {
 	// XV
-	m_mesh->MoveVerts(pos);
-	m_chunkyMesh->MoveNodes(pos);
+	m_mesh->MoveVerts(pos, rotate, scale);
+	//m_chunkyMesh->MoveNodes(pos, rotate, scale);
+
+	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, &(*m_chunkyMesh)))
+	{
+		return;
+	}
 
 	// ÄŒvŽZ
 	rcCalcBounds(m_mesh->getVerts().data(), m_mesh->getVertCount(), m_meshBMin.data(), m_meshBMax.data());

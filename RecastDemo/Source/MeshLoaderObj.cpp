@@ -297,17 +297,28 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 	return true;
 }
 
-void rcMeshLoaderObj::MoveVerts(const std::array<float, 3>& pos)
+void rcMeshLoaderObj::MoveVerts(
+	const std::array<float, 3>& pos, const std::array<float, 3>& rotate, const std::array<float, 3>& scale)
 {
+	using namespace DirectX;
+	using Math::ToRadian;
+
+	const auto S = XMMatrixScaling(scale[0], scale[1], scale[2]);
+	const auto R = XMMatrixRotationRollPitchYaw(ToRadian(rotate[0]), ToRadian(rotate[1]), ToRadian(rotate[2]));
+	const auto T = XMMatrixTranslation(pos[0], pos[1], pos[2]);
+
+	// ÉèÅ[ÉãÉhïœä∑çsóÒ
+	auto W = S * R * T;
+
 	PPL::parallel_for(0, m_vertCount * 3, 3, [&](const int i)
 		{
-			m_verts[i + 0] = m_origine_verts[i + 0] + pos[0];
-			m_verts[i + 1] = m_origine_verts[i + 1] + pos[1];
-			m_verts[i + 2] = m_origine_verts[i + 2] + pos[2];
+			const auto Pos = XMMatrixTranslation(m_origine_verts[i + 0], m_origine_verts[i + 1], m_origine_verts[i + 2]);
+
+			const auto result{ Pos * W };
+			auto& vs_pos{ result.r[3].m128_f32 };
+
+			m_verts[i + 0] = vs_pos[0];
+			m_verts[i + 1] = vs_pos[1];
+			m_verts[i + 2] = vs_pos[2];
 		});
-
-	//for (auto& i : m_verts)
-	//{
-
-	//}
 }

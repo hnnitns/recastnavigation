@@ -41,7 +41,8 @@ struct rcChunkyTriMesh
 	int ntris;
 	int maxTrisPerChunk; // ノードごとの三角形の最大数
 
-	void MoveNodes(std::array<float, 3>& pos);
+	void MoveNodes(
+		const std::array<float, 3>& pos, const std::array<float, 3>& rotate, const std::array<float, 3>& scale);
 
 public:
 	rcChunkyTriMesh(rcChunkyTriMesh&& _rt) noexcept

@@ -22,9 +22,12 @@
 #include "DetourAssert.h"
 #include "DetourTileCacheBuilder.h"
 #include <cstring>
+#include <ppl.h>
 
 namespace
 {
+	namespace PPL = Concurrency;
+
 	template<class T> class dtFixedArray
 	{
 		dtTileCacheAlloc* m_alloc;
@@ -1961,20 +1964,20 @@ dtStatus dtMarkCylinderArea(dtTileCacheLayer& layer, const float* orig, const fl
 	if (minz < 0) minz = 0;
 	if (maxz >= h) maxz = h - 1;
 
-	for (int z = minz; z <= maxz; ++z)
-	{
-		for (int x = minx; x <= maxx; ++x)
+	PPL::parallel_for(minz, maxz + 1, 1, [&](const int z)
 		{
-			const float dx = (float)(x + 0.5f) - px;
-			const float dz = (float)(z + 0.5f) - pz;
-			if (dx * dx + dz * dz > r2)
-				continue;
-			const int y = layer.heights[x + z * w];
-			if (y < miny || y > maxy)
-				continue;
-			layer.areas[x + z * w] = areaId;
-		}
-	}
+			PPL::parallel_for(minx, maxx + 1, 1, [&](const int x)
+				{
+					const float dx = (float)(x + 0.5f) - px;
+					const float dz = (float)(z + 0.5f) - pz;
+					if (dx * dx + dz * dz > r2)
+						return;
+					const int y = layer.heights[x + z * w];
+					if (y < miny || y > maxy)
+						return;
+					layer.areas[x + z * w] = areaId;
+				});
+		});
 
 	return DT_SUCCESS;
 }
@@ -2004,16 +2007,16 @@ dtStatus dtMarkBoxArea(dtTileCacheLayer& layer, const float* orig, const float c
 	if (minz < 0) minz = 0;
 	if (maxz >= h) maxz = h - 1;
 
-	for (int z = minz; z <= maxz; ++z)
-	{
-		for (int x = minx; x <= maxx; ++x)
+	PPL::parallel_for(minz, maxz + 1, 1, [&](const int z)
 		{
-			const int y = layer.heights[x + z * w];
-			if (y < miny || y > maxy)
-				continue;
-			layer.areas[x + z * w] = areaId;
-		}
-	}
+			PPL::parallel_for(minx, maxx + 1, 1, [&](const int x)
+				{
+					const int y = layer.heights[x + z * w];
+					if (y < miny || y > maxy)
+						return;
+					layer.areas[x + z * w] = areaId;
+				});
+		});
 
 	return DT_SUCCESS;
 }

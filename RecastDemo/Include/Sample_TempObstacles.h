@@ -48,6 +48,9 @@ protected:
 	int m_cacheRawSize;
 	int m_cacheLayerCount;
 	int m_cacheBuildMemUsage;
+	int m_maxTiles;
+	int m_maxPolysPerTile;
+	float m_tileSize;
 
 	enum DrawMode
 	{
@@ -63,10 +66,6 @@ protected:
 	};
 
 	DrawMode m_drawMode;
-
-	int m_maxTiles;
-	int m_maxPolysPerTile;
-	float m_tileSize;
 
 public:
 	Sample_TempObstacles();
@@ -114,7 +113,7 @@ private:
 	void CleanUp();
 	void buildTileMeshLayer(
 		const int tx, const int ty, const rcConfig& cfg, const struct dtTileCacheParams& tcparams);
-	void buildTileMesh(const int tx, const int ty);
+	dtStatus buildTileMesh(const int tx, const int ty);
 };
 
 #endif // RECASTSAMPLETEMPOBSTACLE_H

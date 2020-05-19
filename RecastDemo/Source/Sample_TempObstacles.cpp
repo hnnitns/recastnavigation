@@ -1330,7 +1330,7 @@ void Sample_TempObstacles::handleRenderOverlay(double* proj, double* model, int*
 {
 	if (m_tool)
 		m_tool->handleRenderOverlay(proj, model, view);
-	//renderOverlayToolStates(proj, model, view);
+	renderOverlayToolStates(proj, model, view);
 
 	// Stats
 /*	imguiDrawRect(280,10,300,100,imguiRGBA(0,0,0,64));
@@ -1454,9 +1454,9 @@ void Sample_TempObstacles::buildTileMeshLayer(
 	}
 }
 
-void Sample_TempObstacles::buildTileMesh(const int tx, const int ty)
+dtStatus Sample_TempObstacles::buildTileMesh(const int tx, const int ty)
 {
-	m_tileCache->buildNavMeshTilesAt(tx, ty, m_navMesh);
+	return m_tileCache->buildNavMeshTilesAt(tx, ty, m_navMesh);
 }
 
 dtObstacleRef Sample_TempObstacles::HitTestObstacle(const float* sp, const float* sq)
@@ -1688,7 +1688,8 @@ bool Sample_TempObstacles::buildAllTiles()
 	// Build initial meshes // 初期メッシュを作成します
 	for (int y = 0; y < th; ++y)
 		for (int x = 0; x < tw; ++x)
-			buildTileMesh(x, y);
+			if (dtStatusFailed(buildTileMesh(x, y)))
+				return false;
 
 	m_ctx->stopTimer(RC_TIMER_TOTAL);
 
@@ -1730,7 +1731,32 @@ bool Sample_TempObstacles::handleBuild()
 		return false;
 	}
 
-	buildAllTiles();
+	const auto& bmin = m_geom->getNavMeshBoundsMin();
+	const auto& bmax = m_geom->getNavMeshBoundsMax();
+	std::array<char, 64> text{};
+	int gw{}, gh{};
+
+	rcCalcGridSize(bmin.data(), bmax.data(), m_cellSize, &gw, &gh);
+
+	const int ts = (int)m_tileSize;
+	const int tw = (gw + ts - 1) / ts;
+	const int th = (gh + ts - 1) / ts;
+
+	// Max tiles and max polys affect how the tile IDs are caculated.
+	// There are 22 bits available for identifying a tile and a polygon.
+	// 最大タイルと最大ポリープは、タイルIDの計算方法に影響します。
+	// タイルとポリゴンを識別するために利用可能な22ビットがあります。
+	int tileBits = rcMin((int)dtIlog2(dtNextPow2(tw * th * EXPECTED_LAYERS_PER_TILE)), 14);
+
+	if (tileBits > 14) tileBits = 14;
+
+	int polyBits = 22 - tileBits;
+
+	m_maxTiles = 1 << tileBits;
+	m_maxPolysPerTile = 1 << polyBits;
+
+	if (!buildAllTiles())
+		return false;
 
 	const dtNavMesh* nav = m_navMesh;
 	int navmeshMemUsage{};

@@ -260,66 +260,135 @@ struct dtOffMeshConnection
 };
 
 // Provides high level information related to a dtMeshTile object.
+// dtMeshTileオブジェクトに関連する高レベルの情報を提供します。
 // @ingroup detour
 struct dtMeshHeader
 {
-	int magic;				//< Tile magic number. (Used to identify the data format.)
-	int version;			//< Tile data format version number.
-	int x;					//< The x-position of the tile within the dtNavMesh tile grid. (x, y, layer)
-	int y;					//< The y-position of the tile within the dtNavMesh tile grid. (x, y, layer)
-	int layer;				//< The layer of the tile within the dtNavMesh tile grid. (x, y, layer)
-	unsigned int userId;	//< The user defined id of the tile.
-	int polyCount;			//< The number of polygons in the tile.
-	int vertCount;			//< The number of vertices in the tile.
-	int maxLinkCount;		//< The number of allocated links.
-	int detailMeshCount;	//< The number of sub-meshes in the detail mesh.
+	//< Tile magic number. (Used to identify the data format.)
+	// マジック番号を並べて表示します。 （データ形式を識別するために使用されます。）
+	int magic;
+	//< Tile data format version number.
+	// タイルデータ形式のバージョン番号。
+	int version;
+	//< The x-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+	// dtNavMeshタイルグリッド内のタイルのx位置。 （x、y、レイヤー）
+	int x;
+	//< The y-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+	// dtNavMeshタイルグリッド内のタイルのy位置。 （x、y、レイヤー）
+	int y;
+	//< The layer of the tile within the dtNavMesh tile grid. (x, y, layer)
+	// dtNavMeshタイルグリッド内のタイルのレイヤー。 （x、y、レイヤー）
+	int layer;
+	//< The user defined id of the tile.
+	// ユーザー定義のタイルのID。
+	unsigned int userId;
+	//< The number of polygons in the tile.
+	// タイル内のポリゴンの数。
+	int polyCount;
+	//< The number of vertices in the tile.
+	// タイル内の頂点の数。
+	int vertCount;
+	//< The number of allocated links.
+	// 割り当てられたリンクの数。
+	int maxLinkCount;
+	//< The number of sub-meshes in the detail mesh.
+	// ディテールメッシュのサブメッシュの数。
+	int detailMeshCount;
+
 
 	// The number of unique vertices in the detail mesh. (In addition to the polygon vertices.)
+	// ディテールメッシュ内の一意の頂点の数。 （ポリゴンの頂点に加えて）
 	int detailVertCount;
 
-	int detailTriCount;			//< The number of triangles in the detail mesh.
-	int bvNodeCount;			//< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
-	int offMeshConCount;		//< The number of off-mesh connections.
-	int offMeshBase;			//< The index of the first polygon which is an off-mesh connection.
-	float walkableHeight;		//< The height of the agents using the tile.
-	float walkableRadius;		//< The radius of the agents using the tile.
-	float walkableClimb;		//< The maximum climb height of the agents using the tile.
-	float bmin[3];				//< The minimum bounds of the tile's AABB. [(x, y, z)]
-	float bmax[3];				//< The maximum bounds of the tile's AABB. [(x, y, z)]
+	//< The number of triangles in the detail mesh.
+	// ディテールメッシュの三角形の数。
+	int detailTriCount;
+	//< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
+	// バウンディングボリュームノードの数。 （バウンディングボリュームが無効になっている場合はゼロ）。
+	int bvNodeCount;
+	//< The number of off-mesh connections.
+	// オフメッシュ接続の数。
+	int offMeshConCount;
+	//< The index of the first polygon which is an off-mesh connection.
+	// オフメッシュ接続である最初のポリゴンのインデックス。
+	int offMeshBase;
+	//< The height of the agents using the tile.
+	// タイルを使用するエージェントの高さ。
+	float walkableHeight;
+	//< The radius of the agents using the tile.
+	// タイルを使用するエージェントの半径。
+	float walkableRadius;
+	//< The maximum climb height of the agents using the tile.
+	// タイルを使用するエージェントの最大上昇高さ。
+	float walkableClimb;
+	//< The minimum bounds of the tile's AABB. [(x, y, z)]
+	// タイルのAABBの最小境界。 [（x、y、z）]
+	float bmin[3];
+	//< The maximum bounds of the tile's AABB. [(x, y, z)]
+	// タイルのAABBの最大境界。 [（x、y、z）]
+	float bmax[3];
 
 	// The bounding volume quantization factor.
+	// バウンディングボリュームの量子化係数。
 	float bvQuantFactor;
 };
 
 // Defines a navigation mesh tile.
+// ナビゲーションメッシュタイルを定義します。
 // @ingroup detour
 struct dtMeshTile
 {
-	unsigned int salt;					//< Counter describing modifications to the tile.
+	//< Counter describing modifications to the tile.
+	// タイルへの変更を説明するカウンター。
+	unsigned int salt;
+	//< Index to the next free link.
+	// 次の空きリンクへのインデックス。
+	unsigned int linksFreeList;
+	//< The tile header.
+	// タイルヘッダー。
+	dtMeshHeader* header;
+	//< The tile polygons. [Size: dtMeshHeader::polyCount]
+	// タイルポリゴン。 [サイズ：dtMeshHeader :: polyCount]
+	dtPoly* polys;
+	//< The tile vertices. [Size: dtMeshHeader::vertCount]
+	// タイルの頂点。 [サイズ：dtMeshHeader :: vertCount]
+	float* verts;
+	//< The tile links. [Size: dtMeshHeader::maxLinkCount]
+	// タイルリンク。 [サイズ：dtMeshHeader :: maxLinkCount]
+	dtLink* links;
+	//< The tile's detail sub-meshes. [Size: dtMeshHeader::detailMeshCount]
+	// タイルの詳細サブメッシュ。 [サイズ：dtMeshHeader :: detailMeshCount]
+	dtPolyDetail* detailMeshes;
 
-	unsigned int linksFreeList;			//< Index to the next free link.
-	dtMeshHeader* header;				//< The tile header.
-	dtPoly* polys;						//< The tile polygons. [Size: dtMeshHeader::polyCount]
-	float* verts;						//< The tile vertices. [Size: dtMeshHeader::vertCount]
-	dtLink* links;						//< The tile links. [Size: dtMeshHeader::maxLinkCount]
-	dtPolyDetail* detailMeshes;			//< The tile's detail sub-meshes. [Size: dtMeshHeader::detailMeshCount]
 
 	// The detail mesh's unique vertices. [(x, y, z) * dtMeshHeader::detailVertCount]
+	// 詳細メッシュの一意の頂点。 [（X、y、z）* dtMeshHeader :: detailVertCount]
 	float* detailVerts;
 
 	// The detail mesh's triangles. [(vertA, vertB, vertC) * dtMeshHeader::detailTriCount]
+	// 詳細メッシュの三角形。 [（VertA、vertB、vertC）* dtMeshHeader :: detailTriCount]
 	unsigned char* detailTris;
 
-	// The tile bounding volume nodes. [Size: dtMeshHeader::bvNodeCount]
-	// (Will be null if bounding volumes are disabled.)
+	// The tile bounding volume nodes. [Size: dtMeshHeader::bvNodeCount] (Will be null if bounding volumes are disabled.)
+	// タイル境界ボリュームノード。 [サイズ：dtMeshHeader :: bvNodeCount]（バウンディングボリュームが無効になっている場合はnullになります。）
 	dtBVNode* bvTree;
 
-	dtOffMeshConnection* offMeshCons;		//< The tile off-mesh connections. [Size: dtMeshHeader::offMeshConCount]
+	//< The tile off-mesh connections. [Size: dtMeshHeader::offMeshConCount]
+	// タイルのオフメッシュ接続。 [サイズ：dtMeshHeader :: offMeshConCount]
+	dtOffMeshConnection* offMeshCons;
 
-	unsigned char* data;					//< The tile data. (Not directly accessed under normal situations.)
-	int dataSize;							//< Size of the tile data.
-	int flags;								//< Tile flags. (See: #dtTileFlags)
-	dtMeshTile* next;						//< The next free tile, or the next tile in the spatial grid.
+	//< The tile data. (Not directly accessed under normal situations.)
+	// タイルデータ。 （通常は直接アクセスされません。）
+	unsigned char* data;
+	//< Size of the tile data.
+	// タイルデータのサイズ。
+	int dataSize;
+	//< Tile flags. (See: #dtTileFlags)
+	// タイルフラグ。 （参照：#dtTileFlags）
+	int flags;
+	//< The next free tile, or the next tile in the spatial grid.
+	// 次のフリータイル、または空間グリッドの次のタイル。
+	dtMeshTile* next;
 private:
 	dtMeshTile(const dtMeshTile&);
 	dtMeshTile& operator=(const dtMeshTile&);

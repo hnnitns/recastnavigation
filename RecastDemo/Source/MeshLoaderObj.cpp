@@ -34,7 +34,7 @@ namespace PPL = Concurrency;
 #endif
 
 rcMeshLoaderObj::rcMeshLoaderObj() :
-	m_scale(1.f), m_vertCount{}, m_triCount{}
+	m_scale(20.f), m_vertCount{}, m_triCount{}
 {}
 
 void rcMeshLoaderObj::addVertex(float x, float y, float z, int& cap)

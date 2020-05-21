@@ -673,6 +673,20 @@ int CrowdToolState::AddAgent(const AddAgentStruct& add_data)
 	if (!m_sample) return -1;
 	dtCrowd* crowd = m_sample->getCrowd();
 
+	InputGeom::RaycastMeshHitInfo hit_info{};
+	{
+		auto& geom{ m_sample->getInputGeom() };
+		std::array<float, 3> ray_st{ add_data.pos }, ray_ed{ add_data.pos };
+
+		ray_st[1] += 100.f;
+		ray_ed[1] -= 100.f;
+
+		if (!geom->RaycastMesh(ray_st, ray_ed, &hit_info))
+		{
+			return (-1);
+		}
+	}
+
 	dtCrowdAgentParams ap{};
 
 	ap.radius = add_data.radius;
@@ -697,7 +711,7 @@ int CrowdToolState::AddAgent(const AddAgentStruct& add_data)
 	ap.obstacleAvoidanceType = (unsigned char)m_toolParams.m_obstacleAvoidanceType;
 	ap.separationWeight = m_toolParams.m_separationWeight;
 
-	const int idx{ crowd->addAgent(add_data.pos, &ap) };
+	const int idx{ crowd->addAgent(hit_info.pos, &ap) };
 
 	if (idx != -1)
 	{
@@ -707,7 +721,7 @@ int CrowdToolState::AddAgent(const AddAgentStruct& add_data)
 		// Init trail
 		AgentTrail* trail = &m_trails[idx];
 		for (int i = 0; i < AGENT_MAX_TRAIL; ++i)
-			dtVcopy(&trail->trail[i * 3], add_data.pos.data());
+			dtVcopy(&trail->trail[i * 3], hit_info.pos.data());
 		trail->htrail = 0;
 	}
 
@@ -815,25 +829,39 @@ bool CrowdToolState::SetMoveTargetAt(const std::array<float, 3>& tgt_pos, const 
 
 	if (!(ag && ag->active))	return false;
 
+	InputGeom::RaycastMeshHitInfo hit_info{};
+	{
+		auto& geom{ m_sample->getInputGeom() };
+		std::array<float, 3> ray_st{ tgt_pos }, ray_ed{ tgt_pos };
+
+		ray_st[1] += 100.f;
+		ray_ed[1] -= 100.f;
+
+		if (!geom->RaycastMesh(ray_st, ray_ed, &hit_info))
+		{
+			return (-1);
+		}
+	}
+
 	// 指定した場所へのベクトルの方向へ向かう
 	if (is_velocity_move)
 	{
 		float vel[3]{};
 
 		// Request velocity
-		calcVel(vel, ag->npos, tgt_pos.data(), ag->params.maxSpeed);
-		crowd->requestMoveVelocity(m_agentDebug.idx, vel);
+		calcVel(vel, ag->npos, hit_info.pos.data(), ag->params.maxSpeed);
+		crowd->requestMoveVelocity(idx, vel);
 	}
 	// 指定した場所へ向かう
 	else
 	{
 		std::array<float, 3> adj_pos{};
 
-		dtStatus status{ navquery->findNearestPoly(tgt_pos.data(), ext, filter, &m_targetRef, adj_pos.data()) };
+		dtStatus status{ navquery->findNearestPoly(hit_info.pos.data(), ext, filter, &m_targetRef, adj_pos.data()) };
 
 		if (dtStatusFailed(status))	return false;
 
-		bool rv{ crowd->requestMoveTarget(m_agentDebug.idx, m_targetRef, adj_pos.data()) };
+		bool rv{ crowd->requestMoveTarget(idx, m_targetRef, adj_pos.data()) };
 
 		if (!rv)	return false;
 	}

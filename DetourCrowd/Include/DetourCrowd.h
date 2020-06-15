@@ -29,7 +29,7 @@
 #include "DetourPathQueue.h"
 
 // The maximum number of neighbors that a crowd agent can take into account for steering decisions.
-// クラウドエージェントがステアリング決定のために考慮できるネイバーの最大数。
+// クラウドエージェントがステアリング決定のために考慮できる付近のエージェントの最大数。
 // @ingroup crowd
 constexpr int DT_CROWDAGENT_MAX_NEIGHBOURS = 6;
 
@@ -164,11 +164,11 @@ struct dtCrowdAgent
 	float topologyOptTime;
 
 	// The known neighbors of the agent.
-	// エージェントの既知のネイバー。
+	// エージェントの既知の付近のエージェント。
 	dtCrowdNeighbour neis[DT_CROWDAGENT_MAX_NEIGHBOURS];
 
 	// The number of neighbors.
-	// ネイバーの数。
+	// 付近のエージェントの数。
 	int nneis;
 
 	// The desired speed.

@@ -93,7 +93,7 @@ public:
 		return (*this);
 	}
 
-	bool load(const std::string& fileName);
+	bool load(const std::string& fileName, const float defalut_load_scale = 1.f);
 	void MoveVerts(
 		const std::array<float, 3>& pos, const std::array<float, 3>& rotate, const std::array<float, 3>& scale);
 

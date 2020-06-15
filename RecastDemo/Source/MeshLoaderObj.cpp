@@ -26,6 +26,7 @@
 #include <DirectXMath.h>
 #include <ppl.h>
 #include "Other/XMFLOAT_Hlper.h"
+#include <amp.h>
 
 namespace PPL = Concurrency;
 
@@ -34,7 +35,7 @@ namespace PPL = Concurrency;
 #endif
 
 rcMeshLoaderObj::rcMeshLoaderObj() :
-	m_scale(20.f), m_vertCount{}, m_triCount{}
+	m_scale(1.f), m_vertCount{}, m_triCount{}
 {}
 
 void rcMeshLoaderObj::addVertex(float x, float y, float z, int& cap)
@@ -161,10 +162,12 @@ namespace
 	}
 }
 
-bool rcMeshLoaderObj::load(const std::string& filename)
+bool rcMeshLoaderObj::load(const std::string& filename, const float defalut_load_scale)
 {
 	char* buf{ nullptr };
 	FILE* fp{ nullptr };
+
+	m_scale = defalut_load_scale;
 
 	// 開けない
 	if (fopen_s(&fp, filename.c_str(), "rb") != 0) return false;
@@ -297,19 +300,275 @@ bool rcMeshLoaderObj::load(const std::string& filename)
 	return true;
 }
 
+class FLOAT4X4 : public DirectX::XMFLOAT4X4
+{
+public:
+	FLOAT4X4() : DirectX::XMFLOAT4X4() {};
+	~FLOAT4X4() {};
+
+	FLOAT4X4(const float _11, const float _12, const float _13, const float _14,
+		const float _21, const float _22, const float _23, const float _24,
+		const float _31, const float _32, const float _33, const float _34,
+		const float _41, const float _42, const float _43, const float _44)
+	{
+		this->_11 = _11; this->_12 = _12; this->_13 = _13; this->_14 = _14;
+		this->_21 = _21; this->_22 = _22; this->_23 = _23; this->_24 = _24;
+		this->_31 = _31; this->_32 = _32; this->_33 = _33; this->_34 = _34;
+		this->_41 = _41; this->_42 = _42; this->_43 = _43; this->_44 = _44;
+	}
+
+	FLOAT4X4(const FLOAT4X4& f4x4)
+	{
+		_11 = f4x4._11; _12 = f4x4._12; _13 = f4x4._13; _14 = f4x4._14;
+		_21 = f4x4._21; _22 = f4x4._22; _23 = f4x4._23; _24 = f4x4._24;
+		_31 = f4x4._31; _32 = f4x4._32; _33 = f4x4._33; _34 = f4x4._34;
+		_41 = f4x4._41; _42 = f4x4._42; _43 = f4x4._43; _44 = f4x4._44;
+	}
+
+	FLOAT4X4 operator*(const FLOAT4X4& m) const {
+		float x = _11;
+		float y = _12;
+		float z = _13;
+		float w = _14;
+
+		FLOAT4X4 result;
+		result._11 = (m._11 * x) + (m._21 * y) + (m._31 * z) + (m._41 * w);
+		result._12 = (m._12 * x) + (m._22 * y) + (m._32 * z) + (m._42 * w);
+		result._13 = (m._13 * x) + (m._23 * y) + (m._33 * z) + (m._43 * w);
+		result._14 = (m._14 * x) + (m._24 * y) + (m._34 * z) + (m._44 * w);
+
+		x = _21;
+		y = _22;
+		z = _23;
+		w = _24;
+		result._21 = (m._11 * x) + (m._21 * y) + (m._31 * z) + (m._41 * w);
+		result._22 = (m._12 * x) + (m._22 * y) + (m._32 * z) + (m._42 * w);
+		result._23 = (m._13 * x) + (m._23 * y) + (m._33 * z) + (m._43 * w);
+		result._24 = (m._14 * x) + (m._24 * y) + (m._34 * z) + (m._44 * w);
+
+		x = _31;
+		y = _32;
+		z = _33;
+		w = _34;
+		result._31 = (m._11 * x) + (m._21 * y) + (m._31 * z) + (m._41 * w);
+		result._32 = (m._12 * x) + (m._22 * y) + (m._32 * z) + (m._42 * w);
+		result._33 = (m._13 * x) + (m._23 * y) + (m._33 * z) + (m._43 * w);
+		result._34 = (m._14 * x) + (m._24 * y) + (m._34 * z) + (m._44 * w);
+
+		x = _41;
+		y = _42;
+		z = _43;
+		w = _44;
+		result._41 = (m._11 * x) + (m._21 * y) + (m._31 * z) + (m._41 * w);
+		result._42 = (m._12 * x) + (m._22 * y) + (m._32 * z) + (m._42 * w);
+		result._43 = (m._13 * x) + (m._23 * y) + (m._33 * z) + (m._43 * w);
+		result._44 = (m._14 * x) + (m._24 * y) + (m._34 * z) + (m._44 * w);
+
+		return result;
+	}
+};
+
+// Concurrency::parallel_for_each関数内のみ使えるクラス
+template<typename _Ty, int _Size>
+struct GpuOnlyEasyArray
+{
+	using value_type = _Ty;
+	using size_type = int;
+	using difference_type = ptrdiff_t;
+	using pointer = _Ty*;
+	using const_pointer = const _Ty*;
+	using reference = _Ty&;
+	using const_reference = const _Ty&;
+
+public:
+	void fill(const _Ty& _Value) __GPU
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		for (int i = 0; i < _Size; i++)
+		{
+			_Elems[i] = _Value;
+		}
+	}
+
+	void swap(GpuOnlyEasyArray<_Ty, _Size>& _Other) __GPU
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		pointer base_ptr{ _Elems[0] }, oth_ptr{ _Other[0] }, temp{ base_ptr };
+
+		base_ptr = oth_ptr;
+		oth_ptr = temp;
+	}
+
+	_NODISCARD _CONSTEXPR17 reference at(size_type _Pos) __GPU
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		if (_Size <= _Pos)
+		{
+			throw std::out_of_range;
+		}
+
+		return _Elems[_Pos];
+	}
+
+	_NODISCARD constexpr const_reference at(size_type _Pos) const __GPU
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		if (_Size <= _Pos)
+		{
+			throw std::out_of_range;
+		}
+
+		return _Elems[_Pos];
+	}
+
+	_NODISCARD _CONSTEXPR17 reference operator[](size_type _Pos) __GPU noexcept /* strengthened */
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems[_Pos];
+	}
+
+	_NODISCARD constexpr const_reference operator[](size_type _Pos) const __GPU noexcept /* strengthened */
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems[_Pos];
+	}
+
+	_NODISCARD _CONSTEXPR17 reference front() __GPU noexcept /* strengthened */
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems[0];
+	}
+
+	_NODISCARD constexpr const_reference front() const __GPU noexcept /* strengthened */
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems[0];
+	}
+
+	_NODISCARD _CONSTEXPR17 reference back() __GPU noexcept /* strengthened */
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems[_Size - 1];
+	}
+
+	_NODISCARD constexpr const_reference back() const __GPU noexcept /* strengthened */
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems[_Size - 1];
+	}
+
+	_NODISCARD _CONSTEXPR17 _Ty* data() __GPU noexcept
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems;
+	}
+
+	_NODISCARD _CONSTEXPR17 const _Ty* data() const __GPU noexcept
+	{
+		static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+		return _Elems;
+	}
+
+public:
+	_Ty _Elems[_Size];
+};
+
+#if true
+template<typename _Ty>
+auto operator*(const GpuOnlyEasyArray<_Ty, 16>& left, const GpuOnlyEasyArray<_Ty, 16>& right) __GPU
+{
+	static_assert(std::is_floating_point_v<_Ty> || std::is_integral_v<_Ty>, "It is a type that can not be used on GPU");
+
+	GpuOnlyEasyArray<_Ty, 16> rv{};
+
+	for (int i = 0; i < 4u; i++)
+	{
+		const int numx{ 0 * (i * 4) }, numy{ 1 * (i * 4) }, numz{ 2 * (i * 4) }, numw{ 3 * (i * 4) };
+
+		const float x = left[numx];
+		const float y = left[numy];
+		const float z = left[numz];
+		const float w = left[numw];
+
+		rv[numx] = (right[numx] * x) + (right[0 + 4] * y) + (right[0 + 8] * z) + (right[0 + 12] * w);
+		rv[numy] = (right[numy] * x) + (right[1 + 4] * y) + (right[1 + 8] * z) + (right[1 + 12] * w);
+		rv[numz] = (right[numz] * x) + (right[2 + 4] * y) + (right[2 + 8] * z) + (right[2 + 12] * w);
+		rv[numw] = (right[numw] * x) + (right[3 + 4] * y) + (right[3 + 8] * z) + (right[3 + 12] * w);
+	}
+
+	return rv;
+}
+#endif
+
 void rcMeshLoaderObj::MoveVerts(
 	const std::array<float, 3>& pos, const std::array<float, 3>& rotate, const std::array<float, 3>& scale)
 {
 	using namespace DirectX;
 	using Math::ToRadian;
 
-	const auto S = XMMatrixScaling(scale[0], scale[1], scale[2]);
-	const auto R = XMMatrixRotationRollPitchYaw(ToRadian(rotate[0]), ToRadian(rotate[1]), ToRadian(rotate[2]));
-	const auto T = XMMatrixTranslation(pos[0], pos[1], pos[2]);
+	const XMMATRIX S = XMMatrixScaling(scale[0], scale[1], scale[2]);
+	const XMMATRIX R = XMMatrixRotationRollPitchYaw(ToRadian(rotate[0]), ToRadian(rotate[1]), ToRadian(rotate[2]));
+	const XMMATRIX T = XMMatrixTranslation(pos[0], pos[1], pos[2]);
 
 	// ワールド変換行列
-	auto W = S * R * T;
+	XMMATRIX W = S * R * T;
+	XMFLOAT4X4 w;
+	DirectX::XMStoreFloat4x4(&w, W);
 
+	std::array<float, 16> w_arr{
+		w._11, w._12, w._13, w._14,
+		w._21, w._22, w._23, w._24,
+		w._31, w._32, w._33, w._34,
+		w._41, w._42, w._43, w._44 };
+
+#if true
+	PPL::array_view<float, 1> arr_view_origin(m_verts.size(), m_verts.data()),
+		origin_verts(m_origine_verts.size(), m_origine_verts.data()),
+		world_mat(w_arr.size(), w_arr.data());
+
+	PPL::parallel_for_each(arr_view_origin.get_extent(), [=](PPL::index<1> idx) restrict(amp)
+		{
+			GpuOnlyEasyArray<float, 16> pos
+			{
+				1.f, 0.f, 0.f, 0.f,
+				1.f, 0.f, 0.f, 0.f,
+				1.f, 0.f, 0.f, 0.f,
+				origin_verts[idx + 0], origin_verts[idx + 1], origin_verts[idx + 2], 1.f
+			};
+			GpuOnlyEasyArray<float, 16> world;
+
+			for (int i = 0; i < 16; i++)
+			{
+				world[i] = world_mat[i];
+			}
+
+			const auto&& result{ pos * world };
+
+			arr_view_origin[idx + 0] = result[12];
+			arr_view_origin[idx + 1] = result[13];
+			arr_view_origin[idx + 2] = result[14];
+		});
+
+	//for (size_t i = 0; i < 4; i++)
+	//{
+	//	for (size_t j = 0; j < 4; j++)
+	//	{
+	//		to_gpu_arr[j * 4 + i] = mat[i].m128_f32[j];
+	//	}
+	//}
+#else
 	PPL::parallel_for(0, m_vertCount * 3, 3, [&](const int i)
 		{
 			const auto Pos = XMMatrixTranslation(m_origine_verts[i + 0], m_origine_verts[i + 1], m_origine_verts[i + 2]);
@@ -321,4 +580,5 @@ void rcMeshLoaderObj::MoveVerts(
 			m_verts[i + 1] = vs_pos[1];
 			m_verts[i + 2] = vs_pos[2];
 		});
+#endif
 }

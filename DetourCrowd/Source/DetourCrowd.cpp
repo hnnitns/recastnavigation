@@ -716,7 +716,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgent* ag = &m_agents[i];
-		if (!ag->active)
+		if (!ag->active || !ag->is_run)
 			continue;
 		if (ag->state == DT_CROWDAGENT_STATE_INVALID)
 			continue;
@@ -1077,7 +1077,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	const int debugIdx = debug ? debug->idx : -1;
 
 	dtCrowdAgent** agents = m_activeAgents;
-	int nagents = getActiveAgents(agents, m_maxAgents);
+	int nagents = getActiveAgents(agents, m_maxAgents); // エージェントの有効数
 
 	// Check that all agents still have valid paths.
 	// すべてのエージェントにまだ有効なパスがあることを確認します。
@@ -1343,6 +1343,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 
 			const dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[ag->params.obstacleAvoidanceType];
 
+			//! 群衆を動かしている関数（メイン）
 			if (adaptive)
 			{
 				ns = m_obstacleQuery->sampleVelocityAdaptive(ag->npos, ag->params.radius, ag->desiredSpeed,
@@ -1375,63 +1376,76 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 
 	// Handle collisions.
 	// 衝突を処理します。
-	static const float COLLISION_RESOLVE_FACTOR = 0.7f;
-
+	// 設置時にエージェント同士が重なり合うのを防ぐ（それ以外はあまり関係ないはず）
 	for (int iter = 0; iter < 4; ++iter)
 	{
 		for (int i = 0; i < nagents; ++i)
 		{
-			dtCrowdAgent* ag = agents[i];
-			const int idx0 = getAgentIndex(ag);
+			dtCrowdAgent* ori_ag = agents[i]; // 基準のエージェント
+			const int ori_idx = getAgentIndex(ori_ag); // 基準のエージェントの添え値
 
-			if (ag->state != DT_CROWDAGENT_STATE_WALKING)
+			if (ori_ag->state != DT_CROWDAGENT_STATE_WALKING)
 				continue;
 
-			dtVset(ag->disp, 0, 0, 0);
+			dtVset(ori_ag->disp, 0, 0, 0);
 
 			float w = 0;
 
-			for (int j = 0; j < ag->nneis; ++j)
+			for (int j = 0; j < ori_ag->nneis; ++j)
 			{
-				const dtCrowdAgent* nei = &m_agents[ag->neis[j].idx];
-				const int idx1 = getAgentIndex(nei);
+				const dtCrowdAgent* oth_ag_nei{ &m_agents[ori_ag->neis[j].idx] }; // 他のエージェント（付近のみ）
+				const int oth_idx{ getAgentIndex(oth_ag_nei) }; // 他のエージェントの添え値
 
-				float diff[3];
-				dtVsub(diff, ag->npos, nei->npos);
-				diff[1] = 0;
+				float ag_vec[3]; // 付近のエージェントから基準のエージェントへのベクトル
+				dtVsub(ag_vec, ori_ag->npos, oth_ag_nei->npos);
+				ag_vec[1] = 0; // Yは無視
 
-				float dist = dtVlenSqr(diff);
-				if (dist > dtSqr(ag->params.radius + nei->params.radius))
+				float dist = dtVlenSqr(ag_vec); // 距離の二乗を求める
+
+				// 円と円の判定を行い衝突していないなら何もしない
+				if (dist > dtSqr(ori_ag->params.radius + oth_ag_nei->params.radius))
 					continue;
-				dist = dtMathSqrtf(dist);
-				float pen = (ag->params.radius + nei->params.radius) - dist;
+
+				dist = dtMathSqrtf(dist); // 実際の距離を求める
+
+				// めり込んでいる距離を計算
+				float pen = (ori_ag->params.radius + oth_ag_nei->params.radius) - dist;
+
+				// お互いがほぼ同じ位置にいる
 				if (dist < 0.0001f)
 				{
 					// Agents on top of each other, try to choose diverging separation directions.
 					// エージェントを互いの上に置き、発散する分離方向を選択してみてください。
-					if (idx0 > idx1)
-						dtVset(diff, -ag->dvel[2], 0, ag->dvel[0]);
+					if (ori_idx > oth_idx)
+						dtVset(ag_vec, -ori_ag->dvel[2], 0, ori_ag->dvel[0]);
 					else
-						dtVset(diff, ag->dvel[2], 0, -ag->dvel[0]);
+						dtVset(ag_vec, ori_ag->dvel[2], 0, -ori_ag->dvel[0]);
+
 					pen = 0.01f;
 				}
+				// 1フレームで離れないように徐々に離していく
 				else
 				{
+					constexpr float COLLISION_RESOLVE_FACTOR = 0.5f; // 離す際の加速度
+
 					pen = (1.f / dist) * (pen * 0.5f) * COLLISION_RESOLVE_FACTOR;
 				}
 
-				dtVmad(ag->disp, ag->disp, diff, pen);
+				// 徐々にベクトル方向に加速させる（離す）
+				dtVmad(ori_ag->disp, ori_ag->disp, ag_vec, pen);
 
 				w += 1.f;
 			}
 
+			// 急激に離れないようにする為、付近のエージェント数に応じて速度を緩める
 			if (w > 0.0001f)
 			{
 				const float iw = 1.f / w;
-				dtVscale(ag->disp, ag->disp, iw);
+				dtVscale(ori_ag->disp, ori_ag->disp, iw);
 			}
 		}
 
+		// 位置に加算する
 		for (int i = 0; i < nagents; ++i)
 		{
 			dtCrowdAgent* ag = agents[i];
@@ -1442,6 +1456,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		}
 	}
 
+	// ナビメッシュの角などを綺麗に移動できるようにする所（移動のサブ担当）
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];

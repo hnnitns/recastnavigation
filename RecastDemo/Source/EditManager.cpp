@@ -537,9 +537,10 @@ void EditManager::SystemUpdate(const float dt)
 	// モデルビュー行列を計算します。
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glRotatef(cameraEulers[0], 1, 0, 0);
-	glRotatef(cameraEulers[1], 0, 1, 0);
-	glTranslatef(-cameraPos[0], -cameraPos[1], -cameraPos[2]);
+	glRotatef(cameraEulers[0], 1, 0, 0); // カメラ回転（縦方向）
+	glRotatef(cameraEulers[1], 0, 1, 0); // カメラ回転（横方向）
+	glTranslatef(-cameraPos[0], -cameraPos[1], -cameraPos[2]); // カメラ移動
+	//gluLookAt();
 	glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
 
 	// Get hit ray position and direction.
@@ -755,7 +756,7 @@ void EditManager::PropertiesUpdate()
 		For_Each(mesh, [&](const LGM& geom)
 			{ verts += geom.m_mesh->getVertCount(); tris += geom.m_mesh->getTriCount(); }, exec::par);
 
-		snprintf(text.data(), text.size(), _TRUNCATE, "Geometry Size: %u, All Verts: %.1fk, All Tris: %.1fk",
+		snprintf(text.data(), text.size(), _TRUNCATE, "Geometry Size: %zu, All Verts: %.1fk, All Tris: %.1fk",
 			size, (verts / 1000.f), (tris / 1000.f));
 
 		imguiValue(text.data());

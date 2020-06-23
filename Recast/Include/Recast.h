@@ -517,6 +517,7 @@ struct rcCompactHeightfield
 	// Array of cells. [Size: #width*#height]
 	// セルの配列
 	rcCompactCell* cells{};
+	//std::vector<rcCompactCell> cells{};
 
 	// Array of spans. [Size: #spanCount]
 	// スパンの配列

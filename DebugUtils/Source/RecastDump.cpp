@@ -296,15 +296,15 @@ bool duDumpCompactHeightfield(struct rcCompactHeightfield& chf, duFileIO* io)
 	io->write(&chf.ch, sizeof(chf.ch));
 
 	int tmp = 0;
-	if (chf.cells) tmp |= 1;
+	if (chf.cells/*.empty()*/) tmp |= 1;
 	if (chf.spans) tmp |= 2;
 	if (chf.dist) tmp |= 4;
 	if (chf.areas) tmp |= 8;
 
 	io->write(&tmp, sizeof(tmp));
 
-	if (chf.cells)
-		io->write(chf.cells, sizeof(rcCompactCell) * chf.width * chf.height);
+	if (chf.cells/*.empty()*/)
+		io->write(chf.cells/*.data()*/, sizeof(rcCompactCell) * chf.width * chf.height);
 	if (chf.spans)
 		io->write(chf.spans, sizeof(rcCompactSpan) * chf.spanCount);
 	if (chf.dist)
@@ -373,7 +373,17 @@ bool duReadCompactHeightfield(struct rcCompactHeightfield& chf, duFileIO* io)
 			printf("duReadCompactHeightfield: Could not alloc cells (%d)\n", chf.width * chf.height);
 			return false;
 		}
-		io->read(chf.cells, sizeof(rcCompactCell) * chf.width * chf.height);
+
+		//try
+		//{
+		//	chf.cells.resize(chf.width * chf.height);
+		//}
+		//catch (const std::exception&)
+		//{
+		//	printf("duReadCompactHeightfield: Could not alloc cells (%d)\n", chf.width * chf.height);
+		//	return false;
+		//}
+		io->read(chf.cells/*.data()*/, sizeof(rcCompactCell) * chf.width * chf.height);
 	}
 	if (tmp & 2)
 	{

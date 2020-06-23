@@ -1568,7 +1568,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		// これにより、より多くのキャッシュコヒーレントデータが生成され、ウォーク可能セル間の隣接セルが計算されます。
 		try
 		{
-			m_chf.reset(rcAllocCompactHeightfield());
+			m_chf = std::make_unique<rcCompactHeightfield>();
 		}
 		catch (const std::exception&)
 		{

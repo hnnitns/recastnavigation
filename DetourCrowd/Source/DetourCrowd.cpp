@@ -352,7 +352,7 @@ dtCrowd::~dtCrowd()
 void dtCrowd::purge()
 {
 	for (int i = 0; i < m_maxAgents; ++i)
-		m_agents[i].~dtCrowdAgent();
+		m_agents[i].~dtCrowdAgent(); // delete は使えないため、デストラクタを直接呼び出す
 	dtFree(m_agents);
 	m_agents = 0;
 	m_maxAgents = 0;
@@ -443,7 +443,13 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	{
 		auto& agent{ m_agents[i] };
 
+		// https://cpprefjp.github.io/reference/new/op_new.html
+		/*
+		この形式は実質何もしていない。この形式は、記憶域を確保した上でそこに新たなオブジェクトを構築するのではなく、あらかじめ確保されている記憶域上に新たなオブジェクトを構築するのに用いられる。
+		一般に、プログラム実行中の記憶域の動的確保は、処理系が OS からヒープを確保するのに対し、この形式では、既にプログラムに確保済みの任意の記憶域上にオブジェクトを構築するため、上手く使った場合には new / delete を大量に繰り返す必要のある処理を高速に実現しうる。
+		*/
 		new(&agent) dtCrowdAgent();
+
 		agent.active = false;
 		agent.is_run = false;
 

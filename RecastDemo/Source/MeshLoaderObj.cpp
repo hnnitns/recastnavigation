@@ -512,6 +512,15 @@ auto operator*(const GpuOnlyEasyArray<_Ty, 16>& left, const GpuOnlyEasyArray<_Ty
 }
 #endif
 
+std::vector<PPL::accelerator> findAccelerators() {
+	std::vector<PPL::accelerator> accels;
+	accels = PPL::accelerator::get_all();
+
+	//emulatorのアクセラレータを削除します
+	accels.erase(std::remove_if(accels.begin(), accels.end(), [](PPL::accelerator& accel) {return accel.get_is_emulated(); }), accels.end());
+
+	return accels;
+}
 void rcMeshLoaderObj::MoveVerts(
 	const std::array<float, 3>& pos, const std::array<float, 3>& rotate, const std::array<float, 3>& scale)
 {
@@ -527,13 +536,13 @@ void rcMeshLoaderObj::MoveVerts(
 	XMFLOAT4X4 w;
 	DirectX::XMStoreFloat4x4(&w, W);
 
+#if false // GPU
 	std::array<float, 16> w_arr{
-		w._11, w._12, w._13, w._14,
-		w._21, w._22, w._23, w._24,
-		w._31, w._32, w._33, w._34,
-		w._41, w._42, w._43, w._44 };
+	w._11, w._12, w._13, w._14,
+	w._21, w._22, w._23, w._24,
+	w._31, w._32, w._33, w._34,
+	w._41, w._42, w._43, w._44 };
 
-#if true
 	PPL::array_view<float, 1> arr_view_origin(m_verts.size(), m_verts.data()),
 		origin_verts(m_origine_verts.size(), m_origine_verts.data()),
 		world_mat(w_arr.size(), w_arr.data());
@@ -568,7 +577,21 @@ void rcMeshLoaderObj::MoveVerts(
 	//		to_gpu_arr[j * 4 + i] = mat[i].m128_f32[j];
 	//	}
 	//}
-#else
+#elif false
+	auto&& ac = findAccelerators();
+
+	std::array<float, 16> a;
+
+	a.fill(16.f);
+
+	PPL::array_view<float, 1> av{ int(a.size()), reinterpret_cast<float*>(&a[0]) };
+
+	PPL::parallel_for_each(av.get_extent(), [=](PPL::index<1> idx) restrict(amp)
+		{
+			av[idx] = 10;
+		});
+
+#elif true // CPU
 	PPL::parallel_for(0, m_vertCount * 3, 3, [&](const int i)
 		{
 			const auto Pos = XMMatrixTranslation(m_origine_verts[i + 0], m_origine_verts[i + 1], m_origine_verts[i + 2]);

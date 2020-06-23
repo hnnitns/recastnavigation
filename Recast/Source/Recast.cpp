@@ -165,6 +165,7 @@ rcCompactHeightfield* rcAllocCompactHeightfield()
 void rcFreeCompactHeightfield(rcCompactHeightfield* chf)
 {
 	if (!chf) return;
+	//chf->cells.clear();
 	rcFree(chf->cells);
 	rcFree(chf->spans);
 	rcFree(chf->dist);
@@ -431,6 +432,7 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 	chf.bmax[1] += walkableHeight * hf.ch;
 	chf.cs = hf.cs;
 	chf.ch = hf.ch;
+
 	chf.cells = (rcCompactCell*)rcAlloc(sizeof(rcCompactCell) * w * h, RC_ALLOC_PERM);
 
 	if (!chf.cells)
@@ -438,8 +440,18 @@ bool rcBuildCompactHeightfield(rcContext* ctx, const int walkableHeight, const i
 		ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.cells' (%d)", w * h); // メモリー不足「chf.cells」
 		return false;
 	}
-
 	memset(chf.cells, 0, sizeof(rcCompactCell) * w * h);
+
+	//try
+	//{
+	//	chf.cells.resize(w * h, { 0,0 });
+	//}
+	//catch (const std::exception&)
+	//{
+	//	ctx->log(RC_LOG_ERROR, "rcBuildCompactHeightfield: Out of memory 'chf.cells' (%d)", w * h); // メモリー不足「chf.cells」
+	//	return false;
+	//}
+
 	chf.spans = (rcCompactSpan*)rcAlloc(sizeof(rcCompactSpan) * spanCount, RC_ALLOC_PERM);
 
 	if (!chf.spans)

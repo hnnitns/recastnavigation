@@ -172,7 +172,7 @@ public:
 class CrowdTool : public SampleTool
 {
 	Sample* m_sample;
-	CrowdToolState* m_state;
+	std::shared_ptr<CrowdToolState> m_state;
 
 	enum ToolMode
 	{

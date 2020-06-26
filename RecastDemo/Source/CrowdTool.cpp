@@ -988,10 +988,10 @@ void CrowdTool::init(Sample* sample)
 
 	if (!sample) return;
 
-	m_state = (CrowdToolState*)sample->getToolState(type());
+	m_state = std::dynamic_pointer_cast<CrowdToolState>(sample->getToolState(type()));
 	if (!m_state)
 	{
-		m_state = new CrowdToolState();
+		m_state = std::make_shared<CrowdToolState>();
 		sample->setToolState(type(), m_state);
 	}
 	m_state->init(sample);

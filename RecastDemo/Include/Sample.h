@@ -172,7 +172,7 @@ protected:
 	bool m_filterWalkableLowHeightSpans;
 
 	std::unique_ptr<SampleTool> m_tool;
-	std::array<SampleToolState*, MAX_TOOLS> m_toolStates;
+	std::array<std::shared_ptr<SampleToolState>, MAX_TOOLS> m_toolStates;
 
 	BuildContext* m_ctx;
 
@@ -185,8 +185,8 @@ public:
 	void setContext(BuildContext* ctx) { m_ctx = ctx; }
 
 	void setTool(std::unique_ptr<SampleTool>&& tool);
-	SampleToolState* getToolState(int type) { return m_toolStates[type]; }
-	void setToolState(int type, SampleToolState* s) { m_toolStates[type] = s; }
+	auto& getToolState(int type) { return m_toolStates[type]; }
+	void setToolState(int type, std::shared_ptr<SampleToolState>&& s) { m_toolStates[type] = s; }
 
 	SampleDebugDraw& getDebugDraw() { return m_dd; }
 

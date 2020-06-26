@@ -103,8 +103,7 @@ Sample::~Sample()
 	dtFreeNavMesh(m_navMesh);
 	dtFreeCrowd(m_crowd);
 	m_tool = nullptr;
-	for (int i = 0; i < MAX_TOOLS; i++)
-		delete m_toolStates[i];
+	m_toolStates.fill(nullptr);
 }
 
 void Sample::setTool(std::unique_ptr<SampleTool>&& tool)

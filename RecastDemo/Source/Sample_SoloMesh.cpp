@@ -67,9 +67,7 @@ Sample_SoloMesh::~Sample_SoloMesh()
 
 void Sample_SoloMesh::cleanup()
 {
-	delete[] m_triareas;
-
-	m_triareas = nullptr;
+	m_triareas.clear();
 
 	rcFreeHeightField(m_solid);
 	m_solid = nullptr;
@@ -471,8 +469,11 @@ bool Sample_SoloMesh::handleBuild()
 	// 三角形領域タイプを保持できる配列を割り当てます。
 	// If you have multiple meshes you need to process, allocate and array which can hold the max number of triangles you need to process.
 	// 処理する必要があるメッシュが複数ある場合は、処理する必要がある三角形の最大数を保持できる配列と割り当てを行います。
-	m_triareas = new unsigned char[ntris];
-	if (!m_triareas)
+	try
+	{
+		m_triareas.resize(ntris, 0);
+	}
+	catch (const std::exception&)
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", ntris); // メモリー不足「m_triareas」
 		return false;
@@ -482,10 +483,9 @@ bool Sample_SoloMesh::handleBuild()
 	// 傾斜に基づいて歩行可能な三角形を見つけ、ラスタライズします。
 	// If your input data is multiple meshes, you can transform them here, calculate the are type for each of the meshes and rasterize them.
 	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュのareタイプを計算して、それらをラスタライズできます。
-	memset(m_triareas, 0, ntris * sizeof(unsigned char));
-	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, tris.data(), ntris, m_triareas, SAMPLE_AREAMOD_GROUND);
+	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, tris.data(), ntris, m_triareas.data(), SAMPLE_AREAMOD_GROUND);
 
-	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris.data(), m_triareas, ntris, *m_solid, m_cfg.walkableClimb))
+	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris.data(), m_triareas.data(), ntris, *m_solid, m_cfg.walkableClimb))
 	{
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not rasterize triangles."); // 三角形をラスタライズできませんでした。
 		return false;
@@ -493,8 +493,7 @@ bool Sample_SoloMesh::handleBuild()
 
 	if (!m_keepInterResults)
 	{
-		delete[] m_triareas;
-		m_triareas = 0;
+		m_triareas.clear();
 	}
 
 	//

@@ -1030,9 +1030,9 @@ Sample_TempObstacles::Sample_TempObstacles() :
 {
 	resetCommonSettings();
 
-	m_talloc = new LinearAllocator(32000);
-	m_tcomp = new FastLZCompressor;
-	m_tmproc = new MeshProcess;
+	m_talloc = std::make_unique<LinearAllocator>(32000);
+	m_tcomp = std::make_unique<FastLZCompressor>();
+	m_tmproc = std::make_unique<MeshProcess>();
 
 	setTool(std::make_unique<TempObstacleCreateTool>());
 }
@@ -1040,9 +1040,9 @@ Sample_TempObstacles::Sample_TempObstacles() :
 Sample_TempObstacles::~Sample_TempObstacles()
 {
 	CleanUp();
-	delete m_talloc; m_talloc = nullptr;
-	delete m_tcomp; m_tcomp = nullptr;
-	delete m_tmproc; m_tmproc = nullptr;
+	m_talloc = nullptr;
+	m_tcomp = nullptr;
+	m_tmproc = nullptr;
 }
 
 void Sample_TempObstacles::handleSettings()
@@ -1637,7 +1637,7 @@ bool Sample_TempObstacles::buildAllTiles()
 		return false;
 	}
 
-	status = m_tileCache->init(&tcparams, m_talloc, m_tcomp, m_tmproc);
+	status = m_tileCache->init(&tcparams, m_talloc.get(), m_tcomp.get(), m_tmproc.get());
 
 	if (dtStatusFailed(status))
 	{
@@ -1904,7 +1904,7 @@ void Sample_TempObstacles::loadAll(const char* path)
 		fclose(fp);
 		return;
 	}
-	status = m_tileCache->init(&header.cacheParams, m_talloc, m_tcomp, m_tmproc);
+	status = m_tileCache->init(&header.cacheParams, m_talloc.get(), m_tcomp.get(), m_tmproc.get());
 	if (dtStatusFailed(status))
 	{
 		fclose(fp);

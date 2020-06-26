@@ -37,9 +37,9 @@ class Sample_TempObstacles : public Sample
 protected:
 	bool m_keepInterResults;
 
-	struct LinearAllocator* m_talloc;
-	struct FastLZCompressor* m_tcomp;
-	struct MeshProcess* m_tmproc;
+	std::unique_ptr<struct LinearAllocator> m_talloc;
+	std::unique_ptr<struct FastLZCompressor> m_tcomp;
+	std::unique_ptr<struct MeshProcess> m_tmproc;
 
 	class dtTileCache* m_tileCache;
 

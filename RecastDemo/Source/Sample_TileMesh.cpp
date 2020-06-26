@@ -375,32 +375,31 @@ struct RasterizationContext
 {
 	RasterizationContext() :
 		solid(0),
-		triareas(0),
 		lset(0),
 		chf(0),
 		ntiles(0)
 	{
-		memset(tiles, 0, sizeof(TileCacheData) * MAX_LAYERS);
+		tiles.fill({});
 	}
 
 	~RasterizationContext()
 	{
 		rcFreeHeightField(solid);
-		delete[] triareas;
+		triareas.clear();
 		rcFreeHeightfieldLayerSet(lset);
 		rcFreeCompactHeightfield(chf);
-		for (int i = 0; i < MAX_LAYERS; ++i)
+		for (auto& tile : tiles)
 		{
-			dtFree(tiles[i].data);
-			tiles[i].data = 0;
+			dtFree(tile.data);
+			tile.data = nullptr;
 		}
 	}
 
 	rcHeightfield* solid;
-	unsigned char* triareas;
+	std::vector<UINT8> triareas;
 	rcHeightfieldLayerSet* lset;
 	rcCompactHeightfield* chf;
-	TileCacheData tiles[MAX_LAYERS];
+	std::array<TileCacheData, MAX_LAYERS> tiles;
 	int ntiles;
 };
 
@@ -990,8 +989,11 @@ int Sample_TileMesh::rasterizeTileLayers(
 	// and array which can hold the max number of triangles you need to process.
 	// 三角形のフラグを保持できる配列を割り当てます。
 	// 処理する必要がある三角形の最大数を保持できる複数のメッシュを処理、割り当て、配列する必要がある場合。
-	rc.triareas = new unsigned char[chunkyMesh->maxTrisPerChunk];
-	if (!rc.triareas)
+	try
+	{
+		rc.triareas.resize(chunkyMesh->maxTrisPerChunk, 0);
+	}
+	catch (const std::exception&)
 	{
 		// メモリー不足「m_triareas」
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk); // メモリー不足「m_triareas」
@@ -1015,13 +1017,13 @@ int Sample_TileMesh::rasterizeTileLayers(
 		const int* tris = &chunkyMesh->tris[node.i * 3];
 		const int ntris = node.n;
 
-		memset(rc.triareas, 0, ntris * sizeof(unsigned char));
+		std::fill_n(rc.triareas.begin(), ntris, 0);
 
 		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle,
-			verts.data(), nverts, tris, ntris, rc.triareas,
+			verts.data(), nverts, tris, ntris, rc.triareas.data(),
 			SAMPLE_AREAMOD_GROUND);
 
-		if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, rc.triareas, ntris, *rc.solid, tcfg.walkableClimb))
+		if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, rc.triareas.data(), ntris, *rc.solid, tcfg.walkableClimb))
 			return 0;
 	}
 
@@ -1531,7 +1533,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 			m_tileTriCount += nctris;
 
-			Fill(m_triareas, '\0', exec::par);
+			Fill(m_triareas, 0, exec::par);
 
 			// 表面が歩行可能かどうかを確認
 			rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle,

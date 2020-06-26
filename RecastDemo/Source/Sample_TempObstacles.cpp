@@ -1034,7 +1034,7 @@ Sample_TempObstacles::Sample_TempObstacles() :
 	m_tcomp = new FastLZCompressor;
 	m_tmproc = new MeshProcess;
 
-	setTool(new TempObstacleCreateTool);
+	setTool(std::make_unique<TempObstacleCreateTool>());
 }
 
 Sample_TempObstacles::~Sample_TempObstacles()
@@ -1147,31 +1147,31 @@ void Sample_TempObstacles::handleTools()
 
 	if (imguiCheck("Test Navmesh", type == TOOL_NAVMESH_TESTER))
 	{
-		setTool(new NavMeshTesterTool);
+		setTool(std::make_unique<NavMeshTesterTool>());
 	}
 	if (imguiCheck("Highlight Tile Cache", type == TOOL_TILE_HIGHLIGHT))
 	{
-		setTool(new TempObstacleHilightTool);
+		setTool(std::make_unique<TempObstacleHilightTool>());
 	}
 	if (imguiCheck("Create Temp Obstacles", type == TOOL_TEMP_OBSTACLE))
 	{
-		setTool(new TempObstacleCreateTool);
+		setTool(std::make_unique<TempObstacleCreateTool>());
 	}
 	if (imguiCheck("Create Tiles", type == TOOL_TILE_EDIT))
 	{
-		setTool(new NavMeshTileTool);
+		setTool(std::make_unique<NavMeshTileTool>());
 	}
 	if (imguiCheck("Create Off-Mesh Links", type == TOOL_OFFMESH_CONNECTION))
 	{
-		setTool(new OffMeshConnectionTool);
+		setTool(std::make_unique<OffMeshConnectionTool>());
 	}
 	if (imguiCheck("Create Convex Volumes", type == TOOL_CONVEX_VOLUME))
 	{
-		setTool(new ConvexVolumeTool);
+		setTool(std::make_unique<ConvexVolumeTool>());
 	}
 	if (imguiCheck("Create Crowds", type == TOOL_CROWD))
 	{
-		setTool(new CrowdTool);
+		setTool(std::make_unique<CrowdTool>());
 	}
 
 	imguiSeparatorLine();

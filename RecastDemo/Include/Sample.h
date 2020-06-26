@@ -171,8 +171,8 @@ protected:
 	bool m_filterLedgeSpans;
 	bool m_filterWalkableLowHeightSpans;
 
-	SampleTool* m_tool;
-	SampleToolState* m_toolStates[MAX_TOOLS];
+	std::unique_ptr<SampleTool> m_tool;
+	std::array<SampleToolState*, MAX_TOOLS> m_toolStates;
 
 	BuildContext* m_ctx;
 
@@ -184,7 +184,7 @@ public:
 
 	void setContext(BuildContext* ctx) { m_ctx = ctx; }
 
-	void setTool(SampleTool* tool);
+	void setTool(std::unique_ptr<SampleTool>&& tool);
 	SampleToolState* getToolState(int type) { return m_toolStates[type]; }
 	void setToolState(int type, SampleToolState* s) { m_toolStates[type] = s; }
 
@@ -225,7 +225,7 @@ public:
 	void resetCommonSettings();
 	void handleCommonSettings(); // ã§í ÇÃê›íË(Imguiè„Ç≈ÇÃïœçX)
 
-	SampleTool* GetTool() noexcept { return m_tool; }
+	auto& GetTool() noexcept { return m_tool; }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

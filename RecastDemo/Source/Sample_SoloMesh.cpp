@@ -57,7 +57,7 @@ Sample_SoloMesh::Sample_SoloMesh() :
 	m_dmesh(0),
 	m_drawMode(DRAWMODE_NAVMESH)
 {
-	setTool(new NavMeshTesterTool);
+	setTool(std::make_unique<NavMeshTesterTool>());
 }
 
 Sample_SoloMesh::~Sample_SoloMesh()
@@ -112,23 +112,23 @@ void Sample_SoloMesh::handleTools()
 
 	if (imguiCheck("Test Navmesh", type == TOOL_NAVMESH_TESTER))
 	{
-		setTool(new NavMeshTesterTool);
+		setTool(std::make_unique<NavMeshTesterTool>());
 	}
 	if (imguiCheck("Prune Navmesh", type == TOOL_NAVMESH_PRUNE))
 	{
-		setTool(new NavMeshPruneTool);
+		setTool(std::make_unique<NavMeshPruneTool>());
 	}
 	if (imguiCheck("Create Off-Mesh Connections", type == TOOL_OFFMESH_CONNECTION))
 	{
-		setTool(new OffMeshConnectionTool);
+		setTool(std::make_unique<OffMeshConnectionTool>());
 	}
 	if (imguiCheck("Create Convex Volumes", type == TOOL_CONVEX_VOLUME))
 	{
-		setTool(new ConvexVolumeTool);
+		setTool(std::make_unique<ConvexVolumeTool>());
 	}
 	if (imguiCheck("Create Crowds", type == TOOL_CROWD))
 	{
-		setTool(new CrowdTool);
+		setTool(std::make_unique<CrowdTool>());
 	}
 
 	imguiSeparatorLine();

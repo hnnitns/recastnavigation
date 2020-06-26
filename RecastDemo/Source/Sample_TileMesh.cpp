@@ -413,7 +413,7 @@ Sample_TileMesh::Sample_TileMesh() :
 	m_pmesh.reset(rcAllocPolyMesh());
 	m_dmesh.reset(rcAllocPolyMeshDetail());
 
-	setTool(new NavMeshTileTool);
+	setTool(std::make_unique<NavMeshTileTool>());
 }
 
 Sample_TileMesh::~Sample_TileMesh()
@@ -647,27 +647,27 @@ void Sample_TileMesh::handleTools()
 
 	if (imguiCheck("Test Navmesh", type == TOOL_NAVMESH_TESTER))
 	{
-		setTool(new NavMeshTesterTool);
+		setTool(std::make_unique<NavMeshTesterTool>());
 	}
 	if (imguiCheck("Prune Navmesh", type == TOOL_NAVMESH_PRUNE))
 	{
-		setTool(new NavMeshPruneTool);
+		setTool(std::make_unique<NavMeshPruneTool>());
 	}
 	if (imguiCheck("Create Tiles", type == TOOL_TILE_EDIT))
 	{
-		setTool(new NavMeshTileTool);
+		setTool(std::make_unique<NavMeshTileTool>());
 	}
 	if (imguiCheck("Create Off-Mesh Links", type == TOOL_OFFMESH_CONNECTION))
 	{
-		setTool(new OffMeshConnectionTool);
+		setTool(std::make_unique<OffMeshConnectionTool>());
 	}
 	if (imguiCheck("Create Convex Volumes", type == TOOL_CONVEX_VOLUME))
 	{
-		setTool(new ConvexVolumeTool);
+		setTool(std::make_unique<ConvexVolumeTool>());
 	}
 	if (imguiCheck("Create Crowds", type == TOOL_CROWD))
 	{
-		setTool(new CrowdTool);
+		setTool(std::make_unique<CrowdTool>());
 	}
 
 	imguiSeparatorLine();

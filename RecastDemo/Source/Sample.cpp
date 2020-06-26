@@ -87,16 +87,14 @@ unsigned int SampleDebugDraw::areaToCol(unsigned int area)
 Sample::Sample() :
 	m_navMesh(), m_navQuery(), m_crowd(),
 	m_navMeshDrawFlags(DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST),
-	m_filterLowHangingObstacles(true), m_filterLedgeSpans(true), m_filterWalkableLowHeightSpans(true),
-	m_tool(), m_ctx()
+	m_filterLowHangingObstacles(true), m_filterLedgeSpans(true), m_filterWalkableLowHeightSpans(true), m_ctx()
 {
 	resetCommonSettings();
 	m_navQuery = dtAllocNavMeshQuery();
 	m_crowd = dtAllocCrowd();
 	m_geom.emplace();
 
-	for (int i = 0; i < MAX_TOOLS; i++)
-		m_toolStates[i] = 0;
+	m_toolStates.fill(nullptr);
 }
 
 Sample::~Sample()
@@ -104,17 +102,16 @@ Sample::~Sample()
 	dtFreeNavMeshQuery(m_navQuery);
 	dtFreeNavMesh(m_navMesh);
 	dtFreeCrowd(m_crowd);
-	delete m_tool;
+	m_tool = nullptr;
 	for (int i = 0; i < MAX_TOOLS; i++)
 		delete m_toolStates[i];
 }
 
-void Sample::setTool(SampleTool* tool)
+void Sample::setTool(std::unique_ptr<SampleTool>&& tool)
 {
-	delete m_tool;
-	m_tool = tool;
-	if (tool)
-		m_tool->init(this);
+	m_tool = std::move(tool);
+
+	if (m_tool) m_tool->init(this);
 }
 
 void Sample::handleSettings()

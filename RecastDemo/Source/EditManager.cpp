@@ -879,25 +879,22 @@ void EditManager::MeshSelect()
 	if (imguiBeginScrollArea("Choose Level", screen_size.x - 10 - 250 - 10 - 200, screen_size.y - 10 - 450, 200, 450, &levelScroll))
 		mouseOverMenu = true;
 
-	auto filesEnd = files.end();
-	auto levelToLoad = filesEnd;
-
 	// Imgui上での選択肢を表示
-	for (auto fileIter = files.begin(); fileIter != filesEnd; ++fileIter)
+	auto&& itr{ NormalAlgorithm::Find_If(files, [](std::string& file)
 	{
-		if (imguiItem(fileIter->c_str()))
+		if (imguiItem(file.c_str()))
 		{
-			levelToLoad = fileIter;
 			is_selected = true;
+			return true;
 		}
-	}
+		else return false;
+	}) };
 
 	// ジオメトリが選択されたとき
 	// ジオメトリの追加
 	if (is_selected)
 	{
-		if (levelToLoad != filesEnd)
-			meshName = *levelToLoad;
+		if (itr != files.end()) meshName = *itr;
 
 		// 読み込むパスを決定
 		std::string path = meshesFolder + "/" + meshName;

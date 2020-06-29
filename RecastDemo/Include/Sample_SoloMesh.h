@@ -37,31 +37,31 @@ protected:
 	rcConfig m_cfg;
 	rcPolyMeshDetail* m_dmesh;
 
-	enum DrawMode
+	enum class DrawMode
 	{
-		DRAWMODE_NAVMESH,
-		DRAWMODE_NAVMESH_TRANS,
-		DRAWMODE_NAVMESH_BVTREE,
-		DRAWMODE_NAVMESH_NODES,
-		DRAWMODE_NAVMESH_INVIS,
-		DRAWMODE_MESH,
-		DRAWMODE_VOXELS,
-		DRAWMODE_VOXELS_WALKABLE,
-		DRAWMODE_COMPACT,
-		DRAWMODE_COMPACT_DISTANCE,
-		DRAWMODE_COMPACT_REGIONS,
-		DRAWMODE_REGION_CONNECTIONS,
-		DRAWMODE_RAW_CONTOURS,
-		DRAWMODE_BOTH_CONTOURS,
-		DRAWMODE_CONTOURS,
-		DRAWMODE_POLYMESH,
-		DRAWMODE_POLYMESH_DETAIL,
-		MAX_DRAWMODE
+		NAVMESH,
+		NAVMESH_TRANS,
+		NAVMESH_BVTREE,
+		NAVMESH_NODES,
+		NAVMESH_INVIS,
+		MESH,
+		VOXELS,
+		VOXELS_WALKABLE,
+		COMPACT,
+		COMPACT_DISTANCE,
+		COMPACT_REGIONS,
+		REGION_CONNECTIONS,
+		RAW_CONTOURS,
+		BOTH_CONTOURS,
+		CONTOURS,
+		POLYMESH,
+		POLYMESH_DETAIL,
+		MAX,
 	};
 
 	DrawMode m_drawMode;
 
-	void cleanup();
+	void CleanUp();
 
 public:
 	Sample_SoloMesh();
@@ -78,8 +78,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	Sample_SoloMesh(const Sample_SoloMesh&);
-	Sample_SoloMesh& operator=(const Sample_SoloMesh&);
+	Sample_SoloMesh(const Sample_SoloMesh&) = delete;
+	Sample_SoloMesh& operator=(const Sample_SoloMesh&) = delete;
 };
 
 #endif // RECASTSAMPLESOLOMESHSIMPLE_H

@@ -25,9 +25,9 @@
 
 class Sample_SoloMesh : public Sample
 {
-protected:
-	bool m_keepInterResults;
-	float m_totalBuildTimeMs;
+private:
+	bool m_keep_inter_results;
+	float m_total_build_time_ms;
 
 	std::vector<uint8_t> m_triareas;
 	rcHeightfield* m_solid;

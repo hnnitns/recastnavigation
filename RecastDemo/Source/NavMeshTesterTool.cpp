@@ -250,7 +250,7 @@ NavMeshTesterTool::NavMeshTesterTool() :
 	m_navMesh(0),
 	m_navQuery(0),
 	m_pathFindStatus(DT_FAILURE),
-	m_toolMode(TOOLMODE_PATHFIND_FOLLOW),
+	m_toolMode(ToolMode::PATHFIND_FOLLOW),
 	m_straightPathOptions(0),
 	m_startRef(0),
 	m_endRef(0),
@@ -302,17 +302,17 @@ void NavMeshTesterTool::init(Sample* sample)
 
 void NavMeshTesterTool::handleMenu()
 {
-	if (imguiCheck("Pathfind Follow", m_toolMode == TOOLMODE_PATHFIND_FOLLOW))
+	if (imguiCheck("Pathfind Follow", m_toolMode == ToolMode::PATHFIND_FOLLOW))
 	{
-		m_toolMode = TOOLMODE_PATHFIND_FOLLOW;
+		m_toolMode = ToolMode::PATHFIND_FOLLOW;
 		recalc();
 	}
-	if (imguiCheck("Pathfind Straight", m_toolMode == TOOLMODE_PATHFIND_STRAIGHT))
+	if (imguiCheck("Pathfind Straight", m_toolMode == ToolMode::PATHFIND_STRAIGHT))
 	{
-		m_toolMode = TOOLMODE_PATHFIND_STRAIGHT;
+		m_toolMode = ToolMode::PATHFIND_STRAIGHT;
 		recalc();
 	}
-	if (m_toolMode == TOOLMODE_PATHFIND_STRAIGHT)
+	if (m_toolMode == ToolMode::PATHFIND_STRAIGHT)
 	{
 		imguiIndent();
 		imguiLabel("Vertices at crossings");
@@ -334,46 +334,46 @@ void NavMeshTesterTool::handleMenu()
 
 		imguiUnindent();
 	}
-	if (imguiCheck("Pathfind Sliced", m_toolMode == TOOLMODE_PATHFIND_SLICED))
+	if (imguiCheck("Pathfind Sliced", m_toolMode == ToolMode::PATHFIND_SLICED))
 	{
-		m_toolMode = TOOLMODE_PATHFIND_SLICED;
+		m_toolMode = ToolMode::PATHFIND_SLICED;
 		recalc();
 	}
 
 	imguiSeparator();
 
-	if (imguiCheck("Distance to Wall", m_toolMode == TOOLMODE_DISTANCE_TO_WALL))
+	if (imguiCheck("Distance to Wall", m_toolMode == ToolMode::DISTANCE_TO_WALL))
 	{
-		m_toolMode = TOOLMODE_DISTANCE_TO_WALL;
+		m_toolMode = ToolMode::DISTANCE_TO_WALL;
 		recalc();
 	}
 
 	imguiSeparator();
 
-	if (imguiCheck("Raycast", m_toolMode == TOOLMODE_RAYCAST))
+	if (imguiCheck("Raycast", m_toolMode == ToolMode::RAYCAST))
 	{
-		m_toolMode = TOOLMODE_RAYCAST;
+		m_toolMode = ToolMode::RAYCAST;
 		recalc();
 	}
 
 	imguiSeparator();
 
-	if (imguiCheck("Find Polys in Circle", m_toolMode == TOOLMODE_FIND_POLYS_IN_CIRCLE))
+	if (imguiCheck("Find Polys in Circle", m_toolMode == ToolMode::FIND_POLYS_IN_CIRCLE))
 	{
-		m_toolMode = TOOLMODE_FIND_POLYS_IN_CIRCLE;
+		m_toolMode = ToolMode::FIND_POLYS_IN_CIRCLE;
 		recalc();
 	}
-	if (imguiCheck("Find Polys in Shape", m_toolMode == TOOLMODE_FIND_POLYS_IN_SHAPE))
+	if (imguiCheck("Find Polys in Shape", m_toolMode == ToolMode::FIND_POLYS_IN_SHAPE))
 	{
-		m_toolMode = TOOLMODE_FIND_POLYS_IN_SHAPE;
+		m_toolMode = ToolMode::FIND_POLYS_IN_SHAPE;
 		recalc();
 	}
 
 	imguiSeparator();
 
-	if (imguiCheck("Find Local Neighbourhood", m_toolMode == TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD))
+	if (imguiCheck("Find Local Neighbourhood", m_toolMode == ToolMode::FIND_LOCAL_NEIGHBOURHOOD))
 	{
-		m_toolMode = TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD;
+		m_toolMode = ToolMode::FIND_LOCAL_NEIGHBOURHOOD;
 		recalc();
 	}
 
@@ -518,8 +518,9 @@ void NavMeshTesterTool::handleStep()
 
 void NavMeshTesterTool::handleToggle()
 {
-	// TODO: merge separate to a path iterator. Use same code in recalc() too. // 個別にパスイテレータにマージします。 recalc（）でも同じコードを使用します。
-	if (m_toolMode != TOOLMODE_PATHFIND_FOLLOW)
+	// TODO: merge separate to a path iterator. Use same code in recalc() too.
+	// 個別にパスイテレータにマージします。 recalc（）でも同じコードを使用します。
+	if (m_toolMode != ToolMode::PATHFIND_FOLLOW)
 		return;
 
 	if (!m_sposSet || !m_eposSet || !m_startRef || !m_endRef)
@@ -682,7 +683,7 @@ void NavMeshTesterTool::handleToggle()
 void NavMeshTesterTool::handleUpdate(const float /*dt*/)
 {
 	// Sliceモードのみ
-	if (m_toolMode == TOOLMODE_PATHFIND_SLICED)
+	if (m_toolMode == ToolMode::PATHFIND_SLICED)
 	{
 		// パスの探索順に探索する
 		if (dtStatusInProgress(m_pathFindStatus))
@@ -745,7 +746,7 @@ void NavMeshTesterTool::recalc()
 
 	m_pathFindStatus = DT_FAILURE;
 
-	if (m_toolMode == TOOLMODE_PATHFIND_FOLLOW)
+	if (m_toolMode == ToolMode::PATHFIND_FOLLOW)
 	{
 		m_pathIterNum = 0;
 		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
@@ -763,8 +764,9 @@ void NavMeshTesterTool::recalc()
 			if (m_npolys)
 			{
 				// Iterate over the path to find smooth path on the detail mesh surface.
-				dtPolyRef polys[MAX_POLYS];
-				memcpy(polys, m_polys, sizeof(dtPolyRef) * m_npolys);
+				// 詳細メッシュサーフェス上の滑らかなパスを見つけるためにパスを反復します。
+				std::array<dtPolyRef, MAX_POLYS> polys;
+				memcpy(polys.data(), m_polys, sizeof(dtPolyRef) * m_npolys);
 				int npolys = m_npolys;
 
 				float iterPos[3], targetPos[3];
@@ -779,53 +781,60 @@ void NavMeshTesterTool::recalc()
 				dtVcopy(&m_smoothPath[m_nsmoothPath * 3], iterPos);
 				m_nsmoothPath++;
 
-				// Move towards target a small advancement at a time until target reached or
-				// when ran out of memory to store the path.
+				// Move towards target a small advancement at a time until target reached or when ran out of memory to store the path.
+				//ターゲットに到達するまで、またはメモリを使い果たしてパスを格納するまで、少しずつターゲットに向かって移動します。
 				while (npolys && m_nsmoothPath < MAX_SMOOTH)
 				{
 					// Find location to steer towards.
+					// ステアリングする場所を見つけます。
 					float steerPos[3];
 					unsigned char steerPosFlag;
 					dtPolyRef steerPosRef;
 
 					if (!getSteerTarget(m_navQuery, iterPos, targetPos, SLOP,
-						polys, npolys, steerPos, steerPosFlag, steerPosRef))
+						polys.data(), npolys, steerPos, steerPosFlag, steerPosRef))
 						break;
 
 					bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END) ? true : false;
 					bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ? true : false;
 
 					// Find movement delta.
+					// 動きのデルタを見つけます。
 					float delta[3], len;
 					dtVsub(delta, steerPos, iterPos);
 					len = dtMathSqrtf(dtVdot(delta, delta));
+
 					// If the steer target is end of path or off-mesh link, do not move past the location.
+					// ステアターゲットがパスの終わりまたはオフメッシュリンクの場合、その場所を通過しないでください。
 					if ((endOfPath || offMeshConnection) && len < STEP_SIZE)
 						len = 1;
 					else
 						len = STEP_SIZE / len;
+
 					float moveTgt[3];
 					dtVmad(moveTgt, iterPos, delta, len);
 
-					// Move
+					// 移動
 					float result[3];
 					dtPolyRef visited[16];
 					int nvisited = 0;
 					m_navQuery->moveAlongSurface(polys[0], iterPos, moveTgt, &m_filter,
 						result, visited, &nvisited, 16);
 
-					npolys = fixupCorridor(polys, npolys, MAX_POLYS, visited, nvisited);
-					npolys = fixupShortcuts(polys, npolys, m_navQuery);
+					npolys = fixupCorridor(polys.data(), npolys, MAX_POLYS, visited, nvisited);
+					npolys = fixupShortcuts(polys.data(), npolys, m_navQuery);
 
 					float h = 0;
-					m_navQuery->getPolyHeight(polys[0], result, &h);
+					m_navQuery->getPolyHeight(polys.front(), result, &h);
 					result[1] = h;
 					dtVcopy(iterPos, result);
 
 					// Handle end of path and off-mesh links when close enough.
+					// 十分に近いときにパスの終わりとオフメッシュリンクを処理します。
 					if (endOfPath && inRange(iterPos, steerPos, SLOP, 1.f))
 					{
 						// Reached end of path.
+						// パスの終わりに到達しました。
 						dtVcopy(iterPos, targetPos);
 						if (m_nsmoothPath < MAX_SMOOTH)
 						{
@@ -837,9 +846,11 @@ void NavMeshTesterTool::recalc()
 					else if (offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.f))
 					{
 						// Reached off-mesh connection.
+						// オフメッシュ接続に到達しました。
 						float startPos[3], endPos[3];
 
 						// Advance the path up to and over the off-mesh connection.
+						// オフメッシュ接続までパスを進めます。
 						dtPolyRef prevRef = 0, polyRef = polys[0];
 						int npos = 0;
 						while (npos < npolys && polyRef != steerPosRef)
@@ -853,6 +864,7 @@ void NavMeshTesterTool::recalc()
 						npolys -= npos;
 
 						// Handle the connection.
+						// 接続を処理します。
 						dtStatus status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos);
 						if (dtStatusSucceed(status))
 						{
@@ -860,14 +872,18 @@ void NavMeshTesterTool::recalc()
 							{
 								dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos);
 								m_nsmoothPath++;
+
 								// Hack to make the dotted path not visible during off-mesh connection.
+								// オフメッシュ接続中に点線のパスが表示されないようにするハック。
 								if (m_nsmoothPath & 1)
 								{
 									dtVcopy(&m_smoothPath[m_nsmoothPath * 3], startPos);
 									m_nsmoothPath++;
 								}
 							}
+
 							// Move position at the other side of the off-mesh link.
+							// オフメッシュリンクの反対側の位置に移動します。
 							dtVcopy(iterPos, endPos);
 							float eh = 0.0f;
 							m_navQuery->getPolyHeight(polys[0], iterPos, &eh);
@@ -876,6 +892,7 @@ void NavMeshTesterTool::recalc()
 					}
 
 					// Store results.
+					// 結果を保存します。
 					if (m_nsmoothPath < MAX_SMOOTH)
 					{
 						dtVcopy(&m_smoothPath[m_nsmoothPath * 3], iterPos);
@@ -890,7 +907,7 @@ void NavMeshTesterTool::recalc()
 			m_nsmoothPath = 0;
 		}
 	}
-	else if (m_toolMode == TOOLMODE_PATHFIND_STRAIGHT)
+	else if (m_toolMode == ToolMode::PATHFIND_STRAIGHT)
 	{
 		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
 		{
@@ -904,6 +921,7 @@ void NavMeshTesterTool::recalc()
 			if (m_npolys)
 			{
 				// In case of partial path, make sure the end point is clamped to the last polygon.
+				// 部分的なパスの場合、終点が最後のポリゴンに固定されていることを確認します。
 				float epos[3];
 				dtVcopy(epos, m_epos);
 				if (m_polys[m_npolys - 1] != m_endRef)
@@ -920,7 +938,7 @@ void NavMeshTesterTool::recalc()
 			m_nstraightPath = 0;
 		}
 	}
-	else if (m_toolMode == TOOLMODE_PATHFIND_SLICED)
+	else if (m_toolMode == ToolMode::PATHFIND_SLICED)
 	{
 		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
 		{
@@ -940,7 +958,7 @@ void NavMeshTesterTool::recalc()
 			m_nstraightPath = 0;
 		}
 	}
-	else if (m_toolMode == TOOLMODE_RAYCAST)
+	else if (m_toolMode == ToolMode::RAYCAST)
 	{
 		m_nstraightPath = 0;
 		if (m_sposSet && m_eposSet && m_startRef)
@@ -979,7 +997,7 @@ void NavMeshTesterTool::recalc()
 			dtVcopy(&m_straightPath[3], m_hitPos);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_DISTANCE_TO_WALL)
+	else if (m_toolMode == ToolMode::DISTANCE_TO_WALL)
 	{
 		m_distanceToWall = 0;
 		if (m_sposSet && m_startRef)
@@ -993,7 +1011,7 @@ void NavMeshTesterTool::recalc()
 			m_navQuery->findDistanceToWall(m_startRef, m_spos, 100.0f, &m_filter, &m_distanceToWall, m_hitPos, m_hitNormal);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_FIND_POLYS_IN_CIRCLE)
+	else if (m_toolMode == ToolMode::FIND_POLYS_IN_CIRCLE)
 	{
 		if (m_sposSet && m_startRef && m_eposSet)
 		{
@@ -1009,7 +1027,7 @@ void NavMeshTesterTool::recalc()
 				m_polys, m_parent, 0, &m_npolys, MAX_POLYS);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_FIND_POLYS_IN_SHAPE)
+	else if (m_toolMode == ToolMode::FIND_POLYS_IN_SHAPE)
 	{
 		if (m_sposSet && m_startRef && m_eposSet)
 		{
@@ -1045,7 +1063,7 @@ void NavMeshTesterTool::recalc()
 				m_polys, m_parent, 0, &m_npolys, MAX_POLYS);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD)
+	else if (m_toolMode == ToolMode::FIND_LOCAL_NEIGHBOURHOOD)
 	{
 		if (m_sposSet && m_startRef)
 		{
@@ -1084,7 +1102,7 @@ void NavMeshTesterTool::handleRender()
 		return;
 	}
 
-	if (m_toolMode == TOOLMODE_PATHFIND_FOLLOW)
+	if (m_toolMode == ToolMode::PATHFIND_FOLLOW)
 	{
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_startRef, startCol);
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_endRef, endCol);
@@ -1143,8 +1161,8 @@ void NavMeshTesterTool::handleRender()
 			dd.depthMask(true);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_PATHFIND_STRAIGHT ||
-		m_toolMode == TOOLMODE_PATHFIND_SLICED)
+	else if (m_toolMode == ToolMode::PATHFIND_STRAIGHT ||
+		m_toolMode == ToolMode::PATHFIND_SLICED)
 	{
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_startRef, startCol);
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_endRef, endCol);
@@ -1195,7 +1213,7 @@ void NavMeshTesterTool::handleRender()
 			dd.depthMask(true);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_RAYCAST)
+	else if (m_toolMode == ToolMode::RAYCAST)
 	{
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_startRef, startCol);
 
@@ -1231,7 +1249,7 @@ void NavMeshTesterTool::handleRender()
 			dd.depthMask(true);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_DISTANCE_TO_WALL)
+	else if (m_toolMode == ToolMode::DISTANCE_TO_WALL)
 	{
 		duDebugDrawNavMeshPoly(&dd, *m_navMesh, m_startRef, startCol);
 		dd.depthMask(false);
@@ -1242,7 +1260,7 @@ void NavMeshTesterTool::handleRender()
 		dd.end();
 		dd.depthMask(true);
 	}
-	else if (m_toolMode == TOOLMODE_FIND_POLYS_IN_CIRCLE)
+	else if (m_toolMode == ToolMode::FIND_POLYS_IN_CIRCLE)
 	{
 		for (int i = 0; i < m_npolys; ++i)
 		{
@@ -1270,7 +1288,7 @@ void NavMeshTesterTool::handleRender()
 			dd.depthMask(true);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_FIND_POLYS_IN_SHAPE)
+	else if (m_toolMode == ToolMode::FIND_POLYS_IN_SHAPE)
 	{
 		for (int i = 0; i < m_npolys; ++i)
 		{
@@ -1304,7 +1322,7 @@ void NavMeshTesterTool::handleRender()
 			dd.depthMask(true);
 		}
 	}
-	else if (m_toolMode == TOOLMODE_FIND_LOCAL_NEIGHBOURHOOD)
+	else if (m_toolMode == ToolMode::FIND_LOCAL_NEIGHBOURHOOD)
 	{
 		for (int i = 0; i < m_npolys; ++i)
 		{

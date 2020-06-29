@@ -45,13 +45,9 @@
 #	define snprintf _snprintf
 #endif
 
-#ifdef _DEBUG
-#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
-#endif
-
 Sample_SoloMesh::Sample_SoloMesh() :
-	m_keepInterResults(true),
-	m_totalBuildTimeMs(0),
+	m_keep_inter_results(true),
+	m_total_build_time_ms(0),
 	m_triareas(0),
 	m_solid(0),
 	m_chf(0),
@@ -95,14 +91,14 @@ void Sample_SoloMesh::handleSettings()
 {
 	Sample::handleCommonSettings();
 
-	if (imguiCheck("Keep Itermediate Results", m_keepInterResults))
-		m_keepInterResults = !m_keepInterResults;
+	if (imguiCheck("Keep Itermediate Results", m_keep_inter_results))
+		m_keep_inter_results = !m_keep_inter_results;
 
 	imguiSeparator();
 
-	char msg[64]{};
-	snprintf(msg, 64, "Build Time: %.1fms", m_totalBuildTimeMs);
-	imguiLabel(msg);
+	std::array<char, 64> msg{};
+	snprintf(msg.data(), 64, "Build Time: %.1fms", m_total_build_time_ms);
+	imguiLabel(msg.data());
 
 	imguiSeparator();
 }
@@ -494,7 +490,7 @@ bool Sample_SoloMesh::handleBuild()
 		return false;
 	}
 
-	if (!m_keepInterResults)
+	if (!m_keep_inter_results)
 	{
 		m_triareas.clear();
 	}
@@ -543,7 +539,7 @@ bool Sample_SoloMesh::handleBuild()
 		return false;
 	}
 
-	if (!m_keepInterResults)
+	if (!m_keep_inter_results)
 	{
 		rcFreeHeightField(m_solid);
 		m_solid = 0;
@@ -722,7 +718,7 @@ bool Sample_SoloMesh::handleBuild()
 		return false;
 	}
 
-	if (!m_keepInterResults)
+	if (!m_keep_inter_results)
 	{
 		rcFreeCompactHeightfield(m_chf);
 		m_chf = 0;
@@ -825,7 +821,7 @@ bool Sample_SoloMesh::handleBuild()
 	duLogBuildTimes(*m_ctx, m_ctx->getAccumulatedTime(RC_TIMER_TOTAL));
 	m_ctx->log(RC_LOG_PROGRESS, ">> Polymesh: %d vertices  %d polygons", m_pmesh->nverts, m_pmesh->npolys);
 
-	m_totalBuildTimeMs = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
+	m_total_build_time_ms = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
 
 	if (m_tool)
 		m_tool->init(this);

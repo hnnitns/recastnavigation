@@ -130,7 +130,7 @@ enum dtStraightPathFlags
 enum dtStraightPathOptions
 {
 	// Add a vertex at every polygon edge crossing where area changes.
-	// 面積が変わる場所で交差するすべてのポリゴンエッジに頂点を追加します。
+	// エリアが変わる場所で交差するすべてのポリゴンエッジに頂点を追加します。
 	DT_STRAIGHTPATH_AREA_CROSSINGS = 0x01,
 	// Add a vertex at every polygon edge crossing.
 	// ポリゴンのエッジが交差するたびに頂点を追加します。
@@ -140,7 +140,9 @@ enum dtStraightPathOptions
 // Options for dtNavMeshQuery::initSlicedFindPath and updateSlicedFindPath
 enum dtFindPathOptions
 {
-	DT_FINDPATH_ANY_ANGLE = 0x02,		//< use raycasts during pathfind to "shortcut" (raycast still consider costs)
+	//< use raycasts during pathfind to "shortcut" (raycast still consider costs)
+	// 「ショートカット」へのパス検索中にレイキャストを使用します（レイキャストはまだコストを考慮します）
+	DT_FINDPATH_ANY_ANGLE = 0x02,
 };
 
 // Options for dtNavMeshQuery::raycast

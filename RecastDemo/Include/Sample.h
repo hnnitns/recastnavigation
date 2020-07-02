@@ -183,6 +183,7 @@ public:
 	virtual ~Sample();
 
 	void setContext(BuildContext* ctx) { m_ctx = ctx; }
+	BuildContext* GetContext() noexcept { return m_ctx; }
 
 	void setTool(std::unique_ptr<SampleTool>&& tool);
 	auto& getToolState(int type) { return m_toolStates[type]; }

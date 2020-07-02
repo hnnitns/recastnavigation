@@ -367,16 +367,16 @@ public:
 		int* resultCount, const int maxResult) const;
 
 	// 指定された凸多角形に接触するナビゲーショングラフに沿って多角形を検索します。
-	// @param [in] startRef検索を開始するポリゴンの参照ID。
-	// @param [in] verts凸多角形を記述する頂点。 （CCW）
+	// @param [in] startRef 検索を開始するポリゴンの参照ID。
+	// @param [in] verts 凸多角形を記述する頂点。 （CCW）
 	// [（x、y、z）* @p nverts]
-	// @param [in] nvertsポリゴン内の頂点の数。
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [out] resultRef検索ポリゴンが接触しているポリゴンの参照ID。 [最適化]
-	// @param [out] resultParent各結果の親ポリゴンの参照ID。 ゼロの場合結果のポリゴンには親がありません。 [最適化]
-	// @param [out] resultCost重心点からポリゴンまでの検索コスト。 [最適化]
-	// @param [out] resultCount見つかったポリゴンの数。
-	// @param [in] maxResult結果の配列が保持できるポリゴンの最大数。
+	// @param [in] nverts ポリゴン内の頂点の数。
+	// @param [in] filter クエリに適用するポリゴンフィルター。
+	// @param [out] resultRef 検索ポリゴンが接触しているポリゴンの参照ID。 [最適化]
+	// @param [out] resultParent 各結果の親ポリゴンの参照ID。 ゼロの場合結果のポリゴンには親がありません。 [最適化]
+	// @param [out] resultCost 重心点からポリゴンまでの検索コスト。 [最適化]
+	// @param [out] resultCount 見つかったポリゴンの数。
+	// @param [in] maxResult 結果の配列が保持できるポリゴンの最大数。
 	// @returnsクエリのステータスフラグ。
 	// Finds the polygons along the naviation graph that touch the specified convex polygon.
 	//  @param[in]		startRef		The reference id of the polygon where the search starts.
@@ -476,16 +476,16 @@ public:
 	dtStatus queryPolygons(const float* center, const float* extents,
 		const dtQueryFilter* filter, dtPolyQuery* query) const;
 
-	// 中心位置の周りのローカル近傍で重複しないナビゲーションポリゴンを検​​索します。
-	// @param [in] startRef検索を開始するポリゴンの参照ID。
-	// @param [in] centerPosクエリサークルの中心。[（x、y、z）]
-	// @param [in] radiusクエリ円の半径。
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [out] resultRef円が接触するポリゴンの参照ID。
-	// @param [out] resultParent各結果の親ポリゴンの参照ID。
+	// 中心位置の近傍で重複しないナビゲーションポリゴンを検​​索します。
+	// @param [in] startRef 検索を開始するポリゴンの参照ID。
+	// @param [in] centerPos クエリサークルの中心。[（x、y、z）]
+	// @param [in] radius クエリ円の半径。
+	// @param [in] filter クエリに適用するポリゴンフィルター。
+	// @param [out] resultRef 円が接触するポリゴンの参照ID。
+	// @param [out] resultParent 各結果の親ポリゴンの参照ID。
 	// 結果のポリゴンに親がない場合はゼロ。[最適化]
-	// @param [out] resultCount見つかったポリゴンの数。
-	// @param [in] maxResult結果の配列が保持できるポリゴンの最大数。
+	// @param [out] resultCount 見つかったポリゴンの数。
+	// @param [in] maxResult 結果の配列が保持できるポリゴンの最大数。
 	// @returnsクエリのステータスフラグ。
 	// Finds the non-overlapping navigation polygons in the local neighbourhood around the center position.
 	//  @param[in]		startRef		The reference id of the polygon where the search starts.
@@ -585,16 +585,14 @@ public:
 		const dtQueryFilter* filter, const unsigned int options,
 		dtRaycastHit* hit, dtPolyRef prevRef = 0) const;
 
-	// ナビゲーションメッシュの表面に沿って「歩行可能性」光線をキャストします
-	// 終了位置に向かう開始位置。
-	// @param [in] startRef開始ポリゴンの参照ID。
-	// @param [in] startPos開始ポリゴン内の位置を表す
-	// レイの開始。[（x、y、z）]
-	// @param [in] endPos光線を向ける位置。[（x、y、z）]
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [in]フラグは、レイキャストの動作を制御します。dtRaycastOptionsを参照してください
-	// @param [out] hit結果で満たされるレイキャストヒット構造体へのポインタ。
-	// @param [in] prevRef start refの親。コスト計算中に使用[opt]
+	// 指定された位置から最も近いポリゴンウォールまでの距離を検索します。
+	// @param [in] startRef		centerPosを含むポリゴンの参照ID。
+	// @param [in] centerPos		検索サークルの中心。 [（x、y、z）]
+	// @param [in] maxRadius		検索円の半径。
+	// @param [in] filter		クエリに適用するポリゴンフィルター。
+	// @param [out] hitDist		centerPosから最も近い壁までの距離。
+	// @param [out] hitPos		ヒットした壁の最も近い位置。 [（x、y、z）]
+	// @param [out] hitNormal	壁地点からソース地点に形成される正規化された光線。 [（x、y、z）]
 	// @returnsクエリのステータスフラグ。
 	// Finds the distance from the specified position to the nearest polygon wall.
 	//  @param[in]		startRef		The reference id of the polygon containing @p centerPos.
@@ -603,8 +601,7 @@ public:
 	//  @param[in]		filter			The polygon filter to apply to the query.
 	//  @param[out]	hitDist			The distance to the nearest wall from @p centerPos.
 	//  @param[out]	hitPos			The nearest position on the wall that was hit. [(x, y, z)]
-	//  @param[out]	hitNormal		The normalized ray formed from the wall point to the
-	//  								source point. [(x, y, z)]
+	//  @param[out]	hitNormal		The normalized ray formed from the wall point to the source point. [(x, y, z)]
 	// @returns The status flags for the query.
 	dtStatus findDistanceToWall(dtPolyRef startRef, const float* centerPos, const float maxRadius,
 		const dtQueryFilter* filter,

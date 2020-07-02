@@ -1995,11 +1995,13 @@ dtStatus dtNavMeshQuery::appendPortals(const int startIdx, const int endIdx, con
 		if (options & DT_STRAIGHTPATH_AREA_CROSSINGS)
 		{
 			// Skip intersection if only area crossings are requested.
+			// エリア横断のみが要求されている場合、交差をスキップします。
 			if (fromPoly->getArea() == toPoly->getArea())
 				continue;
 		}
 
 		// Append intersection
+		// 交差点を追加
 		float s, t;
 		if (dtIntersectSegSeg2D(startPos, endPos, left, right, s, t))
 		{
@@ -2186,6 +2188,7 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 					dtPolyRef ref = leftPolyRef;
 
 					// Append or update vertex
+					// 頂点を追加または更新します
 					stat = appendVertex(portalApex, flags, ref,
 						straightPath, straightPathFlags, straightPathRefs,
 						straightPathCount, maxStraightPath);
@@ -2217,6 +2220,7 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 				else
 				{
 					// Append portals along the current straight path segment.
+					// 現在の直線パスセグメントに沿ってポータルを追加します。
 					if (options & (DT_STRAIGHTPATH_AREA_CROSSINGS | DT_STRAIGHTPATH_ALL_CROSSINGS))
 					{
 						stat = appendPortals(apexIndex, rightIndex, portalRight, path,
@@ -3193,6 +3197,7 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 	*resultCount = 0;
 
 	// Validate input
+	// 入力を検証します
 	if (!startRef || !m_nav->isValidPolyRef(startRef))
 		return DT_FAILURE | DT_INVALID_PARAM;
 
@@ -3224,13 +3229,16 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 		bestNode->flags |= DT_NODE_CLOSED;
 
 		// Get poly and tile.
+		// ポリゴンとタイルを取得します。
 		// The API input has been cheked already, skip checking internal data.
+		// API入力はすでにチェックされているため、内部データのチェックをスキップします。
 		const dtPolyRef bestRef = bestNode->id;
 		const dtMeshTile* bestTile = 0;
 		const dtPoly* bestPoly = 0;
 		m_nav->getTileAndPolyByRefUnsafe(bestRef, &bestTile, &bestPoly);
 
 		// Get parent poly and tile.
+		// 親ポリゴンとタイルを取得します。
 		dtPolyRef parentRef = 0;
 		const dtMeshTile* parentTile = 0;
 		const dtPoly* parentPoly = 0;
@@ -3259,25 +3267,31 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 		{
 			const dtLink* link = &bestTile->links[i];
 			dtPolyRef neighbourRef = link->ref;
+
 			// Skip invalid neighbours and do not follow back to parent.
+			// 無効なネイバーをスキップし、親をフォローしません。
 			if (!neighbourRef || neighbourRef == parentRef)
 				continue;
 
 			// Expand to neighbour
+			// 隣に拡張
 			const dtMeshTile* neighbourTile = 0;
 			const dtPoly* neighbourPoly = 0;
 			m_nav->getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly);
 
 			// Do not advance if the polygon is excluded by the filter.
+			// ポリゴンがフィルターによって除外されている場合は、先に進みません。
 			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly))
 				continue;
 
 			// Find edge and calc distance to the edge.
+			// エッジを見つけ、エッジまでの距離を計算します。
 			float va[3], vb[3];
 			if (!getPortalPoints(bestRef, bestPoly, bestTile, neighbourRef, neighbourPoly, neighbourTile, va, vb))
 				continue;
 
 			// If the poly is not touching the edge to the next polygon, skip the connection it.
+			// ポリゴンが次のポリゴンのエッジに接触していない場合は、接続をスキップします。
 			float tmin, tmax;
 			int segMin, segMax;
 			if (!dtIntersectSegmentPoly2D(va, vb, verts, nverts, tmin, tmax, segMin, segMax))
@@ -3295,7 +3309,7 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 			if (neighbourNode->flags & DT_NODE_CLOSED)
 				continue;
 
-			// Cost
+			// コスト
 			if (neighbourNode->flags == 0)
 				dtVlerp(neighbourNode->pos, va, vb, 0.5f);
 
@@ -3308,6 +3322,7 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 			const float total = bestNode->total + cost;
 
 			// The node is already in open list and the new result is worse, skip.
+			// ノードはすでにオープンリストにあり、新しい結果はより悪いです。スキップしてください。
 			if ((neighbourNode->flags & DT_NODE_OPEN) && total >= neighbourNode->total)
 				continue;
 
@@ -3349,31 +3364,26 @@ dtStatus dtNavMeshQuery::getPathFromDijkstraSearch(dtPolyRef endRef, dtPolyRef* 
 
 // @par
 //
-// This method is optimized for a small search radius and small number of result
-// polygons.
+// This method is optimized for a small search radius and small number of result polygons.
 // この方法は、検索半径が小さく、結果のポリゴン数が少ない場合に最適化されます。
 //
-// Candidate polygons are found by searching the navigation graph beginning at
-// the start polygon.
+// Candidate polygons are found by searching the navigation graph beginning at the start polygon.
 // 候補ポリゴンは、開始ポリゴンから始まるナビゲーショングラフを検索することで検出されます。
 //
-// The same intersection test restrictions that apply to the findPolysAroundCircle
-// mehtod applies to this method.
+// The same intersection test restrictions that apply to the findPolysAroundCircle mehtod applies to this method.
 // findPolysAroundCircleメソッドに適用される同じ交差テストの制限がこのメソッドに適用されます。
 //
 // The value of the center point is used as the start point for cost calculations.
-// It is not projected onto the surface of the mesh, so its y-value will effect
-// the costs.
-// 中心点の値は、コスト計算の開始点として使用されます。メッシュの表面には投影されないため、y値はコストに影響します。
+// 中心点の値は、コスト計算の開始点として使用されます。
+// It is not projected onto the surface of the mesh, so its y-value will effect the costs.
+// メッシュの表面には投影されないため、y値はコストに影響します。
 //
-// Intersection tests occur in 2D. All polygons and the search circle are
-// projected onto the xz-plane. So the y-value of the center point does not
-// effect intersection tests.
+// Intersection tests occur in 2D. All polygons and the search circle are projected onto the xz-plane.
 // 交差点テストは2Dで行われます。 すべてのポリゴンと検索円は、xz平面に投影されます。
+// So the y-value of the center point does not effect intersection tests.
 // したがって、中心点のy値は交差テストに影響しません。
 //
-// If the result arrays are is too small to hold the entire result set, they will
-// be filled to capacity.
+// If the result arrays are is too small to hold the entire result set, they will be filled to capacity.
 // 結果の配列が小さすぎて結果セット全体を保持できない場合、容量がいっぱいになります。
 //
 dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float* centerPos, const float radius,
@@ -3387,6 +3397,7 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 	*resultCount = 0;
 
 	// Validate input
+	// 入力を検証します
 	if (!startRef || !m_nav->isValidPolyRef(startRef))
 		return DT_FAILURE | DT_INVALID_PARAM;
 
@@ -3407,9 +3418,9 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 	float pa[DT_VERTS_PER_POLYGON * 3];
 	float pb[DT_VERTS_PER_POLYGON * 3];
 
-	dtStatus status = DT_SUCCESS;
+	dtStatus status{ DT_SUCCESS };
 
-	int n = 0;
+	int n{};
 	if (n < maxResult)
 	{
 		resultRef[n] = startNode->id;
@@ -3422,7 +3433,7 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 		status |= DT_BUFFER_TOO_SMALL;
 	}
 
-	while (nstack)
+	while (nstack != 0)
 	{
 		// Pop front.
 		dtNode* curNode = stack[0];
@@ -3431,7 +3442,9 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 		nstack--;
 
 		// Get poly and tile.
+		// ポリゴンとタイルを取得します。
 		// The API input has been cheked already, skip checking internal data.
+		// API入力はすでにチェックされているため、内部データのチェックをスキップします。
 		const dtPolyRef curRef = curNode->id;
 		const dtMeshTile* curTile = 0;
 		const dtPoly* curPoly = 0;
@@ -3441,50 +3454,57 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 		{
 			const dtLink* link = &curTile->links[i];
 			dtPolyRef neighbourRef = link->ref;
+
 			// Skip invalid neighbours.
-			if (!neighbourRef)
-				continue;
+			// 無効な近傍をスキップします。
+			if (!neighbourRef) continue;
+
+			dtNode* neighbourNode = m_tinyNodePool->getNode(neighbourRef);
 
 			// Skip if cannot alloca more nodes.
-			dtNode* neighbourNode = m_tinyNodePool->getNode(neighbourRef);
-			if (!neighbourNode)
-				continue;
+			// より多くのノードを割り当てることができない場合はスキップします。
+			if (!neighbourNode) continue;
+
 			// Skip visited.
-			if (neighbourNode->flags & DT_NODE_CLOSED)
-				continue;
+			// 訪問済みをスキップします。
+			if (neighbourNode->flags & DT_NODE_CLOSED) continue;
 
 			// Expand to neighbour
+			// 隣人に拡張
 			const dtMeshTile* neighbourTile = 0;
 			const dtPoly* neighbourPoly = 0;
 			m_nav->getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly);
 
 			// Skip off-mesh connections.
-			if (neighbourPoly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
-				continue;
+			// オフメッシュ接続をスキップします。
+			if (neighbourPoly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION) continue;
 
 			// Do not advance if the polygon is excluded by the filter.
-			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly))
-				continue;
+			// ポリゴンがフィルターによって除外されている場合は、先に進みません。
+			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly)) continue;
 
 			// Find edge and calc distance to the edge.
+			// エッジを見つけ、エッジまでの距離を計算します。
 			float va[3], vb[3];
 			if (!getPortalPoints(curRef, curPoly, curTile, neighbourRef, neighbourPoly, neighbourTile, va, vb))
 				continue;
 
 			// If the circle is not touching the next polygon, skip it.
+			// 円が次のポリゴンに接触していない場合は、スキップします。
 			float tseg;
 			float distSqr = dtDistancePtSegSqr2D(centerPos, va, vb, tseg);
-			if (distSqr > radiusSqr)
-				continue;
+			if (distSqr > radiusSqr) continue;
 
-			// Mark node visited, this is done before the overlap test so that
-			// we will not visit the poly again if the test fails.
+			// Mark node visited, this is done before the overlap test so that we will not visit the poly again if the test fails.
+			// ノードを訪問済みとしてマークします。これはオーバーラップテストの前に行われるため、テストが失敗した場合にポリゴンに再度アクセスすることはありません。
 			neighbourNode->flags |= DT_NODE_CLOSED;
 			neighbourNode->pidx = m_tinyNodePool->getNodeIdx(curNode);
 
 			// Check that the polygon does not collide with existing polygons.
+			// ポリゴンが既存のポリゴンと衝突しないことを確認します。
 
 			// Collect vertices of the neighbour poly.
+			// 隣接するポリゴンの頂点を収集します。
 			const int npa = neighbourPoly->vertCount;
 			for (int k = 0; k < npa; ++k)
 				dtVcopy(&pa[k * 3], &neighbourTile->verts[neighbourPoly->verts[k] * 3]);
@@ -3495,6 +3515,7 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 				dtPolyRef pastRef = resultRef[j];
 
 				// Connected polys do not overlap.
+				// 接続されたポリゴンは重複しません。
 				bool connected = false;
 				for (unsigned int k = curPoly->firstLink; k != DT_NULL_LINK; k = curTile->links[k].next)
 				{
@@ -3508,11 +3529,13 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 					continue;
 
 				// Potentially overlapping.
+				// 重複する可能性があります。
 				const dtMeshTile* pastTile = 0;
 				const dtPoly* pastPoly = 0;
 				m_nav->getTileAndPolyByRefUnsafe(pastRef, &pastTile, &pastPoly);
 
 				// Get vertices and test overlap
+				// 頂点を取得してオーバーラップをテストします
 				const int npb = pastPoly->vertCount;
 				for (int k = 0; k < npb; ++k)
 					dtVcopy(&pb[k * 3], &pastTile->verts[pastPoly->verts[k] * 3]);
@@ -3527,6 +3550,7 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 				continue;
 
 			// This poly is fine, store and advance to the poly.
+			// このポリは問題ありません。保存してポリに進みます。
 			if (n < maxResult)
 			{
 				resultRef[n] = neighbourRef;

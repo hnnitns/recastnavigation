@@ -744,6 +744,9 @@ void NavMeshTesterTool::recalc()
 	else
 		m_endRef = 0;
 
+	constexpr auto Category = rcLogCategory::RC_LOG_PROGRESS;
+	auto* ctx{ m_sample->GetContext() };
+
 	m_pathFindStatus = DT_FAILURE;
 
 	if (m_toolMode == ToolMode::PATHFIND_FOLLOW)
@@ -751,13 +754,16 @@ void NavMeshTesterTool::recalc()
 		m_pathIterNum = 0;
 		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
 		{
-#ifdef DUMP_REQS
-			printf("pi  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
-
 			m_navQuery->findPath(m_startRef, m_endRef, m_spos, m_epos, &m_filter, m_polys, &m_npolys, MAX_POLYS);
+
+#ifdef DUMP_REQS
+			ctx->resetLog();
+			ctx->log(Category, "----PATHFIND_FOLLOW----");
+			ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
+			ctx->log(Category, "m_epos: %f %f %f\n", m_epos[0], m_epos[1], m_epos[2]);
+			ctx->log(Category, "m_npolys: %d\n", m_npolys);
+			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
 
 			m_nsmoothPath = 0;
 
@@ -911,11 +917,6 @@ void NavMeshTesterTool::recalc()
 	{
 		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
 		{
-#ifdef DUMP_REQS
-			printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
 			m_navQuery->findPath(m_startRef, m_endRef, m_spos, m_epos, &m_filter, m_polys, &m_npolys, MAX_POLYS);
 			m_nstraightPath = 0;
 			if (m_npolys)
@@ -930,6 +931,15 @@ void NavMeshTesterTool::recalc()
 				m_navQuery->findStraightPath(m_spos, epos, m_polys, m_npolys,
 					m_straightPath, m_straightPathFlags,
 					m_straightPathPolys, &m_nstraightPath, MAX_POLYS, m_straightPathOptions);
+
+#ifdef DUMP_REQS
+				ctx->resetLog();
+				ctx->log(Category, "\n----PATHFIND_STRAIGHT----\n");
+				ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
+				ctx->log(Category, "m_epos: %f %f %f\n", m_epos[0], m_epos[1], m_epos[2]);
+				ctx->log(Category, "m_nstraightPath: %d\n", m_nstraightPath);
+				ctx->log(Category, "m_filter: 0x%x 0x%x\n",	m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
 			}
 		}
 		else
@@ -942,15 +952,18 @@ void NavMeshTesterTool::recalc()
 	{
 		if (m_sposSet && m_eposSet && m_startRef && m_endRef)
 		{
-#ifdef DUMP_REQS
-			printf("ps  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
 			m_npolys = 0;
 			m_nstraightPath = 0;
 
 			m_pathFindStatus = m_navQuery->initSlicedFindPath(m_startRef, m_endRef, m_spos, m_epos, &m_filter, DT_FINDPATH_ANY_ANGLE);
+
+#ifdef DUMP_REQS
+			ctx->resetLog();
+			ctx->log(Category, "\n----PATHFIND_SLICED----\n");
+			ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
+			ctx->log(Category, "m_epos: %f %f %f\n", m_epos[0], m_epos[1], m_epos[2]);
+			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
 		}
 		else
 		{
@@ -963,11 +976,6 @@ void NavMeshTesterTool::recalc()
 		m_nstraightPath = 0;
 		if (m_sposSet && m_eposSet && m_startRef)
 		{
-#ifdef DUMP_REQS
-			printf("rc  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_epos[0], m_epos[1], m_epos[2],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
 			float t = 0;
 			m_npolys = 0;
 			m_nstraightPath = 2;
@@ -975,6 +983,17 @@ void NavMeshTesterTool::recalc()
 			m_straightPath[1] = m_spos[1];
 			m_straightPath[2] = m_spos[2];
 			m_navQuery->raycast(m_startRef, m_spos, m_epos, &m_filter, &t, m_hitNormal, m_polys, &m_npolys, MAX_POLYS);
+
+#ifdef DUMP_REQS
+			ctx->resetLog();
+			ctx->log(Category, "\n----RAYCAST----\n");
+			ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
+			ctx->log(Category, "m_epos: %f %f %f\n", m_epos[0], m_epos[1], m_epos[2]);
+			ctx->log(Category, "m_hitNormal: %f %f %f\n", m_hitNormal[0], m_hitNormal[1], m_hitNormal[2]);
+			ctx->log(Category, "m_npolys: %d\n", m_npolys);
+			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
+
 			if (t > 1)
 			{
 				// No hit
@@ -1002,13 +1021,21 @@ void NavMeshTesterTool::recalc()
 		m_distanceToWall = 0;
 		if (m_sposSet && m_startRef)
 		{
-#ifdef DUMP_REQS
-			printf("dw  %f %f %f  %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], 100.0f,
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
+			constexpr float Radius{ 100.f };
+
 			m_distanceToWall = 0.0f;
-			m_navQuery->findDistanceToWall(m_startRef, m_spos, 100.0f, &m_filter, &m_distanceToWall, m_hitPos, m_hitNormal);
+			m_navQuery->findDistanceToWall(m_startRef, m_spos, Radius, &m_filter, &m_distanceToWall, m_hitPos, m_hitNormal);
+
+#ifdef DUMP_REQS
+			ctx->resetLog();
+			ctx->log(Category, "\n----DISTANCE_TO_WALL----\n");
+			ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
+			ctx->log(Category, "Radius: %f\n", Radius);
+			ctx->log(Category, "m_distanceToWall: %f\n", m_distanceToWall);
+			ctx->log(Category, "m_hitPos: %f %f %f\n", m_epos[0], m_epos[1], m_epos[2]);
+			ctx->log(Category, "m_hitNormal: %f %f %f\n", m_hitNormal[0], m_hitNormal[1], m_hitNormal[2]);
+			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
 		}
 	}
 	else if (m_toolMode == ToolMode::FIND_POLYS_IN_CIRCLE)
@@ -1018,13 +1045,18 @@ void NavMeshTesterTool::recalc()
 			const float dx = m_epos[0] - m_spos[0];
 			const float dz = m_epos[2] - m_spos[2];
 			float dist = sqrtf(dx * dx + dz * dz);
-#ifdef DUMP_REQS
-			printf("fpc  %f %f %f  %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], dist,
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
+
 			m_navQuery->findPolysAroundCircle(m_startRef, m_spos, dist, &m_filter,
-				m_polys, m_parent, 0, &m_npolys, MAX_POLYS);
+				m_polys, m_parent, nullptr, &m_npolys, MAX_POLYS);
+
+#ifdef DUMP_REQS
+			ctx->resetLog();
+			ctx->log(Category, "\n----FIND_POLYS_IN_CIRCLE----\n");
+			ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
+			ctx->log(Category, "dist: %f\n", dist);
+			ctx->log(Category, "m_npolys: %d\n", m_npolys);
+			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
 		}
 	}
 	else if (m_toolMode == ToolMode::FIND_POLYS_IN_SHAPE)
@@ -1051,29 +1083,35 @@ void NavMeshTesterTool::recalc()
 			m_queryPoly[10] = m_epos[1] + agentHeight / 2;
 			m_queryPoly[11] = m_epos[2] + nz;
 
-#ifdef DUMP_REQS
-			printf("fpp  %f %f %f  %f %f %f  %f %f %f  %f %f %f  0x%x 0x%x\n",
-				m_queryPoly[0], m_queryPoly[1], m_queryPoly[2],
-				m_queryPoly[3], m_queryPoly[4], m_queryPoly[5],
-				m_queryPoly[6], m_queryPoly[7], m_queryPoly[8],
-				m_queryPoly[9], m_queryPoly[10], m_queryPoly[11],
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
 			m_navQuery->findPolysAroundShape(m_startRef, m_queryPoly, 4, &m_filter,
-				m_polys, m_parent, 0, &m_npolys, MAX_POLYS);
+				m_polys, m_parent, nullptr, &m_npolys, MAX_POLYS);
+
+#ifdef DUMP_REQS
+			ctx->resetLog();
+			ctx->log(Category, "\n----FIND_POLYS_IN_SHAPE----\n");
+			ctx->log(Category, "m_queryPoly: %f %f %f,", m_queryPoly[0], m_queryPoly[1], m_queryPoly[2]);
+			ctx->log(Category, "%f %f %f,", m_queryPoly[3], m_queryPoly[4], m_queryPoly[5]);
+			ctx->log(Category, "%f %f %f,", m_queryPoly[6], m_queryPoly[7], m_queryPoly[8]);
+			ctx->log(Category, "%f %f %f", m_queryPoly[9], m_queryPoly[10], m_queryPoly[11]);
+			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
 		}
 	}
 	else if (m_toolMode == ToolMode::FIND_LOCAL_NEIGHBOURHOOD)
 	{
 		if (m_sposSet && m_startRef)
 		{
-#ifdef DUMP_REQS
-			printf("fln  %f %f %f  %f  0x%x 0x%x\n",
-				m_spos[0], m_spos[1], m_spos[2], m_neighbourhoodRadius,
-				m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
-#endif
 			m_navQuery->findLocalNeighbourhood(m_startRef, m_spos, m_neighbourhoodRadius, &m_filter,
 				m_polys, m_parent, &m_npolys, MAX_POLYS);
+
+#ifdef DUMP_REQS
+			ctx->resetLog();
+			ctx->log(Category, "\n----FIND_LOCAL_NEIGHBOURHOOD----\n");
+			ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
+			ctx->log(Category, "m_neighbourhoodRadius: %f\n", m_neighbourhoodRadius);
+			ctx->log(Category, "m_npolys: %d\n", m_npolys);
+			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
+#endif
 		}
 	}
 }
@@ -1350,6 +1388,7 @@ void NavMeshTesterTool::handleRender()
 				const float* s = &segs[j * 6];
 
 				// Skip too distant segments.
+				// 遠すぎるセグメントをスキップします。
 				float tseg;
 				float distSqr = dtDistancePtSegSqr2D(m_spos, s, s + 3, tseg);
 				if (distSqr > dtSqr(m_neighbourhoodRadius))
@@ -1365,16 +1404,18 @@ void NavMeshTesterTool::handleRender()
 				dtVmad(p1, p0, norm, agentRadius * 0.5f);
 
 				// Skip backfacing segments.
+				// セグメントの背面をスキップします。
 				if (refs[j])
 				{
-					unsigned int col = duRGBA(255, 255, 255, 32);
+					constexpr uint32_t col = duRGBA(255, 255, 255, 32);
 					dd.vertex(s[0], s[1] + agentClimb, s[2], col);
 					dd.vertex(s[3], s[4] + agentClimb, s[5], col);
 				}
 				else
 				{
-					unsigned int col = duRGBA(192, 32, 16, 192);
-					if (dtTriArea2D(m_spos, s, s + 3) < 0.0f)
+					uint32_t col = duRGBA(192, 32, 16, 192);
+
+					if (dtTriArea2D(m_spos, s, s + 3) < 0.f)
 						col = duRGBA(96, 32, 16, 192);
 
 					dd.vertex(p0[0], p0[1] + agentClimb, p0[2], col);

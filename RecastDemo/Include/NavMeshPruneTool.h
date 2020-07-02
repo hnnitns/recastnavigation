@@ -22,12 +22,13 @@
 #include "Sample.h"
 
 // Prune navmesh to accessible locations from a point.
+// ポイントからアクセス可能な場所にナビメッシュをプルーニングします。
 
 class NavMeshPruneTool : public SampleTool
 {
 	Sample* m_sample;
 
-	class NavmeshFlags* m_flags;
+	std::unique_ptr<class NavmeshFlags> m_flags;
 
 	float m_hitPos[3];
 	bool m_hitPosSet;

@@ -33,14 +33,6 @@
 #include "DetourAssert.h"
 #include "DetourDebugDraw.h"
 
-#ifdef WIN32
-#	define snprintf _snprintf
-#endif
-
-#ifdef _DEBUG
-#define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
-#endif
-
 class NavmeshFlags
 {
 	struct TileFlags
@@ -112,7 +104,7 @@ public:
 		}
 	}
 
-	inline unsigned char getFlags(dtPolyRef ref)
+	inline unsigned char getFlags(dtPolyRef ref) const
 	{
 		dtAssert(m_nav);
 		dtAssert(m_ntiles);
@@ -137,19 +129,18 @@ public:
 
 namespace
 {
-	void floodNavmesh(dtNavMesh* nav, NavmeshFlags* flags, dtPolyRef start, unsigned char flag)
+	void floodNavmesh(dtNavMesh* nav, std::unique_ptr<NavmeshFlags>& flags, dtPolyRef start, unsigned char flag)
 	{
 		// If already visited, skip.
 		// 既にアクセスしている場合はスキップします。
-		if (flags->getFlags(start))
-			return;
+		if (flags->getFlags(start)) return;
 
 		flags->setFlags(start, flag);
 
 		std::vector<dtPolyRef> openList;
-		openList.push_back(start);
+		openList.emplace_back(start);
 
-		while (openList.size())
+		while (!openList.empty())
 		{
 			const dtPolyRef ref = openList.back();
 			openList.pop_back();
@@ -179,12 +170,12 @@ namespace
 
 				// Visit neighbours
 				// 隣人を訪問
-				openList.push_back(neiRef);
+				openList.emplace_back(neiRef);
 			}
 		}
 	}
 
-	void disableUnvisitedPolys(dtNavMesh* nav, NavmeshFlags* flags)
+	void disableUnvisitedPolys(dtNavMesh* nav, const std::unique_ptr<NavmeshFlags>& flags)
 	{
 		for (int i = 0; i < nav->getMaxTiles(); ++i)
 		{
@@ -196,7 +187,7 @@ namespace
 				const dtPolyRef ref = base | (unsigned int)j;
 				if (!flags->getFlags(ref))
 				{
-					unsigned short f = 0;
+					unsigned short f{};
 					nav->getPolyFlags(ref, &f);
 					nav->setPolyFlags(ref, f | SAMPLE_POLYFLAGS_DISABLED);
 				}
@@ -207,14 +198,12 @@ namespace
 
 NavMeshPruneTool::NavMeshPruneTool() :
 	m_sample(0),
-	m_flags(0),
 	m_hitPosSet(false)
-{
-}
+{}
 
 NavMeshPruneTool::~NavMeshPruneTool()
 {
-	delete m_flags;
+	m_flags = nullptr;
 }
 
 void NavMeshPruneTool::init(Sample* sample)
@@ -225,7 +214,7 @@ void NavMeshPruneTool::init(Sample* sample)
 void NavMeshPruneTool::reset()
 {
 	m_hitPosSet = false;
-	delete m_flags;
+	m_flags = nullptr;
 	m_flags = 0;
 }
 
@@ -243,8 +232,7 @@ void NavMeshPruneTool::handleMenu()
 	if (imguiButton("Prune Unselected"))
 	{
 		disableUnvisitedPolys(nav, m_flags);
-		delete m_flags;
-		m_flags = 0;
+		m_flags = nullptr;
 	}
 }
 
@@ -266,11 +254,11 @@ void NavMeshPruneTool::handleClickDown(const float* s, const float* p, bool shif
 
 	if (!m_flags)
 	{
-		m_flags = new NavmeshFlags;
+		m_flags = std::make_unique<NavmeshFlags>();
 		m_flags->init(nav);
 	}
 
-	const float ext[3] = { 2,4,2 };
+	constexpr float ext[3]{ 2,4,2 };
 	dtQueryFilter filter;
 	dtPolyRef ref = 0;
 	query->findNearestPoly(p, ext, &filter, &ref, 0);

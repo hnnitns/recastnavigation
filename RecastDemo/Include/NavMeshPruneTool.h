@@ -52,8 +52,8 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	NavMeshPruneTool(const NavMeshPruneTool&);
-	NavMeshPruneTool& operator=(const NavMeshPruneTool&);
+	NavMeshPruneTool(const NavMeshPruneTool&) = delete;
+	NavMeshPruneTool& operator=(const NavMeshPruneTool&) = delete;
 };
 
 #endif // NAVMESHPRUNETOOL_H

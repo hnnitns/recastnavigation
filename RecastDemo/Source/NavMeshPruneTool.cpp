@@ -22,6 +22,7 @@
 #include <cstring>
 #include <cfloat>
 #include <vector>
+
 #include "SDL.h"
 #include "SDL_opengl.h"
 #include "imgui.h"
@@ -32,60 +33,68 @@
 #include "DetourCommon.h"
 #include "DetourAssert.h"
 #include "DetourDebugDraw.h"
+#include "AlgorithmHelper.h"
 
 class NavmeshFlags
 {
 	struct TileFlags
 	{
-		inline void purge() { dtFree(flags); }
-		unsigned char* flags;
-		int nflags;
+		std::vector<unsigned char> flags;
 		dtPolyRef base;
 	};
 
 	const dtNavMesh* m_nav;
-	TileFlags* m_tiles;
-	int m_ntiles;
+	std::vector<TileFlags> m_tiles;
 
 public:
-	NavmeshFlags() :
-		m_nav(0), m_tiles(0), m_ntiles(0)
-	{
-	}
+	NavmeshFlags() : m_nav(nullptr) {}
 
 	~NavmeshFlags()
 	{
-		for (int i = 0; i < m_ntiles; ++i)
-			m_tiles[i].purge();
-		dtFree(m_tiles);
+		m_tiles.clear();
 	}
 
 	bool init(const dtNavMesh* nav)
 	{
-		m_ntiles = nav->getMaxTiles();
-		if (!m_ntiles)
-			return true;
-		m_tiles = (TileFlags*)dtAlloc(sizeof(TileFlags) * m_ntiles, DT_ALLOC_TEMP);
-		if (!m_tiles)
+		const int ntiles{ nav->getMaxTiles() };
+
+		if (ntiles == 0) return true;
+
+		m_tiles.clear();
+
+		try
+		{
+			m_tiles.resize(ntiles, {});
+		}
+		catch (const std::exception&)
 		{
 			return false;
 		}
-		memset(m_tiles, 0, sizeof(TileFlags) * m_ntiles);
 
 		// Alloc flags for each tile.
-		for (int i = 0; i < nav->getMaxTiles(); ++i)
+		// 各タイルにフラグを割り当てます。
+		for (int i = 0; i < ntiles; ++i)
 		{
 			const dtMeshTile* tile = nav->getTile(i);
 			if (!tile->header) continue;
-			TileFlags* tf = &m_tiles[i];
-			tf->nflags = tile->header->polyCount;
-			tf->base = nav->getPolyRefBase(tile);
-			if (tf->nflags)
+
+			TileFlags& tf{ m_tiles[i] };
+
+			const int nflags{ tile->header->polyCount };
+			tf.base = nav->getPolyRefBase(tile);
+
+			if (nflags != 0)
 			{
-				tf->flags = (unsigned char*)dtAlloc(tf->nflags, DT_ALLOC_TEMP);
-				if (!tf->flags)
+				tf.flags.clear();
+
+				try
+				{
+					tf.flags.resize(nflags, '\0');
+				}
+				catch (const std::exception&)
+				{
 					return false;
-				memset(tf->flags, 0, tf->nflags);
+				}
 			}
 		}
 
@@ -96,18 +105,18 @@ public:
 
 	inline void clearAllFlags()
 	{
-		for (int i = 0; i < m_ntiles; ++i)
+		for (auto& tile : m_tiles)
 		{
-			TileFlags* tf = &m_tiles[i];
-			if (tf->nflags)
-				memset(tf->flags, 0, tf->nflags);
+			if (!tile.flags.empty())
+				NormalAlgorithm::Fill(tile.flags, '\0');
 		}
 	}
 
 	inline unsigned char getFlags(dtPolyRef ref) const
 	{
 		dtAssert(m_nav);
-		dtAssert(m_ntiles);
+		dtAssert(!m_tiles.empty());
+
 		// Assume the ref is valid, no bounds checks.
 		// 参照が有効であり、境界チェックがないと仮定します。
 		unsigned int salt, it, ip;
@@ -118,7 +127,8 @@ public:
 	inline void setFlags(dtPolyRef ref, unsigned char flags)
 	{
 		dtAssert(m_nav);
-		dtAssert(m_ntiles);
+		dtAssert(!m_tiles.empty());
+
 		// Assume the ref is valid, no bounds checks.
 		// 参照が有効であり、境界チェックがないと仮定します。
 		unsigned int salt, it, ip;
@@ -221,8 +231,7 @@ void NavMeshPruneTool::reset()
 void NavMeshPruneTool::handleMenu()
 {
 	dtNavMesh* nav = m_sample->getNavMesh();
-	if (!nav) return;
-	if (!m_flags) return;
+	if (!(nav && m_flags)) return;
 
 	if (imguiButton("Clear Selection"))
 	{

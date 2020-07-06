@@ -839,7 +839,7 @@ bool CrowdToolState::SetMoveTargetAt(const std::array<float, 3>& tgt_pos, const 
 
 		if (!geom->RaycastMesh(ray_st, ray_ed, &hit_info))
 		{
-			return (-1);
+			return (false);
 		}
 	}
 

@@ -75,11 +75,11 @@ extern rcAreaModification const SAMPLE_AREAMOD_GROUND;
 enum SamplePolyFlags
 {
 	// Ability to walk (ground, grass, road)
-	// 歩く能力（地面、草、道路）
+	// 歩く機能（地面、草、道路）
 	SAMPLE_POLYFLAGS_WALK = 0x01,
 
 	// Ability to swim (water).
-	// 泳ぐ能力（水）。
+	// 泳ぐ機能（水）。
 	SAMPLE_POLYFLAGS_SWIM = 0x02,
 
 	// Ability to move through doors.

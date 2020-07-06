@@ -124,7 +124,7 @@ public:
 		return m_tiles[it].flags[ip];
 	}
 
-	inline void setFlags(dtPolyRef ref, unsigned char flags)
+	inline void setFlags(dtPolyRef ref, SamplePolyFlags flags)
 	{
 		dtAssert(m_nav);
 		dtAssert(!m_tiles.empty());
@@ -133,13 +133,13 @@ public:
 		// 参照が有効であり、境界チェックがないと仮定します。
 		unsigned int salt, it, ip;
 		m_nav->decodePolyId(ref, salt, it, ip);
-		m_tiles[it].flags[ip] = flags;
+		m_tiles[it].flags[ip] = static_cast<UINT8>(flags);
 	}
 };
 
 namespace
 {
-	void floodNavmesh(dtNavMesh* nav, std::unique_ptr<NavmeshFlags>& flags, dtPolyRef start, unsigned char flag)
+	void floodNavmesh(dtNavMesh* nav, std::unique_ptr<NavmeshFlags>& flags, dtPolyRef start, const SamplePolyFlags flag)
 	{
 		// If already visited, skip.
 		// 既にアクセスしている場合はスキップします。
@@ -178,6 +178,9 @@ namespace
 				// 訪問済みとしてマーク
 				flags->setFlags(neiRef, flag);
 
+				// ナビメッシュのフラグを有効に
+				//nav->setPolyFlags(ref, static_cast<UINT8>(flag));
+
 				// Visit neighbours
 				// 隣人を訪問
 				openList.emplace_back(neiRef);
@@ -190,8 +193,11 @@ namespace
 		for (int i = 0; i < nav->getMaxTiles(); ++i)
 		{
 			const dtMeshTile* tile = ((const dtNavMesh*)nav)->getTile(i);
+
 			if (!tile->header) continue;
+
 			const dtPolyRef base = nav->getPolyRefBase(tile);
+
 			for (int j = 0; j < tile->header->polyCount; ++j)
 			{
 				const dtPolyRef ref = base | (unsigned int)j;
@@ -270,9 +276,9 @@ void NavMeshPruneTool::handleClickDown(const float* s, const float* p, bool shif
 	constexpr float ext[3]{ 2,4,2 };
 	dtQueryFilter filter;
 	dtPolyRef ref = 0;
-	query->findNearestPoly(p, ext, &filter, &ref, 0);
+	query->findNearestPoly(p, ext, &filter, &ref, nullptr);
 
-	floodNavmesh(nav, m_flags, ref, 1);
+	floodNavmesh(nav, m_flags, ref, SAMPLE_POLYFLAGS_WALK);
 }
 
 void NavMeshPruneTool::handleToggle()
@@ -294,7 +300,7 @@ void NavMeshPruneTool::handleRender()
 	if (m_hitPosSet)
 	{
 		const float s = m_sample->getAgentRadius();
-		const unsigned int col = duRGBA(255, 255, 255, 255);
+		constexpr unsigned int col = duRGBA(255, 0, 0, 255);
 		dd.begin(DU_DRAW_LINES);
 		dd.vertex(m_hitPos[0] - s, m_hitPos[1], m_hitPos[2], col);
 		dd.vertex(m_hitPos[0] + s, m_hitPos[1], m_hitPos[2], col);

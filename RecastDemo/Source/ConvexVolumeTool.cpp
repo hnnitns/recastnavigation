@@ -121,6 +121,8 @@ ConvexVolumeTool::ConvexVolumeTool() :
 	m_npts(0),
 	m_nhull(0)
 {
+	m_pts.fill(0.f);
+	m_hull.fill(0);
 }
 
 void ConvexVolumeTool::init(Sample* sample)
@@ -202,6 +204,7 @@ void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool 
 		// Create
 
 		// If clicked on that last pt, create the shape.
+		// 最後のptをクリックすると、形状が作成されます。
 		if (m_npts && rcVdistSqr(p, &m_pts[(m_npts - 1) * 3]) < rcSqr(0.2f))
 		{
 			if (m_nhull > 2)
@@ -211,7 +214,7 @@ void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool 
 				for (int i = 0; i < m_nhull; ++i)
 					rcVcopy(&verts[i * 3], &m_pts[m_hull[i] * 3]);
 
-				float minh = FLT_MAX, maxh = 0;
+				float minh = (std::numeric_limits<float>::max)(), maxh = 0;
 				for (int i = 0; i < m_nhull; ++i)
 					minh = rcMin(minh, verts[i * 3 + 1]);
 				minh -= m_boxDescent;
@@ -242,7 +245,7 @@ void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool 
 				m_npts++;
 				// Update hull.
 				if (m_npts > 1)
-					m_nhull = convexhull(m_pts, m_npts, m_hull);
+					m_nhull = convexhull(m_pts.data(), m_npts, m_hull.data());
 				else
 					m_nhull = 0;
 			}
@@ -267,7 +270,7 @@ void ConvexVolumeTool::handleRender()
 	duDebugDraw& dd = m_sample->getDebugDraw();
 
 	// Find height extents of the shape.
-	float minh = FLT_MAX, maxh = 0;
+	float minh = (std::numeric_limits<float>::max)(), maxh = 0;
 	for (int i = 0; i < m_npts; ++i)
 		minh = rcMin(minh, m_pts[i * 3 + 1]);
 	minh -= m_boxDescent;

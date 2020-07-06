@@ -260,7 +260,7 @@ public:
 	// @name Box Volumes. // ボックスボリューム。
 	//@{
 	int getConvexVolumeCount() const noexcept { return m_volumeCount; }
-	const auto* getConvexVolumes() const noexcept { return &m_volumes; }
+	const auto& getConvexVolumes() const noexcept { return m_volumes; }
 	void addConvexVolume(const float* verts, const int nverts,
 		const float minh, const float maxh, rcAreaModification areaMod);
 	void deleteConvexVolume(int i);

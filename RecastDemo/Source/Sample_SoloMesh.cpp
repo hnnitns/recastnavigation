@@ -555,14 +555,15 @@ bool Sample_SoloMesh::handleBuild()
 
 	// (Optional) Mark areas.
 	// （オプション）エリアをマークします。
-	const auto* vols = m_geom->getConvexVolumes(); // 凸ボリュームを取得
+	const auto& vols = m_geom->getConvexVolumes(); // 凸ボリュームを取得
 
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i) // 凸ボリューム数を取得
-		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts, vols->at(i).hmin, vols->at(i).hmax, vols->at(i).areaMod, *m_chf); // 凸多角形領域をマーク
+		rcMarkConvexPolyArea(m_ctx, vols.at(i).verts.data(), vols.at(i).nverts, vols.at(i).hmin, vols.at(i).hmax,
+			vols.at(i).areaMod, *m_chf); // 凸多角形領域をマーク
 
 	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
-	// There are 3 martitioning methods, each with some pros and cons:
 	// ハイトフィールドを分割して、後で簡単なアルゴリズムを使用して歩行可能エリアを三角測量できるようにします。
+	// There are 3 martitioning methods, each with some pros and cons:
 	// パーティション分割には3つの方法があり、それぞれ長所と短所があります。
 
 	// 1) Watershed partitioning
@@ -721,9 +722,9 @@ bool Sample_SoloMesh::handleBuild()
 	if (!m_keep_inter_results)
 	{
 		rcFreeCompactHeightfield(m_chf);
-		m_chf = 0;
+		m_chf = nullptr;
 		rcFreeContourSet(m_cset);
-		m_cset = 0;
+		m_cset = nullptr;
 	}
 
 	// At this point the navigation mesh data is ready, you can access it from m_pmesh.

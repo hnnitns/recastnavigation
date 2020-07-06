@@ -181,12 +181,12 @@ void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool 
 	{
 		// Delete
 		int nearestIndex = -1;
-		const auto* vols = geom->getConvexVolumes();
+		const auto& vols = geom->getConvexVolumes();
 
 		for (int i = 0; i < geom->getConvexVolumeCount(); ++i)
 		{
-			if (pointInPoly(vols->at(i).nverts, vols->at(i).verts.data(), p) &&
-				p[1] >= vols->at(i).hmin && p[1] <= vols->at(i).hmax)
+			if (pointInPoly(vols.at(i).nverts, vols.at(i).verts.data(), p) &&
+				p[1] >= vols.at(i).hmin && p[1] <= vols.at(i).hmax)
 			{
 				nearestIndex = i;
 			}
@@ -210,7 +210,8 @@ void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool 
 			if (m_nhull > 2)
 			{
 				// Create shape.
-				float verts[MAX_PTS * 3];
+				// 形状を作成します。
+				decltype(m_pts) verts;
 				for (int i = 0; i < m_nhull; ++i)
 					rcVcopy(&verts[i * 3], &m_pts[m_hull[i] * 3]);
 
@@ -223,13 +224,13 @@ void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool 
 				if (m_polyOffset > 0.01f)
 				{
 					float offset[MAX_PTS * 2 * 3];
-					int noffset = rcOffsetPoly(verts, m_nhull, m_polyOffset, offset, MAX_PTS * 2);
+					int noffset = rcOffsetPoly(verts.data(), m_nhull, m_polyOffset, offset, MAX_PTS * 2);
 					if (noffset > 0)
 						geom->addConvexVolume(offset, noffset, minh, maxh, m_areaMod);
 				}
 				else
 				{
-					geom->addConvexVolume(verts, m_nhull, minh, maxh, m_areaMod);
+					geom->addConvexVolume(verts.data(), m_nhull, minh, maxh, m_areaMod);
 				}
 			}
 
@@ -239,11 +240,13 @@ void ConvexVolumeTool::handleClickDown(const float* /*s*/, const float* p, bool 
 		else
 		{
 			// Add new point
+			// 新しいポイントを追加します
 			if (m_npts < MAX_PTS)
 			{
 				rcVcopy(&m_pts[m_npts * 3], p);
 				m_npts++;
 				// Update hull.
+				// ハルを更新します。
 				if (m_npts > 1)
 					m_nhull = convexhull(m_pts.data(), m_npts, m_hull.data());
 				else
@@ -280,8 +283,10 @@ void ConvexVolumeTool::handleRender()
 	for (int i = 0; i < m_npts; ++i)
 	{
 		unsigned int col = duRGBA(255, 255, 255, 255);
+
 		if (i == m_npts - 1)
 			col = duRGBA(240, 32, 16, 255);
+
 		dd.vertex(m_pts[i * 3 + 0], m_pts[i * 3 + 1] + 0.1f, m_pts[i * 3 + 2], col);
 	}
 	dd.end();
@@ -291,6 +296,7 @@ void ConvexVolumeTool::handleRender()
 	{
 		const float* vi = &m_pts[m_hull[j] * 3];
 		const float* vj = &m_pts[m_hull[i] * 3];
+
 		dd.vertex(vj[0], minh, vj[2], duRGBA(255, 255, 255, 64));
 		dd.vertex(vi[0], minh, vi[2], duRGBA(255, 255, 255, 64));
 		dd.vertex(vj[0], maxh, vj[2], duRGBA(255, 255, 255, 64));

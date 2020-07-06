@@ -941,13 +941,12 @@ int Sample_TempObstacles::rasterizeTileLayers(
 
 	// (Optional) Mark areas.
 	//（オプション）エリアをマークします。
-	const auto* vols{ m_geom->getConvexVolumes() };
+	const auto& vols{ m_geom->getConvexVolumes() };
 
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 	{
-		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts,
-			vols->at(i).hmin, vols->at(i).hmax,
-			vols->at(i).areaMod, *rc.chf);
+		rcMarkConvexPolyArea(m_ctx, vols.at(i).verts.data(), vols.at(i).nverts, vols.at(i).hmin, vols.at(i).hmax,
+			vols.at(i).areaMod, *rc.chf);
 	}
 
 	// Recastアロケーターを使用して、地形レイヤーセットを割り当てる

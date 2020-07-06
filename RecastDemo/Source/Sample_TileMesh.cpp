@@ -1065,13 +1065,12 @@ int Sample_TileMesh::rasterizeTileLayers(
 
 	// (Optional) Mark areas.
 	//（オプション）エリアをマークします。
-	const auto* vols{ m_geom->getConvexVolumes() };
+	const auto& vols{ m_geom->getConvexVolumes() };
 
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 	{
-		rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts,
-			vols->at(i).hmin, vols->at(i).hmax,
-			vols->at(i).areaMod, *rc.chf);
+		const auto& vol{ vols[i] };
+		rcMarkConvexPolyArea(m_ctx, vol.verts.data(), vol.nverts, vol.hmin, vol.hmax, vol.areaMod, *rc.chf);
 	}
 
 	// Recastアロケーターを使用して、地形レイヤーセットを割り当てる
@@ -1599,11 +1598,13 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 		// (Optional) Mark areas.
 		//（オプション）エリアをマークします。
-		const auto* vols = m_geom->getConvexVolumes();
+		const auto& vols = m_geom->getConvexVolumes();
 
 		for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
-			rcMarkConvexPolyArea(m_ctx, vols->at(i).verts.data(), vols->at(i).nverts, vols->at(i).hmin, vols->at(i).hmax,
-				vols->at(i).areaMod, *m_chf);
+		{
+			const auto& vol{ vols[i] };
+			rcMarkConvexPolyArea(m_ctx, vol.verts.data(), vol.nverts, vol.hmin, vol.hmax, vol.areaMod, *m_chf);
+		}
 
 		// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
 		// There are 3 martitioning methods, each with some pros and cons:

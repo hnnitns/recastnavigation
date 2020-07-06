@@ -1575,8 +1575,8 @@ void rcMarkBoxArea(rcContext* ctx, const float* bmin, const float* bmax, rcAreaM
 //  @ingroup recast
 //  @param[in,out] ctx : The build context to use during the operation.
 //	操作中に使用するビルドコンテキスト。
-//  @param[in] verts : The vertices of the polygon [Fomr: (x, y, z) * @p nverts]
-//	ポリゴンの頂点[Fomr：（x、y、z）* @p nverts]
+//  @param[in] verts : The vertices of the polygon [Fomr: (x, y, z) * nverts]
+//	ポリゴンの頂点
 //  @param[in] nverts : The number of vertices in the polygon.
 //	ポリゴン内の頂点の数。
 //  @param[in] hmin : The height of the base of the polygon.
@@ -1592,23 +1592,29 @@ void rcMarkConvexPolyArea(rcContext* ctx, const float* verts, const int nverts,
 	rcCompactHeightfield& chf);
 
 // Helper function to offset voncex polygons for rcMarkConvexPolyArea.
+//（rcMarkConvexPolyAreaのVoncexポリゴンをオフセットするヘルパー関数。）
 //  @ingroup recast
-//  @param[in]		verts		The vertices of the polygon [Form: (x, y, z) * @p nverts]
-//  @param[in]		nverts		The number of vertices in the polygon.
-//  @param[out]	outVerts	The offset vertices (should hold up to 2 * @p nverts) [Form: (x, y, z) * return value]
-//  @param[in]		maxOutVerts	The max number of vertices that can be stored to @p outVerts.
-//  @returns Number of vertices in the offset polygon or 0 if too few vertices in @p outVerts.
+//  @param[in] verts		The vertices of the polygon [Form: (x, y, z) * nverts]
+// （多角形の頂点）
+//  @param[in] nverts		The number of vertices in the polygon.
+//  （ポリゴンの頂点の数）
+//  @param[out] outVerts	The offset vertices (should hold up to 2 *  nverts) [Form: (x, y, z) * return value]
+//（オフセット頂点（最大2 * nvertsを保持する必要があります））
+//  @param[in] maxOutVerts	The max number of vertices that can be stored to  outVerts.
+// （outVertsに格納できる頂点の最大数。）
+//  @returns Number of vertices in the offset polygon or 0 if too few vertices in outVerts.
+// （オフセットポリゴンの頂点の数。outVertsの頂点が少なすぎる場合は0。）
 int rcOffsetPoly(const float* verts, const int nverts, const float offset,
 	float* outVerts, const int maxOutVerts);
 
 // Applies the area id to all spans within the specified cylinder.
 //  @ingroup recast
-//  @param[in,out]	ctx		The build context to use during the operation.
-//  @param[in]		pos		The center of the base of the cylinder. [Form: (x, y, z)]
-//  @param[in]		r		The radius of the cylinder.
-//  @param[in]		h		The height of the cylinder.
-//  @param[in]		areaMod	The area modification to apply.
-//  @param[in,out]	chf	A populated compact heightfield.
+//  @param[in,out] ctx	The build context to use during the operation.
+//  @param[in] pos	The center of the base of the cylinder. [Form: (x, y, z)]
+//  @param[in] r	The radius of the cylinder.
+//  @param[in] h	The height of the cylinder.
+//  @param[in] areaMod	 The area modification to apply.
+//  @param[in,out] chf	A populated compact heightfield.
 void rcMarkCylinderArea(rcContext* ctx, const float* pos,
 	const float r, const float h, rcAreaModification areaMod,
 	rcCompactHeightfield& chf);

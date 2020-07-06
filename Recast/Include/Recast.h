@@ -790,18 +790,40 @@ public:
 	// マスクは使用可能なすべてのビットに設定されます。つまり、値は完全に適用されます
 	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
 	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
-	rcAreaModification(unsigned char value);
+	_CONSTEXPR17 rcAreaModification(unsigned char value)
+		: m_value(value), m_mask(RC_AREA_FLAGS_MASK)
+	{}
 	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
 	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
 	//  @param[in] mask	Bitwise mask used when applying value. [Limit: <= #RC_AREA_FLAGS_MASK]
 	//  @param [in] mask値を適用するときに使用されるビット単位のマスク。 [制限：<= #RC_AREA_FLAGS_MASK]
-	rcAreaModification(unsigned char value, unsigned char mask);
-	rcAreaModification(const rcAreaModification& other);
-	void operator = (const rcAreaModification& other);
-	bool operator == (const rcAreaModification& other) const;
-	bool operator != (const rcAreaModification& other) const;
-	void apply(unsigned char& area) const;
-	unsigned char getMaskedValue() const;
+	_CONSTEXPR17 rcAreaModification(unsigned char value, unsigned char mask)
+		: m_value(value), m_mask(mask)
+	{}
+	_CONSTEXPR17 rcAreaModification(const rcAreaModification& other)
+		: m_value(other.m_value), m_mask(other.m_mask)
+	{}
+	void operator = (const rcAreaModification& other)
+	{
+		m_value = other.m_value;
+		m_mask = other.m_mask;
+	}
+	_CONSTEXPR17 bool operator == (const rcAreaModification& other) const
+	{
+		return ((m_value == other.m_value) && (m_mask == other.m_mask));
+	}
+	_CONSTEXPR17 bool operator != (const rcAreaModification& other) const
+	{
+		return ((m_value == other.m_value) && (m_mask == other.m_mask));
+	}
+	_CONSTEXPR17 void apply(unsigned char& area) const
+	{
+		area = ((m_value & m_mask) | (area & ~m_mask));
+	}
+	_CONSTEXPR17 unsigned char getMaskedValue() const
+	{
+		return (m_value & m_mask);
+	}
 
 	unsigned char m_value;	// Value to apply to target area id // ターゲットエリアIDに適用する値
 	unsigned char m_mask;	// Bitwise mask used when applying value to target area id //ターゲットエリアIDに値を適用するときに使用されるビット単位のマスク

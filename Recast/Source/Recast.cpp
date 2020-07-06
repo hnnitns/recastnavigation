@@ -71,50 +71,6 @@ void rcContext::log(const rcLogCategory category, const char* format, ...)
 	doLog(category, msg, len);
 }
 
-rcAreaModification::rcAreaModification(unsigned char value) :
-	m_value(value),
-	m_mask(RC_AREA_FLAGS_MASK)
-{
-}
-
-rcAreaModification::rcAreaModification(unsigned char value, unsigned char mask) :
-	m_value(value),
-	m_mask(mask)
-{
-}
-
-rcAreaModification::rcAreaModification(const rcAreaModification& other) :
-	m_value(other.m_value),
-	m_mask(other.m_mask)
-{
-}
-
-void rcAreaModification::operator = (const rcAreaModification& other)
-{
-	m_value = other.m_value;
-	m_mask = other.m_mask;
-}
-
-bool rcAreaModification::operator == (const rcAreaModification& other) const
-{
-	return ((m_value == other.m_value) && (m_mask == other.m_mask));
-}
-
-bool rcAreaModification::operator != (const rcAreaModification& other) const
-{
-	return ((m_value == other.m_value) && (m_mask == other.m_mask));
-}
-
-void rcAreaModification::apply(unsigned char& area) const
-{
-	area = ((m_value & m_mask) | (area & ~m_mask));
-}
-
-unsigned char rcAreaModification::getMaskedValue() const
-{
-	return (m_value & m_mask);
-}
-
 rcHeightfield* rcAllocHeightfield()
 {
 	return new (rcAlloc(sizeof(rcHeightfield), RC_ALLOC_PERM)) rcHeightfield;

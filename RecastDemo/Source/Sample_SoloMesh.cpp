@@ -743,8 +743,8 @@ bool Sample_SoloMesh::handleBuild()
 
 	if (m_cfg.maxVertsPerPoly <= DT_VERTS_PER_POLYGON)
 	{
-		unsigned char* navData = 0;
-		int navDataSize = 0;
+		uint8_t* navData{};
+		int navDataSize{};
 
 		// Update poly flags from areas.
 		// エリアからポリゴンフラグを更新します。
@@ -753,8 +753,8 @@ bool Sample_SoloMesh::handleBuild()
 			m_pmesh->flags[i] = sampleAreaToFlags(m_pmesh->areas[i]);
 		}
 
-		dtNavMeshCreateParams params;
-		memset(&params, 0, sizeof(params));
+		dtNavMeshCreateParams params{};
+
 		params.verts = m_pmesh->verts;
 		params.vertCount = m_pmesh->nverts;
 		params.polys = m_pmesh->polys;
@@ -824,8 +824,7 @@ bool Sample_SoloMesh::handleBuild()
 
 	m_total_build_time_ms = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
 
-	if (m_tool)
-		m_tool->init(this);
+	if (m_tool) m_tool->init(this);
 	initToolStates(this);
 
 	return true;

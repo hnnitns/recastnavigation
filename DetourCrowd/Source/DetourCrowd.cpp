@@ -221,6 +221,7 @@ namespace
 	int addToOptQueue(dtCrowdAgent* newag, dtCrowdAgent** agents, const int nagents, const int maxAgents)
 	{
 		// Insert neighbour based on greatest time.
+		// 最大時間に基づいて付近のエージェントを挿入します。
 		int slot = 0;
 		if (!nagents)
 		{

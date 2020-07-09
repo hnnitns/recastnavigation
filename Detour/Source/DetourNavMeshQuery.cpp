@@ -1853,11 +1853,13 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPathPartial(const dtPolyRef* existing
 	if (m_query.startRef == m_query.endRef)
 	{
 		// Special case: the search starts and ends at same poly.
+		// 特殊なケース：検索は同じポリゴンで開始および終了します。
 		path[n++] = m_query.startRef;
 	}
 	else
 	{
 		// Find furthest existing node that was visited.
+		// アクセスされた最も遠い既存のノードを検索します。
 		dtNode* prev = 0;
 		dtNode* node = 0;
 		for (int i = existingSize - 1; i >= 0; --i)
@@ -1875,19 +1877,23 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPathPartial(const dtPolyRef* existing
 		}
 
 		// Reverse the path.
+		// パスを逆にします。
 		int prevRay = 0;
 		do
 		{
 			dtNode* next = m_nodePool->getNodeAtIdx(node->pidx);
 			node->pidx = m_nodePool->getNodeIdx(prev);
 			prev = node;
-			int nextRay = node->flags & DT_NODE_PARENT_DETACHED; // keep track of whether parent is not adjacent (i.e. due to raycast shortcut)
-			node->flags = (node->flags & ~DT_NODE_PARENT_DETACHED) | prevRay; // and store it in the reversed path's node
+
+			// keep track of whether parent is not adjacent (i.e. due to raycast shortcut) and store it in the reversed path's node
+			// 親が隣接していないかどうか（つまり、レイキャストのショートカットが原因であるかどうか）を追跡し、反転したパスのノードに保存します
+			int nextRay = node->flags & DT_NODE_PARENT_DETACHED;
+			node->flags = (node->flags & ~DT_NODE_PARENT_DETACHED) | prevRay;
 			prevRay = nextRay;
 			node = next;
 		} while (node);
 
-		// Store path
+		// パスを保存
 		node = prev;
 		do
 		{
@@ -1899,9 +1905,11 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPathPartial(const dtPolyRef* existing
 				int m;
 				status = raycast(node->id, node->pos, next->pos, m_query.filter, &t, normal, path + n, &m, maxPath - n);
 				n += m;
+
 				// raycast ends on poly boundary and the path might include the next poly boundary.
+				// レイキャストはポリゴン境界で終わり、パスには次のポリゴン境界が含まれる場合があります。
 				if (path[n - 1] == next->id)
-					n--; // remove to avoid duplicates
+					n--; // remove to avoid duplicates // 重複を避けるために削除します
 			}
 			else
 			{
@@ -1921,7 +1929,7 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPathPartial(const dtPolyRef* existing
 
 	const dtStatus details = m_query.status & DT_STATUS_DETAIL_MASK;
 
-	// Reset query.
+	//クエリをリセットします。
 	memset(&m_query, 0, sizeof(dtQueryData));
 
 	*pathCount = n;

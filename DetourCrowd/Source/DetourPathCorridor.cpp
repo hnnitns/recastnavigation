@@ -113,6 +113,7 @@ int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int max
 	int furthestVisited = -1;
 
 	// Find furthest common polygon.
+	// 最も遠い共通のポリゴンを見つけます。
 	for (int i = npath - 1; i >= 0; --i)
 	{
 		bool found = false;
@@ -130,12 +131,14 @@ int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int max
 	}
 
 	// If no intersection found just return current path.
+	// 交差点が見つからない場合は、現在のパスを返します。
 	if (furthestPath == -1 || furthestVisited == -1)
 		return npath;
 
-	// Concatenate paths.
+	// Concatenate paths. //パスを連結します。
 
 	// Adjust beginning of the buffer to include the visited.
+	// 訪問済みを含むようにバッファの先頭を調整します。
 	const int req = furthestVisited;
 	if (req <= 0)
 		return npath;
@@ -147,7 +150,7 @@ int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int max
 	if (size)
 		memmove(path + req, path + orig, size * sizeof(dtPolyRef));
 
-	// Store visited
+	// Store visited // 訪問先を保存
 	for (int i = 0; i < req; ++i)
 		path[i] = visited[i];
 
@@ -161,8 +164,11 @@ int dtMergeCorridorStartShortcut(dtPolyRef* path, const int npath, const int max
 The corridor is loaded with a path, usually obtained from a #dtNavMeshQuery::findPath() query. The corridor
 is then used to plan local movement, with the corridor automatically updating as needed to deal with inaccurate
 agent locomotion.
+コライダーにはパスが読み込まれ、通常は#dtNavMeshQuery :: findPath（）クエリから取得されます。
+次に、コライダーを使用して局所的な移動を計画し、不正確なエージェントの移動に対処するために必要に応じてコライダーを自動的に更新します。
 
 Example of a common use case:
+一般的な使用例：
 
 -# Construct the corridor object and call #init() to allocate its path buffer.
 -# Obtain a path from a #dtNavMeshQuery object.
@@ -173,26 +179,47 @@ Example of a common use case:
 -# If the target is moving, use #moveTargetPosition() to update the end of the corridor.
    (The corridor will automatically adjust as needed.)
 -# Repeat the previous 3 steps to continue to move the agent.
+-＃コライダーオブジェクトを作成し、＃init（）を呼び出してそのパスバッファーを割り当てます。
+-＃#dtNavMeshQueryオブジェクトからパスを取得します。
+-＃#reset（）を使用して、エージェントの現在の位置を設定します。 （パスの最初）。
+-＃パスとターゲットをロードするには#setCorridor（）を使用します。
+-＃動きを計画するには#findCorners（）を使用します。 （これは動的パスの直線化を処理します。）
+-＃#movePosition（）を使用して、エージェントの動きをコライダーにフィードバックします。 （コライダーは必要に応じて自動的に調整されます。）
+-＃ターゲットが移動している場合は、＃moveTargetPosition（）を使用してコライダーの終点を更新します。 （コライダーは必要に応じて自動的に調整されます。）
+-＃前の3つの手順を繰り返して、エージェントの移動を続行します。
 
 The corridor position and target are always constrained to the navigation mesh.
+コライダーの位置とターゲットは常にナビゲーションメッシュに拘束されます。
 
 One of the difficulties in maintaining a path is that floating point errors, locomotion inaccuracies, and/or local
 steering can result in the agent crossing the boundary of the path corridor, temporarily invalidating the path.
 This class uses local mesh queries to detect and update the corridor as needed to handle these types of issues.
+パスを維持する上での困難の1つは、浮動小数点エラー、移動の不正確さ、および/またはローカルステアリングにより、エージェントがパスコライダーの境界を越え、一時的にパスが無効になる可能性があることです。
+このクラスは、ローカルメッシュクエリを使用して、これらのタイプの問題を処理するために必要に応じてコライダーを検出および更新します。
 
 The fact that local mesh queries are used to move the position and target locations results in two beahviors that
 need to be considered:
+ローカルメッシュクエリを使用して位置とターゲットの場所を移動するという事実により、2つの動作を考慮する必要があります。
 
 Every time a move function is used there is a chance that the path will become non-optimial. Basically, the further
 the target is moved from its original location, and the further the position is moved outside the original corridor,
 the more likely the path will become non-optimal. This issue can be addressed by periodically running the
 #optimizePathTopology() and #optimizePathVisibility() methods.
+移動機能を使用するたびに、パスが最適でなくなる可能性があります。
+基本的に、ターゲットが元の場所から遠くに移動し、位置が元のコライダーの外に移動すると、パスが最適でなくなる可能性が高くなります。
+この問題は、＃optimizePathTopology（）メソッドと#optimizePathVisibility（）メソッドを定期的に実行することで解決できます。
 
 All local mesh queries have distance limitations. (Review the #dtNavMeshQuery methods for details.) So the most accurate
 use case is to move the position and target in small increments. If a large increment is used, then the corridor
 may not be able to accurately find the new location.  Because of this limiation, if a position is moved in a large
 increment, then compare the desired and resulting polygon references. If the two do not match, then path replanning
 may be needed.  E.g. If you move the target, check #getLastPoly() to see if it is the expected polygon.
+すべてのローカルメッシュクエリには距離の制限があります。 （詳細については、＃dtNavMeshQueryメソッドを確認してください。）
+したがって、最も正確な使用例は、位置とターゲットを少しずつ移動することです。
+大きな増分を使用すると、コライダーで新しい場所を正確に見つけることができない場合があります。
+この制限のため、位置が大幅に移動する場合は、目的のポリゴン参照と結果のポリゴン参照を比較します。
+2つが一致しない場合は、パスの再計画が必要になることがあります。
+例えば。ターゲットを移動する場合は、＃getLastPoly（）をチェックして、目的のポリゴンであるかどうかを確認してください。
 
 */
 
@@ -292,20 +319,29 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 /**
 @par
 
-Inaccurate locomotion or dynamic obstacle avoidance can force the argent position significantly outside the
-original corridor. Over time this can result in the formation of a non-optimal corridor. Non-optimal paths can
+Inaccurate locomotion or dynamic obstacle avoidance can force the argent position significantly outside the original corridor.
+Over time this can result in the formation of a non-optimal corridor. Non-optimal paths can
 also form near the corners of tiles.
+不正確な移動または動的な障害物回避は、元のコライダーのかなり外側に緊急位置を強制する可能性があります。
+時間が経つと、最適ではないコライダーが形成される可能性があります。 最適ではないパスがタイルの角の近くに形成されることもあります。
 
 This function uses an efficient local visibility search to try to optimize the corridor
 between the current position and @p next.
+この関数は、効率的なローカル可視性検索を使用して、現在の位置と次の位置の間のコライダーを最適化しようとします。
 
 The corridor will change only if @p next is visible from the current position and moving directly toward the point
 is better than following the existing path.
+コライダーが変更されるのは、現在の位置から次が見え、直接ポイントに向かって移動するほうが、
+既存のパスをたどるよりも良い場合だけです。
 
 The more inaccurate the agent movement, the more beneficial this function becomes. Simply adjust the frequency
 of the call to match the needs to the agent.
+エージェントの動きが不正確であるほど、この機能はより有益になります。
+通話の頻度を調整して、エージェントのニーズに合わせるだけです。
 
 This function is not suitable for long distance searches.
+この関数は、長距離検索には適していません。
+
 */
 void dtPathCorridor::optimizePathVisibility(const float* next, const float pathOptimizationRange,
 	dtNavMeshQuery* navquery, const dtQueryFilter* filter)
@@ -313,18 +349,22 @@ void dtPathCorridor::optimizePathVisibility(const float* next, const float pathO
 	dtAssert(m_path);
 
 	// Clamp the ray to max distance.
+	// 光線を最大距離に固定します。
 	float goal[3];
 	dtVcopy(goal, next);
 	float dist = dtVdist2D(m_pos, goal);
 
 	// If too close to the goal, do not try to optimize.
+	// 目標に近すぎる場合は、最適化を試みないでください。
 	if (dist < 0.01f)
 		return;
 
 	// Overshoot a little. This helps to optimize open fields in tiled meshes.
+	// 少しオーバーシュート。 これは、タイルメッシュのオープンフィールドを最適化するのに役立ちます。
 	dist = dtMin(dist + 0.01f, pathOptimizationRange);
 
 	// Adjust ray length.
+	// レイの長さを調整します。
 	float delta[3];
 	dtVsub(delta, goal, m_pos);
 	dtVmad(goal, m_pos, delta, pathOptimizationRange / dist);
@@ -346,9 +386,15 @@ void dtPathCorridor::optimizePathVisibility(const float* next, const float pathO
 Inaccurate locomotion or dynamic obstacle avoidance can force the agent position significantly outside the
 original corridor. Over time this can result in the formation of a non-optimal corridor. This function will use a
 local area path search to try to re-optimize the corridor.
+不正確な移動または動的障害物回避は、エージェントの位置を元のコライダーのかなり外側に強制する可能性があります。
+時間が経つと、最適ではないコライダーが形成される可能性があります。
+この関数は、ローカルエリアパス検索を使用して、コライダーの再最適化を試みます。
 
 The more inaccurate the agent movement, the more beneficial this function becomes. Simply adjust the frequency of
 the call to match the needs to the agent.
+エージェントの動きが不正確であるほど、この機能はより有益になります。
+通話の頻度を調整して、エージェントのニーズに合わせるだけです。
+
 */
 bool dtPathCorridor::optimizePathTopology(dtNavMeshQuery* navquery, const dtQueryFilter* filter)
 {

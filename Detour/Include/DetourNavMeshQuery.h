@@ -257,46 +257,46 @@ public:
 		float* straightPath, unsigned char* straightPathFlags, dtPolyRef* straightPathRefs,
 		int* straightPathCount, const int maxStraightPath, const int options = 0) const;
 
-	// @nameスライスパス検索関数
-	// 一般的な使用例：
-	// - ＃initSlicedFindPath（）を呼び出して、スライスパスクエリを初期化します。
-	// - ＃完了するまでupdateSlicedFindPath（）を呼び出します。
-	// - ＃パスを取得するためにfinalizeSlicedFindPath（）を呼び出します。
-	// スライスパスクエリを初期化します。
-	// @param[in] startRef開始ポリゴンの参照ID。
-	// @param[in] endRef終了ポリゴンの参照ID。
-	// @param[in] startPos開始ポリゴン内の位置。[（x、y、z）]
-	// @param[in] endPos終了ポリゴン内の位置。[（x、y、z）]
-	// @param[in] filterクエリに適用するポリゴンフィルター。
-	// @param[in] optionsクエリオプション（#dtFindPathOptionsを参照）
-	// @returnsクエリのステータスフラグ。
-	//@}
-	// @name Sliced Pathfinding Functions
-	// Common use case:
-	//	-# Call initSlicedFindPath() to initialize the sliced path query.
-	//	-# Call updateSlicedFindPath() until it returns complete.
-	//	-# Call finalizeSlicedFindPath() to get the path.
 	//@{
-	// Intializes a sliced path query.
-	//  @param[in]		startRef	The refrence id of the start polygon.
-	//  @param[in]		endRef		The reference id of the end polygon.
-	//  @param[in]		startPos	A position within the start polygon. [(x, y, z)]
-	//  @param[in]		endPos		A position within the end polygon. [(x, y, z)]
-	//  @param[in]		filter		The polygon filter to apply to the query.
-	//  @param[in]		options		query options (see: #dtFindPathOptions)
+	// @name Sliced Pathfinding Functions
+	// スライスパス検索関数
+	// Common use case:
+	// 一般的な使用例：
+	//	-# Call initSlicedFindPath() to initialize the sliced path query.
+	//  initSlicedFindPath（）を呼び出して、スライスパスクエリを初期化します。
+	//	-# Call updateSlicedFindPath() until it returns complete.
+	//  完了するまでupdateSlicedFindPath（）を呼び出します。
+	//	-# Call finalizeSlicedFindPath() to get the path.
+	//  パスを取得するためにfinalizeSlicedFindPath（）を呼び出します。
+	// @brief Intializes a sliced path query.
+	// スライスパスクエリを初期化します。
+	//  @param[in] startRef	The refrence id of the start polygon.
+	//	開始ポリゴンの参照ID。
+	//  @param[in] endRef	The reference id of the end polygon.
+	//	終了ポリゴンの参照ID。
+	//  @param[in] startPos	A position within the start polygon. [(x, y, z)]
+	//	開始ポリゴン内の位置。
+	//  @param[in] endPos	A position within the end polygon. [(x, y, z)]
+	//	終了ポリゴン内の位置。
+	//  @param[in] filter	The polygon filter to apply to the query.
+	//	クエリに適用するポリゴンフィルター。
+	//  @param[in] options	query options (see: #dtFindPathOptions)
+	//	クエリオプション（#dtFindPathOptionsを参照）
 	// @returns The status flags for the query.
+	//	クエリのステータスフラグ。
+	//@}
 	dtStatus initSlicedFindPath(dtPolyRef startRef, dtPolyRef endRef,
 		const float* startPos, const float* endPos,
 		const dtQueryFilter* filter, const unsigned int options = 0);
 
-	// 進行中のスライスパスクエリを更新します。
-	// @param[in] maxIter実行する反復の最大数。
-	// @param[out] doneIters完了した実際の反復回数。[最適化]
-	// @returnsクエリのステータスフラグ。
 	// Updates an in-progress sliced path query.
-	//  @param[in]		maxIter		The maximum number of iterations to perform.
-	//  @param[out]	doneIters	The actual number of iterations completed. [opt]
-	// @returns The status flags for the query.
+	// 進行中のスライスパスクエリを更新します。
+	//  @param[in] maxIter		The maximum number of iterations to perform.
+	//  実行する反復の最大数。
+	//  @param[out] doneIters	The actual number of iterations completed. [opt]
+	//  完了した実際の反復回数。
+	// @returns	The status flags for the query.
+	// クエリのステータスフラグ。
 	dtStatus updateSlicedFindPath(const int maxIter, int* doneIters);
 
 	// スライスパスクエリの結果を確定して返します。
@@ -313,23 +313,20 @@ public:
 	// @returns The status flags for the query.
 	dtStatus finalizeSlicedFindPath(dtPolyRef* path, int* pathCount, const int maxPath);
 
+	// Finalizes and returns the results of an incomplete sliced path query, returning the path to the furthest polygon on the existing path that was visited during the search.
 	// 不完全なスライスパスクエリの結果を確定して返し、検索中にアクセスした既存のパス上の最も遠いポリゴンへのパスを返します。
-	// @param[in] existing既存のパスのポリゴン参照の配列。
-	// @param[in] existingSize @p既存の配列内のポリゴンの数。
-	// @param[out] pathパスを表すポリゴン参照の順序付きリスト。 （始めから終わりまで。）
-	// [（polyRef） * @p pathCount]
-	// @param[out] pathCount @pパス配列で返されるポリゴンの数。
-	// @param[in] maxPath @pパス配列が保持できるポリゴンの最大数。[制限： > = 1]
-	// @returnsクエリのステータスフラグ。
-	// Finalizes and returns the results of an incomplete sliced path query, returning the path to the furthest
-	// polygon on the existing path that was visited during the search.
-	//  @param[in]		existing		An array of polygon references for the existing path.
-	//  @param[in]		existingSize	The number of polygon in the @p existing array.
-	//  @param[out]	path			An ordered list of polygon references representing the path. (Start to end.)
-	//  								[(polyRef) * @p pathCount]
-	//  @param[out]	pathCount		The number of polygons returned in the @p path array.
-	//  @param[in]		maxPath			The max number of polygons the @p path array can hold. [Limit: >= 1]
+	//  @param[in] existing		An array of polygon references for the existing path.
+	//  既存のパスのポリゴン参照の配列。
+	//  @param[in] existingSize	The number of polygon in the existing array.
+	//  既存の配列内のポリゴンの数。
+	//  @param[out] path		An ordered list of polygon references representing the path. (Start to end.)[(polyRef) * pathCount]
+	//  パスを表すポリゴン参照の順序付きリスト。(始めから終わりまで)
+	//  @param[out] pathCount	The number of polygons returned in the path array.
+	//  パス配列で返されるポリゴンの数。
+	//  @param[in] maxPath		The max number of polygons the path array can hold. [Limit: >= 1]
+	//  パス配列が保持できるポリゴンの最大数。
 	// @returns The status flags for the query.
+	// クエリのステータスフラグ。
 	dtStatus finalizeSlicedFindPathPartial(const dtPolyRef* existing, const int existingSize,
 		dtPolyRef* path, int* pathCount, const int maxPath);
 
@@ -527,34 +524,30 @@ public:
 		const dtQueryFilter* filter,
 		float* resultPos, dtPolyRef* visited, int* visitedCount, const int maxVisitedSize) const;
 
-	// ナビゲーションメッシュの表面に沿って「歩行可能性」光線をキャストします
-	// 終了位置に向かう開始位置。
-	// @note raycast（...、RaycastHit *）のラッパー。下位互換性のために保持されます。
-	// @param [in] startRef開始ポリゴンの参照ID。
-	// @param [in] startPos開始ポリゴン内の位置を表す
-	// レイの開始。[（x、y、z）]
-	// @param [in] endPos光線を向ける位置。[（x、y、z）]
-	// @param [out] tヒットパラメータ。（壁に当たらない場合はFLT_MAX。）
-	// @param [out] hitNormal最も近い壁のヒットの法線。[（x、y、z）]
-	// @param [in] filterクエリに適用するポリゴンフィルター
-	// @param [out] path訪問したポリゴンの参照ID。[最適化]
-	// @param [out] pathCount訪問したポリゴンの数。[最適化]
-	// @param [in] maxPath @pパス配列が保持できるポリゴンの最大数
-	// @returnsクエリのステータスフラグ
-	// Casts a 'walkability' ray along the surface of the navigation mesh from
-	// the start position toward the end position.
-	// @note A wrapper around raycast(..., RaycastHit*). Retained for backward compatibility.
-	//  @param[in]		startRef	The reference id of the start polygon.
-	//  @param[in]		startPos	A position within the start polygon representing
-	//  							the start of the ray. [(x, y, z)]
-	//  @param[in]		endPos		The position to cast the ray toward. [(x, y, z)]
-	//  @param[out]	t			The hit parameter. (FLT_MAX if no wall hit.)
-	//  @param[out]	hitNormal	The normal of the nearest wall hit. [(x, y, z)]
-	//  @param[in]		filter		The polygon filter to apply to the query.
-	//  @param[out]	path		The reference ids of the visited polygons. [opt]
-	//  @param[out]	pathCount	The number of visited polygons. [opt]
-	//  @param[in]		maxPath		The maximum number of polygons the @p path array can hold.
-	// @returns The status flags for the query.
+	/// @brief Casts a 'walkability' ray along the surface of the navigation mesh from the start position toward the end position.
+	/// @briefナビゲーションメッシュの表面に沿って、開始位置から終了位置に向かって「歩行可能性」光線を投影します。
+	///  @note A wrapper around raycast(..., RaycastHit*). Retained for backward compatibility.
+	///  raycast（...、RaycastHit *）のラッパー。下位互換性のために保持されます。
+	///  @param[in]	startRef		The reference id of the start polygon.
+	///  開始ポリゴンの参照ID。
+	///  @param[in]	startPos		A position within the start polygon representing the start of the ray. [(x, y, z)]
+	///  光線の開始を表す開始ポリゴン内の位置。
+	///  @param[in]	endPos		The position to cast the ray toward. [(x, y, z)]
+	///  光線を向ける位置。
+	///  @param[out]	t	The hit parameter. (FLT_MAX if no wall hit.)
+	///  ヒットパラメータ。（壁に当たらない場合はFLT_MAX。）
+	///  @param[out]	hitNormal	The normal of the nearest wall hit. [(x, y, z)]
+	///  最も近い壁のヒットの法線。
+	///  @param[in]	filter	The polygon filter to apply to the query.
+	///  クエリに適用するポリゴンフィルター
+	///  @param[out]	path		The reference ids of the visited polygons. [opt]
+	///  訪問したポリゴンの参照ID。
+	///  @param[out]	pathCount	The number of visited polygons. [opt]
+	///  訪問したポリゴンの数。
+	///  @param[in]	maxPath	The maximum number of polygons the path array can hold.
+	///  パス配列が保持できるポリゴンの最大数
+	///  @returns The status flags for the query.
+	///  クエリのステータスフラグ
 	dtStatus raycast(dtPolyRef startRef, const float* startPos, const float* endPos,
 		const dtQueryFilter* filter,
 		float* t, float* hitNormal, dtPolyRef* path, int* pathCount, const int maxPath) const;

@@ -318,8 +318,6 @@ void Sample::handleCommonSettings()
 
 		for (auto& geom : m_geom->getEditableLoadGeomMesh())
 		{
-			geom.is_changed = false;
-
 			if (!geom.is_selected)	continue;
 
 			constexpr std::array<char*, 3> Contents{ "X", "Y", "Z" };
@@ -329,10 +327,7 @@ void Sample::handleCommonSettings()
 
 			for (size_t i = 0; i < Contents.size(); i++)
 			{
-				is_changed = imguiSlider((text + Contents[i]).c_str(), &geom.pos[i], -100.f, 100.f, 1.f);
-
-				if (is_changed)
-					geom.is_changed = true;
+				is_changed |= imguiSlider((text + Contents[i]).c_str(), &geom.pos[i], -100.f, 100.f, 1.f);
 			}
 
 			imguiSeparator();
@@ -340,10 +335,7 @@ void Sample::handleCommonSettings()
 
 			for (size_t i = 0; i < Contents.size(); i++)
 			{
-				is_changed = imguiSlider((text + Contents[i]).c_str(), &geom.scale[i], 0.1f, 10.f, 0.1f);
-
-				if (is_changed)
-					geom.is_changed = true;
+				is_changed |= imguiSlider((text + Contents[i]).c_str(), &geom.scale[i], 0.1f, 10.f, 0.1f);
 			}
 
 			imguiSeparator();
@@ -351,11 +343,10 @@ void Sample::handleCommonSettings()
 
 			for (size_t i = 0; i < Contents.size(); i++)
 			{
-				is_changed = imguiSlider((text + Contents[i]).c_str(), &geom.rotate[i], -180.f, 180.f, 1.f);
-
-				if (is_changed)
-					geom.is_changed = true;
+				is_changed |= imguiSlider((text + Contents[i]).c_str(), &geom.rotate[i], -180.f, 180.f, 1.f);
 			}
+
+			geom.is_changed = is_changed;
 		}
 	}
 

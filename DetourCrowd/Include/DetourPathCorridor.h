@@ -22,6 +22,7 @@
 #include "DetourNavMeshQuery.h"
 
 /// Represents a dynamic polygon corridor used to plan agent movement.
+/// エージェントの移動を計画するために使用される動的なポリゴンコリドーを表します。
 /// @ingroup crowd, detour
 class dtPathCorridor
 {
@@ -60,16 +61,24 @@ public:
 		dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
 	/// Attempts to optimize the path if the specified point is visible from the current position.
+	/// 指定されたポイントが現在の位置から見える場合、パスの最適化を試みます。
 	///  @param[in]		next					The point to search toward. [(x, y, z])
+	/// 検索するポイント。
 	///  @param[in]		pathOptimizationRange	The maximum range to search. [Limit: > 0]
+	/// 検索する最大範囲。
 	///  @param[in]		navquery				The query object used to build the corridor.
+	/// コリドーの構築に使用されるクエリオブジェクト。
 	///  @param[in]		filter					The filter to apply to the operation.
+	/// コリドーの構築に使用されるクエリオブジェクト。
 	void optimizePathVisibility(const float* next, const float pathOptimizationRange,
 		dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
 	/// Attempts to optimize the path using a local area search. (Partial replanning.)
+	/// ローカルエリア検索を使用してパスを最適化しようとします。 （部分的な再計画。）
 	///  @param[in]		navquery	The query object used to build the corridor.
+	///  コリドーの構築に使用されるクエリオブジェクト。
 	///  @param[in]		filter		The filter to apply to the operation.
+	///  操作に適用するフィルター。
 	bool optimizePathTopology(dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
 	bool moveOverOffmeshConnection(dtPolyRef offMeshConRef, dtPolyRef* refs,

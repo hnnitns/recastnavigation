@@ -318,20 +318,22 @@ public:
 
 	// Initializes the crowd.
 	// 群集を初期化します。
-	// @param[in]	maxAgents		The maximum number of agents the crowd can manage. [Limit: >= 1]
-	// @param[in]	maxAgents		群集が管理できるエージェントの最大数。 [制限：> = 1]
-	// @param[in]	maxAgentRadius	The maximum radius of any agent that will be added to the crowd. [Limit: > 0]
-	// @param[in]	maxAgentRadius	群集に追加されるエージェントの最大半径。 [制限：> 0]
-	// @param[in]	nav				The navigation mesh to use for planning.
-	// @param[in]	nav				計画に使用するナビゲーションメッシュ。
-	// @return True if the initialization succeeded.
-	// @return初期化が成功した場合はTrue。
+	//  @param[in] maxAgents	The maximum number of agents the crowd can manage. [Limit: >= 1]
+	//  群集が管理できるエージェントの最大数。
+	//  @param[in] maxAgentRadius	The maximum radius of any agent that will be added to the crowd. [Limit: > 0]
+	//  群集に追加されるエージェントの最大半径。
+	//  @param[in] nav		The navigation mesh to use for planning.
+	//  計画に使用するナビゲーションメッシュ。
+	// @return	True if the initialization succeeded.
+	// 初期化が成功した場合はTrue。
 	bool init(const int maxAgents, const float maxAgentRadius, dtNavMesh* nav);
 
 	// Sets the shared avoidance configuration for the specified index.
 	//指定されたインデックスの共有回避構成を設定します。
-	//  @param[in]		idx		The index. [Limits: 0 <= value < #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
-	//  @param[in]		params	The new configuration.
+	//  @param[in] idx	The index. [Limits: 0 <= value < #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
+	//  インデックス。
+	//  @param[in] params	The new configuration.
+	//  新しい設定。
 	void setObstacleAvoidanceParams(const int idx, const dtObstacleAvoidanceParams* params);
 
 	// Gets the shared avoidance configuration for the specified index.

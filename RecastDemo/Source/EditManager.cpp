@@ -320,6 +320,25 @@ bool EditManager::InputUpdate()
 						}
 						break;
 					}
+					// ナビメッシュ生成など
+					case SDLK_RETURN:
+					{
+						if (sample && !sample->getInputGeom()->isLoadGeomMeshEmpty())
+						{
+							ctx.resetLog();
+
+							// ナビメッシュの生成
+							if (!sample->handleBuild())
+							{
+								showLog = true;
+								logScroll = 0;
+							}
+
+							ctx.dumpLog("Build log %s:", meshName.c_str());
+						}
+
+						break;
+					}
 					// メッシュの削除
 					case SDLK_DELETE:	delete_mesh = true;
 				}

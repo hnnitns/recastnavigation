@@ -268,12 +268,19 @@ void dtPathCorridor::reset(dtPolyRef ref, const float* pos)
 
 This is the function used to plan local movement within the corridor. One or more corners can be
 detected in order to plan movement. It performs essentially the same function as #dtNavMeshQuery::findStraightPath.
+これは、廊下内の局所的な動きを計画するために使用される関数です。
+移動を計画するために、1つ以上のコーナーを検出できます。
 
 Due to internal optimizations, the maximum number of corners returned will be (@p maxCorners - 1)
 For example: If the buffers are sized to hold 10 corners, the function will never return more than 9 corners.
 So if 10 corners are needed, the buffers should be sized for 11 corners.
+内部の最適化により、返されるコーナーの最大数は（maxCorners-1）になります。例：バッファーのサイズが10コーナーを保持するように設定されている場合、関数は9コーナー以上を返しません。
+基本的には#dtNavMeshQuery :: findStraightPathと同じ機能を実行します。
+したがって、10コーナーが必要な場合は、バッファのサイズを11コーナーにする必要があります。
 
 If the target is within range, it will be the last corner and have a polygon reference id of zero.
+ターゲットが範囲内にある場合、それは最後のコーナーになり、ポリゴン参照IDはゼロになります。
+
 */
 int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 	dtPolyRef* cornerPolys, const int maxCorners,
@@ -289,6 +296,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		cornerVerts, cornerFlags, cornerPolys, &ncorners, maxCorners);
 
 	// Prune points in the beginning of the path which are too close.
+	// パスの始点で近すぎるポイントを削除します。
 	while (ncorners)
 	{
 		if ((cornerFlags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ||
@@ -304,6 +312,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 	}
 
 	// Prune points after an off-mesh connection.
+	// オフメッシュ接続後にポイントをプルーニングします。
 	for (int i = 0; i < ncorners; ++i)
 	{
 		if (cornerFlags[i] & DT_STRAIGHTPATH_OFFMESH_CONNECTION)

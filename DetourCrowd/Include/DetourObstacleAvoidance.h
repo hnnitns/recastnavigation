@@ -75,8 +75,8 @@ private:
 dtObstacleAvoidanceDebugData* dtAllocObstacleAvoidanceDebugData();
 void dtFreeObstacleAvoidanceDebugData(dtObstacleAvoidanceDebugData* ptr);
 
-static const int DT_MAX_PATTERN_DIVS = 32;	///< Max numver of adaptive divs.
-static const int DT_MAX_PATTERN_RINGS = 4;	///< Max number of adaptive rings.
+constexpr int DT_MAX_PATTERN_DIVS = 32;	///< Max numver of adaptive divs.
+constexpr int DT_MAX_PATTERN_RINGS = 4;	///< Max number of adaptive rings.
 
 struct dtObstacleAvoidanceParams
 {

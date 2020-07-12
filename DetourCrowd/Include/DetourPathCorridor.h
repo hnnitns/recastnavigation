@@ -48,14 +48,22 @@ public:
 	void reset(dtPolyRef ref, const float* pos);
 
 	/// Finds the corners in the corridor from the position toward the target. (The straightened path.)
-	///  @param[out]	cornerVerts		The corner vertices. [(x, y, z) * cornerCount] [Size: <= maxCorners]
-	///  @param[out]	cornerFlags		The flag for each corner. [(flag) * cornerCount] [Size: <= maxCorners]
-	///  @param[out]	cornerPolys		The polygon reference for each corner. [(polyRef) * cornerCount]
-	///  								[Size: <= @p maxCorners]
-	///  @param[in]		maxCorners		The maximum number of corners the buffers can hold.
-	///  @param[in]		navquery		The query object used to build the corridor.
-	///  @param[in]		filter			The filter to apply to the operation.
-	/// @return The number of corners returned in the corner buffers. [0 <= value <= @p maxCorners]
+	/// 位置からターゲットに向かって廊下のコーナーを検索します。 （まっすぐになった経路。）
+	///  @param[out]	cornerVerts	The corner vertices. [(x, y, z) * cornerCount] [Size: <= maxCorners]
+	///  コーナー頂点。
+	///  @param[out]	cornerFlags	The flag for each corner. [(flag) * cornerCount] [Size: <= maxCorners]
+	///  各コーナーのフラグ。
+	///  @param[out]	cornerPolys	The polygon reference for each corner. [(polyRef) * cornerCount]
+	///  								[Size: <= maxCorners]
+	///  各コーナーのポリゴン参照。
+	///  @param[in] maxCorners	The maximum number of corners the buffers can hold.
+	///  バッファが保持できるコーナーの最大数。
+	///  @param[in] navquery	The query object used to build the corridor.
+	///  コリドーの構築に使用されるクエリオブジェクト。
+	///  @param[in] filter		The filter to apply to the operation.
+	///  操作に適用するフィルター。
+	/// @return	The number of corners returned in the corner buffers. [0 <= value <= maxCorners]
+	/// コーナーバッファーに返されるコーナーの数。
 	int findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		dtPolyRef* cornerPolys, const int maxCorners,
 		dtNavMeshQuery* navquery, const dtQueryFilter* filter);

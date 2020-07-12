@@ -325,17 +325,21 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 	dtObstacleAvoidanceDebugData* debug)
 {
 	// penalty for straying away from the desired and current velocities
+	// 希望の速度と現在の速度から逸脱した場合のペナルティ
 	const float vpen = m_params.weightDesVel * (dtVdist2D(vcand, dvel) * m_invVmax);
 	const float vcpen = m_params.weightCurVel * (dtVdist2D(vcand, vel) * m_invVmax);
 
 	// find the threshold hit time to bail out based on the early out penalty
 	// (see how the penalty is calculated below to understnad)
+	// アーリーアウトペナルティに基づいて、救済するしきい値ヒット時間を見つける
+	//（以下のペナルティの計算方法を参照してください）
 	float minPen = minPenalty - vpen - vcpen;
 	float tThresold = (m_params.weightToi / minPen - 0.1f) * m_params.horizTime;
 	if (tThresold - m_params.horizTime > -FLT_EPSILON)
-		return minPenalty; // already too much
+		return minPenalty; // already too much // すでに多すぎる
 
 	// Find min time of impact and exit amongst all obstacles.
+	// 影響の最小時間を見つけ、すべての障害物から脱出します。
 	float tmin = m_params.horizTime;
 	float side = 0;
 	int nside = 0;
@@ -344,7 +348,8 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 	{
 		const dtObstacleCircle* cir = &m_circles[i];
 
-		// RVO
+		// https://hasht.hatenablog.com/entry/2018/04/19/193301
+		// RVO（Reciprocal Velocity Obstacles）
 		float vab[3];
 		dtVscale(vab, vcand, 2);
 		dtVsub(vab, vab, vel);
@@ -359,15 +364,18 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 			continue;
 
 		// Handle overlapping obstacles.
+		// 重なり合う障害物を処理します。
 		if (htmin < 0.0f && htmax > 0.0f)
 		{
 			// Avoid more when overlapped.
+			// 重複しているときはそれ以上は避けます。
 			htmin = -htmin * 0.5f;
 		}
 
 		if (htmin >= 0.0f)
 		{
 			// The closest obstacle is somewhere ahead of us, keep track of nearest obstacle.
+			// 最も近い障害物は私たちの前のどこかにあります。最も近い障害物を追跡します。
 			if (htmin < tmin)
 			{
 				tmin = htmin;
@@ -385,14 +393,17 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 		if (seg->touch)
 		{
 			// Special case when the agent is very close to the segment.
+			// エージェントがセグメントに非常に近い特殊なケース。
 			float sdir[3], snorm[3];
 			dtVsub(sdir, seg->q, seg->p);
 			snorm[0] = -sdir[2];
 			snorm[2] = sdir[0];
 			// If the velocity is pointing towards the segment, no collision.
+			// 速度がセグメントに向かっている場合、衝突はありません。
 			if (dtVdot2D(snorm, vcand) < 0.0f)
 				continue;
 			// Else immediate collision.
+			// その他の即時衝突。
 			htmin = 0.0f;
 		}
 		else
@@ -402,9 +413,11 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 		}
 
 		// Avoid less when facing walls.
+		// 壁に面しているときは避けてください。
 		htmin *= 2.0f;
 
 		// The closest obstacle is somewhere ahead of us, keep track of nearest obstacle.
+		// 最も近い障害物は私たちの前のどこかにあります。最も近い障害物を追跡します。
 		if (htmin < tmin)
 		{
 			tmin = htmin;
@@ -414,6 +427,7 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 	}
 
 	// Normalize side bias, to prevent it dominating too much.
+	// サイドバイアスを正規化し、過度に支配しないようにします。
 	if (nside)
 		side /= nside;
 
@@ -423,6 +437,7 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 	const float penalty = vpen + vcpen + spen + tpen;
 
 	// Store different penalties for debug viewing
+	// デバッグ表示用にさまざまなペナルティを保存します
 	if (debug)
 		debug->addSample(vcand, cs, penalty, vpen, vcpen, spen, tpen);
 
@@ -517,6 +532,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 		debug->reset();
 
 	// Build sampling pattern aligned to desired velocity.
+	// 希望の速度に合わせてサンプリングパターンを作成します。
 	float pat[(DT_MAX_PATTERN_DIVS * DT_MAX_PATTERN_RINGS + 1) * 2];
 	int npat = 0;
 
@@ -531,12 +547,14 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 	const float sa = sinf(da);
 
 	// desired direction
+	// 希望する方向
 	float ddir[6];
 	dtVcopy(ddir, dvel);
 	dtNormalize2D(ddir);
-	dtRorate2D(ddir + 3, ddir, da * 0.5f); // rotated by da/2
+	dtRorate2D(ddir + 3, ddir, da * 0.5f); // rotated by da/2 // da / 2だけ回転
 
 	// Always add sample at zero
+	// 常にゼロにサンプルを追加します
 	pat[npat * 2 + 0] = 0;
 	pat[npat * 2 + 1] = 0;
 	npat++;
@@ -553,9 +571,11 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 		for (int i = 1; i < nd - 1; i += 2)
 		{
 			// get next point on the "right" (rotate CW)
+			//「右」の次のポイントを取得（CW回転）
 			pat[npat * 2 + 0] = last1[0] * ca + last1[1] * sa;
 			pat[npat * 2 + 1] = -last1[0] * sa + last1[1] * ca;
 			// get next point on the "left" (rotate CCW)
+			//「左」の次のポイントを取得（CCW回転）
 			pat[npat * 2 + 2] = last2[0] * ca - last2[1] * sa;
 			pat[npat * 2 + 3] = last2[0] * sa + last2[1] * ca;
 
@@ -573,6 +593,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 	}
 
 	// Start sampling.
+	// サンプリングを開始します。
 	float cr = vmax * (1.f - m_params.velBias);
 	float res[3];
 	dtVset(res, dvel[0] * m_params.velBias, 0, dvel[2] * m_params.velBias);

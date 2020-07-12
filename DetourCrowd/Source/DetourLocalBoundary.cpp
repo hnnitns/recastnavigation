@@ -44,23 +44,28 @@ void dtLocalBoundary::reset()
 void dtLocalBoundary::addSegment(const float dist, const float* s)
 {
 	// Insert neighbour based on the distance.
-	Segment* seg = 0;
+	// 距離に基づいて付近のエージェントを挿入します
+	Segment* seg{};
 	if (!m_nsegs)
 	{
 		// First, trivial accept.
+		// まず、ささいな承諾。
 		seg = &m_segs[0];
 	}
 	else if (dist >= m_segs[m_nsegs - 1].d)
 	{
 		// Further than the last segment, skip.
+		// 最後のセグメントよりもさらに進んで、スキップします。
 		if (m_nsegs >= MAX_LOCAL_SEGS)
 			return;
 		// Last, trivial accept.
+		// 最後に、ささいな受け入れ。
 		seg = &m_segs[m_nsegs];
 	}
 	else
 	{
 		// Insert inbetween.
+		// 間に挿入します。
 		int i;
 		for (i = 0; i < m_nsegs; ++i)
 			if (dist <= m_segs[i].d)
@@ -96,10 +101,12 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 	dtVcopy(m_center, pos);
 
 	// First query non-overlapping polygons.
+	// 最初に重複しないポリゴンをクエリします。
 	navquery->findLocalNeighbourhood(ref, pos, collisionQueryRange,
 		filter, m_polys, 0, &m_npolys, MAX_LOCAL_POLYS);
 
 	// Secondly, store all polygon edges.
+	// 次に、すべてのポリゴンエッジを保存します。
 	m_nsegs = 0;
 	float segs[MAX_SEGS_PER_POLY * 6];
 	int nsegs = 0;
@@ -110,6 +117,7 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 		{
 			const float* s = &segs[k * 6];
 			// Skip too distant segments.
+			// 遠すぎるセグメントをスキップします。
 			float tseg;
 			const float distSqr = dtDistancePtSegSqr2D(pos, s, s + 3, tseg);
 			if (distSqr > dtSqr(collisionQueryRange))

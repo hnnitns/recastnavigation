@@ -473,28 +473,26 @@ public:
 	dtStatus queryPolygons(const float* center, const float* extents,
 		const dtQueryFilter* filter, dtPolyQuery* query) const;
 
-	// 中心位置の近傍で重複しないナビゲーションポリゴンを検​​索します。
-	// @param [in] startRef 検索を開始するポリゴンの参照ID。
-	// @param [in] centerPos クエリサークルの中心。[（x、y、z）]
-	// @param [in] radius クエリ円の半径。
-	// @param [in] filter クエリに適用するポリゴンフィルター。
-	// @param [out] resultRef 円が接触するポリゴンの参照ID。
-	// @param [out] resultParent 各結果の親ポリゴンの参照ID。
-	// 結果のポリゴンに親がない場合はゼロ。[最適化]
-	// @param [out] resultCount 見つかったポリゴンの数。
-	// @param [in] maxResult 結果の配列が保持できるポリゴンの最大数。
-	// @returnsクエリのステータスフラグ。
 	// Finds the non-overlapping navigation polygons in the local neighbourhood around the center position.
-	//  @param[in]		startRef		The reference id of the polygon where the search starts.
-	//  @param[in]		centerPos		The center of the query circle. [(x, y, z)]
-	//  @param[in]		radius			The radius of the query circle.
-	//  @param[in]		filter			The polygon filter to apply to the query.
-	//  @param[out]	resultRef		The reference ids of the polygons touched by the circle.
-	//  @param[out]	resultParent	The reference ids of the parent polygons for each result.
-	//  								Zero if a result polygon has no parent. [opt]
-	//  @param[out]	resultCount		The number of polygons found.
-	//  @param[in]		maxResult		The maximum number of polygons the result arrays can hold.
-	// @returns The status flags for the query.
+	// 中心位置の近傍で重複しないナビゲーションポリゴンを検​​索します。
+	//  @param[in] startRef		The reference id of the polygon where the search starts.
+	//  検索を開始するポリゴンの参照ID。
+	//  @param[in] centerPos	The center of the query circle. [(x, y, z)]
+	//  クエリサークルの中心。
+	//  @param[in] radius		The radius of the query circle.
+	//  クエリ円の半径。
+	//  @param[in] filter		The polygon filter to apply to the query.
+	//  クエリに適用するポリゴンフィルター。
+	//  @param[out] resultRef		The reference ids of the polygons touched by the circle.
+	//  円が接触するポリゴンの参照ID。
+	//  @param[out] resultParent	The reference ids of the parent polygons for each result. Zero if a result polygon has no parent. [opt]
+	//  各結果の親ポリゴンの参照ID。結果のポリゴンに親がない場合はゼロ。
+	//  @param[out] resultCount	The number of polygons found.
+	//  見つかったポリゴンの数。
+	//  @param[in] maxResult	The maximum number of polygons the result arrays can hold.
+	//  結果の配列が保持できるポリゴンの最大数。
+	// @returns	The status flags for the query.
+	// クエリのステータスフラグ。
 	dtStatus findLocalNeighbourhood(dtPolyRef startRef, const float* centerPos, const float radius,
 		const dtQueryFilter* filter,
 		dtPolyRef* resultRef, dtPolyRef* resultParent,

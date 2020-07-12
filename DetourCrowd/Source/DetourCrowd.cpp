@@ -1110,7 +1110,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Get nearby navmesh segments and agents to collide with.
-	// 衝突する近くのnavmeshセグメントとエージェントを取得します。
+	// 衝突する近くのナビメッシュセグメントとエージェントを取得します。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];
@@ -1148,6 +1148,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			continue;
 
 		// Find corners for steering
+		// ステアリングのコーナーを見つける
 		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
 			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.queryFilterType]);
 
@@ -1322,7 +1323,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			m_obstacleQuery->reset();
 
 			// Add neighbours as obstacles.
-			// 隣人を障害物として追加します。
+			// 付近のエージェントを障害物として追加します。
 			for (int j = 0; j < ag->nneis; ++j)
 			{
 				const dtCrowdAgent* nei = &m_agents[ag->neis[j].idx];

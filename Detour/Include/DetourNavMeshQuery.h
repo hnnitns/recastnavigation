@@ -598,24 +598,23 @@ public:
 		const dtQueryFilter* filter,
 		float* hitDist, float* hitPos, float* hitNormal) const;
 
-	// オプションでポータルを含む、指定されたポリゴンのセグメントを返します。
-	// @param [in] refポリゴンの参照ID。
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [out] segmentVertsセグメント。[（ax、ay、az、bx、by、bz）* segmentCount]
-	// @param [out] segmentRefs各セグメントの隣接ポリゴンの参照ID。
-	// または、セグメントが壁の場合はゼロ。[opt] [（parentRef）* @p segmentCount]
-	// @param [out] segmentCount返されるセグメントの数。
-	// @param [in] maxSegments結果の配列が保持できるセグメントの最大数。
-	// @returnsクエリのステータスフラグ。
 	// Returns the segments for the specified polygon, optionally including portals.
-	//  @param[in]		ref				The reference id of the polygon.
-	//  @param[in]		filter			The polygon filter to apply to the query.
-	//  @param[out]	segmentVerts	The segments. [(ax, ay, az, bx, by, bz) * segmentCount]
-	//  @param[out]	segmentRefs		The reference ids of each segment's neighbor polygon.
-	//  								Or zero if the segment is a wall. [opt] [(parentRef) * @p segmentCount]
-	//  @param[out]	segmentCount	The number of segments returned.
-	//  @param[in]		maxSegments		The maximum number of segments the result arrays can hold.
-	// @returns The status flags for the query.
+	// オプションでポータルを含む、指定されたポリゴンのセグメントを返します。
+	//  @param[in] ref	The reference id of the polygon.
+	//  ポリゴンの参照ID。
+	//  @param[in] filter	The polygon filter to apply to the query.
+	//  クエリに適用するポリゴンフィルター。
+	//  @param[out] segmentVerts	The segments. [(ax, ay, az, bx, by, bz) * segmentCount]
+	//  セグメント。
+	//  @param[out] segmentRefs	The reference ids of each segment's neighbor polygon.
+	//  Or zero if the segment is a wall. [opt] [(parentRef) * segmentCount]
+	//  各セグメントの隣接ポリゴンの参照ID。または、セグメントが壁の場合はゼロ。
+	//  @param[out] segmentCount	The number of segments returned.
+	//  返されるセグメントの数。
+	//  @param[in] maxSegments	The maximum number of segments the result arrays can hold.
+	//  結果の配列が保持できるセグメントの最大数。
+	// @returns	The status flags for the query.
+	// クエリのステータスフラグ。
 	dtStatus getPolyWallSegments(dtPolyRef ref, const dtQueryFilter* filter,
 		float* segmentVerts, dtPolyRef* segmentRefs, int* segmentCount,
 		const int maxSegments) const;

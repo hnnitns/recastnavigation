@@ -19,6 +19,8 @@
 #ifndef DETOUROBSTACLEAVOIDANCE_H
 #define DETOUROBSTACLEAVOIDANCE_H
 
+#include <vector>
+
 struct dtObstacleCircle
 {
 	float p[3];				///< Position of the obstacle
@@ -58,18 +60,18 @@ public:
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
-	dtObstacleAvoidanceDebugData(const dtObstacleAvoidanceDebugData&);
-	dtObstacleAvoidanceDebugData& operator=(const dtObstacleAvoidanceDebugData&);
+	dtObstacleAvoidanceDebugData(const dtObstacleAvoidanceDebugData&) = delete;
+	dtObstacleAvoidanceDebugData& operator=(const dtObstacleAvoidanceDebugData&) = delete;
 
 	int m_nsamples;
 	int m_maxSamples;
-	float* m_vel;
-	float* m_ssize;
-	float* m_pen;
-	float* m_vpen;
-	float* m_vcpen;
-	float* m_spen;
-	float* m_tpen;
+	std::vector<float> m_vel;
+	std::vector<float> m_ssize;
+	std::vector<float> m_pen; // 合計ペナルティー
+	std::vector<float> m_vpen; // 望まれる速度ペナルティー
+	std::vector<float> m_vcpen; // 現在の速度ペナルティー
+	std::vector<float> m_spen; // 優先サイドペナルティ（はみ出た分のペナルティー？）
+	std::vector<float> m_tpen; // 衝突時間ペナルティ
 };
 
 dtObstacleAvoidanceDebugData* dtAllocObstacleAvoidanceDebugData();
@@ -130,6 +132,14 @@ private:
 
 	void prepare(const float* pos, const float* dvel);
 
+	// Calculate the collision penalty for a given velocity vector
+	// 与えられた速度ベクトルの衝突ペナルティを計算します
+	//  @param vcand sampled velocity
+	//  サンプリングされた速度
+	//  @param dvel desired velocity
+	//  望ましい速度
+	//  @param minPenalty threshold penalty for early out
+	//  アーリーアウトのペナルティのしきい値
 	float processSample(const float* vcand, const float cs,
 		const float* pos, const float rad,
 		const float* vel, const float* dvel,

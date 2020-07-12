@@ -19,24 +19,25 @@
 #ifndef DETOURLOCALBOUNDARY_H
 #define DETOURLOCALBOUNDARY_H
 
+#include <array>
 #include "DetourNavMeshQuery.h"
 
 class dtLocalBoundary
 {
-	static const int MAX_LOCAL_SEGS = 8;
-	static const int MAX_LOCAL_POLYS = 16;
+	static constexpr int MAX_LOCAL_SEGS = 8;
+	static constexpr int MAX_LOCAL_POLYS = 16;
 
 	struct Segment
 	{
-		float s[6];	///< Segment start/end
+		std::array<float, 6> s;	///< Segment start/end
 		float d;	///< Distance for pruning.
 	};
 
-	float m_center[3];
-	Segment m_segs[MAX_LOCAL_SEGS];
+	std::array<float, 3> m_center;
+	std::array<Segment, MAX_LOCAL_SEGS> m_segs;
 	int m_nsegs;
 
-	dtPolyRef m_polys[MAX_LOCAL_POLYS];
+	std::array<dtPolyRef, MAX_LOCAL_POLYS> m_polys;
 	int m_npolys;
 
 	void addSegment(const float dist, const float* s);
@@ -52,9 +53,9 @@ public:
 
 	bool isValid(dtNavMeshQuery* navquery, const dtQueryFilter* filter);
 
-	inline const float* getCenter() const { return m_center; }
-	inline int getSegmentCount() const { return m_nsegs; }
-	inline const float* getSegment(int i) const { return m_segs[i].s; }
+	const float* getCenter() const { return m_center.data(); }
+	int getSegmentCount() const { return m_nsegs; }
+	const float* getSegment(int i) const { return m_segs[i].s.data(); }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

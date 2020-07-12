@@ -255,7 +255,7 @@ void CrowdToolState::handleRender()
 
 	dd.depthMask(false);
 
-	// Draw paths
+	// 経路の描画
 	if (m_toolParams.m_showPath)
 	{
 		for (int i = 0; i < crowd->getAgentCount(); i++)
@@ -405,8 +405,9 @@ void CrowdToolState::handleRender()
 
 		if (m_toolParams.m_showCollisionSegments)
 		{
-			const float* center = ag->boundary.getCenter();
-			//duDebugDrawCross(&dd, center[0], center[1] + radius, center[2], 0.2f, duRGBA(192, 0, 128, 255), 2.0f);
+			const float* const center{ ag->boundary.getCenter() };
+
+			duDebugDrawCross(&dd, center[0], center[1] + radius, center[2], 0.2f, duRGBA(192, 0, 128, 255), 2.0f);
 			duDebugDrawCircle(&dd, center[0], center[1] + radius, center[2], ag->params.collisionQueryRange,
 				duRGBA(192, 0, 128, 128), 2.0f);
 
@@ -414,11 +415,23 @@ void CrowdToolState::handleRender()
 			for (int j = 0; j < ag->boundary.getSegmentCount(); ++j)
 			{
 				const float* s = ag->boundary.getSegment(j);
-				unsigned int col = duRGBA(192, 0, 128, 192);
+				UINT32 col = duRGBA(192, 0, 128, 192);
+
+				// 「自機の座標・セグメントの始点・終点」で三角形を形状できないなら、色を暗くする
 				if (dtTriArea2D(pos, s, s + 3) < 0.0f)
 					col = duDarkenCol(col);
 
 				duAppendArrow(&dd, s[0], s[1] + 0.2f, s[2], s[3], s[4] + 0.2f, s[5], 0.0f, 0.3f, col);
+			}
+			dd.end();
+
+			dd.begin(DU_DRAW_POINTS, 7.5f);
+			for (int j = 0; j < ag->boundary.getSegmentCount(); ++j)
+			{
+				const float* s = ag->boundary.getSegment(j);
+				constexpr UINT32 col = duRGBA(255, 255, 255, 255);
+
+				dd.vertex(s, col);
 			}
 			dd.end();
 		}
@@ -502,6 +515,7 @@ void CrowdToolState::handleRender()
 				continue;
 
 			// Draw detail about agent sela
+			// エージェントセラに関する詳細を描画します
 			const dtObstacleAvoidanceDebugData* vod = m_agentDebug.vod;
 
 			const float dx = ag->npos[0];
@@ -513,12 +527,16 @@ void CrowdToolState::handleRender()
 			dd.begin(DU_DRAW_QUADS);
 			for (int j = 0; j < vod->getSampleCount(); ++j)
 			{
-				const float* p = vod->getSampleVelocity(j);
+				const float* const p = vod->getSampleVelocity(j);
 				const float sr = vod->getSampleSize(j);
-				const float pen = vod->getSamplePenalty(j);
-				const float pen2 = vod->getSamplePreferredSidePenalty(j);
-				unsigned int col = duLerpCol(duRGBA(255, 255, 255, 220), duRGBA(128, 96, 0, 220), (int)(pen * 255));
-				col = duLerpCol(col, duRGBA(128, 0, 0, 220), (int)(pen2 * 128));
+				const float pen = vod->getSamplePenalty(j); // 合計のペナルティー
+				//const float pen = vod->getSampleDesiredVelocityPenalty(j);
+				//const float pen2 = vod->getSamplePreferredSidePenalty(j); // はみ出た分のペナルティー
+				UINT32 col{ duRGBA(255, 255, 255, 220) };
+
+				col = duLerpCol(duRGBA(255, 255, 255, 220)/*白*/, duRGBA(128, 96, 0, 220)/*茶色*/, (int)(pen * 255));
+				//col = duLerpCol(col, duRGBA(128, 0, 0, 220)/*濃赤*/, (int)(pen2 * 128));
+
 				dd.vertex(dx + p[0] - sr, dy, dz + p[2] - sr, col);
 				dd.vertex(dx + p[0] - sr, dy, dz + p[2] + sr, col);
 				dd.vertex(dx + p[0] + sr, dy, dz + p[2] + sr, col);

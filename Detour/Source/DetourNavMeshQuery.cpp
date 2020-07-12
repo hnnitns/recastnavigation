@@ -3393,7 +3393,6 @@ dtStatus dtNavMeshQuery::getPathFromDijkstraSearch(dtPolyRef endRef, dtPolyRef* 
 //
 // If the result arrays are is too small to hold the entire result set, they will be filled to capacity.
 // 結果の配列が小さすぎて結果セット全体を保持できない場合、容量がいっぱいになります。
-//
 dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float* centerPos, const float radius,
 	const dtQueryFilter* filter,
 	dtPolyRef* resultRef, dtPolyRef* resultParent,
@@ -3613,7 +3612,7 @@ static void insertInterval(dtSegInterval* ints, int& nints, const int maxInts,
 
 // @par
 //
-// If the @p segmentRefs parameter is provided, then all polygon segments will be returned.
+// If the segmentRefs parameter is provided, then all polygon segments will be returned.
 // Otherwise only the wall segments are returned.
 // segmentRefsパラメーターが指定されている場合、すべてのポリゴンセグメントが返されます。
 // それ以外の場合、壁セグメントのみが返されます。
@@ -3622,7 +3621,7 @@ static void insertInterval(dtSegInterval* ints, int& nints, const int maxInts,
 // wall if the @p filter results in the neighbor polygon becoomming impassable.
 // 通常はポータルであるセグメントは、フィルターが近隣ポリゴンを通過できない場合、結果セットに壁として含まれます。
 //
-// The @p segmentVerts and @p segmentRefs buffers should normally be sized for the
+// The segmentVerts and segmentRefs buffers should normally be sized for the
 // maximum segments per polygon of the source navigation mesh.
 // 通常、segmentVertsおよびsegmentRefsバッファーは、
 // ソースナビゲーションメッシュのポリゴンごとの最大セグメントに合わせてサイズを調整する必要があります。
@@ -3652,10 +3651,12 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 	for (int i = 0, j = (int)poly->vertCount - 1; i < (int)poly->vertCount; j = i++)
 	{
 		// Skip non-solid edges.
+		// ベタでないエッジをスキップします。
 		nints = 0;
 		if (poly->neis[j] & DT_EXT_LINK)
 		{
 			// Tile border.
+			// 境界
 			for (unsigned int k = poly->firstLink; k != DT_NULL_LINK; k = tile->links[k].next)
 			{
 				const dtLink* link = &tile->links[k];
@@ -3677,6 +3678,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 		else
 		{
 			// Internal edge
+			// 内部エッジ
 			dtPolyRef neiRef = 0;
 			if (poly->neis[j])
 			{
@@ -3687,6 +3689,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 			}
 
 			// If the edge leads to another polygon and portals are not stored, skip.
+			// エッジが別のポリゴンにつながり、ポータルが保存されていない場合は、スキップします。
 			if (neiRef != 0 && !storePortals)
 				continue;
 
@@ -3710,15 +3713,18 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 		}
 
 		// Add sentinels
+		// センチネルを追加
 		insertInterval(ints, nints, MAX_INTERVAL, -1, 0, 0);
 		insertInterval(ints, nints, MAX_INTERVAL, 255, 256, 0);
 
 		// Store segments.
+		// セグメントを保存します。
 		const float* vj = &tile->verts[poly->verts[j] * 3];
 		const float* vi = &tile->verts[poly->verts[i] * 3];
 		for (int k = 1; k < nints; ++k)
 		{
 			// Portal segment.
+			// ポータルセグメント。
 			if (storePortals && ints[k].ref)
 			{
 				const float tmin = ints[k].tmin / 255.0f;
@@ -3739,6 +3745,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 			}
 
 			// Wall segment.
+			// 壁セグメント。
 			const int imin = ints[k - 1].tmax;
 			const int imax = ints[k].tmin;
 			if (imin != imax)

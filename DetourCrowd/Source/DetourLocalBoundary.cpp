@@ -18,6 +18,7 @@
 
 #include <cfloat>
 #include <cstring>
+#include <limits>
 #include "DetourLocalBoundary.h"
 #include "DetourNavMeshQuery.h"
 #include "DetourCommon.h"
@@ -27,7 +28,7 @@ dtLocalBoundary::dtLocalBoundary() :
 	m_nsegs(0),
 	m_npolys(0)
 {
-	dtVset(m_center, FLT_MAX, FLT_MAX, FLT_MAX);
+	m_center.fill((std::numeric_limits<float>::max)());
 }
 
 dtLocalBoundary::~dtLocalBoundary()
@@ -36,7 +37,7 @@ dtLocalBoundary::~dtLocalBoundary()
 
 void dtLocalBoundary::reset()
 {
-	dtVset(m_center, FLT_MAX, FLT_MAX, FLT_MAX);
+	m_center.fill((std::numeric_limits<float>::max)());
 	m_npolys = 0;
 	m_nsegs = 0;
 }
@@ -79,7 +80,8 @@ void dtLocalBoundary::addSegment(const float dist, const float* s)
 	}
 
 	seg->d = dist;
-	memcpy(seg->s, s, sizeof(float) * 6);
+
+	memcpy(seg->s.data(), s, sizeof(float) * 6);
 
 	if (m_nsegs < MAX_LOCAL_SEGS)
 		m_nsegs++;
@@ -88,22 +90,22 @@ void dtLocalBoundary::addSegment(const float dist, const float* s)
 void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collisionQueryRange,
 	dtNavMeshQuery* navquery, const dtQueryFilter* filter)
 {
-	static const int MAX_SEGS_PER_POLY = DT_VERTS_PER_POLYGON * 3;
+	constexpr int MAX_SEGS_PER_POLY{ DT_VERTS_PER_POLYGON * 3 };
 
 	if (!ref)
 	{
-		dtVset(m_center, FLT_MAX, FLT_MAX, FLT_MAX);
+		m_center.fill((std::numeric_limits<float>::max)());
 		m_nsegs = 0;
 		m_npolys = 0;
 		return;
 	}
 
-	dtVcopy(m_center, pos);
+	dtVcopy(m_center.data(), pos);
 
 	// First query non-overlapping polygons.
 	// 最初に重複しないポリゴンをクエリします。
 	navquery->findLocalNeighbourhood(ref, pos, collisionQueryRange,
-		filter, m_polys, 0, &m_npolys, MAX_LOCAL_POLYS);
+		filter, m_polys.data(), nullptr, &m_npolys, MAX_LOCAL_POLYS);
 
 	// Secondly, store all polygon edges.
 	// 次に、すべてのポリゴンエッジを保存します。
@@ -112,7 +114,7 @@ void dtLocalBoundary::update(dtPolyRef ref, const float* pos, const float collis
 	int nsegs = 0;
 	for (int j = 0; j < m_npolys; ++j)
 	{
-		navquery->getPolyWallSegments(m_polys[j], filter, segs, 0, &nsegs, MAX_SEGS_PER_POLY);
+		navquery->getPolyWallSegments(m_polys[j], filter, segs, nullptr, &nsegs, MAX_SEGS_PER_POLY);
 		for (int k = 0; k < nsegs; ++k)
 		{
 			const float* s = &segs[k * 6];
@@ -133,6 +135,7 @@ bool dtLocalBoundary::isValid(dtNavMeshQuery* navquery, const dtQueryFilter* fil
 		return false;
 
 	// Check that all polygons still pass query filter.
+	// すべてのポリゴンがまだクエリフィルターを通過することを確認します。
 	for (int i = 0; i < m_npolys; ++i)
 	{
 		if (!navquery->isValidPolyRef(m_polys[i], filter))

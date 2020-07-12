@@ -73,7 +73,7 @@ namespace
 dtObstacleAvoidanceDebugData* dtAllocObstacleAvoidanceDebugData()
 {
 	void* mem = dtAlloc(sizeof(dtObstacleAvoidanceDebugData), DT_ALLOC_PERM);
-	if (!mem) return 0;
+	if (!mem) return nullptr;
 	return new(mem) dtObstacleAvoidanceDebugData;
 }
 
@@ -85,27 +85,18 @@ void dtFreeObstacleAvoidanceDebugData(dtObstacleAvoidanceDebugData* ptr)
 }
 
 dtObstacleAvoidanceDebugData::dtObstacleAvoidanceDebugData() :
-	m_nsamples(0),
-	m_maxSamples(0),
-	m_vel(0),
-	m_ssize(0),
-	m_pen(0),
-	m_vpen(0),
-	m_vcpen(0),
-	m_spen(0),
-	m_tpen(0)
-{
-}
+	m_nsamples(0), m_maxSamples(0)
+{}
 
 dtObstacleAvoidanceDebugData::~dtObstacleAvoidanceDebugData()
 {
-	dtFree(m_vel);
-	dtFree(m_ssize);
-	dtFree(m_pen);
-	dtFree(m_vpen);
-	dtFree(m_vcpen);
-	dtFree(m_spen);
-	dtFree(m_tpen);
+	m_vel.clear();
+	m_pen.clear();
+	m_ssize.clear();
+	m_vpen.clear();
+	m_vcpen.clear();
+	m_spen.clear();
+	m_tpen.clear();
 }
 
 bool dtObstacleAvoidanceDebugData::init(const int maxSamples)
@@ -113,27 +104,20 @@ bool dtObstacleAvoidanceDebugData::init(const int maxSamples)
 	dtAssert(maxSamples);
 	m_maxSamples = maxSamples;
 
-	m_vel = (float*)dtAlloc(sizeof(float) * 3 * m_maxSamples, DT_ALLOC_PERM);
-	if (!m_vel)
+	try
+	{
+		m_vel.resize(3u * m_maxSamples, 0.f);
+		m_pen.resize(m_maxSamples, 0.f);
+		m_ssize.resize(m_maxSamples, 0.f);
+		m_vpen.resize(m_maxSamples, 0.f);
+		m_vcpen.resize(m_maxSamples, 0.f);
+		m_spen.resize(m_maxSamples, 0.f);
+		m_tpen.resize(m_maxSamples, 0.f);
+	}
+	catch (const std::exception&)
+	{
 		return false;
-	m_pen = (float*)dtAlloc(sizeof(float) * m_maxSamples, DT_ALLOC_PERM);
-	if (!m_pen)
-		return false;
-	m_ssize = (float*)dtAlloc(sizeof(float) * m_maxSamples, DT_ALLOC_PERM);
-	if (!m_ssize)
-		return false;
-	m_vpen = (float*)dtAlloc(sizeof(float) * m_maxSamples, DT_ALLOC_PERM);
-	if (!m_vpen)
-		return false;
-	m_vcpen = (float*)dtAlloc(sizeof(float) * m_maxSamples, DT_ALLOC_PERM);
-	if (!m_vcpen)
-		return false;
-	m_spen = (float*)dtAlloc(sizeof(float) * m_maxSamples, DT_ALLOC_PERM);
-	if (!m_spen)
-		return false;
-	m_tpen = (float*)dtAlloc(sizeof(float) * m_maxSamples, DT_ALLOC_PERM);
-	if (!m_tpen)
-		return false;
+	}
 
 	return true;
 }
@@ -148,13 +132,14 @@ void dtObstacleAvoidanceDebugData::addSample(const float* vel, const float ssize
 {
 	if (m_nsamples >= m_maxSamples)
 		return;
-	dtAssert(m_vel);
-	dtAssert(m_ssize);
-	dtAssert(m_pen);
-	dtAssert(m_vpen);
-	dtAssert(m_vcpen);
-	dtAssert(m_spen);
-	dtAssert(m_tpen);
+	dtAssert(!m_vel.empty());
+	dtAssert(!m_ssize.empty());
+	dtAssert(!m_pen.empty());
+	dtAssert(!m_vpen.empty());
+	dtAssert(!m_vcpen.empty());
+	dtAssert(!m_spen.empty());
+	dtAssert(!m_tpen.empty());
+
 	dtVcopy(&m_vel[m_nsamples * 3], vel);
 	m_ssize[m_nsamples] = ssize;
 	m_pen[m_nsamples] = pen;
@@ -165,7 +150,7 @@ void dtObstacleAvoidanceDebugData::addSample(const float* vel, const float ssize
 	m_nsamples++;
 }
 
-static void normalizeArray(float* arr, const int n)
+static void normalizeArray(std::vector<float>& arr, const int n)
 {
 	// Normalize penaly range.
 	float minPen = FLT_MAX;
@@ -312,12 +297,14 @@ void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
 	}
 }
 
-/* Calculate the collision penalty for a given velocity vector
- *
- * @param vcand sampled velocity
- * @param dvel desired velocity
- * @param minPenalty threshold penalty for early out
- */
+// Calculate the collision penalty for a given velocity vector
+// 与えられた速度ベクトルの衝突ペナルティを計算します
+//  @param vcand sampled velocity
+//  サンプリングされた速度
+//  @param dvel desired velocity
+//  望ましい速度
+//  @param minPenalty threshold penalty for early out
+//  アーリーアウトのペナルティのしきい値
 float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs,
 	const float* pos, const float rad,
 	const float* vel, const float* dvel,
@@ -341,8 +328,8 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 	// Find min time of impact and exit amongst all obstacles.
 	// 影響の最小時間を見つけ、すべての障害物から脱出します。
 	float tmin = m_params.horizTime;
-	float side = 0;
-	int nside = 0;
+	float side{};
+	int nside{};
 
 	for (int i = 0; i < m_ncircles; ++i)
 	{
@@ -428,13 +415,13 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 
 	// Normalize side bias, to prevent it dominating too much.
 	// サイドバイアスを正規化し、過度に支配しないようにします。
-	if (nside)
+	if (nside != 0)
 		side /= nside;
 
 	const float spen = m_params.weightSide * side;
 	const float tpen = m_params.weightToi * (1.f / (0.1f + tmin * m_invHorizTime));
 
-	const float penalty = vpen + vcpen + spen + tpen;
+	const float penalty = vpen + vcpen + spen + tpen; // 合計ペナルティ
 
 	// Store different penalties for debug viewing
 	// デバッグ表示用にさまざまなペナルティを保存します

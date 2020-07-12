@@ -223,6 +223,15 @@ inline constexpr void dtVset(float* dest, const float x, const float y, const fl
 	dest[0] = x; dest[1] = y; dest[2] = z;
 }
 
+// Sets the vector elements to the specified values.
+// ベクトル要素を指定された値に設定します。
+//  @param[out] dest	The result vector. [(x, y, z)]
+//  @param[in] num	The value of the vector.
+inline constexpr void dtVsetFill(float* dest, const float value)
+{
+	dest[0] = value; dest[1] = value; dest[2] = value;
+}
+
 // Performs a vector copy.
 // ベクターコピーを実行します。
 //  @param[out]	dest	The result. [(x, y, z)]
@@ -373,13 +382,14 @@ inline constexpr float dtVperp2D(const float* u, const float* v)
 // @name Computational geometry helper functions.
 // @name 計算幾何学ヘルパー関数。
 // @{
-// Derives the signed xz-plane area of the triangle ABC, or the relationship of line AB to point C.
-// 三角形ABCの符号付きxz平面領域、またはラインABとポイントCの関係を導出します。
+// @brief Derives the signed xz-plane area of the triangle ABC, or the relationship of line AB to point C.
+// 三角形ABCの符号付きxz平面領域、またはラインABとポイントCの関係を導出します。（2Dの外積）
+// 三角形を形状できるかどうか
 //  @param[in]		a		Vertex A. [(x, y, z)]
 //  @param[in]		b		Vertex B. [(x, y, z)]
 //  @param[in]		c		Vertex C. [(x, y, z)]
 // @return The signed xz-plane area of the triangle.
-// @return 三角形の符号付きxz平面領域。
+// 三角形の符号付きxz平面領域。三角形を形状出来るなら０以上が返る
 inline constexpr float dtTriArea2D(const float* a, const float* b, const float* c)
 {
 	const float abx = b[0] - a[0];

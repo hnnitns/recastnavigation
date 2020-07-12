@@ -208,6 +208,7 @@ int dtProximityGrid::getItemCountAt(const int x, const int y) const
 
 	const int h = hashPos2(x, y, m_bucketsSize);
 	unsigned short idx = m_buckets[h];
+
 	while (idx != UShortMax)
 	{
 		auto& item = m_pool[idx];

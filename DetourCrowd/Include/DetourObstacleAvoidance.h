@@ -88,10 +88,10 @@ struct dtObstacleAvoidanceParams
 	float weightSide;
 	float weightToi;
 	float horizTime;
-	unsigned char gridSize;	///< grid
-	unsigned char adaptiveDivs;	///< adaptive
-	unsigned char adaptiveRings;	///< adaptive
-	unsigned char adaptiveDepth;	///< adaptive
+	unsigned char gridSize;	// grid
+	unsigned char adaptiveDivs;	// adaptive
+	unsigned char adaptiveRings;	// adaptive
+	unsigned char adaptiveDepth;	// adaptive
 };
 
 class dtObstacleAvoidanceQuery

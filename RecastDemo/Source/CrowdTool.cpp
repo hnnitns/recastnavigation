@@ -276,6 +276,7 @@ void CrowdToolState::handleRender()
 		duDebugDrawCross(&dd, m_targetPos[0], m_targetPos[1] + 0.1f, m_targetPos[2], rad, duRGBA(255, 255, 255, 192), 2.0f);
 
 	// Occupancy grid.
+	// 占有グリッド。
 	if (m_toolParams.m_showGrid)
 	{
 		float gridy = -FLT_MAX;
@@ -439,7 +440,7 @@ void CrowdToolState::handleRender()
 		if (m_toolParams.m_showNeis)
 		{
 			duDebugDrawCircle(&dd, pos[0], pos[1] + radius, pos[2], ag->params.collisionQueryRange,
-				duRGBA(0, 192, 128, 128), 2.0f);
+				/*duRGBA(0, 192, 128, 128)*/duRGBA(192, 0, 128, 255), 2.0f);
 
 			dd.begin(DU_DRAW_LINES, 2.0f);
 			for (int j = 0; j < ag->nneis; ++j)
@@ -449,8 +450,8 @@ void CrowdToolState::handleRender()
 				const dtCrowdAgent* nei = crowd->getAgentAt(ag->neis[j].idx);
 				if (nei)
 				{
-					dd.vertex(pos[0], pos[1] + radius, pos[2], duRGBA(0, 192, 128, 128));
-					dd.vertex(nei->npos[0], nei->npos[1] + radius, nei->npos[2], duRGBA(0, 192, 128, 128));
+					dd.vertex(pos[0], pos[1] + radius, pos[2], /*duRGBA(0, 192, 128, 128)*/duRGBA(192, 0, 128, 255));
+					dd.vertex(nei->npos[0], nei->npos[1] + radius, nei->npos[2], /*duRGBA(0, 192, 128, 128)*/duRGBA(192, 0, 128, 255));
 				}
 			}
 			dd.end();
@@ -530,12 +531,11 @@ void CrowdToolState::handleRender()
 				const float* const p = vod->getSampleVelocity(j);
 				const float sr = vod->getSampleSize(j);
 				const float pen = vod->getSamplePenalty(j); // 合計のペナルティー
-				//const float pen = vod->getSampleDesiredVelocityPenalty(j);
-				//const float pen2 = vod->getSamplePreferredSidePenalty(j); // はみ出た分のペナルティー
+				const float pen2 = vod->getSamplePreferredSidePenalty(j); // はみ出た分のペナルティー
 				UINT32 col{ duRGBA(255, 255, 255, 220) };
 
 				col = duLerpCol(duRGBA(255, 255, 255, 220)/*白*/, duRGBA(128, 96, 0, 220)/*茶色*/, (int)(pen * 255));
-				//col = duLerpCol(col, duRGBA(128, 0, 0, 220)/*濃赤*/, (int)(pen2 * 128));
+				col = duLerpCol(col, duRGBA(128, 0, 0, 220)/*濃赤*/, (int)(pen2 * 128));
 
 				dd.vertex(dx + p[0] - sr, dy, dz + p[2] - sr, col);
 				dd.vertex(dx + p[0] - sr, dy, dz + p[2] + sr, col);

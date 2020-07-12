@@ -291,7 +291,7 @@ void CrowdToolState::handleRender()
 
 		dd.begin(DU_DRAW_QUADS);
 		const dtProximityGrid* grid = crowd->getGrid();
-		const int* bounds = grid->getBounds();
+		const auto& bounds = grid->getBounds();
 		const float cs = grid->getCellSize();
 		for (int y = bounds[1]; y <= bounds[3]; ++y)
 		{

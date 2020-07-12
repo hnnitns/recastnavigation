@@ -29,7 +29,7 @@
 dtProximityGrid* dtAllocProximityGrid()
 {
 	void* mem = dtAlloc(sizeof(dtProximityGrid), DT_ALLOC_PERM);
-	if (!mem) return 0;
+	if (!mem) return nullptr;
 	return new(mem) dtProximityGrid;
 }
 
@@ -42,7 +42,7 @@ void dtFreeProximityGrid(dtProximityGrid* ptr)
 
 namespace
 {
-	inline int hashPos2(int x, int y, int n)
+	inline constexpr int hashPos2(int x, int y, int n)
 	{
 		return ((x * 73856093) ^ (y * 19349663)) & (n - 1);
 	}
@@ -57,12 +57,13 @@ dtProximityGrid::dtProximityGrid() :
 	m_buckets(0),
 	m_bucketsSize(0)
 {
+	m_bounds.fill(0);
 }
 
 dtProximityGrid::~dtProximityGrid()
 {
-	dtFree(m_buckets);
-	dtFree(m_pool);
+	m_buckets.clear();
+	m_pool.clear();
 }
 
 bool dtProximityGrid::init(const int poolSize, const float cellSize)
@@ -76,17 +77,30 @@ bool dtProximityGrid::init(const int poolSize, const float cellSize)
 	// Allocate hashs buckets
 	// ハッシュバケットを割り当てます
 	m_bucketsSize = dtNextPow2(poolSize);
-	m_buckets = (unsigned short*)dtAlloc(sizeof(unsigned short) * m_bucketsSize, DT_ALLOC_PERM);
-	if (!m_buckets)
+	try
+	{
+		constexpr uint16_t UShortMax{ (std::numeric_limits<uint16_t>::max)() };
+
+		m_buckets.resize(m_bucketsSize, UShortMax);
+	}
+	catch (const std::exception&)
+	{
 		return false;
+	}
 
 	// Allocate pool of items.
 	// アイテムのプールを割り当てます。
 	m_poolSize = poolSize;
 	m_poolHead = 0;
-	m_pool = (Item*)dtAlloc(sizeof(Item) * m_poolSize, DT_ALLOC_PERM);
 
-	if (!m_pool) return false;
+	try
+	{
+		m_pool.resize(m_poolSize, {});
+	}
+	catch (const std::exception&)
+	{
+		return false;
+	}
 
 	clear();
 
@@ -97,7 +111,7 @@ void dtProximityGrid::clear()
 {
 	constexpr uint16_t UShortMax{ (std::numeric_limits<uint16_t>::max)() };
 
-	memset(m_buckets, 0xff, sizeof(unsigned short) * m_bucketsSize);
+	std::fill(m_buckets.begin(), m_buckets.end(), UShortMax);
 	m_poolHead = 0;
 	m_bounds[0] = UShortMax;
 	m_bounds[1] = UShortMax;
@@ -143,6 +157,8 @@ int dtProximityGrid::queryItems(const float minx, const float miny,
 	const float maxx, const float maxy,
 	unsigned short* ids, const int maxIds) const
 {
+	constexpr uint16_t UShortMax{ (std::numeric_limits<uint16_t>::max)() };
+
 	const int iminx = (int)dtMathFloorf(minx * m_invCellSize);
 	const int iminy = (int)dtMathFloorf(miny * m_invCellSize);
 	const int imaxx = (int)dtMathFloorf(maxx * m_invCellSize);
@@ -156,17 +172,19 @@ int dtProximityGrid::queryItems(const float minx, const float miny,
 		{
 			const int h = hashPos2(x, y, m_bucketsSize);
 			unsigned short idx = m_buckets[h];
-			while (idx != 0xffff)
+			while (idx != UShortMax)
 			{
-				Item& item = m_pool[idx];
+				auto& item = m_pool[idx];
 				if ((int)item.x == x && (int)item.y == y)
 				{
 					// Check if the id exists already.
+					// IDが既に存在するかどうかを確認します。
 					const unsigned short* end = ids + n;
 					unsigned short* i = ids;
 					while (i != end && *i != item.id)
 						++i;
 					// Item not found, add it.
+					// アイテムが見つかりません。追加してください。
 					if (i == end)
 					{
 						if (n >= maxIds)
@@ -184,13 +202,15 @@ int dtProximityGrid::queryItems(const float minx, const float miny,
 
 int dtProximityGrid::getItemCountAt(const int x, const int y) const
 {
-	int n = 0;
+	int n{};
+
+	constexpr uint16_t UShortMax{ (std::numeric_limits<uint16_t>::max)() };
 
 	const int h = hashPos2(x, y, m_bucketsSize);
 	unsigned short idx = m_buckets[h];
-	while (idx != 0xffff)
+	while (idx != UShortMax)
 	{
-		Item& item = m_pool[idx];
+		auto& item = m_pool[idx];
 		if ((int)item.x == x && (int)item.y == y)
 			n++;
 		idx = item.next;

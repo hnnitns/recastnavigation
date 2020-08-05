@@ -191,7 +191,7 @@ namespace
 	{
 		int n = 0;
 
-		static const int MAX_NEIS = 32;
+		constexpr int MAX_NEIS = 32;
 		unsigned short ids[MAX_NEIS];
 		int nids = grid->queryItems(pos[0] - range, pos[2] - range,
 			pos[0] + range, pos[2] + range,
@@ -720,6 +720,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 	int nqueue = 0;
 
 	// Fire off new requests.
+	// 新しいリクエストを開始します。
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgent* ag = &m_agents[i];
@@ -736,33 +737,39 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 			const int npath = ag->corridor.getPathCount();
 			dtAssert(npath);
 
-			static const int MAX_RES = 32;
+			constexpr int MAX_RES = 32;
 			float reqPos[3];
-			dtPolyRef reqPath[MAX_RES];	// The path to the request location
+			dtPolyRef reqPath[MAX_RES];	// The path to the request location //リクエストの場所へのパス
 			int reqPathCount = 0;
 
 			// Quick search towards the goal.
-			static const int MAX_ITER = 20;
+			// 目標に向かってすばやく検索します。
+			constexpr int MAX_ITER = 20;
 			m_navquery->initSlicedFindPath(path[0], ag->targetRef, ag->npos, ag->targetPos, &m_filters[ag->params.queryFilterType]);
 			m_navquery->updateSlicedFindPath(MAX_ITER, 0);
+
 			dtStatus status = 0;
 			if (ag->targetReplan) // && npath > 10)
 			{
 				// Try to use existing steady path during replan if possible.
+				// 可能であれば、再計画中に既存の安定したパスを使用してみてください。
 				status = m_navquery->finalizeSlicedFindPathPartial(path, npath, reqPath, &reqPathCount, MAX_RES);
 			}
 			else
 			{
 				// Try to move towards target when goal changes.
+				// 目標が変わったときに目標に向かって移動しようとします。
 				status = m_navquery->finalizeSlicedFindPath(reqPath, &reqPathCount, MAX_RES);
 			}
 
 			if (!dtStatusFailed(status) && reqPathCount > 0)
 			{
 				// In progress or succeed.
+				// 進行中または成功。
 				if (reqPath[reqPathCount - 1] != ag->targetRef)
 				{
 					// Partial path, constrain target position inside the last polygon.
+					// 部分パス。最後のポリゴン内のターゲット位置を制限します。
 					status = m_navquery->closestPointOnPoly(reqPath[reqPathCount - 1], ag->targetPos, reqPos, 0);
 					if (dtStatusFailed(status))
 						reqPathCount = 0;
@@ -780,6 +787,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 			if (!reqPathCount)
 			{
 				// Could not find path, start the request from current location.
+				// パスが見つかりませんでした。現在の場所からリクエストを開始します
 				dtVcopy(reqPos, ag->npos);
 				reqPath[0] = path[0];
 				reqPathCount = 1;
@@ -797,6 +805,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 			else
 			{
 				// The path is longer or potentially unreachable, full plan.
+				// パスが長いか、到達できない可能性があるため、完全な計画です。
 				ag->targetState = DT_CROWDAGENT_TARGET_WAITING_FOR_QUEUE;
 			}
 		}
@@ -817,11 +826,13 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 	}
 
 	// Update requests.
+	// リクエストを更新します。
 	m_pathq.update(MAX_ITERS_PER_UPDATE);
 
 	dtStatus status;
 
 	// Process path results.
+	// パスの結果を処理します。
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgent* ag = &m_agents[i];
@@ -834,9 +845,11 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 		{
 			// Poll path queue.
 			status = m_pathq.getRequestStatus(ag->targetPathqRef);
+
 			if (dtStatusFailed(status))
 			{
 				// Path find failed, retry if the target location is still valid.
+				// パスの検索に失敗しました。ターゲットの場所がまだ有効な場合は再試行してください。
 				ag->targetPathqRef = DT_PATHQ_INVALID;
 				if (ag->targetRef)
 					ag->targetState = DT_CROWDAGENT_TARGET_REQUESTING;
@@ -851,6 +864,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 				dtAssert(npath);
 
 				// Apply results.
+				// 結果を適用します。
 				float targetPos[3];
 				dtVcopy(targetPos, ag->targetPos);
 
@@ -867,19 +881,21 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 					ag->partial = false;
 
 				// Merge result and existing path.
-				// The agent might have moved whilst the request is
-				// being processed, so the path may have changed.
-				// We assume that the end of the path is at the same location
-				// where the request was issued.
+				// The agent might have moved whilst the request is being processed, so the path may have changed.
+				// We assume that the end of the path is at the same location where the request was issued.
+				//結果と既存のパスをマージします。
+				//リクエストの処理中にエージェントが移動した可能性があるため、パスが変更された可能性があります。
+				//パスの終わりは、リクエストが発行されたのと同じ場所にあると想定しています。
 
-				// The last ref in the old path should be the same as
-				// the location where the request was issued..
+				// The last ref in the old path should be the same as the location where the request was issued.
+				//古いパスの最後の参照は、リクエストが発行された場所と同じである必要があります。
 				if (valid && path[npath - 1] != res[0])
 					valid = false;
 
 				if (valid)
 				{
 					// Put the old path infront of the old path.
+					// 古いパスを古いパスの前に置きます。
 					if (npath > 1)
 					{
 						// Make space for the old path.
@@ -888,10 +904,12 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 
 						memmove(res + npath - 1, res, sizeof(dtPolyRef) * nres);
 						// Copy old path in the beginning.
+						// 最初に古いパスをコピーします。
 						memcpy(res, path, sizeof(dtPolyRef) * (npath - 1));
 						nres += npath - 1;
 
 						// Remove trackbacks
+						// トラックバックを削除します
 						for (int j = 0; j < nres; ++j)
 						{
 							if (j - 1 >= 0 && j + 1 < nres)
@@ -907,9 +925,11 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 					}
 
 					// Check for partial path.
+					// パスの一部を確認します。
 					if (res[nres - 1] != ag->targetRef)
 					{
 						// Partial path, constrain target position inside the last polygon.
+						// 部分パス。最後のポリゴン内のターゲット位置を制限します。
 						float nearest[3];
 						status = m_navquery->closestPointOnPoly(res[nres - 1], targetPos, nearest, 0);
 						if (dtStatusSucceed(status))
@@ -922,14 +942,17 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 				if (valid)
 				{
 					// Set current corridor.
+					// 現在のコリドーを設定します。
 					ag->corridor.setCorridor(targetPos, res, nres);
 					// Force to update boundary.
+					// 境界を強制的に更新します。
 					ag->boundary.reset();
 					ag->targetState = DT_CROWDAGENT_TARGET_VALID;
 				}
 				else
 				{
 					// Something went wrong.
+					// 問題が発生しました。
 					ag->targetState = DT_CROWDAGENT_TARGET_FAILED;
 				}
 
@@ -973,12 +996,12 @@ void dtCrowd::updateTopologyOptimization(dtCrowdAgent** agents, const int nagent
 
 void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const float dt)
 {
-	static const int CHECK_LOOKAHEAD = 10;
-	static const float TARGET_REPLAN_DELAY = 1.0; // seconds
+	constexpr int CHECK_LOOKAHEAD = 10;
+	constexpr float TARGET_REPLAN_DELAY = 1.0; // seconds
 
 	for (int i = 0; i < nagents; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
+		dtCrowdAgent* ag{ agents[i] };
 
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
@@ -996,7 +1019,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		{
 			// Current location is not valid, try to reposition.
 			// TODO: this can snap agents, how to handle that?
-			float nearest[3];
+			float nearest[3]{};
 			dtVcopy(nearest, agentPos);
 			agentRef = 0;
 			m_navquery->findNearestPoly(ag->npos, m_ext, &m_filters[ag->params.queryFilterType], &agentRef, nearest);
@@ -1228,14 +1251,14 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	// ステアリングを計算します。
 	for (int i = 0; i < nagents; ++i)
 	{
-		dtCrowdAgent* ag = agents[i];
+		dtCrowdAgent* ag{ agents[i] };
 
 		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			continue;
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE)
 			continue;
 
-		float dvel[3] = { 0,0,0 };
+		float dvel[3]{};
 
 		if (ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 		{

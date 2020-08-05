@@ -281,7 +281,7 @@ public:
 	//  @param[in] filter	The polygon filter to apply to the query.
 	//	クエリに適用するポリゴンフィルター。
 	//  @param[in] options	query options (see: #dtFindPathOptions)
-	//	クエリオプション（#dtFindPathOptionsを参照）
+	//	クエリオプション
 	// @returns The status flags for the query.
 	//	クエリのステータスフラグ。
 	//@}
@@ -299,18 +299,17 @@ public:
 	// クエリのステータスフラグ。
 	dtStatus updateSlicedFindPath(const int maxIter, int* doneIters);
 
-	// スライスパスクエリの結果を確定して返します。
-	// @param[out] pathパスを表すポリゴン参照の順序付きリスト。 （始めから終わりまで。）
-	// [（polyRef） * @p pathCount]
-	// @param[out] pathCount @pパス配列で返されるポリゴンの数。
-	// @param[in] maxPathパス配列が保持できるポリゴンの最大数。[制限： > = 1]
-	// @returnsクエリのステータスフラグ。
 	// Finalizes and returns the results of a sliced path query.
-	//  @param[out]	path		An ordered list of polygon references representing the path. (Start to end.)
-	//  							[(polyRef) * @p pathCount]
-	//  @param[out]	pathCount	The number of polygons returned in the @p path array.
-	//  @param[in]		maxPath		The max number of polygons the path array can hold. [Limit: >= 1]
+	// スライスパスクエリの結果を確定して返します。
+	//  @param[out] path		An ordered list of polygon references representing the path. (Start to end.)
+	//  	[(polyRef) * pathCount]
+	//  パスを表すポリゴン参照の順序付きリスト。
+	//  @param[out] pathCount	The number of polygons returned in the path array.
+	//  パス配列で返されるポリゴンの数。
+	//  @param[in] maxPath		The max number of polygons the path array can hold. [Limit: >= 1]
+	//  パス配列が保持できるポリゴンの最大数。
 	// @returns The status flags for the query.
+	// クエリのステータスフラグ。
 	dtStatus finalizeSlicedFindPath(dtPolyRef* path, int* pathCount, const int maxPath);
 
 	// Finalizes and returns the results of an incomplete sliced path query, returning the path to the furthest polygon on the existing path that was visited during the search.

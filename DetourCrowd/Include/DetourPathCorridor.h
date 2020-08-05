@@ -147,7 +147,9 @@ public:
 	inline const dtPolyRef* getPath() const { return m_path; }
 
 	/// The number of polygons in the current corridor path.
+	/// 現在のコリドーパス内のポリゴンの数。
 	/// @return The number of polygons in the current corridor path.
+	/// 現在のコリドーパス内のポリゴンの数。
 	inline int getPathCount() const { return m_npath; }
 
 private:

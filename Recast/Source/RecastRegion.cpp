@@ -25,11 +25,18 @@
 #include "Recast.h"
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
-#include <new>
 
 namespace
 {
-	 void calculateDistanceField(rcCompactHeightfield& chf, unsigned short* src, unsigned short& maxDist)
+	struct LevelStackEntry
+	{
+		LevelStackEntry(int x_, int y_, int index_) : x(x_), y(y_), index(index_) {}
+		int x;
+		int y;
+		int index;
+	};
+
+	void calculateDistanceField(rcCompactHeightfield& chf, unsigned short* src, unsigned short& maxDist)
 	{
 		const int w{ chf.width };
 		const int h{ chf.height };
@@ -195,7 +202,7 @@ namespace
 			maxDist = rcMax(src[i], maxDist);
 	}
 
-	 unsigned short* boxBlur(rcCompactHeightfield& chf, int thr,
+	unsigned short* boxBlur(rcCompactHeightfield& chf, int thr,
 		unsigned short* src, unsigned short* dst)
 	{
 		const int w = chf.width;
@@ -254,22 +261,19 @@ namespace
 		return dst;
 	}
 
-	 bool floodRegion(int x, int y, int i,
+	bool floodRegion(int x, int y, int i,
 		unsigned short level, unsigned short r,
 		rcCompactHeightfield& chf,
 		unsigned short* srcReg, unsigned short* srcDist,
-		rcIntArray& stack)
+		rcTempVector<LevelStackEntry>& stack)
 	{
 		const int w = chf.width;
 
 		const unsigned char area = chf.areas[i];
 
 		// Flood fill mark region.
-		// 塗りつぶしマーク領域。
-		stack.resize(0);
-		stack.push((int)x);
-		stack.push((int)y);
-		stack.push((int)i);
+		stack.clear();
+		stack.push_back(LevelStackEntry(x, y, i));
 		srcReg[i] = r;
 		srcDist[i] = 0;
 
@@ -278,14 +282,15 @@ namespace
 
 		while (stack.size() > 0)
 		{
-			int ci = stack.pop();
-			int cy = stack.pop();
-			int cx = stack.pop();
+			LevelStackEntry& back = stack.back();
+			int cx = back.x;
+			int cy = back.y;
+			int ci = back.index;
+			stack.pop_back();
 
 			const rcCompactSpan& cs = chf.spans[ci];
 
 			// Check if any of the neighbours already have a valid region set.
-			// ネイバーのいずれかに有効なリージョンセットが既にあるかどうかを確認します。
 			unsigned short ar = 0;
 			for (int dir = 0; dir < 4; ++dir)
 			{
@@ -295,16 +300,11 @@ namespace
 					const int ax = cx + rcGetDirOffsetX(dir);
 					const int ay = cy + rcGetDirOffsetY(dir);
 					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(cs, dir);
-
-					if (chf.areas[ai] != area) continue;
-
-					unsigned short nr = srcReg[ai];
-
-					// Do not take borders into account.
-					//境界線を考慮しないでください。
-					if (nr & RC_BORDER_REG)
+					if (chf.areas[ai] != area)
 						continue;
-
+					unsigned short nr = srcReg[ai];
+					if (nr & RC_BORDER_REG) // Do not take borders into account.
+						continue;
 					if (nr != 0 && nr != r)
 					{
 						ar = nr;
@@ -339,7 +339,6 @@ namespace
 			count++;
 
 			// Expand neighbours.
-			// 近隣を展開します。
 			for (int dir = 0; dir < 4; ++dir)
 			{
 				if (rcGetCon(cs, dir) != RC_NOT_CONNECTED)
@@ -347,16 +346,13 @@ namespace
 					const int ax = cx + rcGetDirOffsetX(dir);
 					const int ay = cy + rcGetDirOffsetY(dir);
 					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(cs, dir);
-
-					if (chf.areas[ai] != area) continue;
-
+					if (chf.areas[ai] != area)
+						continue;
 					if (chf.dist[ai] >= lev && srcReg[ai] == 0)
 					{
 						srcReg[ai] = r;
 						srcDist[ai] = 0;
-						stack.push(ax);
-						stack.push(ay);
-						stack.push(ai);
+						stack.push_back(LevelStackEntry(ax, ay, ai));
 					}
 				}
 			}
@@ -365,11 +361,20 @@ namespace
 		return count > 0;
 	}
 
-	 unsigned short* expandRegions(int maxIter, unsigned short level,
+	// Struct to keep track of entries in the region table that have been changed.
+	struct DirtyEntry
+	{
+		DirtyEntry(int index_, unsigned short region_, unsigned short distance2_)
+			: index(index_), region(region_), distance2(distance2_) {}
+		int index;
+		unsigned short region;
+		unsigned short distance2;
+	};
+
+	void expandRegions(int maxIter, unsigned short level,
 		rcCompactHeightfield& chf,
 		unsigned short* srcReg, unsigned short* srcDist,
-		unsigned short* dstReg, unsigned short* dstDist,
-		rcIntArray& stack,
+		rcTempVector<LevelStackEntry>& stack,
 		bool fillStack)
 	{
 		const int w = chf.width;
@@ -379,7 +384,7 @@ namespace
 		{
 			// Find cells revealed by the raised level.
 			// 上げられたレベルによって明らかにされたセルを見つけます。
-			stack.resize(0);
+			stack.clear();
 			for (int y = 0; y < h; ++y)
 			{
 				for (int x = 0; x < w; ++x)
@@ -389,9 +394,7 @@ namespace
 					{
 						if (chf.dist[i] >= level && srcReg[i] == 0 && chf.areas[i] != RC_NULL_AREA)
 						{
-							stack.push(x);
-							stack.push(y);
-							stack.push(i);
+							stack.push_back(LevelStackEntry(x, y, i));
 						}
 					}
 				}
@@ -403,29 +406,26 @@ namespace
 		{
 			// mark all cells which already have a region
 			// すでに領域があるすべてのセルをマークします
-			for (int j = 0; j < stack.size(); j += 3)
+			for (int j = 0; j < stack.size(); j++)
 			{
-				int i = stack[j + 2];
+				int i = stack[j].index;
 				if (srcReg[i] != 0)
-					stack[j + 2] = -1;
+					stack[j].index = -1;
 			}
 		}
 
+		rcTempVector<DirtyEntry> dirtyEntries;
 		int iter = 0;
-
 		while (stack.size() > 0)
 		{
 			int failed = 0;
+			dirtyEntries.clear();
 
-			memcpy(dstReg, srcReg, sizeof(unsigned short) * chf.spanCount);
-			memcpy(dstDist, srcDist, sizeof(unsigned short) * chf.spanCount);
-
-			for (int j = 0; j < stack.size(); j += 3)
+			for (int j = 0; j < stack.size(); j++)
 			{
-				int x = stack[j + 0];
-				int y = stack[j + 1];
-				int i = stack[j + 2];
-
+				int x = stack[j].x;
+				int y = stack[j].y;
+				int i = stack[j].index;
 				if (i < 0)
 				{
 					failed++;
@@ -436,17 +436,13 @@ namespace
 				unsigned short d2 = 0xffff;
 				const unsigned char area = chf.areas[i];
 				const rcCompactSpan& s = chf.spans[i];
-
 				for (int dir = 0; dir < 4; ++dir)
 				{
 					if (rcGetCon(s, dir) == RC_NOT_CONNECTED) continue;
-
 					const int ax = x + rcGetDirOffsetX(dir);
 					const int ay = y + rcGetDirOffsetY(dir);
 					const int ai = (int)chf.cells[ax + ay * w].index + rcGetCon(s, dir);
-
 					if (chf.areas[ai] != area) continue;
-
 					if (srcReg[ai] > 0 && (srcReg[ai] & RC_BORDER_REG) == 0)
 					{
 						if ((int)srcDist[ai] + 2 < (int)d2)
@@ -456,49 +452,48 @@ namespace
 						}
 					}
 				}
-
 				if (r)
 				{
-					stack[j + 2] = -1; // mark as used
-					dstReg[i] = r;
-					dstDist[i] = d2;
+					stack[j].index = -1; // mark as used
+					dirtyEntries.push_back(DirtyEntry(i, r, d2));
 				}
-
 				else
 				{
 					failed++;
 				}
 			}
 
-			// rcSwap source and dest.
-			rcSwap(srcReg, dstReg);
-			rcSwap(srcDist, dstDist);
+			// Copy entries that differ between src and dst to keep them in sync.
+			for (int i = 0; i < dirtyEntries.size(); i++) {
+				int idx = dirtyEntries[i].index;
+				srcReg[idx] = dirtyEntries[i].region;
+				srcDist[idx] = dirtyEntries[i].distance2;
+			}
 
-			if (failed * 3 == stack.size()) break;
+			if (failed == stack.size())
+				break;
 
 			if (level > 0)
 			{
 				++iter;
-
-				if (iter >= maxIter) break;
+				if (iter >= maxIter)
+					break;
 			}
 		}
-
-		return srcReg;
 	}
 
-	 void sortCellsByLevel(unsigned short startLevel,
+	void sortCellsByLevel(unsigned short startLevel,
 		rcCompactHeightfield& chf,
-		unsigned short* srcReg,
-		unsigned int nbStacks, rcIntArray* stacks,
-		unsigned short loglevelsPerStack) // the levels per stack (2 in our case) as a bit shift スタックごとのレベル（この場合は2）をビットシフトとして
+		const unsigned short* srcReg,
+		unsigned int nbStacks, rcTempVector<LevelStackEntry>* stacks,
+		unsigned short loglevelsPerStack) // the levels per stack (2 in our case) as a bit shift
 	{
 		const int w = chf.width;
 		const int h = chf.height;
 		startLevel = startLevel >> loglevelsPerStack;
 
 		for (unsigned int j = 0; j < nbStacks; ++j)
-			stacks[j].resize(0);
+			stacks[j].clear();
 
 		// put all cells in the level range into the appropriate stacks
 		// レベル範囲内のすべてのセルを適切なスタックに配置します
@@ -520,25 +515,22 @@ namespace
 					if (sId < 0)
 						sId = 0;
 
-					stacks[sId].push(x);
-					stacks[sId].push(y);
-					stacks[sId].push(i);
+					stacks[sId].push_back(LevelStackEntry(x, y, i));
 				}
 			}
 		}
 	}
 
-	 void appendStacks(rcIntArray& srcStack, rcIntArray& dstStack,
-		unsigned short* srcReg)
+	void appendStacks(const rcTempVector<LevelStackEntry>& srcStack,
+		rcTempVector<LevelStackEntry>& dstStack,
+		const unsigned short* srcReg)
 	{
-		for (int j = 0; j < srcStack.size(); j += 3)
+		for (int j = 0; j < srcStack.size(); j++)
 		{
-			int i = srcStack[j + 2];
+			int i = srcStack[j].index;
 			if ((i < 0) || (srcReg[i] != 0))
 				continue;
-			dstStack.push(srcStack[j]);
-			dstStack.push(srcStack[j + 1]);
-			dstStack.push(srcStack[j + 2]);
+			dstStack.push_back(srcStack[j]);
 		}
 	}
 
@@ -568,7 +560,7 @@ namespace
 		rcIntArray floors;
 	};
 
-	 void removeAdjacentNeighbours(rcRegion& reg)
+	void removeAdjacentNeighbours(rcRegion& reg)
 	{
 		// Remove adjacent duplicates.
 		// 隣接する重複を削除します。
@@ -588,7 +580,7 @@ namespace
 		}
 	}
 
-	 void replaceNeighbour(rcRegion& reg, unsigned short oldId, unsigned short newId)
+	void replaceNeighbour(rcRegion& reg, unsigned short oldId, unsigned short newId)
 	{
 		bool neiChanged = false;
 		for (int i = 0; i < reg.connections.size(); ++i)
@@ -608,7 +600,7 @@ namespace
 			removeAdjacentNeighbours(reg);
 	}
 
-	 bool canMergeWithRegion(const rcRegion& rega, const rcRegion& regb)
+	bool canMergeWithRegion(const rcRegion& rega, const rcRegion& regb)
 	{
 		if (rega.areaType != regb.areaType)
 			return false;
@@ -628,7 +620,7 @@ namespace
 		return true;
 	}
 
-	 void addUniqueFloorRegion(rcRegion& reg, int n)
+	void addUniqueFloorRegion(rcRegion& reg, int n)
 	{
 		for (int i = 0; i < reg.floors.size(); ++i)
 			if (reg.floors[i] == n)
@@ -636,7 +628,7 @@ namespace
 		reg.floors.push(n);
 	}
 
-	 bool mergeRegions(rcRegion& rega, rcRegion& regb)
+	bool mergeRegions(rcRegion& rega, rcRegion& regb)
 	{
 		unsigned short aid = rega.id;
 		unsigned short bid = regb.id;
@@ -697,7 +689,7 @@ namespace
 		return true;
 	}
 
-	 bool isRegionConnectedToBorder(const rcRegion& reg)
+	bool isRegionConnectedToBorder(const rcRegion& reg)
 	{
 		// Region is connected to border if
 		// one of the neighbours is null id.
@@ -711,7 +703,7 @@ namespace
 		return false;
 	}
 
-	 bool isSolidEdge(rcCompactHeightfield& chf, unsigned short* srcReg,
+	bool isSolidEdge(rcCompactHeightfield& chf, unsigned short* srcReg,
 		int x, int y, int i, int dir)
 	{
 		const rcCompactSpan& s = chf.spans[i];
@@ -728,7 +720,7 @@ namespace
 		return true;
 	}
 
-	 void walkContour(int x, int y, int i, int dir,
+	void walkContour(int x, int y, int i, int dir,
 		rcCompactHeightfield& chf,
 		unsigned short* srcReg,
 		rcIntArray& cont)
@@ -819,7 +811,7 @@ namespace
 		}
 	}
 
-	 bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRegionSize,
+	bool mergeAndFilterRegions(rcContext* ctx, int minRegionArea, int mergeRegionSize,
 		unsigned short& maxRegionId,
 		rcCompactHeightfield& chf,
 		unsigned short* srcReg, rcIntArray& overlaps)
@@ -828,9 +820,9 @@ namespace
 		const int h = chf.height;
 
 		const int nreg = maxRegionId + 1;
-		rcRegion* regions = (rcRegion*)rcAlloc(sizeof(rcRegion) * nreg, RC_ALLOC_TEMP);
-		if (!regions)
-		{
+		rcTempVector<rcRegion> regions;
+
+		if (!regions.reserve(nreg)) {
 			ctx->log(RC_LOG_ERROR, "mergeAndFilterRegions: Out of memory 'regions' (%d).", nreg);
 			return false;
 		}
@@ -838,7 +830,7 @@ namespace
 		// Construct regions
 		// 領域を構築します
 		for (int i = 0; i < nreg; ++i)
-			new(&regions[i]) rcRegion((unsigned short)i);
+			regions.push_back(rcRegion((unsigned short)i));
 
 		// Find edge of a region and find connections around the contour.
 		// 領域のエッジを見つけ、輪郭の周りの接続を見つけます。
@@ -991,7 +983,7 @@ namespace
 
 				// Check to see if the region should be merged.
 				// 領域をマージする必要があるかどうかを確認します。
-				if (reg.spanCount > mergeRegionSize&& isRegionConnectedToBorder(reg))
+				if (reg.spanCount > mergeRegionSize && isRegionConnectedToBorder(reg))
 					continue;
 
 				// Small region with more than 1 connection.
@@ -1092,14 +1084,10 @@ namespace
 			if (regions[i].overlap)
 				overlaps.push(regions[i].id);
 
-		for (int i = 0; i < nreg; ++i)
-			regions[i].~rcRegion();
-		rcFree(regions);
-
 		return true;
 	}
 
-	 void addUniqueConnection(rcRegion& reg, int n)
+	void addUniqueConnection(rcRegion& reg, int n)
 	{
 		for (int i = 0; i < reg.connections.size(); ++i)
 			if (reg.connections[i] == n)
@@ -1107,25 +1095,24 @@ namespace
 		reg.connections.push(n);
 	}
 
-	 bool mergeAndFilterLayerRegions(rcContext* ctx, int minRegionArea,
+	bool mergeAndFilterLayerRegions(rcContext* ctx, int minRegionArea,
 		unsigned short& maxRegionId,
 		rcCompactHeightfield& chf,
-		unsigned short* srcReg, rcIntArray& /*overlaps*/)
+		unsigned short* srcReg)
 	{
 		const int w = chf.width;
 		const int h = chf.height;
 
 		const int nreg = maxRegionId + 1;
-		rcRegion* regions = (rcRegion*)rcAlloc(sizeof(rcRegion) * nreg, RC_ALLOC_TEMP);
-		if (!regions)
-		{
+		rcTempVector<rcRegion> regions;
+
+		// Construct regions
+		if (!regions.reserve(nreg)) {
 			ctx->log(RC_LOG_ERROR, "mergeAndFilterLayerRegions: Out of memory 'regions' (%d).", nreg);
 			return false;
 		}
-
-		// Construct regions
 		for (int i = 0; i < nreg; ++i)
-			new(&regions[i]) rcRegion((unsigned short)i);
+			regions.push_back(rcRegion((unsigned short)i));
 
 		// Find region neighbours and overlapping regions.
 		rcIntArray lregs(32);
@@ -1301,12 +1288,36 @@ namespace
 				srcReg[i] = regions[srcReg[i]].id;
 		}
 
-		for (int i = 0; i < nreg; ++i)
-			regions[i].~rcRegion();
-		rcFree(regions);
-
 		return true;
 	}
+
+	void paintRectRegion(int minx, int maxx, int miny, int maxy, unsigned short regId,
+		rcCompactHeightfield& chf, unsigned short* srcReg)
+	{
+		const int w = chf.width;
+		for (int y = miny; y < maxy; ++y)
+		{
+			for (int x = minx; x < maxx; ++x)
+			{
+				const rcCompactCell& c = chf.cells[x + y * w];
+				for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
+				{
+					if (chf.areas[i] != RC_NULL_AREA)
+						srcReg[i] = regId;
+				}
+			}
+		}
+	}
+
+	constexpr unsigned short RC_NULL_NEI = 0xffff;
+
+	struct rcSweepSpan
+	{
+		unsigned short rid;	// row id
+		unsigned short id;	// region id
+		unsigned short ns;	// number samples
+		unsigned short nei;	// neighbour id
+	};
 }
 
 // @par
@@ -1378,34 +1389,6 @@ bool rcBuildDistanceField(rcContext* ctx, rcCompactHeightfield& chf)
 	return true;
 }
 
-static void paintRectRegion(int minx, int maxx, int miny, int maxy, unsigned short regId,
-	rcCompactHeightfield& chf, unsigned short* srcReg)
-{
-	const int w = chf.width;
-	for (int y = miny; y < maxy; ++y)
-	{
-		for (int x = minx; x < maxx; ++x)
-		{
-			const rcCompactCell& c = chf.cells[x + y * w];
-			for (int i = (int)c.index, ni = (int)(c.index + c.count); i < ni; ++i)
-			{
-				if (chf.areas[i] != RC_NULL_AREA)
-					srcReg[i] = regId;
-			}
-		}
-	}
-}
-
-static const unsigned short RC_NULL_NEI = 0xffff;
-
-struct rcSweepSpan
-{
-	unsigned short rid;	// row id
-	unsigned short id;	// region id
-	unsigned short ns;	// number samples
-	unsigned short nei;	// neighbour id
-};
-
 // @par
 //
 // Non-null regions will consist of connected, non-overlapping walkable spans that form a single contour.
@@ -1472,9 +1455,9 @@ bool rcBuildRegionsMonotone(rcContext* ctx, rcCompactHeightfield& chf,
 		paintRectRegion(w - bw, w, 0, h, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(0, w, 0, bh, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(0, w, h - bh, h, id | RC_BORDER_REG, chf, srcReg); id++;
-
-		chf.borderSize = borderSize;
 	}
+
+	chf.borderSize = borderSize;
 
 	rcIntArray prev(256);
 
@@ -1630,9 +1613,7 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 	const int w = chf.width;
 	const int h = chf.height;
 
-	rcScopedDelete<unsigned short> buf
-	{ (unsigned short*)rcAlloc(sizeof(unsigned short) * chf.spanCount * 4, RC_ALLOC_TEMP) };
-
+	rcScopedDelete<unsigned short> buf((unsigned short*)rcAlloc(sizeof(unsigned short) * chf.spanCount * 2, RC_ALLOC_TEMP));
 	if (!buf)
 	{
 		ctx->log(RC_LOG_ERROR, "rcBuildRegions: Out of memory 'tmp' (%d).", chf.spanCount * 4);
@@ -1641,20 +1622,18 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 
 	ctx->startTimer(RC_TIMER_BUILD_REGIONS_WATERSHED);
 
-	constexpr int LOG_NB_STACKS = 3;
-	constexpr int NB_STACKS = 1 << LOG_NB_STACKS;
-	rcIntArray lvlStacks[NB_STACKS];
+	const int LOG_NB_STACKS = 3;
+	const int NB_STACKS = 1 << LOG_NB_STACKS;
+	rcTempVector<LevelStackEntry> lvlStacks[NB_STACKS];
 
 	for (int i = 0; i < NB_STACKS; ++i)
-		lvlStacks[i].resize(1024);
+		lvlStacks[i].reserve(256);
 
-	rcIntArray stack(1024);
-	rcIntArray visited(1024);
+	rcTempVector<LevelStackEntry> stack;
+	stack.reserve(256);
 
 	unsigned short* srcReg = buf;
 	unsigned short* srcDist = buf + chf.spanCount;
-	unsigned short* dstReg = buf + chf.spanCount * 2;
-	unsigned short* dstDist = buf + chf.spanCount * 3;
 
 	memset(srcReg, 0, sizeof(unsigned short) * chf.spanCount);
 	memset(srcDist, 0, sizeof(unsigned short) * chf.spanCount);
@@ -1680,9 +1659,9 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 		paintRectRegion(w - bw, w, 0, h, regionId | RC_BORDER_REG, chf, srcReg); regionId++;
 		paintRectRegion(0, w, 0, bh, regionId | RC_BORDER_REG, chf, srcReg); regionId++;
 		paintRectRegion(0, w, h - bh, h, regionId | RC_BORDER_REG, chf, srcReg); regionId++;
-
-		chf.borderSize = borderSize;
 	}
+
+	chf.borderSize = borderSize;
 
 	int sId = -1;
 
@@ -1705,11 +1684,7 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 
 			// Expand current regions until no empty connected cells found.
 			// 空の接続されたセルが見つからなくなるまで現在の領域を展開します。
-			if (expandRegions(expandIters, level, chf, srcReg, srcDist, dstReg, dstDist, lvlStacks[sId], false) != srcReg)
-			{
-				rcSwap(srcReg, dstReg);
-				rcSwap(srcDist, dstDist);
-			}
+			expandRegions(expandIters, level, chf, srcReg, srcDist, lvlStacks[sId], false);
 		}
 
 		{
@@ -1717,12 +1692,12 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 
 			// Mark new regions with IDs.
 			// 新しい領域にIDを付けます。
-			for (int j = 0; j < lvlStacks[sId].size(); j += 3)
+			for (int j = 0; j < lvlStacks[sId].size(); j++)
 			{
-				int x = lvlStacks[sId][j];
-				int y = lvlStacks[sId][j + 1];
-				int i = lvlStacks[sId][j + 2];
-
+				LevelStackEntry current = lvlStacks[sId][j];
+				int x = current.x;
+				int y = current.y;
+				int i = current.index;
 				if (i >= 0 && srcReg[i] == 0)
 				{
 					if (floodRegion(x, y, i, level, regionId, chf, srcReg, srcDist, stack))
@@ -1742,11 +1717,7 @@ bool rcBuildRegions(rcContext* ctx, rcCompactHeightfield& chf,
 
 	// Expand current regions until no empty connected cells found.
 	// 空の接続されたセルが見つからなくなるまで現在の領域を展開します。
-	if (expandRegions(expandIters * 8, 0, chf, srcReg, srcDist, dstReg, dstDist, stack, true) != srcReg)
-	{
-		rcSwap(srcReg, dstReg);
-		rcSwap(srcDist, dstDist);
-	}
+	expandRegions(expandIters * 8, 0, chf, srcReg, srcDist, stack, true);
 
 	ctx->stopTimer(RC_TIMER_BUILD_REGIONS_WATERSHED);
 
@@ -1819,9 +1790,9 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 		paintRectRegion(w - bw, w, 0, h, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(0, w, 0, bh, id | RC_BORDER_REG, chf, srcReg); id++;
 		paintRectRegion(0, w, h - bh, h, id | RC_BORDER_REG, chf, srcReg); id++;
-
-		chf.borderSize = borderSize;
 	}
+
+	chf.borderSize = borderSize;
 
 	rcIntArray prev(256);
 
@@ -1923,9 +1894,8 @@ bool rcBuildLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 
 		// Merge monotone regions to layers and remove small regions.
 		// モノトーン領域をレイヤーにマージし、小さな領域を削除します。
-		rcIntArray overlaps;
 		chf.maxRegions = id;
-		if (!mergeAndFilterLayerRegions(ctx, minRegionArea, chf.maxRegions, chf, srcReg, overlaps))
+		if (!mergeAndFilterLayerRegions(ctx, minRegionArea, chf.maxRegions, chf, srcReg))
 			return false;
 	}
 

@@ -248,6 +248,9 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 {
 	dtAssert(m_nav);
 
+	if (!filter || !frand || !randomRef || !randomPt)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	// Randomly pick one tile. Assume that all tiles cover roughly the same area.
 	// ランダムに1つのタイルを選択します。すべてのタイルがほぼ同じ領域をカバーすると仮定します。
 	const dtMeshTile* tile = 0;
@@ -334,7 +337,7 @@ dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*fr
 	float pt[3];
 	dtRandomPointInConvexPoly(verts, poly->vertCount, areas, s, t, pt);
 
-	float ht{ 0.0f };
+	float ht{};
 	dtStatus status = getPolyHeight(polyRef, pt, &ht);
 
 	if (dtStatusFailed(status))
@@ -361,11 +364,16 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(dtPolyRef startRef, const f
 
 	// Validate input
 	//入力を検証します
-	if (!startRef || !m_nav->isValidPolyRef(startRef))
+	if (!m_nav->isValidPolyRef(startRef) ||
+		!centerPos || !dtVisfinite(centerPos) ||
+		maxRadius < 0 || !dtMathIsfinite(maxRadius) ||
+		!filter || !frand || !randomRef || !randomPt)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
-	const dtMeshTile* startTile{ nullptr };
-	const dtPoly* startPoly{ nullptr };
+	const dtMeshTile* startTile{};
+	const dtPoly* startPoly{};
 
 	// ポリゴン参照のタイルとポリゴンを取得
 	m_nav->getTileAndPolyByRefUnsafe(startRef, &startTile, &startPoly);
@@ -390,9 +398,9 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(dtPolyRef startRef, const f
 	const float radiusSqr = dtSqr(maxRadius);  // 二乗
 	float areaSum = 0.0f;
 
-	const dtMeshTile* randomTile{ nullptr };
-	const dtPoly* randomPoly{ nullptr };
-	dtPolyRef randomPolyRef{ 0u };
+	const dtMeshTile* randomTile{};
+	const dtPoly* randomPoly{};
+	dtPolyRef randomPolyRef{};
 
 	while (!m_openList->empty())
 	{
@@ -405,8 +413,8 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(dtPolyRef startRef, const f
 		// The API input has been cheked already, skip checking internal data.
 		// API入力は既にチェックされており、内部データのチェックをスキップします。
 		const dtPolyRef bestRef = bestNode->id;
-		const dtMeshTile* bestTile{ nullptr };
-		const dtPoly* bestPoly{ nullptr };
+		const dtMeshTile* bestTile{};
+		const dtPoly* bestPoly{};
 
 		// ポリゴン参照のタイルとポリゴンを取得
 		m_nav->getTileAndPolyByRefUnsafe(bestRef, &bestTile, &bestPoly);
@@ -570,91 +578,14 @@ dtStatus dtNavMeshQuery::findRandomPointAroundCircle(dtPolyRef startRef, const f
 dtStatus dtNavMeshQuery::closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const
 {
 	dtAssert(m_nav);
-	const dtMeshTile* tile = 0;
-	const dtPoly* poly = 0;
-	if (dtStatusFailed(m_nav->getTileAndPolyByRef(ref, &tile, &poly)))
+	if (!m_nav->isValidPolyRef(ref) ||
+		!pos || !dtVisfinite(pos) ||
+		!closest)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
-	if (!tile)
-		return DT_FAILURE | DT_INVALID_PARAM;
-
-	// Off-mesh connections don't have detail polygons.
-	// オフメッシュ接続には詳細ポリゴンがありません。
-	if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
-	{
-		const float* v0 = &tile->verts[poly->verts[0] * 3];
-		const float* v1 = &tile->verts[poly->verts[1] * 3];
-		const float d0 = dtVdist(pos, v0); // 引き算
-		const float d1 = dtVdist(pos, v1); // 引き算
-		const float u = d0 / (d0 + d1);
-		dtVlerp(closest, v0, v1, u); // 線形補間
-
-		if (posOverPoly)
-			*posOverPoly = false;
-
-		return DT_SUCCESS;
 	}
 
-	const unsigned int ip = (unsigned int)(poly - tile->polys);
-	const dtPolyDetail* pd = &tile->detailMeshes[ip];
-
-	// Clamp point to be inside the polygon.
-	//多角形の内側にあるクランプポイント。
-	float verts[DT_VERTS_PER_POLYGON * 3];
-	float edged[DT_VERTS_PER_POLYGON];
-	float edget[DT_VERTS_PER_POLYGON];
-	const int nv = poly->vertCount;
-	for (int i = 0; i < nv; ++i)
-		dtVcopy(&verts[i * 3], &tile->verts[poly->verts[i] * 3]);
-
-	dtVcopy(closest, pos);
-	if (!dtDistancePtPolyEdgesSqr(pos, verts, nv, edged, edget))
-	{
-		// Point is outside the polygon, dtClamp to nearest edge.
-		// ポイントはポリゴンの外側にあり、最も近いエッジにクランプします。
-		float dmin = edged[0];
-		int imin = 0;
-		for (int i = 1; i < nv; ++i)
-		{
-			if (edged[i] < dmin)
-			{
-				dmin = edged[i];
-				imin = i;
-			}
-		}
-		const float* va = &verts[imin * 3];
-		const float* vb = &verts[((imin + 1) % nv) * 3];
-		dtVlerp(closest, va, vb, edget[imin]);
-
-		if (posOverPoly)
-			*posOverPoly = false;
-	}
-	else
-	{
-		if (posOverPoly)
-			*posOverPoly = true;
-	}
-
-	// Find height at the location.
-	// その場所の高さを見つけます。
-	for (int j = 0; j < pd->triCount; ++j)
-	{
-		const unsigned char* t = &tile->detailTris[(pd->triBase + j) * 4];
-		const float* v[3];
-		for (int k = 0; k < 3; ++k)
-		{
-			if (t[k] < poly->vertCount)
-				v[k] = &tile->verts[poly->verts[t[k]] * 3];
-			else
-				v[k] = &tile->detailVerts[(pd->vertBase + (t[k] - poly->vertCount)) * 3];
-		}
-		float h;
-		if (dtClosestHeightPointTriangle(closest, v[0], v[1], v[2], h))
-		{
-			closest[1] = h;
-			break;
-		}
-	}
-
+	m_nav->closestPointOnPoly(ref, pos, closest, posOverPoly);
 	return DT_SUCCESS;
 }
 
@@ -680,6 +611,9 @@ dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(dtPolyRef ref, const float* 
 	const dtMeshTile* tile = 0;
 	const dtPoly* poly = 0;
 	if (dtStatusFailed(m_nav->getTileAndPolyByRef(ref, &tile, &poly)))
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	if (!pos || !dtVisfinite(pos) || !closest)
 		return DT_FAILURE | DT_INVALID_PARAM;
 
 	// Collect vertices.
@@ -723,12 +657,11 @@ dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(dtPolyRef ref, const float* 
 	return DT_SUCCESS;
 }
 
-// @par
-//
-// Will return #DT_FAILURE if the provided position is outside the xz-bounds
-// of the polygon.
-// 指定された位置がポリゴンのxz境界の外側にある場合、＃DT_FAILUREを返します。
-//
+/// @par
+///
+/// Will return #DT_FAILURE | DT_INVALID_PARAM if the provided position is outside the xz-bounds of the polygon.
+// ///指定された位置がポリゴンのxz境界の外にある場合、＃DT_FAILURE | #DT_INVALID_PARAM を返します。
+///
 dtStatus dtNavMeshQuery::getPolyHeight(dtPolyRef ref, const float* pos, float* height) const
 {
 	dtAssert(m_nav);
@@ -738,43 +671,28 @@ dtStatus dtNavMeshQuery::getPolyHeight(dtPolyRef ref, const float* pos, float* h
 	if (dtStatusFailed(m_nav->getTileAndPolyByRef(ref, &tile, &poly)))
 		return DT_FAILURE | DT_INVALID_PARAM;
 
+	if (!pos || !dtVisfinite2D(pos))
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	// We used to return success for offmesh connections, but the getPolyHeight in DetourNavMesh does not do this,
+	// so special case it here.
+	// 以前はオフメッシュ接続の成功を返していましたが、DetourNavMeshのgetPolyHeightはこれを行いません。
+	// したがって、ここでは特殊なケースです。
 	if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
 	{
-		const float* v0 = &tile->verts[poly->verts[0] * 3];
-		const float* v1 = &tile->verts[poly->verts[1] * 3];
-		const float d0 = dtVdist2D(pos, v0);
-		const float d1 = dtVdist2D(pos, v1);
-		const float u = d0 / (d0 + d1);
+		const float* v0 = &tile->verts[poly->verts[0]*3];
+		const float* v1 = &tile->verts[poly->verts[1]*3];
+		float t;
+		dtDistancePtSegSqr2D(pos, v0, v1, t);
 		if (height)
-			*height = v0[1] + (v1[1] - v0[1]) * u;
+			*height = v0[1] + (v1[1] - v0[1])*t;
+
 		return DT_SUCCESS;
 	}
-	else
-	{
-		const unsigned int ip = (unsigned int)(poly - tile->polys);
-		const dtPolyDetail* pd = &tile->detailMeshes[ip];
-		for (int j = 0; j < pd->triCount; ++j)
-		{
-			const unsigned char* t = &tile->detailTris[(pd->triBase + j) * 4];
-			const float* v[3];
-			for (int k = 0; k < 3; ++k)
-			{
-				if (t[k] < poly->vertCount)
-					v[k] = &tile->verts[poly->verts[t[k]] * 3];
-				else
-					v[k] = &tile->detailVerts[(pd->vertBase + (t[k] - poly->vertCount)) * 3];
-			}
-			float h;
-			if (dtClosestHeightPointTriangle(pos, v[0], v[1], v[2], h))
-			{
-				if (height)
-					*height = h;
-				return DT_SUCCESS;
-			}
-		}
-	}
 
-	return DT_FAILURE | DT_INVALID_PARAM;
+	return m_nav->getPolyHeight(tile, poly, pos, height)
+		? DT_SUCCESS
+		: DT_FAILURE | DT_INVALID_PARAM;
 }
 
 class dtFindNearestPolyQuery : public dtPolyQuery
@@ -840,7 +758,7 @@ public:
 // @p nearestRef before using @p nearestPt.
 // 検索ボックスがポリゴンと交差しない場合、検索は#DT_SUCCESSを返しますが、nearestRefはゼロになります。
 // 疑わしい場合は、nearestPtを使用する前に、nearestRefを確認してください。
-dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* extents,
+dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* halfExtents,
 	const dtQueryFilter* filter,
 	dtPolyRef* nearestRef, float* nearestPt) const
 {
@@ -849,10 +767,12 @@ dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* exten
 	if (!nearestRef)
 		return DT_FAILURE | DT_INVALID_PARAM;
 
+	// queryPolygons below will check rest of params
+
 	dtFindNearestPolyQuery query(this, center);
 
 	// 検索ボックスに重なるポリゴンを検​​索
-	dtStatus status = queryPolygons(center, extents, filter, &query);
+	dtStatus status = queryPolygons(center, halfExtents, filter, &query);
 	if (dtStatusFailed(status))
 		return status;
 
@@ -1043,7 +963,7 @@ public:
 // @p polysが小さすぎて結果セット全体を保持できない場合、配列は容量いっぱいになります。
 // 完全なセットからどのポリゴンを部分的な結果セットに含めるかを選択する方法は未定義です。
 //
-dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents,
+dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* halfExtents,
 	const dtQueryFilter* filter,
 	dtPolyRef* polys, int* polyCount, const int maxPolys) const
 {
@@ -1052,7 +972,7 @@ dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents
 
 	dtCollectPolysQuery collector(polys, maxPolys);
 
-	dtStatus status = queryPolygons(center, extents, filter, &collector);
+	dtStatus status = queryPolygons(center, halfExtents, filter, &collector);
 	if (dtStatusFailed(status))
 		return status;
 
@@ -1063,24 +983,28 @@ dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents
 // @par
 //
 // The query will be invoked with batches of polygons. Polygons passed
-// to the query have bounding boxes that overlap with the center and extents
+// to the query have bounding boxes that overlap with the center and halfExtents
 // passed to this function. The dtPolyQuery::process function is invoked multiple
 // times until all overlapping polygons have been processed.
 // クエリは、ポリゴンのバッチで呼び出されます。
 // クエリに渡されるポリゴンには、この関数に渡される中心および範囲と重複する境界ボックスがあります。
 // dtPolyQuery::process関数は、重複するすべてのポリゴンが処理されるまで複数回呼び出されます。
 //
-dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* extents,
+dtStatus dtNavMeshQuery::queryPolygons(const float* center, const float* halfExtents,
 	const dtQueryFilter* filter, dtPolyQuery* query) const
 {
 	dtAssert(m_nav);
 
-	if (!center || !extents || !filter || !query)
+	if (!center || !dtVisfinite(center) ||
+		!halfExtents || !dtVisfinite(halfExtents) ||
+		!filter || !query)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
 	float bmin[3], bmax[3];
-	dtVsub(bmin, center, extents);
-	dtVadd(bmax, center, extents);
+	dtVsub(bmin, center, halfExtents);
+	dtVadd(bmax, center, halfExtents);
 
 	// Find tiles the query touches.
 	// クエリが触れるタイルを見つけます。
@@ -1133,14 +1057,20 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 	dtAssert(m_nodePool);
 	dtAssert(m_openList);
 
-	if (pathCount)
-		*pathCount = 0;
+	if (!pathCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	*pathCount = 0;
 
 	// Validate input
 	// 入力を検証する (ポリゴン参照の有効性を確認)
 	if (!m_nav->isValidPolyRef(startRef) || !m_nav->isValidPolyRef(endRef) ||
-		!startPos || !endPos || !filter || maxPath <= 0 || !path || !pathCount)
+		!startPos || !dtVisfinite(startPos) ||
+		!endPos || !dtVisfinite(endPos) ||
+		!filter || !path || maxPath <= 0)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
 	// スタート地点とゴール地点が同じ場所
 	if (startRef == endRef)
@@ -1200,8 +1130,8 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 		// 現在のポリゴンとタイルを取得します。
 		// API入力は既にチェックされており、内部データのチェックをスキップします。
 		const dtPolyRef bestRef{ bestNode->id };
-		const dtMeshTile* bestTile{ nullptr };
-		const dtPoly* bestPoly{ nullptr };
+		const dtMeshTile* bestTile{};
+		const dtPoly* bestPoly{};
 
 		// 指定されたポリゴン参照のタイルとポリゴンを返します。
 		m_nav->getTileAndPolyByRefUnsafe(bestRef, &bestTile, &bestPoly);
@@ -1209,8 +1139,8 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 		// Get parent poly and tile.
 		// 親ポリゴンとタイルを取得します。
 		dtPolyRef parentRef{};
-		const dtMeshTile* parentTile{ nullptr };
-		const dtPoly* parentPoly{ nullptr };
+		const dtMeshTile* parentTile{};
+		const dtPoly* parentPoly{};
 
 		if (bestNode->pidx)
 			parentRef = m_nodePool->getNodeAtIdx(bestNode->pidx)->id;
@@ -1232,8 +1162,8 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 			// The API input has been cheked already, skip checking internal data.
 			// 隣のポリゴンとタイルを取得します。
 			// API入力は既にチェックされており、内部データのチェックをスキップします。
-			const dtMeshTile* neighbourTile{ nullptr };
-			const dtPoly* neighbourPoly{ nullptr };
+			const dtMeshTile* neighbourTile{};
+			const dtPoly* neighbourPoly{};
 
 			// 指定されたポリゴン参照のタイルとポリゴンを取得
 			m_nav->getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly);
@@ -1426,8 +1356,10 @@ dtStatus dtNavMeshQuery::initSlicedFindPath(dtPolyRef startRef, dtPolyRef endRef
 	m_query.status = DT_FAILURE;
 	m_query.startRef = startRef;
 	m_query.endRef = endRef;
-	dtVcopy(m_query.startPos, startPos); // コピー
-	dtVcopy(m_query.endPos, endPos);     // コピー
+	if (startPos)
+		dtVcopy(m_query.startPos, startPos);
+	if (endPos)
+		dtVcopy(m_query.endPos, endPos);
 	m_query.filter = filter;
 	m_query.options = options;
 	m_query.raycastLimitSqr = FLT_MAX;
@@ -1436,9 +1368,12 @@ dtStatus dtNavMeshQuery::initSlicedFindPath(dtPolyRef startRef, dtPolyRef endRef
 		return DT_FAILURE | DT_INVALID_PARAM;
 
 	// Validate input
-	// 入力を検証する
-	if (!m_nav->isValidPolyRef(startRef) || !m_nav->isValidPolyRef(endRef))
+	if (!m_nav->isValidPolyRef(startRef) || !m_nav->isValidPolyRef(endRef) ||
+		!startPos || !dtVisfinite(startPos) ||
+		!endPos || !dtVisfinite(endPos) || !filter)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
 	// trade quality with performance?
 	// 品質とパフォーマンスのトレード？
@@ -1738,7 +1673,13 @@ dtStatus dtNavMeshQuery::updateSlicedFindPath(const int maxIter, int* doneIters)
 
 dtStatus dtNavMeshQuery::finalizeSlicedFindPath(dtPolyRef* path, int* pathCount, const int maxPath)
 {
+	if (!pathCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	*pathCount = 0;
+
+	if (!path || maxPath <= 0)
+		return DT_FAILURE | DT_INVALID_PARAM;
 
 	if (dtStatusFailed(m_query.status))
 	{
@@ -1834,12 +1775,13 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPath(dtPolyRef* path, int* pathCount,
 dtStatus dtNavMeshQuery::finalizeSlicedFindPathPartial(const dtPolyRef* existing, const int existingSize,
 	dtPolyRef* path, int* pathCount, const int maxPath)
 {
+	if (!pathCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	*pathCount = 0;
 
-	if (existingSize == 0)
-	{
-		return DT_FAILURE;
-	}
+	if (!existing || existingSize <= 0 || !path || !pathCount || maxPath <= 0)
+		return DT_FAILURE | DT_INVALID_PARAM;
 
 	if (dtStatusFailed(m_query.status))
 	{
@@ -2058,13 +2000,18 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 {
 	dtAssert(m_nav);
 
+	if (!straightPathCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	*straightPathCount = 0;
 
-	if (!maxStraightPath)
+	if (!startPos || !dtVisfinite(startPos) ||
+		!endPos || !dtVisfinite(endPos) ||
+		!path || pathSize <= 0 || !path[0] ||
+		maxStraightPath <= 0)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
-
-	if (!path[0])
-		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
 	dtStatus stat = 0;
 
@@ -2324,13 +2271,19 @@ dtStatus dtNavMeshQuery::moveAlongSurface(dtPolyRef startRef, const float* start
 	dtAssert(m_nav);
 	dtAssert(m_tinyNodePool);
 
+	if (!visitedCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	*visitedCount = 0;
 
-	// Validate input
-	if (!startRef)
+	if (!m_nav->isValidPolyRef(startRef) ||
+		!startPos || !dtVisfinite(startPos) ||
+		!endPos || !dtVisfinite(endPos) ||
+		!filter || !resultPos || !visited ||
+		maxVisitedSize <= 0)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
-	if (!m_nav->isValidPolyRef(startRef))
-		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
 	dtStatus status = DT_SUCCESS;
 
@@ -2762,15 +2715,22 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 {
 	dtAssert(m_nav);
 
+	if (!hit)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	hit->t = 0;
 	hit->pathCount = 0;
 	hit->pathCost = 0;
 
 	// Validate input
-	if (!startRef || !m_nav->isValidPolyRef(startRef))
+	if (!m_nav->isValidPolyRef(startRef) ||
+		!startPos || !dtVisfinite(startPos) ||
+		!endPos || !dtVisfinite(endPos) ||
+		!filter ||
+		(prevRef && !m_nav->isValidPolyRef(prevRef)))
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
-	if (prevRef && !m_nav->isValidPolyRef(prevRef))
-		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
 	float dir[3], curPos[3], lastPos[3];
 	float verts[DT_VERTS_PER_POLYGON * 3 + 3];
@@ -3026,12 +2986,19 @@ dtStatus dtNavMeshQuery::findPolysAroundCircle(dtPolyRef startRef, const float* 
 	dtAssert(m_nodePool);
 	dtAssert(m_openList);
 
-	*resultCount = 0;
-
-	// Validate input
-	if (!startRef || !m_nav->isValidPolyRef(startRef))
+	if (!resultCount)
 		return DT_FAILURE | DT_INVALID_PARAM;
 
+	*resultCount = 0;
+
+	if (!m_nav->isValidPolyRef(startRef) ||
+		!centerPos || !dtVisfinite(centerPos) ||
+		radius < 0 || !dtMathIsfinite(radius) ||
+		!filter || maxResult < 0)
+	{
+		return DT_FAILURE | DT_INVALID_PARAM;
+	}
+	
 	m_nodePool->clear();
 	m_openList->clear();
 
@@ -3202,8 +3169,18 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 	dtAssert(m_nodePool);
 	dtAssert(m_openList);
 
+	if (!resultCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	*resultCount = 0;
 
+	if (!m_nav->isValidPolyRef(startRef) ||
+		!verts || nverts < 3 ||
+		!filter || maxResult < 0)
+	{
+		return DT_FAILURE | DT_INVALID_PARAM;
+	}
+	
 	// Validate input
 	// 入力を検証します
 	if (!startRef || !m_nav->isValidPolyRef(startRef))
@@ -3304,7 +3281,7 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 			int segMin, segMax;
 			if (!dtIntersectSegmentPoly2D(va, vb, verts, nverts, tmin, tmax, segMin, segMax))
 				continue;
-			if (tmin > 1.f || tmax < 0.0f)
+			if (tmin > 1.f || tmax < 0.f)
 				continue;
 
 			dtNode* neighbourNode = m_nodePool->getNode(neighbourRef);
@@ -3401,12 +3378,18 @@ dtStatus dtNavMeshQuery::findLocalNeighbourhood(dtPolyRef startRef, const float*
 	dtAssert(m_nav);
 	dtAssert(m_tinyNodePool);
 
+	if (!resultCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
 	*resultCount = 0;
 
-	// Validate input
-	// 入力を検証します
-	if (!startRef || !m_nav->isValidPolyRef(startRef))
+	if (!m_nav->isValidPolyRef(startRef) ||
+		!centerPos || !dtVisfinite(centerPos) ||
+		radius < 0 || !dtMathIsfinite(radius) ||
+		!filter || maxResult < 0)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
+	}
 
 	constexpr int MAX_STACK = 48;
 	dtNode* stack[MAX_STACK];
@@ -3632,6 +3615,9 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 {
 	dtAssert(m_nav);
 
+	if (!segmentCount)
+		return DT_FAILURE | DT_INVALID_PARAM;
+	
 	*segmentCount = 0;
 
 	const dtMeshTile* tile = 0;
@@ -3639,6 +3625,9 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 	if (dtStatusFailed(m_nav->getTileAndPolyByRef(ref, &tile, &poly)))
 		return DT_FAILURE | DT_INVALID_PARAM;
 
+	if (!filter || !segmentVerts || maxSegments < 0)
+		return DT_FAILURE | DT_INVALID_PARAM;
+	
 	int n = 0;
 	constexpr int MAX_INTERVAL = 16;
 	dtSegInterval ints[MAX_INTERVAL];
@@ -3796,9 +3785,14 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	dtAssert(m_openList);
 
 	// Validate input
-	if (!startRef || !m_nav->isValidPolyRef(startRef))
+	if (!m_nav->isValidPolyRef(startRef) ||
+		!centerPos || !dtVisfinite(centerPos) ||
+		maxRadius < 0 || !dtMathIsfinite(maxRadius) ||
+		!filter || !hitDist || !hitPos || !hitNormal)
+	{
 		return DT_FAILURE | DT_INVALID_PARAM;
-
+	}
+	
 	m_nodePool->clear();
 	m_openList->clear();
 
@@ -3814,9 +3808,7 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	float radiusSqr = dtSqr(maxRadius);
 
 	dtStatus status = DT_SUCCESS;
-
-	const float* bestvj = 0, * bestvi = 0;
-
+	
 	while (!m_openList->empty())
 	{
 		dtNode* bestNode = m_openList->pop();
@@ -3887,11 +3879,9 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 			// Hit wall, update radius.
 			radiusSqr = distSqr;
 			// Calculate hit pos.
-			hitPos[0] = vj[0] + (vi[0] - vj[0]) * tseg;
-			hitPos[1] = vj[1] + (vi[1] - vj[1]) * tseg;
-			hitPos[2] = vj[2] + (vi[2] - vj[2]) * tseg;
-			bestvj = vj;
-			bestvi = vi;
+			hitPos[0] = vj[0] + (vi[0] - vj[0])*tseg;
+			hitPos[1] = vj[1] + (vi[1] - vj[1])*tseg;
+			hitPos[2] = vj[2] + (vi[2] - vj[2])*tseg;
 		}
 
 		for (unsigned int i = bestPoly->firstLink; i != DT_NULL_LINK; i = bestTile->links[i].next)
@@ -3965,18 +3955,9 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	}
 
 	// Calc hit normal.
-	if (bestvj && bestvi)
-	{
-		float tangent[3];
-		dtVsub(tangent, bestvi, bestvj);
-
-		hitNormal[0] = tangent[2];
-		hitNormal[1] = 0;
-		hitNormal[2] = -tangent[0];
-
-		dtVnormalize(hitNormal);
-	}
-
+	dtVsub(hitNormal, centerPos, hitPos);
+	dtVnormalize(hitNormal);
+	
 	*hitDist = dtMathSqrtf(radiusSqr);
 
 	return status;

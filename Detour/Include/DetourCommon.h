@@ -352,6 +352,28 @@ inline constexpr bool dtVequal(const float* p0, const float* p1)
 	return d < thr;
 }
 
+/// Checks that the specified vector's components are all finite.
+///  @param[in]		v	A point. [(x, y, z)]
+/// @return True if all of the point's components are finite, i.e. not NaN
+/// or any of the infinities.
+inline bool dtVisfinite(const float* v)
+{
+	bool result =
+		dtMathIsfinite(v[0]) &&
+		dtMathIsfinite(v[1]) &&
+		dtMathIsfinite(v[2]);
+
+	return result;
+}
+
+/// Checks that the specified vector's 2D components are finite.
+///  @param[in]		v	A point. [(x, y, z)]
+inline bool dtVisfinite2D(const float* v)
+{
+	bool result = dtMathIsfinite(v[0]) && dtMathIsfinite(v[2]);
+	return result;
+}
+
 // Derives the dot product of two vectors on the xz-plane. (@p u . @p v)
 // xz平面上の2つのベクトルのドット積を導出します。 （u .v）
 //  @param[in]		u		A vector [(x, y, z)]

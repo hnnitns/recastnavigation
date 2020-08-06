@@ -151,12 +151,17 @@ enum dtRaycastOptions
 	DT_RAYCAST_USE_COSTS = 0x01,		//< Raycast should calculate movement cost along the ray and fill RaycastHit::cost
 };
 
-// Limit raycasting during any angle pahfinding
-// The limit is given as a multiple of the character radius
-constexpr float DT_RAY_CAST_LIMIT_PROPORTIONS = 50.0f;
+enum dtDetailTriEdgeFlags
+{
+	DT_DETAIL_EDGE_BOUNDARY = 0x01,		///< Detail triangle edge is part of the poly boundary
+};
 
-// Flags representing the type of a navigation mesh polygon.
-// ナビゲーションメッシュポリゴンのタイプを表すフラグ。
+
+/// Limit raycasting during any angle pahfinding
+/// The limit is given as a multiple of the character radius
+static const float DT_RAY_CAST_LIMIT_PROPORTIONS = 50.0f;
+
+/// Flags representing the type of a navigation mesh polygon.
 enum dtPolyTypes
 {
 	// The polygon is a standard convex polygon that is part of the surface of the mesh.
@@ -364,12 +369,14 @@ struct dtMeshTile
 
 
 	// The detail mesh's unique vertices. [(x, y, z) * dtMeshHeader::detailVertCount]
-	// 詳細メッシュの一意の頂点。 [（X、y、z）* dtMeshHeader :: detailVertCount]
+	// 詳細メッシュの一意の頂点。
 	float* detailVerts;
 
-	// The detail mesh's triangles. [(vertA, vertB, vertC) * dtMeshHeader::detailTriCount]
-	// 詳細メッシュの三角形。 [（VertA、vertB、vertC）* dtMeshHeader :: detailTriCount]
-	unsigned char* detailTris;
+	/// The detail mesh's triangles. [(vertA, vertB, vertC, triFlags) * dtMeshHeader::detailTriCount].
+	/// ディテールメッシュの三角形。
+	/// See dtDetailTriEdgeFlags and dtGetDetailTriEdgeFlags.
+	/// dtDetailTriEdgeFlagsおよびdtGetDetailTriEdgeFlagsを参照してください。
+	unsigned char* detailTris;	
 
 	// The tile bounding volume nodes. [Size: dtMeshHeader::bvNodeCount] (Will be null if bounding volumes are disabled.)
 	// タイル境界ボリュームノード。 [サイズ：dtMeshHeader :: bvNodeCount]（バウンディングボリュームが無効になっている場合はnullになります。）
@@ -396,10 +403,19 @@ private:
 	dtMeshTile& operator=(const dtMeshTile&);
 };
 
-// Configuration parameters used to define multi-tile navigation meshes.
-// The values are used to allocate space during the initialization of a navigation mesh.
-// @see dtNavMesh::init()
-// @ingroup detour
+/// Get flags for edge in detail triangle.
+/// @param	triFlags[in]		The flags for the triangle (last component of detail vertices above).
+/// @param	edgeIndex[in]		The index of the first vertex of the edge. For instance, if 0,
+///								returns flags for edge AB.
+inline int dtGetDetailTriEdgeFlags(unsigned char triFlags, int edgeIndex)
+{
+	return (triFlags >> (edgeIndex * 2)) & 0x3;
+}
+
+/// Configuration parameters used to define multi-tile navigation meshes.
+/// The values are used to allocate space during the initialization of a navigation mesh.
+/// @see dtNavMesh::init()
+/// @ingroup detour
 struct dtNavMeshParams
 {
 	float orig[3];					//< The world space origin of the navigation mesh's tile space. [(x, y, z)]
@@ -741,8 +757,10 @@ private:
 		dtPolyRef* polys, const int maxPolys) const;
 	// Find nearest polygon within a tile.
 	dtPolyRef findNearestPolyInTile(const dtMeshTile* tile, const float* center,
-		const float* extents, float* nearestPt) const;
-	// Returns closest point on polygon.
+									const float* halfExtents, float* nearestPt) const;
+	/// Returns whether position is over the poly and the height at the position if so.
+	bool getPolyHeight(const dtMeshTile* tile, const dtPoly* poly, const float* pos, float* height) const;
+	/// Returns closest point on polygon.
 	void closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const;
 
 	dtNavMeshParams m_params;			//< Current initialization params. TODO: do not store this info twice.
@@ -761,6 +779,8 @@ private:
 	unsigned int m_tileBits;			//< Number of tile bits in the tile ID.
 	unsigned int m_polyBits;			//< Number of poly bits in the tile ID.
 #endif
+
+	friend class dtNavMeshQuery;
 };
 
 // Allocates a navigation mesh object using the Detour allocator.

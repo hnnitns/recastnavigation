@@ -40,7 +40,7 @@
 #include "DetourNode.h"
 #include "SampleInterfaces.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #	define snprintf _snprintf
 #endif
 
@@ -175,8 +175,6 @@ void CrowdToolState::init(class Sample* sample)
 	if (m_sample != sample)
 	{
 		m_sample = sample;
-		//		m_oldFlags = m_sample->getNavMeshDrawFlags();
-		//		m_sample->setNavMeshDrawFlags(m_oldFlags & ~DU_DRAWNAVMESH_CLOSEDLIST);
 	}
 
 	dtNavMesh* nav = m_sample->getNavMesh();
@@ -794,7 +792,7 @@ void CrowdToolState::setMoveTarget(const float* pos, bool adjust)
 	dtNavMeshQuery* navquery = m_sample->getNavMeshQuery();
 	dtCrowd* crowd = m_sample->getCrowd();
 	const dtQueryFilter* filter = crowd->getFilter(0);
-	const float* ext = crowd->getQueryExtents();
+	const float* halfExtents = crowd->getQueryExtents();
 
 	// 指定した場所へのベクトルの方向へ向かう
 	if (adjust)
@@ -824,7 +822,7 @@ void CrowdToolState::setMoveTarget(const float* pos, bool adjust)
 	// 指定した場所へ向かう
 	else
 	{
-		navquery->findNearestPoly(pos, ext, filter, &m_targetRef, m_targetPos);
+		navquery->findNearestPoly(pos, halfExtents, filter, &m_targetRef, m_targetPos);
 
 		if (m_agentDebug.idx != -1)
 		{
@@ -1177,10 +1175,10 @@ void CrowdTool::handleClickDown(const float* s, const float* p, bool shift)
 		if (nav && navquery)
 		{
 			dtQueryFilter filter;
-			const float* ext = crowd->getQueryExtents();
+			const float* halfExtents = crowd->getQueryExtents();
 			float tgt[3];
 			dtPolyRef ref;
-			navquery->findNearestPoly(p, ext, &filter, &ref, tgt);
+			navquery->findNearestPoly(p, halfExtents, &filter, &ref, tgt);
 			if (ref)
 			{
 				unsigned short flags = 0;
@@ -1198,7 +1196,7 @@ void CrowdTool::handleStep()
 {
 	if (!m_state) return;
 
-	const float dt = 1.f / 20.0f;
+	const float dt = 1.f / 20.f;
 	m_state->updateTick(dt);
 
 	m_state->SetAllRunning(false);

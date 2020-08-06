@@ -72,33 +72,3 @@ void rcFree(void* ptr)
 	if (ptr)
 		sRecastFreeFunc(ptr);
 }
-
-// @class rcIntArray
-//
-// While it is possible to pre-allocate a specific array size during
-// construction or by using the #resize method, certain methods will
-// automatically resize the array as needed.
-// 構築中または#resizeメソッドを使用して特定の配列サイズを事前に割り当てることができますが、
-// 特定のメソッドは必要に応じて自動的に配列のサイズを変更します。
-//
-// @warning The array memory is not initialized to zero when the size is
-// manually set during construction or when using #resize.
-// サイズが構築中に手動で設定された場合、または#resizeを使用した場合、配列メモリはゼロに初期化されません。
-
-// @par
-//
-// Using this method ensures the array is at least large enough to hold
-// the specified number of elements.  This can improve performance by
-// avoiding auto-resizing during use.
-// このメソッドを使用すると、配列が少なくとも指定された数の要素を保持するのに十分な大きさになります。
-// これにより、使用中の自動サイズ変更を回避することでパフォーマンスを改善できます。
-void rcIntArray::doResize(int n)
-{
-	if (!m_cap) m_cap = n;
-	while (m_cap < n) m_cap *= 2;
-	int* newData = (int*)rcAlloc(m_cap * sizeof(int), RC_ALLOC_TEMP);
-	rcAssert(newData);
-	if (m_size && newData) memcpy(newData, m_data, m_size * sizeof(int));
-	rcFree(m_data);
-	m_data = newData;
-}

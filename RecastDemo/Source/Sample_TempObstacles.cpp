@@ -754,7 +754,23 @@ struct MeshProcess : public dtTileCacheMeshProcess
 		// Update poly flags from areas.
 		for (int i = 0; i < params->polyCount; ++i)
 		{
-			polyFlags[i] = sampleAreaToFlags(polyAreas[i]);
+			if (polyAreas[i] == DT_TILECACHE_WALKABLE_AREA)
+				polyAreas[i] = SAMPLE_POLYAREA_GROUND;
+
+			if (polyAreas[i] == SAMPLE_POLYAREA_GROUND ||
+				polyAreas[i] == SAMPLE_POLYAREA_GRASS ||
+				polyAreas[i] == SAMPLE_POLYAREA_ROAD)
+			{
+				polyFlags[i] = SAMPLE_POLYFLAGS_WALK;
+			}
+			else if (polyAreas[i] == SAMPLE_POLYAREA_WATER)
+			{
+				polyFlags[i] = SAMPLE_POLYFLAGS_SWIM;
+			}
+			else if (polyAreas[i] == SAMPLE_POLYAREA_DOOR)
+			{
+				polyFlags[i] = SAMPLE_POLYFLAGS_WALK | SAMPLE_POLYFLAGS_DOOR;
+			}
 		}
 
 		// Pass in off-mesh connections.
@@ -895,9 +911,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 
 		memset(rc.triareas, 0, ntris * sizeof(unsigned char));
 
-		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle,
-			verts.data(), nverts, tris, ntris, rc.triareas,
-			SAMPLE_AREAMOD_GROUND);
+		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle, verts.data(), nverts, tris, ntris, rc.triareas);
 
 		if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, rc.triareas, ntris, *rc.solid, tcfg.walkableClimb))
 			return 0;
@@ -946,7 +960,7 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 	{
 		rcMarkConvexPolyArea(m_ctx, vols.at(i).verts.data(), vols.at(i).nverts, vols.at(i).hmin, vols.at(i).hmax,
-			vols.at(i).areaMod, *rc.chf);
+			(unsigned char)vols[i].area, *rc.chf);
 	}
 
 	// Recastアロケーターを使用して、地形レイヤーセットを割り当てる
@@ -1695,7 +1709,7 @@ bool Sample_TempObstacles::buildAllTiles()
 	m_ctx->stopTimer(RC_TIMER_TOTAL);
 
 	m_cacheBuildTimeMs = m_ctx->getAccumulatedTime(RC_TIMER_TOTAL) / 1000.0f;
-	m_cacheBuildMemUsage = m_talloc->high;
+	m_cacheBuildMemUsage = static_cast<uint32_t>(m_talloc->high);
 
 	return true;
 }

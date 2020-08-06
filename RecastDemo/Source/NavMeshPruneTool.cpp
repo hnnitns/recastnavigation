@@ -273,10 +273,10 @@ void NavMeshPruneTool::handleClickDown(const float* s, const float* p, bool shif
 		m_flags->init(nav);
 	}
 
-	constexpr float ext[3]{ 2,4,2 };
+	constexpr float halfExtents[3]{ 2, 4, 2 };
 	dtQueryFilter filter;
 	dtPolyRef ref = 0;
-	query->findNearestPoly(p, ext, &filter, &ref, nullptr);
+	query->findNearestPoly(p, halfExtents, &filter, &ref, 0);
 
 	floodNavmesh(nav, m_flags, ref, SAMPLE_POLYFLAGS_WALK);
 }

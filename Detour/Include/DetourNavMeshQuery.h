@@ -143,9 +143,9 @@ public:
 	//@}
 };
 
-// Provides information about raycast hit
-// filled by dtNavMeshQuery::raycast
-// @ingroup detour
+/// Provides information about raycast hit
+/// filled by dtNavMeshQuery::raycast
+/// @ingroup detour
 struct dtRaycastHit
 {
 	// The hit parameter. (FLT_MAX if no wall hit.)
@@ -417,60 +417,60 @@ public:
 	//  				be used immediately after one of the two Dijkstra searches, findPolysAroundCircle or findPolysAroundShape.
 	dtStatus getPathFromDijkstraSearch(dtPolyRef endRef, dtPolyRef* path, int* pathCount, int maxPath) const;
 
-	// @nameローカルクエリ関数
-	//指定された中心点に最も近いポリゴンを検索します。
-	// @param [in] center検索ボックスの中心。 [（x、y、z）]
-	// @param [in] extents各軸に沿った検索距離。 [（x、y、z）]
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [out] nearestRef最も近いポリゴンの参照ID。
-	// @param [out] nearestPtポリゴン上の最も近いポイント。 [opt] [（x、y、z）]
-	// @returnsクエリのステータスフラグ。
-	// @}
-	// @name Local Query Functions
-	//@{
-	// Finds the polygon nearest to the specified center point.
-	//  @param[in]		center		The center of the search box. [(x, y, z)]
-	//  @param[in]		extents		The search distance along each axis. [(x, y, z)]
-	//  @param[in]		filter		The polygon filter to apply to the query.
-	//  @param[out]	nearestRef	The reference id of the nearest polygon.
-	//  @param[out]	nearestPt	The nearest point on the polygon. [opt] [(x, y, z)]
-	// @returns The status flags for the query.
-	dtStatus findNearestPoly(const float* center, const float* extents,
-		const dtQueryFilter* filter,
-		dtPolyRef* nearestRef, float* nearestPt) const;
+	/// @}
+	/// @name Local Query Functions
+	///@{
 
-	// 検索ボックスに重なるポリゴンを検​​索します。
-	// @param [in] center検索ボックスの中心。[（x、y、z）]
-	// @param [in] halfExtents各軸に沿った検索距離。[（x、y、z）]
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [out] polysクエリボックスに重なるポリゴンの参照ID。
-	// @param [out] polyCount検索結果のポリゴンの数。
-	// @param [in] maxPolys検索結果が保持できるポリゴンの最大数。
-	// @returnsクエリのステータスフラグ。
-	// Finds polygons that overlap the search box.
-	//  @param[in]		center		The center of the search box. [(x, y, z)]
-	//  @param[in]		extents		The search distance along each axis. [(x, y, z)]
-	//  @param[in]		filter		The polygon filter to apply to the query.
-	//  @param[out]	polys		The reference ids of the polygons that overlap the query box.
-	//  @param[out]	polyCount	The number of polygons in the search result.
-	//  @param[in]		maxPolys	The maximum number of polygons the search result can hold.
-	// @returns The status flags for the query.
-	dtStatus queryPolygons(const float* center, const float* extents,
-		const dtQueryFilter* filter,
-		dtPolyRef* polys, int* polyCount, const int maxPolys) const;
+	/// Finds the polygon nearest to the specified center point.
+	//	指定された中心点に最も近いポリゴンを検索します。
+	///  @param[in] center		The center of the search box. [(x, y, z)]
+	//   検索ボックスの中心。
+	///  @param[in] halfExtents	The search distance along each axis. [(x, y, z)]
+	//   各軸に沿った検索距離。
+	///  @param[in] filter		The polygon filter to apply to the query.
+	//   クエリに適用するポリゴンフィルター。
+	///  @param[out]	nearestRef	The reference id of the nearest polygon.
+	//   最も近いポリゴンの参照ID。
+	///  @param[out]	nearestPt	The nearest point on the polygon. [opt] [(x, y, z)]
+	//   ポリゴン上の最も近いポイント。
+	/// @returns The status flags for the query.
+	//  クエリのステータスフラグ。
+	dtStatus findNearestPoly(const float* center, const float* halfExtents,
+							 const dtQueryFilter* filter,
+							 dtPolyRef* nearestRef, float* nearestPt) const;
 
-	// 検索ボックスに重なるポリゴンを検​​索します。
-	// @param [in] center検索ボックスの中心。[（x、y、z）]
-	// @param [in] halfExtents各軸に沿った検索距離。[（x、y、z）]
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [in] queryクエリ。見つかったポリゴンはバッチ処理され、このクエリに渡されます。
-	// Finds polygons that overlap the search box.
-	//  @param[in]		center		The center of the search box. [(x, y, z)]
-	//  @param[in]		extents		The search distance along each axis. [(x, y, z)]
-	//  @param[in]		filter		The polygon filter to apply to the query.
-	//  @param[in]		query		The query. Polygons found will be batched together and passed to this query.
-	dtStatus queryPolygons(const float* center, const float* extents,
-		const dtQueryFilter* filter, dtPolyQuery* query) const;
+	/// Finds polygons that overlap the search box.
+	//  検索ボックスに重なるポリゴンを検​​索します。
+	///  @param[in] center		The center of the search box. [(x, y, z)]
+	//   検索ボックスの中心。[（x、y、z）]
+	///  @param[in] halfExtents	The search distance along each axis. [(x, y, z)]
+	//   各軸に沿った検索距離。[（x、y、z）]
+	///  @param[in] filter		The polygon filter to apply to the query.
+	//   クエリに適用するポリゴンフィルター。
+	///  @param[out]	polys		The reference ids of the polygons that overlap the query box.
+	//   クエリボックスに重なるポリゴンの参照ID。
+	///  @param[out]	polyCount	The number of polygons in the search result.
+	//   検索結果のポリゴンの数。
+	///  @param[in] maxPolys	The maximum number of polygons the search result can hold.
+	//   検索結果が保持できるポリゴンの最大数。
+	/// @returns The status flags for the query.
+	//  クエリのステータスフラグ。
+	dtStatus queryPolygons(const float* center, const float* halfExtents,
+						   const dtQueryFilter* filter,
+						   dtPolyRef* polys, int* polyCount, const int maxPolys) const;
+
+	/// Finds polygons that overlap the search box.
+	/// 検索ボックスに重なるポリゴンを検​​索します。
+	///  @param[in] center		The center of the search box. [(x, y, z)]
+	///  検索ボックスの中心。
+	///  @param[in] halfExtents	The search distance along each axis. [(x, y, z)]
+	///  各軸に沿った検索距離。
+	///  @param[in] filter		The polygon filter to apply to the query.
+	///  クエリに適用するポリゴンフィルター。
+	///  @param[in] query		The query. Polygons found will be batched together and passed to this query.
+	///  クエリ。見つかったポリゴンはバッチ処理され、このクエリに渡されます。
+	dtStatus queryPolygons(const float* center, const float* halfExtents,
+						   const dtQueryFilter* filter, dtPolyQuery* query) const;
 
 	// Finds the non-overlapping navigation polygons in the local neighbourhood around the center position.
 	// 中心位置の近傍で重複しないナビゲーションポリゴンを検​​索します。
@@ -497,26 +497,26 @@ public:
 		dtPolyRef* resultRef, dtPolyRef* resultParent,
 		int* resultCount, const int maxResult) const;
 
-	// ナビゲーションメッシュに制約された開始位置から終了位置に移動します。
-	// @param [in] startRef開始ポリゴンの参照ID。
-	// @param [in] startPos開始ポリゴン内のムーバーの位置。[（x、y、x）]
-	// @param [in] endPosムーバーの目的の終了位置。[（x、y、z）]
-	// @param [in] filterクエリに適用するポリゴンフィルター。
-	// @param [out] resultPosムーバーの結果の位置。[（x、y、z）]
-	// @param [out] visited移動中に訪問されたポリゴンの参照ID。
-	// @param [out] VisitedCount移動中に訪問されたポリゴンの数。
-	// @param [in] maxVisitedSize @pが訪問した配列が保持できるポリゴンの最大数。
-	// @returnsクエリのステータスフラグ。
 	// Moves from the start to the end position constrained to the navigation mesh.
-	//  @param[in]		startRef		The reference id of the start polygon.
-	//  @param[in]		startPos		A position of the mover within the start polygon. [(x, y, x)]
-	//  @param[in]		endPos			The desired end position of the mover. [(x, y, z)]
-	//  @param[in]		filter			The polygon filter to apply to the query.
-	//  @param[out]	resultPos		The result position of the mover. [(x, y, z)]
-	//  @param[out]	visited			The reference ids of the polygons visited during the move.
-	//  @param[out]	visitedCount	The number of polygons visited during the move.
-	//  @param[in]		maxVisitedSize	The maximum number of polygons the @p visited array can hold.
+	// ナビゲーションメッシュに制約された開始位置から終了位置に移動します。
+	//  @param[in] startRef		The reference id of the start polygon.
+	//  開始ポリゴンの参照ID。
+	//  @param[in] startPos		A position of the mover within the start polygon. [(x, y, x)]
+	//  開始ポリゴン内のムーバーの位置。
+	//  @param[in] endPos		The desired end position of the mover. [(x, y, z)]
+	//  ムーバーの目的の終了位置。
+	//  @param[in] filter		The polygon filter to apply to the query.
+	//  クエリに適用するポリゴンフィルター。
+	//  @param[out] resultPos	The result position of the mover. [(x, y, z)]
+	//  ムーバーの結果の位置。
+	//  @param[out] visited		The reference ids of the polygons visited during the move.
+	//  移動中に訪問されたポリゴンの参照ID。
+	//  @param[out] visitedCount	The number of polygons visited during the move.
+	//  移動中に訪問されたポリゴンの数。
+	//  @param[in] maxVisitedSize	The maximum number of polygons the visited array can hold.
+	//  訪問した配列が保持できるポリゴンの最大数。
 	// @returns The status flags for the query.
+	// クエリのステータスフラグ。
 	dtStatus moveAlongSurface(dtPolyRef startRef, const float* startPos, const float* endPos,
 		const dtQueryFilter* filter,
 		float* resultPos, dtPolyRef* visited, int* visitedCount, const int maxVisitedSize) const;

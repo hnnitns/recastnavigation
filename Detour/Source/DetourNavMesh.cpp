@@ -478,12 +478,12 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 		if (targetPoly->firstLink == DT_NULL_LINK)
 			continue;
 
-		const float ext[3] = { targetCon->rad, target->header->walkableClimb, targetCon->rad };
+		const float halfExtents[3] = { targetCon->rad, target->header->walkableClimb, targetCon->rad };
 
 		// Find polygon to connect to.
 		const float* p = &targetCon->pos[3];
 		float nearestPt[3];
-		dtPolyRef ref = findNearestPolyInTile(tile, p, ext, nearestPt);
+		dtPolyRef ref = findNearestPolyInTile(tile, p, halfExtents, nearestPt);
 		if (!ref)
 			continue;
 		// findNearestPoly may return too optimistic results, further check to make sure.
@@ -577,12 +577,12 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 		dtOffMeshConnection* con = &tile->offMeshCons[i];
 		dtPoly* poly = &tile->polys[con->poly];
 
-		const float ext[3] = { con->rad, tile->header->walkableClimb, con->rad };
+		const float halfExtents[3] = { con->rad, tile->header->walkableClimb, con->rad };
 
 		// Find polygon to connect to.
 		const float* p = &con->pos[0]; // First vertex
 		float nearestPt[3];
-		dtPolyRef ref = findNearestPolyInTile(tile, p, ext, nearestPt);
+		dtPolyRef ref = findNearestPolyInTile(tile, p, halfExtents, nearestPt);
 		if (!ref) continue;
 		// findNearestPoly may return too optimistic results, further check to make sure.
 		if (dtSqr(nearestPt[0] - p[0]) + dtSqr(nearestPt[2] - p[2]) > dtSqr(con->rad))
@@ -623,63 +623,84 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 	}
 }
 
-void dtNavMesh::closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const
+namespace
 {
-	const dtMeshTile* tile = 0;
-	const dtPoly* poly = 0;
-	getTileAndPolyByRefUnsafe(ref, &tile, &poly);
-
-	// Off-mesh connections don't have detail polygons.
-	if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+	template<bool onlyBoundary>
+	void closestPointOnDetailEdges(const dtMeshTile* tile, const dtPoly* poly, const float* pos, float* closest)
 	{
-		const float* v0 = &tile->verts[poly->verts[0] * 3];
-		const float* v1 = &tile->verts[poly->verts[1] * 3];
-		const float d0 = dtVdist(pos, v0);
-		const float d1 = dtVdist(pos, v1);
-		const float u = d0 / (d0 + d1);
-		dtVlerp(closest, v0, v1, u);
-		if (posOverPoly)
-			*posOverPoly = false;
-		return;
+		const unsigned int ip = (unsigned int)(poly - tile->polys);
+		const dtPolyDetail* pd = &tile->detailMeshes[ip];
+
+		float dmin = FLT_MAX;
+		float tmin = 0;
+		const float* pmin = 0;
+		const float* pmax = 0;
+
+		for (int i = 0; i < pd->triCount; i++)
+		{
+			const unsigned char* tris = &tile->detailTris[(pd->triBase + i) * 4];
+			const int ANY_BOUNDARY_EDGE =
+				(DT_DETAIL_EDGE_BOUNDARY << 0) |
+				(DT_DETAIL_EDGE_BOUNDARY << 2) |
+				(DT_DETAIL_EDGE_BOUNDARY << 4);
+			if (onlyBoundary && (tris[3] & ANY_BOUNDARY_EDGE) == 0)
+				continue;
+
+			const float* v[3];
+			for (int j = 0; j < 3; ++j)
+			{
+				if (tris[j] < poly->vertCount)
+					v[j] = &tile->verts[poly->verts[tris[j]] * 3];
+				else
+					v[j] = &tile->detailVerts[(pd->vertBase + (tris[j] - poly->vertCount)) * 3];
+			}
+
+			for (int k = 0, j = 2; k < 3; j = k++)
+			{
+				if ((dtGetDetailTriEdgeFlags(tris[3], j) & DT_DETAIL_EDGE_BOUNDARY) == 0 &&
+					(onlyBoundary || tris[j] < tris[k]))
+				{
+					// Only looking at boundary edges and this is internal, or
+					// this is an inner edge that we will see again or have already seen.
+					continue;
+				}
+
+				float t;
+				float d = dtDistancePtSegSqr2D(pos, v[j], v[k], t);
+				if (d < dmin)
+				{
+					dmin = d;
+					tmin = t;
+					pmin = v[j];
+					pmax = v[k];
+				}
+			}
+		}
+
+		dtVlerp(closest, pmin, pmax, tmin);
 	}
+}
+
+bool dtNavMesh::getPolyHeight(const dtMeshTile* tile, const dtPoly* poly, const float* pos, float* height) const
+{
+	// Off-mesh connections do not have detail polys and getting height
+	// over them does not make sense.
+	if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+		return false;
 
 	const unsigned int ip = (unsigned int)(poly - tile->polys);
 	const dtPolyDetail* pd = &tile->detailMeshes[ip];
 
-	// Clamp point to be inside the polygon.
-	float verts[DT_VERTS_PER_POLYGON * 3];
-	float edged[DT_VERTS_PER_POLYGON];
-	float edget[DT_VERTS_PER_POLYGON];
+	float verts[DT_VERTS_PER_POLYGON*3];
 	const int nv = poly->vertCount;
 	for (int i = 0; i < nv; ++i)
-		dtVcopy(&verts[i * 3], &tile->verts[poly->verts[i] * 3]);
+		dtVcopy(&verts[i*3], &tile->verts[poly->verts[i]*3]);
 
-	dtVcopy(closest, pos);
-	if (!dtDistancePtPolyEdgesSqr(pos, verts, nv, edged, edget))
-	{
-		// Point is outside the polygon, dtClamp to nearest edge.
-		float dmin = edged[0];
-		int imin = 0;
-		for (int i = 1; i < nv; ++i)
-		{
-			if (edged[i] < dmin)
-			{
-				dmin = edged[i];
-				imin = i;
-			}
-		}
-		const float* va = &verts[imin * 3];
-		const float* vb = &verts[((imin + 1) % nv) * 3];
-		dtVlerp(closest, va, vb, edget[imin]);
+	if (!dtPointInPolygon(pos, verts, nv))
+		return false;
 
-		if (posOverPoly)
-			*posOverPoly = false;
-	}
-	else
-	{
-		if (posOverPoly)
-			*posOverPoly = true;
-	}
+	if (!height)
+		return true;
 
 	// Find height at the location.
 	for (int j = 0; j < pd->triCount; ++j)
@@ -694,21 +715,65 @@ void dtNavMesh::closestPointOnPoly(dtPolyRef ref, const float* pos, float* close
 				v[k] = &tile->detailVerts[(pd->vertBase + (t[k] - poly->vertCount)) * 3];
 		}
 		float h;
-		if (dtClosestHeightPointTriangle(closest, v[0], v[1], v[2], h))
+		if (dtClosestHeightPointTriangle(pos, v[0], v[1], v[2], h))
 		{
-			closest[1] = h;
-			break;
+			*height = h;
+			return true;
 		}
 	}
+
+	// If all triangle checks failed above (can happen with degenerate triangles
+	// or larger floating point values) the point is on an edge, so just select
+	// closest. This should almost never happen so the extra iteration here is
+	// ok.
+	// 上記のすべての三角形のチェックが失敗した場合（縮退した三角形またはより大きな浮動小数点値で発生する可能性があります）、
+	// ポイントはエッジ上にあるため、最も近いものを選択します。
+	// これはほとんど発生しないはずなので、ここでの追加の反復は問題ありません。
+	float closest[3];
+	closestPointOnDetailEdges<false>(tile, poly, pos, closest);
+	*height = closest[1];
+	return true;
+}
+
+void dtNavMesh::closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const
+{
+	const dtMeshTile* tile = 0;
+	const dtPoly* poly = 0;
+	getTileAndPolyByRefUnsafe(ref, &tile, &poly);
+
+	dtVcopy(closest, pos);
+	if (getPolyHeight(tile, poly, pos, &closest[1]))
+	{
+		if (posOverPoly)
+			*posOverPoly = true;
+		return;
+	}
+
+	if (posOverPoly)
+		*posOverPoly = false;
+
+	// Off-mesh connections don't have detail polygons.
+	if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+	{
+		const float* v0 = &tile->verts[poly->verts[0]*3];
+		const float* v1 = &tile->verts[poly->verts[1]*3];
+		float t;
+		dtDistancePtSegSqr2D(pos, v0, v1, t);
+		dtVlerp(closest, v0, v1, t);
+		return;
+	}
+
+	// Outside poly that is not an offmesh connection.
+	closestPointOnDetailEdges<true>(tile, poly, pos, closest);
 }
 
 dtPolyRef dtNavMesh::findNearestPolyInTile(const dtMeshTile* tile,
-	const float* center, const float* extents,
-	float* nearestPt) const
+										   const float* center, const float* halfExtents,
+										   float* nearestPt) const
 {
 	float bmin[3], bmax[3];
-	dtVsub(bmin, center, extents);
-	dtVadd(bmax, center, extents);
+	dtVsub(bmin, center, halfExtents);
+	dtVadd(bmax, center, halfExtents);
 
 	// Get nearby polygons from proximity grid.
 	dtPolyRef polys[128];
@@ -934,7 +999,7 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 
 	// Patch header pointers.
 	// ヘッダーポインターにパッチを適用します。
-	const int headerSize = dtAlign4(sizeof(dtMeshHeader));
+	constexpr int headerSize = dtAlign4(sizeof(dtMeshHeader));
 	const int vertsSize = dtAlign4(sizeof(float) * 3 * header->vertCount);
 	const int polysSize = dtAlign4(sizeof(dtPoly) * header->polyCount);
 	const int linksSize = dtAlign4(sizeof(dtLink) * (header->maxLinkCount));
@@ -1360,11 +1425,11 @@ int dtNavMesh::getTileStateSize(const dtMeshTile* tile) const
 	return headerSize + polyStateSize;
 }
 
-// @par
-//
-// Tile state includes non-structural data such as polygon flags, area ids, etc.
-// @note The state data is only valid until the tile reference changes.
-// @see #getTileStateSize, #restoreTileState
+/// @par
+///
+/// Tile state includes non-structural data such as polygon flags, area ids, etc.
+/// @note The state data is only valid until the tile reference changes.
+/// @see #getTileStateSize, #restoreTileState
 dtStatus dtNavMesh::storeTileState(const dtMeshTile* tile, unsigned char* data, const int maxDataSize) const
 {
 	// Make sure there is enough space to store the state.
@@ -1392,11 +1457,11 @@ dtStatus dtNavMesh::storeTileState(const dtMeshTile* tile, unsigned char* data, 
 	return DT_SUCCESS;
 }
 
-// @par
-//
-// Tile state includes non-structural data such as polygon flags, area ids, etc.
-// @note This function does not impact the tile's #dtTileRef and #dtPolyRef's.
-// @see #storeTileState
+/// @par
+///
+/// Tile state includes non-structural data such as polygon flags, area ids, etc.
+/// @note This function does not impact the tile's #dtTileRef and #dtPolyRef's.
+/// @see #storeTileState
 dtStatus dtNavMesh::restoreTileState(dtMeshTile* tile, const unsigned char* data, const int maxDataSize)
 {
 	// Make sure there is enough space to store the state.
@@ -1427,13 +1492,13 @@ dtStatus dtNavMesh::restoreTileState(dtMeshTile* tile, const unsigned char* data
 	return DT_SUCCESS;
 }
 
-// @par
-//
-// Off-mesh connections are stored in the navigation mesh as special 2-vertex
-// polygons with a single edge. At least one of the vertices is expected to be
-// inside a normal polygon. So an off-mesh connection is "entered" from a
-// normal polygon at one of its endpoints. This is the polygon identified by
-// the prevRef parameter.
+/// @par
+///
+/// Off-mesh connections are stored in the navigation mesh as special 2-vertex 
+/// polygons with a single edge. At least one of the vertices is expected to be 
+/// inside a normal polygon. So an off-mesh connection is "entered" from a 
+/// normal polygon at one of its endpoints. This is the polygon identified by 
+/// the prevRef parameter.
 dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyRef polyRef, float* startPos, float* endPos) const
 {
 	unsigned int salt, it, ip;

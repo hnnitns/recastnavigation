@@ -47,7 +47,7 @@ protected:
 	int m_cacheCompressedSize;
 	int m_cacheRawSize;
 	int m_cacheLayerCount;
-	int m_cacheBuildMemUsage;
+	unsigned int m_cacheBuildMemUsage;
 	int m_maxTiles;
 	int m_maxPolysPerTile;
 	float m_tileSize;
@@ -69,16 +69,16 @@ protected:
 
 public:
 	Sample_TempObstacles();
-	virtual ~Sample_TempObstacles();
+	~Sample_TempObstacles();
 
-	virtual void handleSettings() override;
-	virtual void handleTools() override;
-	virtual void handleDebugMode() override;
-	virtual void handleRender() override;
-	virtual void handleRenderOverlay(double* proj, double* model, int* view) override;
-	virtual void handleMeshChanged() override;
-	virtual bool handleBuild() override;
-	virtual void handleUpdate(const float dt) override;
+	void handleSettings() override;
+	void handleTools() override;
+	void handleDebugMode() override;
+	void handleRender() override;
+	void handleRenderOverlay(double* proj, double* model, int* view) override;
+	void handleMeshChanged() override;
+	bool handleBuild() override;
+	void handleUpdate(const float dt) override;
 
 	void getTilePos(const float* pos, int& tx, int& ty);
 

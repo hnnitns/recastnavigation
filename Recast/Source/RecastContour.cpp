@@ -1100,8 +1100,7 @@ bool rcBuildContours(rcContext* ctx, rcCompactHeightfield& chf,
 	{
 		// Calculate winding of all polygons.
 		// すべてのポリゴンの巻きを計算します。
-		rcScopedDelete<char> winding((char*)rcAlloc(sizeof(char) * cset.nconts, RC_ALLOC_TEMP));
-
+		rcScopedDelete<signed char> winding((signed char*)rcAlloc(sizeof(signed char)*cset.nconts, RC_ALLOC_TEMP));
 		if (!winding)
 		{
 			ctx->log(RC_LOG_ERROR, "rcBuildContours: Out of memory 'hole' (%d).", cset.nconts); // メモリー不足「hole」

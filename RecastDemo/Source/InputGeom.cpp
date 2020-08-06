@@ -89,38 +89,39 @@ namespace
 		return true;
 	}
 
-	char* parseRow(char* buf, char* bufEnd, char* row, int len)
+char* parseRow(char* buf, char* bufEnd, char* row, int len)
+{
+	bool start = true;
+	bool done = false;
+	int n = 0;
+	while (!done && buf < bufEnd)
 	{
-		bool start = true;
-		bool done = false;
-		int n = 0;
-		while (!done && buf < bufEnd)
+		char c = *buf;
+		buf++;
+		// multirow
+		switch (c)
 		{
-			char c = *buf;
-			buf++;
-			// multirow
-			switch (c)
-			{
-				case '\n':
-					if (start) break;
+			case '\n':
+				if (start) break;
+				done = true;
+				break;
+			case '\r':
+				break;
+			case '\t':
+			case ' ':
+				if (start) break;
+				// else falls through
+			default:
+				start = false;
+				row[n++] = c;
+				if (n >= len-1)
 					done = true;
-					break;
-				case '\r':
-					break;
-				case '\t':
-				case ' ':
-					if (start) break;
-				default:
-					start = false;
-					row[n++] = c;
-					if (n >= len - 1)
-						done = true;
-					break;
-			}
+				break;
 		}
-		row[n] = '\0';
-		return buf;
 	}
+	row[n] = '\0';
+	return buf;
+}
 
 	// メッシュデータの全てを囲む四角とレイとの判定
 	bool isectSegAABB(const std::array<float, 3>& sp, const std::array<float, 3>& sq,
@@ -323,7 +324,7 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 			if (m_volumeCount < MAX_VOLUMES)
 			{
 				ConvexVolume* vol = &m_volumes[m_volumeCount++];
-				sscanf_s(row.data() + 1, "%d %c %c %f %f", &vol->nverts, &vol->areaMod.m_value, sizeof(vol->areaMod.m_value), &vol->areaMod.m_mask, sizeof(vol->areaMod.m_mask), &vol->hmin, &vol->hmax);
+				sscanf_s(row.data() + 1, "%d %d %f %f", &vol->nverts, &vol->area, &vol->hmin, &vol->hmax);
 
 				for (int i = 0; i < vol->nverts; ++i)
 				{
@@ -481,7 +482,7 @@ bool InputGeom::SaveGeomSet(const BuildSettings* settings)
 	{
 		ConvexVolume* vol = &m_volumes[i];
 
-		fprintf_s(fp, "v %d %c %c %f %f\n", vol->nverts, vol->areaMod.m_value, vol->areaMod.m_mask, vol->hmin, vol->hmax);
+		fprintf_s(fp, "v %d %d %f %f\n", vol->nverts, vol->area, vol->hmin, vol->hmax);
 
 		for (int j = 0; j < vol->nverts; ++j)
 			fprintf_s(fp, "%f %f %f\n", vol->verts[j * 3 + 0], vol->verts[j * 3 + 1], vol->verts[j * 3 + 2]);
@@ -665,7 +666,7 @@ void InputGeom::drawOffMeshConnections(duDebugDraw* dd, bool hilight)
 }
 
 void InputGeom::addConvexVolume(const float* verts, const int nverts,
-	const float minh, const float maxh, rcAreaModification areaMod)
+	const float minh, const float maxh, unsigned char area)
 {
 	if (m_volumeCount >= MAX_VOLUMES) return;
 
@@ -677,7 +678,7 @@ void InputGeom::addConvexVolume(const float* verts, const int nverts,
 	vol->hmin = minh;
 	vol->hmax = maxh;
 	vol->nverts = nverts;
-	vol->areaMod = areaMod;
+	vol->area = area;
 }
 
 void InputGeom::deleteConvexVolume(int i)
@@ -695,7 +696,7 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 	for (int i = 0; i < m_volumeCount; ++i)
 	{
 		const ConvexVolume* vol = &m_volumes[i];
-		unsigned int col = duTransCol(dd->areaToCol(vol->areaMod.getMaskedValue()), 32);
+		unsigned int col = duTransCol(dd->areaToCol(vol->area), 32);
 		for (int j = 0, k = vol->nverts - 1; j < vol->nverts; k = j++)
 		{
 			const float* va = &vol->verts[k * 3];
@@ -721,7 +722,7 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 	for (int i = 0; i < m_volumeCount; ++i)
 	{
 		const ConvexVolume* vol = &m_volumes[i];
-		unsigned int col = duTransCol(dd->areaToCol(vol->areaMod.getMaskedValue()), 220);
+		unsigned int col = duTransCol(dd->areaToCol(vol->area), 220);
 		for (int j = 0, k = vol->nverts - 1; j < vol->nverts; k = j++)
 		{
 			const float* va = &vol->verts[k * 3];
@@ -740,7 +741,7 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 	for (int i = 0; i < m_volumeCount; ++i)
 	{
 		const ConvexVolume* vol = &m_volumes[i];
-		unsigned int col = duDarkenCol(duTransCol(dd->areaToCol(vol->areaMod.getMaskedValue()), 220));
+		unsigned int col = duDarkenCol(duTransCol(dd->areaToCol(vol->area), 220));
 		for (int j = 0; j < vol->nverts; ++j)
 		{
 			dd->vertex(vol->verts[j * 3 + 0], vol->verts[j * 3 + 1] + 0.1f, vol->verts[j * 3 + 2], col);

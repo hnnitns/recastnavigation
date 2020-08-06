@@ -530,6 +530,8 @@ struct rcCompactHeightfield
 	// Array containing area id data. [Size: #spanCount]
 	// エリアIDデータを含む配列
 	unsigned char* areas{};
+	rcCompactHeightfield();
+	~rcCompactHeightfield();
 };
 
 // Represents a heightfield layer within a layer set.
@@ -604,8 +606,10 @@ struct rcHeightfieldLayer
 // @see rcAllocHeightfieldLayerSet, rcFreeHeightfieldLayerSet
 struct rcHeightfieldLayerSet
 {
-	rcHeightfieldLayer* layers;			// The layers in the set. [Size: #nlayers] // セット内のレイヤー。[サイズ：#nlayers]
-	int nlayers;						// The number of layers in the set. // セット内のレイヤーの数。
+	rcHeightfieldLayerSet();
+	~rcHeightfieldLayerSet();
+	rcHeightfieldLayer* layers;			///< The layers in the set. [Size: #nlayers]
+	int nlayers;						///< The number of layers in the set.
 };
 
 // Represents a simple, non-overlapping contour in field space.
@@ -681,6 +685,8 @@ struct rcContourSet
 	// The max edge error that this contour set was simplified with.
 	// この輪郭セットが単純化された最大エッジエラー。
 	float maxError;
+	rcContourSet();
+	~rcContourSet();
 };
 
 // Represents a polygon mesh suitable for use in building a navigation mesh.
@@ -688,6 +694,9 @@ struct rcContourSet
 // @ingroup recast
 struct rcPolyMesh
 {
+	rcPolyMesh();
+	~rcPolyMesh();
+
 	// The mesh vertices. [Form: (x, y, z) * #nverts]
 	// メッシュの頂点。[形式：（x、y、z）* #nverts]
 	unsigned short* verts;
@@ -782,64 +791,10 @@ struct rcPolyMeshDetail
 
 constexpr unsigned char RC_AREA_FLAGS_MASK = 0x3F;
 
-// @ingroup recast
-class rcAreaModification
-{
-public:
-	// Mask is set to all available bits, which means value is fully applied
-	// マスクは使用可能なすべてのビットに設定されます。つまり、値は完全に適用されます
-	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
-	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
-	_CONSTEXPR17 rcAreaModification(unsigned char value)
-		: m_value(value), m_mask(RC_AREA_FLAGS_MASK)
-	{}
-	//  @param[in] value	The area id to apply. [Limit: <= #RC_AREA_FLAGS_MASK]
-	//  @param [in] value適用するエリアID。 [制限：<= #RC_AREA_FLAGS_MASK]
-	//  @param[in] mask	Bitwise mask used when applying value. [Limit: <= #RC_AREA_FLAGS_MASK]
-	//  @param [in] mask値を適用するときに使用されるビット単位のマスク。 [制限：<= #RC_AREA_FLAGS_MASK]
-	_CONSTEXPR17 rcAreaModification(unsigned char value, unsigned char mask)
-		: m_value(value), m_mask(mask)
-	{}
-	_CONSTEXPR17 rcAreaModification(const rcAreaModification& other)
-		: m_value(other.m_value), m_mask(other.m_mask)
-	{}
-	void operator = (const rcAreaModification& other)
-	{
-		m_value = other.m_value;
-		m_mask = other.m_mask;
-	}
-	_CONSTEXPR17 bool operator == (const rcAreaModification& other) const
-	{
-		return ((m_value == other.m_value) && (m_mask == other.m_mask));
-	}
-	_CONSTEXPR17 bool operator != (const rcAreaModification& other) const
-	{
-		return ((m_value == other.m_value) && (m_mask == other.m_mask));
-	}
-	_CONSTEXPR17 void apply(unsigned char& area) const
-	{
-		area = ((m_value & m_mask) | (area & ~m_mask));
-	}
-	_CONSTEXPR17 unsigned char getMaskedValue() const
-	{
-		return (m_value & m_mask);
-	}
-
-	unsigned char m_value;	// Value to apply to target area id // ターゲットエリアIDに適用する値
-	unsigned char m_mask;	// Bitwise mask used when applying value to target area id //ターゲットエリアIDに値を適用するときに使用されるビット単位のマスク
-};
-
-// @name Allocation Functions
-// Functions used to allocate and de-allocate Recast objects.
-// Recastオブジェクトの割り当てと割り当て解除に使用される関数。
-// @see rcAllocSetCustom
-// @{
-// Allocates a heightfield object using the Recast allocator.
-// Recastアロケーターを使用して、heightfieldオブジェクトを割り当てます。
-//  @return A heightfield that is ready for initialization, or null on failure.
-//	初期化の準備ができている高さフィールド、または失敗した場合はnull。
-//  @ingroup recast
-//  @see rcCreateHeightfield, rcFreeHeightField
+/// Allocates a heightfield object using the Recast allocator.
+///  @return A heightfield that is ready for initialization, or null on failure.
+///  @ingroup recast
+///  @see rcCreateHeightfield, rcFreeHeightField
 rcHeightfield* rcAllocHeightfield();
 
 // Frees the specified heightfield object using the Recast allocator.
@@ -1386,7 +1341,7 @@ bool rcCreateHeightfield(rcContext* ctx, rcHeightfield& hf, int width, int heigh
 //	適用するエリアの変更。
 // 歩行可能な三角形をマーク
 void rcMarkWalkableTriangles(rcContext* ctx, const float walkableSlopeAngle, const float* verts, int nv,
-	const int* tris, int nt, unsigned char* areas, rcAreaModification areaMod);
+	const int* tris, int nt, unsigned char* areas);
 
 // Modifies the area id of all triangles with a slope greater than or equal to the specified value.
 //  @ingroup recast
@@ -1589,8 +1544,8 @@ bool rcMedianFilterWalkableArea(rcContext* ctx, rcCompactHeightfield& chf);
 //  @param[in]		bmax	The maximum of the bounding box. [(x, y, z)]
 //  @param[in]		areaMod	The area modification to apply.
 //  @param[in,out]	chf		A populated compact heightfield.
-void rcMarkBoxArea(rcContext* ctx, const float* bmin, const float* bmax, rcAreaModification areaMod,
-	rcCompactHeightfield& chf);
+void rcMarkBoxArea(
+	rcContext* ctx, const float* bmin, const float* bmax, unsigned char areaId, rcCompactHeightfield& chf);
 
 // Applies the area id to the all spans within the specified convex polygon.
 // 指定された凸多角形内のすべてのスパンにエリアIDを適用します。
@@ -1610,8 +1565,7 @@ void rcMarkBoxArea(rcContext* ctx, const float* bmin, const float* bmax, rcAreaM
 //  @param[in,out] chf : A populated compact heightfield.
 //	読み込まれたコンパクトな地形。
 void rcMarkConvexPolyArea(rcContext* ctx, const float* verts, const int nverts,
-	const float hmin, const float hmax, rcAreaModification areaMod,
-	rcCompactHeightfield& chf);
+	const float hmin, const float hmax, unsigned char areaId,	rcCompactHeightfield& chf);
 
 // Helper function to offset voncex polygons for rcMarkConvexPolyArea.
 //（rcMarkConvexPolyAreaのVoncexポリゴンをオフセットするヘルパー関数。）
@@ -1638,8 +1592,7 @@ int rcOffsetPoly(const float* verts, const int nverts, const float offset,
 //  @param[in] areaMod	 The area modification to apply.
 //  @param[in,out] chf	A populated compact heightfield.
 void rcMarkCylinderArea(rcContext* ctx, const float* pos,
-	const float r, const float h, rcAreaModification areaMod,
-	rcCompactHeightfield& chf);
+	const float r, const float h, unsigned char areaId, rcCompactHeightfield& chf);
 
 // Builds the distance field for the specified compact heightfield.
 // 指定したコンパクトな地形の距離フィールドを構築します。

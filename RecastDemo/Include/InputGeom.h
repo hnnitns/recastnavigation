@@ -30,13 +30,13 @@ constexpr int MAX_CONVEXVOL_PTS = 12;
 struct ConvexVolume
 {
 	ConvexVolume()
-		: areaMod(RC_AREA_FLAGS_MASK), verts{}, hmin{}, hmax{}, nverts{}
+		: area(0), verts{}, hmin{}, hmax{}, nverts{}
 	{}
 
 	std::array<float, MAX_CONVEXVOL_PTS * 3> verts;
 	float hmin, hmax;
 	int nverts;
-	rcAreaModification areaMod;
+	int area;
 };
 
 struct BuildSettings
@@ -262,7 +262,7 @@ public:
 	int getConvexVolumeCount() const noexcept { return m_volumeCount; }
 	const auto& getConvexVolumes() const noexcept { return m_volumes; }
 	void addConvexVolume(const float* verts, const int nverts,
-		const float minh, const float maxh, rcAreaModification areaMod);
+		const float minh, const float maxh, unsigned char area);
 	void deleteConvexVolume(int i);
 	void drawConvexVolumes(struct duDebugDraw* dd, bool hilight = false);
 	//@}

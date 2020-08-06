@@ -40,37 +40,19 @@ enum SampleToolType
 	MAX_TOOLS
 };
 
-// Mask of the ceil part of the area id (3 lower bits)
-// エリアid（下位3ビット）のceil部分のマスク、値0（RC_NULL_AREA）は未使用のまま
-// the 0 value (RC_NULL_AREA) is left unused
-// 0の値（RC_NULL_AREA）は未使用のままになります
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_MASK = 0x07;
-
-// Value for the kind of ceil "ground"
-// 「グランド」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_GROUND = 0x1;
-
-// Value for the kind of ceil "water"
-// 「水」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_WATER = 0x2;
-
-// Value for the kind of ceil "road"
-// 「道路」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_ROAD = 0x3;
-
-// Value for the kind of ceil "grass"
-// 「草」の種類の値
-constexpr unsigned char SAMPLE_POLYAREA_TYPE_GRASS = 0x4;
-
-// Flag for door area. Can be combined with area types and jump flag.
-// ドア領域のフラグ。 領域タイプおよびジャンプフラグと組み合わせることができます。
-constexpr unsigned char SAMPLE_POLYAREA_FLAG_DOOR = 0x08;
-
-// Flag for jump area. Can be combined with area types and door flag.
-// ジャンプ領域のフラグ。 領域タイプおよびドアフラグと組み合わせることができます。
-constexpr unsigned char SAMPLE_POLYAREA_FLAG_JUMP = 0x10;
-
-extern rcAreaModification const SAMPLE_AREAMOD_GROUND;
+/// These are just sample areas to use consistent values across the samples.
+/// The use should specify these base on his needs.
+/// これらは、サンプル全体で一貫した値を使用するための単なるサンプル領域です。
+/// 使用法は、必要に応じてこれらのベースを指定する必要があります。
+enum SamplePolyAreas
+{
+	SAMPLE_POLYAREA_GROUND,
+	SAMPLE_POLYAREA_WATER,
+	SAMPLE_POLYAREA_ROAD,
+	SAMPLE_POLYAREA_DOOR,
+	SAMPLE_POLYAREA_GRASS,
+	SAMPLE_POLYAREA_JUMP,
+};
 
 enum SamplePolyFlags
 {
@@ -98,8 +80,6 @@ enum SamplePolyFlags
 	// すべての能力。
 	SAMPLE_POLYFLAGS_ALL = 0xffff
 };
-
-unsigned short sampleAreaToFlags(unsigned char area);
 
 class SampleDebugDraw : public DebugDrawGL
 {
@@ -177,6 +157,9 @@ protected:
 	BuildContext* m_ctx;
 
 	SampleDebugDraw m_dd;
+
+	dtNavMesh* loadAll(const char* path);
+	void saveAll(const char* path, const dtNavMesh* mesh);
 
 public:
 	Sample();

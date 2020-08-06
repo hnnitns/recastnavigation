@@ -39,6 +39,7 @@ constexpr unsigned int DT_INVALID_PARAM = 1 << 3;	// An input parameter was inva
 constexpr unsigned int DT_BUFFER_TOO_SMALL = 1 << 4;	// Result buffer for the query was too small to store all results. クエリの結果バッファが小さすぎて、すべての結果を格納できませんでした
 constexpr unsigned int DT_OUT_OF_NODES = 1 << 5;		// Query ran out of nodes during search. 検索中にクエリがノードを使い果たしました
 constexpr unsigned int DT_PARTIAL_RESULT = 1 << 6;	// Query did not reach the end location, returning best guess. クエリは終了位置に到達せず、最良の推測を返しました
+constexpr unsigned int DT_ALREADY_OCCUPIED = 1 << 7;	// A tile has already been assigned to the given x,y coordinate タイルは指定されたX、Y座標に既に割り当てられています
 
 // Returns true of status is success.
 // ステータスが成功の場合はtrueを返します

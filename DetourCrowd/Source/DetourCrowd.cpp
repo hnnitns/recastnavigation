@@ -388,7 +388,9 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	m_maxAgents = maxAgents;
 	m_maxAgentRadius = maxAgentRadius;
 
-	dtVset(m_ext, m_maxAgentRadius * 2.0f, m_maxAgentRadius * 1.5f, m_maxAgentRadius * 2.0f);
+	// Larger than agent radius because it is also used for agent recovery.
+	// エージェントの復旧にも使用されるため、エージェントの半径よりも大きい。
+	dtVset(m_agentPlacementHalfExtents, m_maxAgentRadius*2.0f, m_maxAgentRadius*1.5f, m_maxAgentRadius*2.0f);
 
 	m_grid = dtAllocProximityGrid();
 
@@ -446,8 +448,12 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 
 		// https://cpprefjp.github.io/reference/new/op_new.html
 		/*
-		この形式は実質何もしていない。この形式は、記憶域を確保した上でそこに新たなオブジェクトを構築するのではなく、あらかじめ確保されている記憶域上に新たなオブジェクトを構築するのに用いられる。
-		一般に、プログラム実行中の記憶域の動的確保は、処理系が OS からヒープを確保するのに対し、この形式では、既にプログラムに確保済みの任意の記憶域上にオブジェクトを構築するため、上手く使った場合には new / delete を大量に繰り返す必要のある処理を高速に実現しうる。
+		この形式は実質何もしていない。
+		この形式は、記憶域を確保した上でそこに新たなオブジェクトを構築するのではなく、
+		あらかじめ確保されている記憶域上に新たなオブジェクトを構築するのに用いられる。
+		一般に、プログラム実行中の記憶域の動的確保は、処理系が OS からヒープを確保するのに対し、
+		この形式では、既にプログラムに確保済みの任意の記憶域上にオブジェクトを構築するため、
+		上手く使った場合には new / delete を大量に繰り返す必要のある処理を高速に実現しうる。
 		*/
 		new(&agent) dtCrowdAgent();
 
@@ -542,7 +548,7 @@ int dtCrowd::addAgent(const std::array<float, 3>& pos, const dtCrowdAgentParams*
 	std::array<float, 3> nearest{ pos };
 	dtPolyRef ref = 0;
 	dtStatus status = m_navquery->findNearestPoly(
-		pos.data(), m_ext, &m_filters[ag->params.queryFilterType], &ref, nearest.data());
+		pos.data(), m_agentPlacementHalfExtents, &m_filters[ag->params.queryFilterType], &ref, nearest.data());
 
 	if (dtStatusFailed(status))
 	{
@@ -1022,7 +1028,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 			float nearest[3]{};
 			dtVcopy(nearest, agentPos);
 			agentRef = 0;
-			m_navquery->findNearestPoly(ag->npos, m_ext, &m_filters[ag->params.queryFilterType], &agentRef, nearest);
+			m_navquery->findNearestPoly(ag->npos, m_agentPlacementHalfExtents, &m_filters[ag->params.queryFilterType], &agentRef, nearest);
 			dtVcopy(agentPos, nearest);
 
 			if (!agentRef)
@@ -1058,7 +1064,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 				float nearest[3];
 				dtVcopy(nearest, ag->targetPos);
 				ag->targetRef = 0;
-				m_navquery->findNearestPoly(ag->targetPos, m_ext, &m_filters[ag->params.queryFilterType], &ag->targetRef, nearest);
+				m_navquery->findNearestPoly(ag->targetPos, m_agentPlacementHalfExtents, &m_filters[ag->params.queryFilterType], &ag->targetRef, nearest);
 				dtVcopy(ag->targetPos, nearest);
 				replan = true;
 			}

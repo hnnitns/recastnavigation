@@ -329,41 +329,41 @@ struct LinearAllocator : public dtTileCacheAlloc
 	}
 };
 
-struct MeshProcess : public dtTileCacheMeshProcess
-{
-	InputGeom* m_geom;
-
-	inline MeshProcess() : m_geom(0)
-	{
-	}
-
-	inline void init(InputGeom* geom)
-	{
-		m_geom = geom;
-	}
-
-	virtual void process(struct dtNavMeshCreateParams* params,
-		unsigned char* polyAreas, unsigned short* polyFlags)
-	{
-		// Update poly flags from areas.
-		for (int i = 0; i < params->polyCount; ++i)
-		{
-			polyFlags[i] = sampleAreaToFlags(polyAreas[i]);
-		}
-
-		// Pass in off-mesh connections.
-		if (m_geom)
-		{
-			params->offMeshConVerts = m_geom->getOffMeshConnectionVerts().data();
-			params->offMeshConRad = m_geom->getOffMeshConnectionRads().data();
-			params->offMeshConDir = m_geom->getOffMeshConnectionDirs().data();
-			params->offMeshConAreas = m_geom->getOffMeshConnectionAreas().data();
-			params->offMeshConFlags = m_geom->getOffMeshConnectionFlags().data();
-			params->offMeshConUserID = m_geom->getOffMeshConnectionId().data();
-			params->offMeshConCount = m_geom->getOffMeshConnectionCount();
-		}
-	}
-};
+//struct MeshProcess : public dtTileCacheMeshProcess
+//{
+//	InputGeom* m_geom;
+//
+//	inline MeshProcess() : m_geom(0)
+//	{
+//	}
+//
+//	inline void init(InputGeom* geom)
+//	{
+//		m_geom = geom;
+//	}
+//
+//	virtual void process(struct dtNavMeshCreateParams* params,
+//		unsigned char* polyAreas, unsigned short* polyFlags)
+//	{
+//		// Update poly flags from areas.
+//		for (int i = 0; i < params->polyCount; ++i)
+//		{
+//			polyFlags[i] = sampleAreaToFlags(polyAreas[i]);
+//		}
+//
+//		// Pass in off-mesh connections.
+//		if (m_geom)
+//		{
+//			params->offMeshConVerts = m_geom->getOffMeshConnectionVerts().data();
+//			params->offMeshConRad = m_geom->getOffMeshConnectionRads().data();
+//			params->offMeshConDir = m_geom->getOffMeshConnectionDirs().data();
+//			params->offMeshConAreas = m_geom->getOffMeshConnectionAreas().data();
+//			params->offMeshConFlags = m_geom->getOffMeshConnectionFlags().data();
+//			params->offMeshConUserID = m_geom->getOffMeshConnectionId().data();
+//			params->offMeshConCount = m_geom->getOffMeshConnectionCount();
+//		}
+//	}
+//};
 
 struct TileCacheData
 {
@@ -441,133 +441,6 @@ void Sample_TileMesh::CleanUp()
 	m_last_dmesh = nullptr;
 }
 
-struct NavMeshSetHeader
-{
-	int magic;
-	int version;
-	int numTiles;
-	dtNavMeshParams meshParams;
-	dtTileCacheParams cacheParams;
-};
-
-struct NavMeshTileHeader
-{
-	dtTileRef tileRef;
-	int dataSize;
-};
-
-void Sample_TileMesh::saveAll(const char* path, const dtNavMesh* mesh)
-{
-	if (!mesh) return;
-
-	FILE* fp = fopen(path, "wb");
-	if (!fp)
-		return;
-
-	// Store header.
-	NavMeshSetHeader header;
-	header.magic = NAVMESHSET_MAGIC;
-	header.version = NAVMESHSET_VERSION;
-	header.numTiles = 0;
-	for (int i = 0; i < mesh->getMaxTiles(); ++i)
-	{
-		const dtMeshTile* tile = mesh->getTile(i);
-		if (!tile || !tile->header || !tile->dataSize) continue;
-		header.numTiles++;
-	}
-	memcpy(&header.meshParams, m_navMesh->getParams(), sizeof(dtNavMeshParams));
-	fwrite(&header, sizeof(NavMeshSetHeader), 1, fp);
-
-	// Store tiles.
-	for (int i = 0; i < mesh->getMaxTiles(); ++i)
-	{
-		const dtMeshTile* tile = mesh->getTile(i);
-		if (!tile || !tile->header || !tile->dataSize) continue;
-
-		NavMeshTileHeader tileHeader;
-		tileHeader.tileRef = mesh->getTileRef(tile);
-		tileHeader.dataSize = tile->dataSize;
-		fwrite(&tileHeader, sizeof(tileHeader), 1, fp);
-
-		fwrite(tile->data, tile->dataSize, 1, fp);
-	}
-
-	fclose(fp);
-}
-
-dtNavMesh* Sample_TileMesh::loadAll(const char* path)
-{
-	FILE* fp = fopen(path, "rb");
-	if (!fp) return 0;
-
-	// Read header.
-	NavMeshSetHeader header;
-	size_t readLen = fread(&header, sizeof(NavMeshSetHeader), 1, fp);
-	if (readLen != 1)
-	{
-		// Error or early EOF
-		fclose(fp);
-		return 0;
-	}
-	if (header.magic != NAVMESHSET_MAGIC)
-	{
-		fclose(fp);
-		return 0;
-	}
-	if (header.version != NAVMESHSET_VERSION)
-	{
-		fclose(fp);
-		return 0;
-	}
-
-	dtNavMesh* mesh = dtAllocNavMesh();
-	if (!mesh)
-	{
-		fclose(fp);
-		return 0;
-	}
-	dtStatus status = mesh->init(&header.meshParams);
-	if (dtStatusFailed(status))
-	{
-		fclose(fp);
-		return 0;
-	}
-
-	// Read tiles.
-	for (int i = 0; i < header.numTiles; ++i)
-	{
-		NavMeshTileHeader tileHeader;
-		readLen = fread(&tileHeader, sizeof(tileHeader), 1, fp);
-		if (readLen != 1)
-		{
-			// Error or early EOF
-			fclose(fp);
-			return 0;
-		}
-
-		if (!tileHeader.tileRef || !tileHeader.dataSize)
-			break;
-
-		unsigned char* data = (unsigned char*)dtAlloc(tileHeader.dataSize, DT_ALLOC_PERM);
-		if (!data) break;
-		memset(data, 0, tileHeader.dataSize);
-		readLen = fread(data, tileHeader.dataSize, 1, fp);
-		if (readLen != 1)
-		{
-			// Error or early EOF
-			dtFree(data);
-			fclose(fp);
-			return 0;
-		}
-
-		mesh->addTile(data, tileHeader.dataSize, DT_TILE_FREE_DATA, tileHeader.tileRef, 0);
-	}
-
-	fclose(fp);
-
-	return mesh;
-}
-
 void Sample_TileMesh::handleSettings()
 {
 	Sample::handleCommonSettings();
@@ -581,7 +454,6 @@ void Sample_TileMesh::handleSettings()
 	imguiLabel("Tiling");
 	imguiSlider("TileSize", &m_tileSize, 16.0f, 1024.0f, 16.0f);
 
-	int gridSize{ 1 };
 	if (m_geom)
 	{
 		char text[64];
@@ -609,8 +481,6 @@ void Sample_TileMesh::handleSettings()
 		imguiValue(text);
 		snprintf(text, 64, "Max Polys  %d", m_maxPolysPerTile);
 		imguiValue(text);
-
-		gridSize = tw * th;
 	}
 	else
 	{
@@ -625,13 +495,13 @@ void Sample_TileMesh::handleSettings()
 
 	if (imguiButton("Save"))
 	{
-		saveAll("all_tiles_navmesh.bin", m_navMesh);
+		Sample::saveAll("all_tiles_navmesh.bin", m_navMesh);
 	}
 
 	if (imguiButton("Load"))
 	{
 		dtFreeNavMesh(m_navMesh);
-		m_navMesh = loadAll("all_tiles_navmesh.bin");
+		m_navMesh = Sample::loadAll("all_tiles_navmesh.bin");
 		m_navQuery->init(m_navMesh, 2048);
 	}
 
@@ -934,6 +804,7 @@ void Sample_TileMesh::handleMeshChanged()
 	initToolStates(this);
 }
 
+#if false
 int Sample_TileMesh::rasterizeTileLayers(
 	const int tx, const int ty, const rcConfig& cfg, TileCacheData* tiles, const int maxTiles)
 {
@@ -1020,8 +891,7 @@ int Sample_TileMesh::rasterizeTileLayers(
 		std::fill_n(rc.triareas.begin(), ntris, 0);
 
 		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle,
-			verts.data(), nverts, tris, ntris, rc.triareas.data(),
-			SAMPLE_AREAMOD_GROUND);
+			verts.data(), nverts, tris, ntris, rc.triareas.data());
 
 		if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, rc.triareas.data(), ntris, *rc.solid, tcfg.walkableClimb))
 			return 0;
@@ -1137,6 +1007,7 @@ int Sample_TileMesh::rasterizeTileLayers(
 
 	return n;
 }
+#endif
 
 bool Sample_TileMesh::handleBuild()
 {
@@ -1535,8 +1406,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 			Fill(m_triareas, 0, exec::par);
 
 			// 表面が歩行可能かどうかを確認
-			rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle,
-				verts.data(), nverts, ctris, nctris, m_triareas.data(), SAMPLE_AREAMOD_GROUND);
+			rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, ctris, nctris, m_triareas.data());
 
 			if (!rcRasterizeTriangles(m_ctx, verts, nverts, ctris, m_triareas.data(), nctris, *m_solid, m_cfg.walkableClimb))
 				return nullptr;
@@ -1603,7 +1473,7 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 		for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i)
 		{
 			const auto& vol{ vols[i] };
-			rcMarkConvexPolyArea(m_ctx, vol.verts.data(), vol.nverts, vol.hmin, vol.hmax, vol.areaMod, *m_chf);
+			rcMarkConvexPolyArea(m_ctx, vol.verts.data(), vol.nverts, vol.hmin, vol.hmax, (unsigned char)vols[i].area, *m_chf);
 		}
 
 		// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
@@ -1859,9 +1729,25 @@ unsigned char* Sample_TileMesh::buildTileMesh(const int tx, const int ty, const 
 
 		// Update poly flags from areas.
 		// エリアからポリゴンフラグを更新します。
-		for (int i = 0; i < m_last_pmesh->npolys; ++i)
+		for (int i = 0; i < m_pmesh->npolys; ++i)
 		{
-			m_last_pmesh->flags[i] = sampleAreaToFlags(m_last_pmesh->areas[i]);
+			if (m_pmesh->areas[i] == RC_WALKABLE_AREA)
+				m_pmesh->areas[i] = SAMPLE_POLYAREA_GROUND;
+
+			if (m_pmesh->areas[i] == SAMPLE_POLYAREA_GROUND ||
+				m_pmesh->areas[i] == SAMPLE_POLYAREA_GRASS ||
+				m_pmesh->areas[i] == SAMPLE_POLYAREA_ROAD)
+			{
+				m_pmesh->flags[i] = SAMPLE_POLYFLAGS_WALK;
+			}
+			else if (m_pmesh->areas[i] == SAMPLE_POLYAREA_WATER)
+			{
+				m_pmesh->flags[i] = SAMPLE_POLYFLAGS_SWIM;
+			}
+			else if (m_pmesh->areas[i] == SAMPLE_POLYAREA_DOOR)
+			{
+				m_pmesh->flags[i] = SAMPLE_POLYFLAGS_WALK | SAMPLE_POLYFLAGS_DOOR;
+			}
 		}
 
 		dtNavMeshCreateParams params{};

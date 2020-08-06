@@ -92,9 +92,27 @@ void Sample_SoloMesh::handleSettings()
 	Sample::handleCommonSettings();
 
 	if (imguiCheck("Keep Itermediate Results", m_keep_inter_results))
-		m_keep_inter_results = !m_keep_inter_results;
+		m_keep_inter_results ^= true;
 
 	imguiSeparator();
+
+	imguiIndent();
+	imguiIndent();
+
+	if (imguiButton("Save"))
+	{
+		Sample::saveAll("solo_navmesh.bin", m_navMesh);
+	}
+
+	if (imguiButton("Load"))
+	{
+		dtFreeNavMesh(m_navMesh);
+		m_navMesh = Sample::loadAll("solo_navmesh.bin");
+		m_navQuery->init(m_navMesh, 2048);
+	}
+
+	imguiUnindent();
+	imguiUnindent();
 
 	std::array<char, 64> msg{};
 	snprintf(msg.data(), 64, "Build Time: %.1fms", m_total_build_time_ms);
@@ -482,7 +500,7 @@ bool Sample_SoloMesh::handleBuild()
 	// 傾斜に基づいて歩行可能な三角形を見つけ、ラスタライズします。
 	// If your input data is multiple meshes, you can transform them here, calculate the are type for each of the meshes and rasterize them.
 	// 入力データが複数のメッシュである場合、ここでそれらを変換し、各メッシュのareタイプを計算して、それらをラスタライズできます。
-	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, tris.data(), ntris, m_triareas.data(), SAMPLE_AREAMOD_GROUND);
+	rcMarkWalkableTriangles(m_ctx, m_cfg.walkableSlopeAngle, verts.data(), nverts, tris.data(), ntris, m_triareas.data());
 
 	if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris.data(), m_triareas.data(), ntris, *m_solid, m_cfg.walkableClimb))
 	{
@@ -559,7 +577,7 @@ bool Sample_SoloMesh::handleBuild()
 
 	for (int i = 0; i < m_geom->getConvexVolumeCount(); ++i) // 凸ボリューム数を取得
 		rcMarkConvexPolyArea(m_ctx, vols.at(i).verts.data(), vols.at(i).nverts, vols.at(i).hmin, vols.at(i).hmax,
-			vols.at(i).areaMod, *m_chf); // 凸多角形領域をマーク
+			(unsigned char)vols[i].area, *m_chf); // 凸多角形領域をマーク
 
 	// Partition the heightfield so that we can use simple algorithm later to triangulate the walkable areas.
 	// ハイトフィールドを分割して、後で簡単なアルゴリズムを使用して歩行可能エリアを三角測量できるようにします。
@@ -750,7 +768,23 @@ bool Sample_SoloMesh::handleBuild()
 		// エリアからポリゴンフラグを更新します。
 		for (int i = 0; i < m_pmesh->npolys; ++i)
 		{
-			m_pmesh->flags[i] = sampleAreaToFlags(m_pmesh->areas[i]);
+			if (m_pmesh->areas[i] == RC_WALKABLE_AREA)
+				m_pmesh->areas[i] = SAMPLE_POLYAREA_GROUND;
+
+			if (m_pmesh->areas[i] == SAMPLE_POLYAREA_GROUND ||
+				m_pmesh->areas[i] == SAMPLE_POLYAREA_GRASS ||
+				m_pmesh->areas[i] == SAMPLE_POLYAREA_ROAD)
+			{
+				m_pmesh->flags[i] = SAMPLE_POLYFLAGS_WALK;
+			}
+			else if (m_pmesh->areas[i] == SAMPLE_POLYAREA_WATER)
+			{
+				m_pmesh->flags[i] = SAMPLE_POLYFLAGS_SWIM;
+			}
+			else if (m_pmesh->areas[i] == SAMPLE_POLYAREA_DOOR)
+			{
+				m_pmesh->flags[i] = SAMPLE_POLYFLAGS_WALK | SAMPLE_POLYFLAGS_DOOR;
+			}
 		}
 
 		dtNavMeshCreateParams params{};

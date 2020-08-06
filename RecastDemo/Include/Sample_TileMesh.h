@@ -24,13 +24,13 @@
 #include "Recast.h"
 #include "ChunkyTriMesh.h"
 
-enum class DrawDetailType
-{
-	DRAWDETAIL_AREAS,
-	DRAWDETAIL_REGIONS,
-	DRAWDETAIL_CONTOURS,
-	DRAWDETAIL_MESH,
-};
+//enum class DrawDetailType
+//{
+//	DRAWDETAIL_AREAS,
+//	DRAWDETAIL_REGIONS,
+//	DRAWDETAIL_CONTOURS,
+//	DRAWDETAIL_MESH,
+//};
 
 class Sample_TileMesh : public Sample
 {
@@ -87,8 +87,8 @@ private:
 
 	void CleanUp();
 
-	void saveAll(const char* path, const dtNavMesh* mesh);
-	dtNavMesh* loadAll(const char* path);
+	//void saveAll(const char* path, const class dtNavMesh* mesh);
+	//class dtNavMesh* loadAll(const char* path);
 
 public:
 	Sample_TileMesh();
@@ -118,7 +118,7 @@ private:
 	Sample_TileMesh(const Sample_TileMesh&&) = delete;
 	Sample_TileMesh& operator=(Sample_TileMesh&&) = delete;
 
-	int rasterizeTileLayers(const int tx, const int ty, const rcConfig& cfg, struct TileCacheData* tiles, const int maxTiles);
+	//int rasterizeTileLayers(const int tx, const int ty, const rcConfig& cfg, struct TileCacheData* tiles, const int maxTiles);
 };
 
 #endif // RECASTSAMPLETILEMESH_H

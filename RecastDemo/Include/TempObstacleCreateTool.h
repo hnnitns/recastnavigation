@@ -18,10 +18,7 @@ public:
 
 	int type() override { return TOOL_TEMP_OBSTACLE; }
 
-	void init(Sample* sample) override
-	{
-		m_sample = (Sample_TempObstacles*)sample;
-	}
+	void init(Sample* sample) override;
 
 	void reset() override {}
 

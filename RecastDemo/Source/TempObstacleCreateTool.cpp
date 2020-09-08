@@ -18,6 +18,11 @@ TempObstacleCreateTool::~TempObstacleCreateTool()
 {
 }
 
+void TempObstacleCreateTool::init(Sample* sample)
+{
+	m_sample = (Sample_TempObstacles*)sample;
+}
+
 void TempObstacleCreateTool::handleMenu()
 {
 	imguiLabel("Create Temp Obstacles");

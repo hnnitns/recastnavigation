@@ -50,7 +50,7 @@
 #include "RecastAssert.h"
 #include "fastlz.h"
 #include "AlgorithmHelper.h"
-#include "TempObstacleCreateTool.h"
+#include "TempObstacleTool.h"
 
 #ifdef _DEBUG
 #define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -687,7 +687,7 @@ struct RasterizationContext
 	~RasterizationContext()
 	{
 		rcFreeHeightField(solid);
-		delete[] triareas;
+		triareas.clear();
 		rcFreeHeightfieldLayerSet(lset);
 		rcFreeCompactHeightfield(chf);
 		for (int i = 0; i < MAX_LAYERS; ++i)
@@ -698,7 +698,7 @@ struct RasterizationContext
 	}
 
 	rcHeightfield* solid;
-	unsigned char* triareas;
+	std::vector<uint8_t> triareas;
 	rcHeightfieldLayerSet* lset;
 	rcCompactHeightfield* chf;
 	TileCacheData tiles[MAX_LAYERS];
@@ -763,8 +763,11 @@ int Sample_TempObstacles::rasterizeTileLayers(
 	// and array which can hold the max number of triangles you need to process.
 	// 三角形のフラグを保持できる配列を割り当てます。
 	// 処理する必要がある三角形の最大数を保持できる複数のメッシュを処理、割り当て、配列する必要がある場合。
-	rc.triareas = new unsigned char[chunkyMesh->maxTrisPerChunk];
-	if (!rc.triareas)
+	try
+	{
+		rc.triareas.resize(chunkyMesh->maxTrisPerChunk);
+	}
+	catch (const std::exception&)
 	{
 		// メモリー不足「m_triareas」
 		m_ctx->log(RC_LOG_ERROR, "buildNavigation: Out of memory 'm_triareas' (%d).", chunkyMesh->maxTrisPerChunk); // メモリー不足「m_triareas」
@@ -788,11 +791,11 @@ int Sample_TempObstacles::rasterizeTileLayers(
 		const int* tris = &chunkyMesh->tris[node.i * 3];
 		const int ntris = node.n;
 
-		memset(rc.triareas, 0, ntris * sizeof(unsigned char));
+		memset(rc.triareas.data(), 0, ntris * sizeof(unsigned char));
 
-		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle, verts.data(), nverts, tris, ntris, rc.triareas);
+		rcMarkWalkableTriangles(m_ctx, tcfg.walkableSlopeAngle, verts.data(), nverts, tris, ntris, rc.triareas.data());
 
-		if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, rc.triareas, ntris, *rc.solid, tcfg.walkableClimb))
+		if (!rcRasterizeTriangles(m_ctx, verts, nverts, tris, rc.triareas.data(), ntris, *rc.solid, tcfg.walkableClimb))
 			return 0;
 	}
 
@@ -926,7 +929,7 @@ Sample_TempObstacles::Sample_TempObstacles() :
 	m_tcomp = std::make_unique<FastLZCompressor>();
 	m_tmproc = std::make_unique<MeshProcess>();
 
-	setTool(std::make_unique<TempObstacleCreateTool>());
+	setTool(std::make_unique<TempObstacleTool>());
 }
 
 Sample_TempObstacles::~Sample_TempObstacles()
@@ -1047,7 +1050,7 @@ void Sample_TempObstacles::handleTools()
 	}
 	if (imguiCheck("Create Temp Obstacles", type == TOOL_TEMP_OBSTACLE))
 	{
-		setTool(std::make_unique<TempObstacleCreateTool>());
+		setTool(std::make_unique<TempObstacleTool>());
 	}
 	if (imguiCheck("Create Tiles", type == TOOL_TILE_EDIT))
 	{

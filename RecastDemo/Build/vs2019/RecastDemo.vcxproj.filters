@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Original">
+      <UniqueIdentifier>{73611c16-f62f-4629-ba15-f987d6bd59b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Original\Contrib">
+      <UniqueIdentifier>{F6373234-6217-B1CF-6B2F-3CA6D78D1731}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Original\Contrib\fastlz">
+      <UniqueIdentifier>{1993EC8A-0561-E090-EEF4-50B7DA61BCF5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Original\Include">
+      <UniqueIdentifier>{6917EFFE-D5F6-6D9A-DE0E-F9704A6DD4FB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Original\Source">
+      <UniqueIdentifier>{56EB95D1-428D-C0A7-2B48-D4FB178947F8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyData">
+      <UniqueIdentifier>{5b8e3065-8685-4c40-ac35-f25f0236c056}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyData\Source">
+      <UniqueIdentifier>{b10de87b-cadc-4488-b2a1-8aaaf0d1a5f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyData\Include">
+      <UniqueIdentifier>{e0ade10d-c86b-4af0-bf0e-3f9a6a3b2b3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MyData\Include\追加ファイル">
+      <UniqueIdentifier>{4c3e75fd-ba7e-4a03-8c71-247cfe2f8447}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Contrib\fastlz\fastlz.h">
+      <Filter>Original\Contrib\fastlz</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\ChunkyTriMesh.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\ConvexVolumeTool.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\CrowdTool.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Filelist.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\InputGeom.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\MeshLoaderObj.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\NavMeshPruneTool.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\NavMeshTesterTool.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\OffMeshConnectionTool.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\PerfTimer.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Sample.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\SampleInterfaces.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Sample_SoloMesh.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Sample_TempObstacles.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Sample_TileMesh.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\ValueHistory.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\imgui.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\imguiRenderGL.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\EditManager.h">
+      <Filter>MyData\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Random.h">
+      <Filter>MyData\Include\追加ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\DebugUtils\Include\DebugDraw.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\DebugUtils\Include\DetourDebugDraw.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\DebugUtils\Include\RecastDebugDraw.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\DebugUtils\Include\RecastDump.h">
+      <Filter>Original\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Other\Math.h">
+      <Filter>MyData\Include\追加ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\Other\XMFLOAT_Hlper.h">
+      <Filter>MyData\Include\追加ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\TempObstacleCreateTool.h">
+      <Filter>MyData\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\TempObstacleTool.h">
+      <Filter>MyData\Include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Contrib\fastlz\fastlz.c">
+      <Filter>Original\Contrib\fastlz</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\ChunkyTriMesh.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\ConvexVolumeTool.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CrowdTool.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Filelist.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\InputGeom.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\MeshLoaderObj.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\NavMeshPruneTool.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\NavMeshTesterTool.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\OffMeshConnectionTool.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\PerfTimer.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Sample.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\SampleInterfaces.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Sample_SoloMesh.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Sample_TempObstacles.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Sample_TileMesh.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\ValueHistory.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\imgui.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\imguiRenderGL.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\main.cpp">
+      <Filter>MyData\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\EditManager.cpp">
+      <Filter>MyData\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\DebugUtils\Source\DebugDraw.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\DebugUtils\Source\DetourDebugDraw.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\DebugUtils\Source\RecastDebugDraw.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\DebugUtils\Source\RecastDump.cpp">
+      <Filter>Original\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\TempObstacleCreateTool.cpp">
+      <Filter>MyData\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\TempObstacleTool.cpp">
+      <Filter>MyData\Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

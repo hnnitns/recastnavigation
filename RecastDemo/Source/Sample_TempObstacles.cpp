@@ -50,7 +50,7 @@
 #include "RecastAssert.h"
 #include "fastlz.h"
 #include "AlgorithmHelper.h"
-#include "TempObstacleTool.h"
+#include "TempObstacleCreateTool.h"
 
 #ifdef _DEBUG
 #define   new	new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -929,7 +929,7 @@ Sample_TempObstacles::Sample_TempObstacles() :
 	m_tcomp = std::make_unique<FastLZCompressor>();
 	m_tmproc = std::make_unique<MeshProcess>();
 
-	setTool(std::make_unique<TempObstacleTool>());
+	setTool(std::make_unique<TempObstacleCreateTool>());
 }
 
 Sample_TempObstacles::~Sample_TempObstacles()
@@ -1050,7 +1050,7 @@ void Sample_TempObstacles::handleTools()
 	}
 	if (imguiCheck("Create Temp Obstacles", type == TOOL_TEMP_OBSTACLE))
 	{
-		setTool(std::make_unique<TempObstacleTool>());
+		setTool(std::make_unique<TempObstacleCreateTool>());
 	}
 	if (imguiCheck("Create Tiles", type == TOOL_TILE_EDIT))
 	{

@@ -1,9 +1,0 @@
-C:/Users/hcdce/Desktop/OpenSteer-master/CMakeFiles/OpenSteerDemo.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/CMakeFiles/libopensteer.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/CMakeFiles/INSTALL.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/CMakeFiles/ALL_BUILD.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/CMakeFiles/ZERO_CHECK.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/third-party/glfw/CMakeFiles/INSTALL.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/third-party/glfw/CMakeFiles/ALL_BUILD.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/third-party/glfw/src/CMakeFiles/glfw.dir
-C:/Users/hcdce/Desktop/OpenSteer-master/third-party/glfw/src/CMakeFiles/INSTALL.dir

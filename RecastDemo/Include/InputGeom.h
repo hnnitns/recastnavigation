@@ -89,6 +89,14 @@ struct BuildSettings
 
 	// Size of the tiles in voxels // ボクセルのタイルのサイズ
 	float tileSize;
+
+	struct MeshData
+	{
+		std::array<float, 3> pos, scale, rotate;
+	};
+
+	// メッシュの座標、大きさ、角度
+	std::deque<MeshData> meshes;
 };
 
 class InputGeom

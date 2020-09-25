@@ -338,7 +338,6 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 		{
 			// Settings
 			m_buildSettings.emplace();
-			m_buildSettings = {};
 
 			sscanf_s(row.data() + 1, "%f %f %f %f %f %f %f %f %f %f %f %f %f %d %f %f %f %f %f %f %f",
 				&m_buildSettings->cellSize,
@@ -362,6 +361,29 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 				&m_buildSettings->navMeshBMax[1],
 				&m_buildSettings->navMeshBMax[2],
 				&m_buildSettings->tileSize);
+		}
+		else if (row[0] == 'm')
+		{
+			// setting (mesh)
+
+			if (m_buildSettings)
+			{
+				int count{};
+
+				sscanf_s(row.data() + 1, "%d", &count);
+
+				auto& meshs{ m_buildSettings->meshes };
+
+				for (int i = 0; i < count; i++)
+				{
+					auto& mesh{ meshs.emplace_back() };
+
+					sscanf_s(row.data() + 3, "%f %f %f %f %f %f %f %f %f",
+						&mesh.pos[0], &mesh.pos[1], &mesh.pos[2],
+						&mesh.scale[0], &mesh.scale[1], &mesh.scale[2],
+						&mesh.rotate[0], &mesh.rotate[1], &mesh.rotate[2]);
+				}
+			}
 		}
 	}
 
@@ -460,6 +482,18 @@ bool InputGeom::SaveGeomSet(const BuildSettings* settings)
 			settings->navMeshBMax[1],
 			settings->navMeshBMax[2],
 			settings->tileSize);
+
+		const int size{ static_cast<int>(settings->meshes.size()) };
+
+		fprintf_s(fp, "m %d ", size);
+
+		for (auto& mesh : settings->meshes)
+		{
+			fprintf_s(fp, "%f %f %f %f %f %f %f %f %f\n",
+				mesh.pos[0], mesh.pos[1], mesh.pos[2],
+				mesh.scale[0], mesh.scale[1], mesh.scale[2],
+				mesh.rotate[0], mesh.rotate[1], mesh.rotate[2]);
+		}
 	}
 
 	// Store off-mesh links.

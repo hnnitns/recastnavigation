@@ -163,6 +163,18 @@ void Sample::collectSettings(BuildSettings& settings)
 	settings.detailSampleDist = m_detailSampleDist;
 	settings.detailSampleMaxError = m_detailSampleMaxError;
 	settings.partitionType = m_partitionType;
+
+	if (m_geom)
+	{
+		for (const auto& src : m_geom->getLoadGeomMesh())
+		{
+			auto& dest{ settings.meshes.emplace_back() };
+
+			dest.pos = src.pos;
+			dest.rotate = src.rotate;
+			dest.scale = src.scale;
+		}
+	}
 }
 
 void Sample::resetCommonSettings()

@@ -244,6 +244,7 @@ void CrowdToolState::handleRender()
 	if (!nav || !crowd)
 		return;
 
+	// ŒŸõ‚µ‚½Œo˜Hˆê——‚Ì•`‰æ
 	if (m_toolParams.m_showNodes && crowd->getPathQueue())
 	{
 		const dtNavMeshQuery* navquery = crowd->getPathQueue()->getNavQuery();

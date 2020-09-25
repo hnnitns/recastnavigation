@@ -49,77 +49,77 @@ namespace
 
 		dd->begin(DU_DRAW_LINES, linew);
 
-	for (int i = 0; i < tile->header->polyCount; ++i)
-	{
-		const dtPoly* p = &tile->polys[i];
-		
-		if (p->getType() == DT_POLYTYPE_OFFMESH_CONNECTION) continue;
-		
-		const dtPolyDetail* pd = &tile->detailMeshes[i];
-		
-		for (int j = 0, nj = (int)p->vertCount; j < nj; ++j)
+		for (int i = 0; i < tile->header->polyCount; ++i)
 		{
-			unsigned int c = col;
-			if (inner)
+			const dtPoly* p = &tile->polys[i];
+
+			if (p->getType() == DT_POLYTYPE_OFFMESH_CONNECTION) continue;
+
+			const dtPolyDetail* pd = &tile->detailMeshes[i];
+
+			for (int j = 0, nj = (int)p->vertCount; j < nj; ++j)
 			{
-				if (p->neis[j] == 0) continue;
-				if (p->neis[j] & DT_EXT_LINK)
+				unsigned int c = col;
+				if (inner)
 				{
-					bool con = false;
-					for (unsigned int k = p->firstLink; k != DT_NULL_LINK; k = tile->links[k].next)
+					if (p->neis[j] == 0) continue;
+					if (p->neis[j] & DT_EXT_LINK)
 					{
-						if (tile->links[k].edge == j)
+						bool con = false;
+						for (unsigned int k = p->firstLink; k != DT_NULL_LINK; k = tile->links[k].next)
 						{
-							con = true;
-							break;
+							if (tile->links[k].edge == j)
+							{
+								con = true;
+								break;
+							}
 						}
+						if (con)
+							c = duRGBA(255, 255, 255, 48);
+						else
+							c = duRGBA(0, 0, 0, 48);
 					}
-					if (con)
-						c = duRGBA(255,255,255,48);
 					else
-						c = duRGBA(0,0,0,48);
+						c = duRGBA(0, 48, 64, 32);
 				}
 				else
-					c = duRGBA(0,48,64,32);
-			}
-			else
-			{
-				if (p->neis[j] != 0) continue;
-			}
-			
-			const float* v0 = &tile->verts[p->verts[j]*3];
-			const float* v1 = &tile->verts[p->verts[(j+1) % nj]*3];
-			
-			// Draw detail mesh edges which align with the actual poly edge.
-			// This is really slow.
-			for (int k = 0; k < pd->triCount; ++k)
-			{
-				const unsigned char* t = &tile->detailTris[(pd->triBase+k)*4];
-				const float* tv[3];
-				for (int m = 0; m < 3; ++m)
 				{
-					if (t[m] < p->vertCount)
-						tv[m] = &tile->verts[p->verts[t[m]]*3];
-					else
-						tv[m] = &tile->detailVerts[(pd->vertBase+(t[m]-p->vertCount))*3];
+					if (p->neis[j] != 0) continue;
 				}
-				for (int m = 0, n = 2; m < 3; n=m++)
-				{
-					if ((dtGetDetailTriEdgeFlags(t[3], n) & DT_DETAIL_EDGE_BOUNDARY) == 0)
-						continue;
 
-					if (distancePtLine2d(tv[n],v0,v1) < thr &&
-						distancePtLine2d(tv[m],v0,v1) < thr)
+				const float* v0 = &tile->verts[p->verts[j] * 3];
+				const float* v1 = &tile->verts[p->verts[(j + 1) % nj] * 3];
+
+				// Draw detail mesh edges which align with the actual poly edge.
+				// This is really slow.
+				for (int k = 0; k < pd->triCount; ++k)
+				{
+					const unsigned char* t = &tile->detailTris[(pd->triBase + k) * 4];
+					const float* tv[3];
+					for (int m = 0; m < 3; ++m)
 					{
-						dd->vertex(tv[n], c);
-						dd->vertex(tv[m], c);
+						if (t[m] < p->vertCount)
+							tv[m] = &tile->verts[p->verts[t[m]] * 3];
+						else
+							tv[m] = &tile->detailVerts[(pd->vertBase + (t[m] - p->vertCount)) * 3];
+					}
+					for (int m = 0, n = 2; m < 3; n = m++)
+					{
+						if ((dtGetDetailTriEdgeFlags(t[3], n) & DT_DETAIL_EDGE_BOUNDARY) == 0)
+							continue;
+
+						if (distancePtLine2d(tv[n], v0, v1) < thr &&
+							distancePtLine2d(tv[m], v0, v1) < thr)
+						{
+							dd->vertex(tv[n], c);
+							dd->vertex(tv[m], c);
+						}
 					}
 				}
 			}
 		}
+		dd->end();
 	}
-	dd->end();
-}
 
 	static void drawMeshTile(duDebugDraw* dd, const dtNavMesh& mesh, const dtNavMeshQuery* query,
 		const dtMeshTile* tile, unsigned char flags)
@@ -226,7 +226,8 @@ namespace
 			dd->end();
 		}
 
-		const unsigned int vcol = duRGBA(0, 0, 0, 196);
+		constexpr unsigned int vcol{ duRGBA(0, 0, 0, 196) };
+
 		dd->begin(DU_DRAW_POINTS, 3.0f);
 		for (int i = 0; i < tile->header->vertCount; ++i)
 		{

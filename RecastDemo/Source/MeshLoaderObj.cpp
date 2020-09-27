@@ -27,6 +27,7 @@
 #include <ppl.h>
 #include "Other/XMFLOAT_Hlper.h"
 #include <amp.h>
+#include "Recast.h"
 
 namespace PPL = Concurrency;
 

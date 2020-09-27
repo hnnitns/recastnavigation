@@ -293,10 +293,7 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 
 			if (*name)
 			{
-				if (!LoadMesh(ctx, name))
-				{
-					return false;
-				}
+				if (!LoadMesh(ctx, name)) return false;
 			}
 		}
 		else if (row[0] == 'c')
@@ -387,6 +384,8 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 		}
 	}
 
+	CalcAllMeshBounds();
+
 	return true;
 }
 
@@ -408,6 +407,9 @@ void InputGeom::CalcAllMeshBounds()
 				all_meshBMin[i] = mesh.m_meshBMin[i];
 		}
 	}
+
+	m_buildSettings->navMeshBMax = all_meshBMax;
+	m_buildSettings->navMeshBMin = all_meshBMin;
 }
 
 bool InputGeom::Load(rcContext* ctx, const std::string& filepath)
@@ -790,9 +792,13 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 
 void InputGeom::LoadGeomMesh::Update()
 {
+	auto verts{ m_mesh->getVerts() };
+
 	// XV
 	m_mesh->MoveVerts(pos, rotate, scale);
 	//m_chunkyMesh->MoveNodes(pos, rotate, scale);
+
+	m_chunkyMesh.emplace();
 
 	if (!rcCreateChunkyTriMesh(m_mesh->getVerts(), m_mesh->getTris(), m_mesh->getTriCount(), 256, &(*m_chunkyMesh)))
 	{

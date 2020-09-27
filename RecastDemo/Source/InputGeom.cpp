@@ -373,18 +373,39 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 
 				for (int i = 0; i < count; i++)
 				{
-					auto& mesh{ meshs.emplace_back() };
+					auto& setting_mesh{ meshs.emplace_back() };
 
 					sscanf_s(row.data() + 3, "%f %f %f %f %f %f %f %f %f",
-						&mesh.pos[0], &mesh.pos[1], &mesh.pos[2],
-						&mesh.scale[0], &mesh.scale[1], &mesh.scale[2],
-						&mesh.rotate[0], &mesh.rotate[1], &mesh.rotate[2]);
+						&setting_mesh.pos[0], &setting_mesh.pos[1], &setting_mesh.pos[2],
+						&setting_mesh.scale[0], &setting_mesh.scale[1], &setting_mesh.scale[2],
+						&setting_mesh.rotate[0], &setting_mesh.rotate[1], &setting_mesh.rotate[2]);
+
+
 				}
 			}
 		}
 	}
 
-	CalcAllMeshBounds();
+	// 座標、大きさ、角度を適用
+	if (!load_geom_meshes.empty())
+	{
+		for (size_t i = 0; i < load_geom_meshes.size(); i++)
+		{
+			auto& dest{ load_geom_meshes[i] };
+			const auto& src{ m_buildSettings->meshes[i] };
+
+			dest.pos = src.pos;
+			dest.scale = src.scale;
+			dest.rotate = src.rotate;
+		}
+
+		for (auto& mesh : load_geom_meshes)
+		{
+			mesh.Update();
+		}
+
+		CalcAllMeshBounds();
+	}
 
 	return true;
 }

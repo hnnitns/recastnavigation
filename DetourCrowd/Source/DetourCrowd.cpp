@@ -559,7 +559,6 @@ int dtCrowd::addAgent(const std::array<float, 3>& pos, const dtCrowdAgentParams*
 	ag->corridor.reset(ref, nearest.data());
 	ag->boundary.reset();
 	ag->partial = false;
-	ag->is_run = true;
 
 	ag->topologyOptTime = 0;
 	ag->targetReplanTime = 0;
@@ -580,6 +579,7 @@ int dtCrowd::addAgent(const std::array<float, 3>& pos, const dtCrowdAgentParams*
 	ag->targetState = DT_CROWDAGENT_TARGET_NONE;
 
 	ag->active = true;
+	ag->is_run = true;
 
 	return idx;
 }
@@ -730,7 +730,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgent* ag = &m_agents[i];
-		if (!ag->active || !ag->is_run)
+		if (!(ag->active && ag->is_run))
 			continue;
 		if (ag->state == DT_CROWDAGENT_STATE_INVALID)
 			continue;

@@ -140,7 +140,7 @@ struct dtCrowdAgent
 	// エージェントがアクティブな場合はtrue、エージェントがエージェントプールの未使用のスロットにある場合はfalse。
 	bool active;
 
-	// 動作状態かどうか
+	// エージェントが動作状態にある場合はtrue、動作不可の場合はfalse
 	bool is_run;
 
 	// The type of mesh polygon the agent is traversing. (See: #CrowdAgentState)
@@ -291,7 +291,7 @@ class dtCrowd
 
 	dtPolyRef* m_pathResult;
 	int m_maxPathResult;
-	
+
 	float m_agentPlacementHalfExtents[3];
 
 	dtQueryFilter m_filters[DT_CROWD_MAX_QUERY_FILTER_TYPE];
@@ -415,14 +415,14 @@ public:
 	// @return The filter used by the crowd.
 	inline dtQueryFilter* getEditableFilter(const int i) { return (i >= 0 && i < DT_CROWD_MAX_QUERY_FILTER_TYPE) ? &m_filters[i] : 0; }
 
-	/// Gets the search halfExtents [(x, y, z)] used by the crowd for query operations. 
+	/// Gets the search halfExtents [(x, y, z)] used by the crowd for query operations.
 	/// @return The search halfExtents used by the crowd. [(x, y, z)]
 	const float* getQueryHalfExtents() const { return m_agentPlacementHalfExtents; }
 
 	/// Same as getQueryHalfExtents. Left to maintain backwards compatibility.
 	/// @return The search halfExtents used by the crowd. [(x, y, z)]
 	const float* getQueryExtents() const { return m_agentPlacementHalfExtents; }
-	
+
 	/// Gets the velocity sample count.
 	/// @return The velocity sample count.
 	inline int getVelocitySampleCount() const { return m_velocitySampleCount; }

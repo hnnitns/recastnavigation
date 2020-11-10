@@ -2,6 +2,7 @@
 #define DETOURTILECACHE_H
 
 #include "DetourStatus.h"
+#include "Common.h"
 #include <array>
 #include <unordered_set>
 
@@ -38,34 +39,6 @@ enum ObstacleState // è·äQï®ÇÃèÛë‘
 	DT_OBSTACLE_PROCESSED, // èàóùäÆóπ
 	DT_OBSTACLE_REMOVING, // çÌèú
 	DT_OBSTACLE_MOVING, // à⁄ìÆ
-};
-
-enum ObstacleType
-{
-	DT_OBSTACLE_CYLINDER,
-	DT_OBSTACLE_BOX, // AABB
-	DT_OBSTACLE_ORIENTED_BOX, // OBB
-};
-
-struct dtObstacleCylinder
-{
-	float pos[3], before_pos[3];
-	float radius;
-	float height;
-};
-
-struct dtObstacleBox
-{
-	float bmin[3], bmax[3];
-	float before_bmin[3], before_bmax[3];
-};
-
-struct dtObstacleOrientedBox
-{
-	float center[ 3 ];
-	float halfExtents[ 3 ];
-	float rotAux[ 2 ]; //{ cos(0.5f*angle)*sin(-0.5f*angle); cos(0.5f*angle)*cos(0.5f*angle) - 0.5 }
-	float y_radian;
 };
 
 constexpr int DT_MAX_TOUCHED_TILES = 8;

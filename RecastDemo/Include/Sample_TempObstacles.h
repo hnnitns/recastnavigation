@@ -20,18 +20,11 @@
 #define RECASTSAMPLETEMPOBSTACLE_H
 
 #include "Sample.h"
+#include "Common.h"
 #include "DetourNavMesh.h"
 #include "Recast.h"
 #include "ChunkyTriMesh.h"
 #include "DetourTileCache.h"
-
-struct AddObstacleData
-{
-	dtObstacleCylinder cylinder;
-	dtObstacleBox box;
-	dtObstacleOrientedBox oriented_box;
-	ObstacleType type;
-};
 
 class Sample_TempObstacles : public Sample
 {

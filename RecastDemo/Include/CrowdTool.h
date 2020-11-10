@@ -19,6 +19,7 @@
 #ifndef CROWDTOOL_H
 #define CROWDTOOL_H
 
+#include "Common.h"
 #include "Sample.h"
 #include "DetourNavMesh.h"
 #include "DetourObstacleAvoidance.h"
@@ -54,16 +55,6 @@ struct CrowdToolParams
 	float m_separationWeight;
 };
 
-struct AddAgentStruct
-{
-	std::array<float, 3> pos{}; // 現在座標
-	float radius{}; // 半径
-	float height{}; // 高さ
-	float max_accele{ 8.f }; // 最大加速度
-	float max_speed{ 3.5f }; // 最大速度
-	float collision_range{ 12.f }; // ステアリング動作と見なされる前に衝突要素がどれだけ近くなければならないか
-	float path_optimization_range{ 30.f }; // パスの可視化の最適化範囲
-};
 
 class CrowdToolState : public SampleToolState
 {

@@ -2031,7 +2031,7 @@ dtStatus dtMarkBoxArea(dtTileCacheLayer& layer, const float* orig, const float c
 
 	float cx = (center[0] - orig[0])*ics;
 	float cz = (center[2] - orig[2])*ics;
-	
+
 	float maxr = 1.41f*dtMax(halfExtents[0], halfExtents[2]);
 	int minx = (int)floorf(cx - maxr*ics);
 	int maxx = (int)floorf(cx + maxr*ics);
@@ -2049,14 +2049,14 @@ dtStatus dtMarkBoxArea(dtTileCacheLayer& layer, const float* orig, const float c
 	if (maxx >= w) maxx = w-1;
 	if (minz < 0) minz = 0;
 	if (maxz >= h) maxz = h-1;
-	
+
 	float xhalf = halfExtents[0]*ics + 0.5f;
 	float zhalf = halfExtents[2]*ics + 0.5f;
 
 	for (int z = minz; z <= maxz; ++z)
 	{
 		for (int x = minx; x <= maxx; ++x)
-		{			
+		{
 			float x2 = 2.0f*(float(x) - cx);
 			float z2 = 2.0f*(float(z) - cz);
 			float xrot = rotAux[1]*x2 + rotAux[0]*z2;

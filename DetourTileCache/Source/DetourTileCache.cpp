@@ -508,7 +508,7 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 		dtVcopy(data.pos, move_pos);
 		AdjPosCylinder(data.pos);
 	}
-	else
+	else if(ob.type == DT_OBSTACLE_BOX)
 	{
 		auto& data{ ob.box };
 
@@ -522,6 +522,16 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 		dtVcopy(data.before_bmax, data.bmax);
 		CalcBoxPos(move_pos, box_size, &data);
 		AdjPosBox(data.bmin, data.bmax);
+	}
+	else if(ob.type == DT_OBSTACLE_ORIENTED_BOX)
+	{
+		auto& data{ ob.orientedBox };
+		float p[3];
+
+		// ç¿ïWÇåvéZ
+		dtVcopy(data.center, move_pos);
+		CalcBoxPos(move_pos, &data);
+		AdjPosBox(data.center);
 	}
 
 	return DT_SUCCESS;
@@ -538,6 +548,12 @@ void dtTileCache::AdjPosBoxObstacle(float* out_pos_min, float* out_pos_max, cons
 	dtVcopy(out_pos_min, box.bmin);
 	dtVcopy(out_pos_max, box.bmax);
 	AdjPosBox(out_pos_min, out_pos_max);
+}
+
+void dtTileCache::AdjPosBoxObstacle(float* out_pos, const dtObstacleOrientedBox& box) const
+{
+	dtVcopy(out_pos, box.center);
+	AdjPosBox(out_pos);
 }
 
 void dtTileCache::CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box)

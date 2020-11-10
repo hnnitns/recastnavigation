@@ -1305,8 +1305,10 @@ void Sample_TempObstacles::addTempObstacle(const AddObstacleData& add_data)
 	else if (add_data.type == DT_OBSTACLE_ORIENTED_BOX)
 	{
 		const auto& data{ add_data.oriented_box };
+		float p[3];
 
-		m_tileCache->addBoxObstacle(data.center, data.halfExtents, data.y_radian, nullptr);
+		m_tileCache->AdjPosBoxObstacle(p, data);
+		m_tileCache->addBoxObstacle(p, data.halfExtents, data.y_radian, nullptr);
 	}
 }
 

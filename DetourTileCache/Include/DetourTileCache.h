@@ -134,6 +134,7 @@ public:
 
 	void AdjPosCylinderObstacle(float* out_pos, const dtObstacleCylinder& cylinder) const;
 	void AdjPosBoxObstacle(float* out_pos_min, float* out_pos_max, const dtObstacleBox& box) const;
+	void AdjPosBoxObstacle(float* out_pos, const dtObstacleOrientedBox& box) const;
 	void CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box);
 	void CalcBoxPos(const float* middle_pos, dtObstacleOrientedBox* box);
 
@@ -214,6 +215,7 @@ public:
 private:
 	void AdjPosCylinder(float* pos) const noexcept { pos[1] -= 0.5f; }
 	void AdjPosBox(float* p_min, float* p_max) const noexcept { p_min[1] -= 0.25f; p_max[1] -= 0.25f; };
+	void AdjPosBox(float* center) const noexcept { center[1] -= 0.25f; };
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

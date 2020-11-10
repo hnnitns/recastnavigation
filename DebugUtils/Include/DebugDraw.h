@@ -150,6 +150,9 @@ void duDebugDrawCross(struct duDebugDraw* dd, const float x, const float y, cons
 void duDebugDrawBox(struct duDebugDraw* dd, float minx, float miny, float minz,
 	float maxx, float maxy, float maxz, const unsigned int* fcol);
 
+//void duDebugDrawBox(struct duDebugDraw* dd, float minx, float miny, float minz,
+//	float maxx, float maxy, float maxz, const unsigned int* fcol);
+
 void duDebugDrawCylinder(struct duDebugDraw* dd, float minx, float miny, float minz,
 	float maxx, float maxy, float maxz, unsigned int col);
 
@@ -183,6 +186,9 @@ void duAppendCross(struct duDebugDraw* dd, const float x, const float y, const f
 
 void duAppendBox(struct duDebugDraw* dd, float minx, float miny, float minz,
 	float maxx, float maxy, float maxz, const unsigned int* fcol);
+
+//void duAppendBox(struct duDebugDraw* dd, float minx, float miny, float minz,
+//	float maxx, float maxy, float maxz, const unsigned int* fcol);
 
 void duAppendCylinder(struct duDebugDraw* dd, float minx, float miny, float minz,
 	float maxx, float maxy, float maxz, unsigned int col);

@@ -9,6 +9,7 @@ class TempObstacleCreateTool
 	class Sample_TempObstacles* m_sample;
 	AddObstacleData add_data;
 	float add_pos[3], box_size[3];
+
 	dtObstacleRef m_ref;
 
 public:

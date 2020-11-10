@@ -65,6 +65,7 @@ struct dtObstacleOrientedBox
 	float center[ 3 ];
 	float halfExtents[ 3 ];
 	float rotAux[ 2 ]; //{ cos(0.5f*angle)*sin(-0.5f*angle); cos(0.5f*angle)*cos(0.5f*angle) - 0.5 }
+	float y_radian;
 };
 
 constexpr int DT_MAX_TOUCHED_TILES = 8;
@@ -153,7 +154,7 @@ public:
 
 	// Box obstacle: can be rotated in Y.
 	dtStatus addBoxObstacle(const float* center, const float* halfExtents, const float yRadians, dtObstacleRef* result);
-	
+
 	dtStatus removeObstacle(const dtObstacleRef ref);
 
 	dtStatus MoveObstacle(const dtObstacleRef ref, const float* move_pos);
@@ -161,6 +162,7 @@ public:
 	void AdjPosCylinderObstacle(float* out_pos, const dtObstacleCylinder& cylinder) const;
 	void AdjPosBoxObstacle(float* out_pos_min, float* out_pos_max, const dtObstacleBox& box) const;
 	void CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box);
+	void CalcBoxPos(const float* middle_pos, dtObstacleOrientedBox* box);
 
 	dtStatus queryTiles(const float* bmin, const float* bmax,
 		dtCompressedTileRef* results, int* resultCount, const int maxResults) const;

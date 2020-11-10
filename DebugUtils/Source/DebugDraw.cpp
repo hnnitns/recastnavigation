@@ -154,6 +154,16 @@ void duDebugDrawBox(struct duDebugDraw* dd, float minx, float miny, float minz,
 	dd->end();
 }
 
+//void duDebugDrawBox(struct duDebugDraw* dd, float minx, float miny, float minz,
+//	float maxx, float maxy, float maxz, const unsigned int* fcol)
+//{
+//	if (!dd) return;
+//
+//	dd->begin(DU_DRAW_QUADS);
+//	duAppendBox(dd, minx, miny, minz, maxx, maxy, maxz, fcol);
+//	dd->end();
+//}
+
 void duDebugDrawCylinder(struct duDebugDraw* dd, float minx, float miny, float minz,
 	float maxx, float maxy, float maxz, unsigned int col)
 {
@@ -323,6 +333,48 @@ void duAppendBox(struct duDebugDraw* dd, float minx, float miny, float minz,
 		dd->vertex(&verts[*in * 3], fcol[i]); in++;
 	}
 }
+
+//void duAppendBox(struct duDebugDraw* dd, float minx, float miny, float minz,
+//	float maxx, float maxy, float maxz, const unsigned int* fcol)
+//{
+//	if (!dd) return;
+//	const float verts[8 * 3] =
+//	{
+//		minx, miny, minz, // 0, 1, 2
+//		maxx, miny, minz, // 3, 4, 5
+//		maxx, miny, maxz, // 6, 7, 8
+//		minx, miny, maxz, // 9, 10, 11
+//		minx, maxy, minz, // 12, 13, 14
+//		maxx, maxy, minz, // 15, 16, 17
+//		maxx, maxy, maxz, // 18, 19, 20
+//		minx, maxy, maxz, // 21, 22, 23
+//	};
+//	constexpr unsigned char inds[6 * 4] =
+//	{
+//		7, 6, 5, 4,
+//		0, 1, 2, 3,
+//		1, 5, 6, 2,
+//		3, 7, 4, 0,
+//		2, 6, 7, 3,
+//		0, 4, 5, 1,
+//	};
+//
+//	/*
+//	minx, maxx, maxx,
+//	maxx, minx, maxx,
+//	maxx, minx, maxxm
+//
+//	*/
+//
+//	const unsigned char* in = inds;
+//	for (int i = 0; i < 6; ++i)
+//	{
+//		dd->vertex(&verts[*in * 3], fcol[i]); in++;
+//		dd->vertex(&verts[*in * 3], fcol[i]); in++;
+//		dd->vertex(&verts[*in * 3], fcol[i]); in++;
+//		dd->vertex(&verts[*in * 3], fcol[i]); in++;
+//	}
+//}
 
 void duAppendCylinder(struct duDebugDraw* dd, float minx, float miny, float minz,
 	float maxx, float maxy, float maxz, unsigned int col)

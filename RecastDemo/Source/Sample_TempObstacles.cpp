@@ -524,7 +524,7 @@ namespace
 			unsigned int col = 0;
 			if (ob->state == DT_OBSTACLE_PROCESSING)
 				col = duRGBA(255, 255, 0, 128);
-			else if (ob->state == DT_OBSTACLE_PROCESSED)
+			else if (ob->state == DT_OBSTACLE_PROCESSED || ob->state == DT_OBSTACLE_MOVING)
 				col = duRGBA(255, 192, 0, 192);
 			else if (ob->state == DT_OBSTACLE_REMOVING)
 				col = duRGBA(220, 0, 0, 128);
@@ -534,7 +534,14 @@ namespace
 				duDebugDrawCylinder(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], col);
 				duDebugDrawCylinderWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duDarkenCol(col), 2);
 			}
-			else
+			else if (ob->type == DT_OBSTACLE_BOX)
+			{
+				uint32_t col_arr[4]{ col, col, col, col };
+
+				duDebugDrawBox(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], col_arr);
+				duDebugDrawBoxWire(dd, bmin[0], bmin[1], bmin[2], bmax[0], bmax[1], bmax[2], duDarkenCol(col), 2);
+			}
+			else if (ob->type == DT_OBSTACLE_ORIENTED_BOX)
 			{
 				uint32_t col_arr[4]{ col, col, col, col };
 
@@ -1286,7 +1293,7 @@ void Sample_TempObstacles::addTempObstacle(const AddObstacleData& add_data)
 		m_tileCache->AdjPosCylinderObstacle(p, data);
 		m_tileCache->addCylinderObstacle(p, data.radius, data.height, nullptr);
 	}
-	else
+	else if(add_data.type == DT_OBSTACLE_BOX)
 	{
 		const auto& data{ add_data.box };
 
@@ -1294,6 +1301,12 @@ void Sample_TempObstacles::addTempObstacle(const AddObstacleData& add_data)
 
 		m_tileCache->AdjPosBoxObstacle(p_min, p_max, data);
 		m_tileCache->addBoxObstacle(p_min, p_max, nullptr);
+	}
+	else if (add_data.type == DT_OBSTACLE_ORIENTED_BOX)
+	{
+		const auto& data{ add_data.oriented_box };
+
+		m_tileCache->addBoxObstacle(data.center, data.halfExtents, data.y_radian, nullptr);
 	}
 }
 

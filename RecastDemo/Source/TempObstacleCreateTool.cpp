@@ -11,6 +11,7 @@ TempObstacleCreateTool::TempObstacleCreateTool()
 
 	add_data.cylinder = { {}, {}, 1.f, 2.0f };
 	add_data.box = {};
+	add_data.oriented_box = { {}, { 1.f, 1.f, 1.f }, {}, 0.f };
 	add_data.type = DT_OBSTACLE_CYLINDER;
 }
 
@@ -38,7 +39,9 @@ void TempObstacleCreateTool::handleMenu()
 
 		if (type == DT_OBSTACLE_CYLINDER)
 			type = DT_OBSTACLE_BOX;
-		else
+		else if (type == DT_OBSTACLE_BOX)
+			type = DT_OBSTACLE_ORIENTED_BOX;
+		else if (type == DT_OBSTACLE_ORIENTED_BOX)
 			type = DT_OBSTACLE_CYLINDER;
 	}
 
@@ -51,13 +54,24 @@ void TempObstacleCreateTool::handleMenu()
 		imguiSlider("height", &data.height, 1.5f, 10.f, 0.1f);
 		imguiSlider("radius", &data.radius, 0.5f, 8.f, 0.1f);
 	}
-	else
+	else if(add_data.type == DT_OBSTACLE_BOX)
 	{
 		imguiValue("Box");
 
 		imguiSlider("Size : x", &box_size[0], 2.5f, 12.f, 0.1f);
 		imguiSlider("Size : y", &box_size[1], 3.0f, 15.f, 0.1f);
 		imguiSlider("Size : z", &box_size[2], 2.5f, 12.f, 0.1f);
+	}
+	else if (add_data.type == DT_OBSTACLE_ORIENTED_BOX)
+	{
+		imguiValue("Oriented Box");
+
+		auto& data{ add_data.oriented_box };
+
+		imguiSlider("Size : x", &data.halfExtents[0], 2.5f, 12.f, 0.1f);
+		imguiSlider("Size : y", &data.halfExtents[1], 3.0f, 15.f, 0.1f);
+		imguiSlider("Size : z", &data.halfExtents[2], 2.5f, 12.f, 0.1f);
+		imguiSlider("Radian : y", &data.y_radian, 0.f, RC_PI * 2.f, 0.01f);
 	}
 
 	imguiSeparator();
@@ -88,9 +102,13 @@ void TempObstacleCreateTool::handleClickDown(const float* s, const float* p, boo
 		{
 			rcVcopy(add_data.cylinder.pos, add_pos);
 		}
-		else // box
+		else if(add_data.type == DT_OBSTACLE_BOX) // box
 		{
 			m_sample->CalcBoxPos(add_pos, box_size, &add_data.box);
+		}
+		else if (add_data.type == DT_OBSTACLE_ORIENTED_BOX)
+		{
+			m_sample->CalcBoxPos(add_pos, &add_data.oriented_box);
 		}
 
 		m_sample->addTempObstacle(add_data);

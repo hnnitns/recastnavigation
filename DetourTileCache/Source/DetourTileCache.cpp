@@ -556,6 +556,14 @@ void dtTileCache::CalcBoxPos(const float* middle_pos, const float* box_size, dtO
 	box->bmax[1] += half_size[1];
 }
 
+void dtTileCache::CalcBoxPos(const float* middle_pos, dtObstacleOrientedBox* box)
+{
+	dtVcopy(box->center, middle_pos);
+
+	// ’Ç‰ÁÀ•W‚ª’†S‚É—ˆ‚é‚æ‚¤‚É‚·‚é
+	box->center[1] = middle_pos[1] + box->halfExtents[1];
+}
+
 dtStatus dtTileCache::queryTiles(const float* bmin, const float* bmax,
 	dtCompressedTileRef* results, int* resultCount, const int maxResults) const
 {

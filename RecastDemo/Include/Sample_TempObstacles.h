@@ -29,6 +29,7 @@ struct AddObstacleData
 {
 	dtObstacleCylinder cylinder;
 	dtObstacleBox box;
+	dtObstacleOrientedBox oriented_box;
 	ObstacleType type;
 };
 
@@ -90,7 +91,13 @@ public:
 	void clearAllTempObstacles();
 	void MoveTempObstacle(const dtObstacleRef ref, const float* move_pos);
 	void CalcBoxPos(const float* middle_pos, const float* box_size, dtObstacleBox* box) const noexcept
-	{ m_tileCache->CalcBoxPos(middle_pos, box_size, box); }
+	{
+		m_tileCache->CalcBoxPos(middle_pos, box_size, box);
+	}
+	void CalcBoxPos(const float* middle_pos, dtObstacleOrientedBox* box)
+	{
+		m_tileCache->CalcBoxPos(middle_pos, box);
+	}
 	dtObstacleRef HitTestObstacle(const float* sp, const float* sq);
 
 	void StartMoveObstacles() noexcept;

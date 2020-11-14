@@ -21,17 +21,34 @@ bool NavMeshFindManager::Init(Sample* sample)
 	return true;
 }
 
-void NavMeshFindManager::Update(const float dt)
+bool NavMeshFindManager::FindSmoothPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
+	std::vector<std::array<float, 3>>* result_path, const size_t max_polygon_count, const size_t max_smooth_count)
 {
-	if (m_state)	m_state->handleUpdate(dt);
+	if (m_state)	return false;
+
+	return dtStatusFailed(m_state->FindSmoothPath(start_pos, end_pos, result_path, max_polygon_count, max_smooth_count));
 }
 
-void NavMeshFindManager::ImGuiUpdate()
+bool NavMeshFindManager::FindStraightPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
+	std::vector<std::array<float, 3>>* result_straight_path, const size_t max_path_count)
 {
-	if (m_state)	m_state->handleMenu();
+	if (m_state)	return false;
+
+	return dtStatusFailed(m_state->FindStraightPath(start_pos, end_pos, result_straight_path, max_path_count));
 }
 
-void NavMeshFindManager::Draw()
+bool NavMeshFindManager::RayCast(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
+	bool* is_hit, std::array<float, 3>* hit_position, float* distance, std::array<float, 3>* hit_normal,
+	const size_t max_path_count)
 {
-	if (m_state)	m_state->handleRender();
+	if (m_state)	return false;
+
+	return dtStatusFailed(m_state->RayCast(start_pos, end_pos, is_hit, hit_position, distance, hit_normal, max_path_count));
+}
+
+void NavMeshFindManager::SetSearchSize(const std::array<float, 3>& search_size) noexcept
+{
+	if (m_state)	return;
+
+	m_state->SetSearchSize(search_size);
 }

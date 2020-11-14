@@ -90,29 +90,50 @@ private:
 	std::array<float, MAX_STEER_POINTS * 3> m_steerPoints;
 	int m_steerPointCount;
 
+	std::array<float, 3> search_size;
+
 public:
 	NavMeshTesterTool();
 
-	virtual int type() { return TOOL_NAVMESH_TESTER; }
-	virtual void init(Sample* sample);
-	virtual void reset();
-	virtual void handleMenu();
-	virtual void handleClickDown(const float* s, const float* p, bool shift);
+	int type() override { return TOOL_NAVMESH_TESTER; }
+	void init(Sample* sample) override;
+	void reset() override;
+	void handleMenu() override;
+	void handleClickDown(const float* s, const float* p, bool shift) override;
 	void handleClickUp(const float* /*s*/, const float* /*p*/) override {}
 	void handleClick(const float* /*s*/, const float* /*p*/) override {}
 
 	// パスの追跡処理を行う
-	virtual void handleToggle();
-	virtual void handleStep();
-	virtual void handleUpdate(const float dt);
-	virtual void handleRender();
-	virtual void handleRenderOverlay(double* proj, double* model, int* view);
+	void handleToggle() override;
+	void handleStep() override;
+	void handleUpdate(const float dt) override;
+	void handleRender() override;
+	void handleRenderOverlay(double* proj, double* model, int* view) override;
 
 	// 経路探索などを行う
 	void recalc();
 	void drawAgent(const float* pos, float r, float h, float c, const unsigned int col);
+
+	// 以降はオリジナル関数
+
+	// start_posからend_posへ経路探索を行う
+	// 滑らかな経路になるが低速
+	dtStatus FindSmoothPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
+		std::vector<std::array<float, 3>>* result_path, const size_t max_polygon_count = MAX_POLYS, const size_t max_smooth_count = MAX_SMOOTH / 3);
+
+	// start_posからend_posへ経路探索を行う
+	// 直線的な経路になるが高速
+	dtStatus FindStraightPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
+		std::vector<std::array<float, 3>>* result_straight_path, const size_t max_path_count = MAX_POLYS / 3);
+
+	// ナビメッシュ上でのレイキャストを行う
+	// Y軸を無視する代わりに、かなり高速なレイキャスト
+	dtStatus RayCast(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos, bool* is_hit,
+		std::array<float, 3>* hit_position = nullptr, float* distance = nullptr, std::array<float, 3>* hit_normal = nullptr,
+		const size_t max_path_count = MAX_POLYS / 3);
+
+	// 検索サイズの変更
+	void SetSearchSize(const std::array<float, 3>& _search_size) noexcept { this->search_size = _search_size; };
 };
-
-
 
 #endif // NAVMESHTESTERTOOL_H

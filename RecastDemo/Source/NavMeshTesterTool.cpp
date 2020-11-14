@@ -270,9 +270,8 @@ NavMeshTesterTool::NavMeshTesterTool() :
 	m_filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
 	m_filter.setExcludeFlags(0);
 
-	m_polyPickExt[0] = 2;
-	m_polyPickExt[1] = 4;
-	m_polyPickExt[2] = 2;
+	m_polyPickExt = { 2, 4, 2 };
+	search_size = m_polyPickExt;
 
 	m_neighbourhoodRadius = 2.5f;
 	m_randomRadius = 5.0f;
@@ -769,6 +768,7 @@ void NavMeshTesterTool::recalc()
 #endif
 
 			m_nsmoothPath = 0;
+			memset(m_smoothPath.data(), 0, sizeof(float) * MAX_SMOOTH * 3);
 
 			if (m_npolys)
 			{
@@ -1501,4 +1501,311 @@ void NavMeshTesterTool::drawAgent(const float* pos, float r, float h, float c, c
 	dd.end();
 
 	dd.depthMask(true);
+}
+
+dtStatus NavMeshTesterTool::FindSmoothPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
+	std::vector<std::array<float, 3>>* result_path, const size_t max_polygon_count, const size_t max_smooth_count)
+{
+	dtStatus status{ DT_SUCCESS };
+
+	// 不正なパラメータがないかをチェック
+	if (!(m_navMesh && result_path && m_navQuery)) return DT_INVALID_PARAM;
+
+	dtPolyRef start_ref{}, end_ref{};
+
+	// スタート地点
+	status = m_navQuery->findNearestPoly(start_pos.data(), search_size.data(), &m_filter, &start_ref, 0);
+	if (dtStatusFailed(status))	return status;
+
+	// ゴール地点
+	status = m_navQuery->findNearestPoly(end_pos.data(), search_size.data(), &m_filter, &end_ref, 0);
+	if (dtStatusFailed(status))	return status;
+
+	int somooth_path{};
+
+	if (start_ref && end_ref)
+	{
+		std::vector<dtPolyRef> path(max_polygon_count);
+		int _npolys{};
+
+		result_path->resize(max_smooth_count);
+
+		// 経路探索
+		status = m_navQuery->findPath(start_ref, end_ref, start_pos.data(), end_pos.data(), &m_filter, path.data(),
+			&_npolys, static_cast<int>(max_polygon_count * 3));
+
+		if (dtStatusFailed(status))	return status;
+
+		if (_npolys)
+		{
+			// Iterate over the path to find smooth path on the detail mesh surface.
+			// 詳細メッシュサーフェス上の滑らかなパスを見つけるためにパスを反復します。
+			auto polys{ path };
+			int npolys = _npolys;
+
+			float iterPos[3], targetPos[3];
+			status = m_navQuery->closestPointOnPoly(start_ref, start_pos.data(), iterPos, 0);
+			if (dtStatusFailed(status))	return status;
+			status = m_navQuery->closestPointOnPoly(polys[npolys - 1], end_pos.data(), targetPos, 0);
+			if (dtStatusFailed(status))	return status;
+
+			constexpr float STEP_SIZE = 0.5f;
+			constexpr float SLOP = 0.01f;
+
+			somooth_path = 0;
+
+			dtVcopy(result_path->at(somooth_path).data(), iterPos);
+			somooth_path++;
+
+			// Move towards target a small advancement at a time until target reached or when ran out of memory to store the path.
+			//ターゲットに到達するまで、またはメモリを使い果たしてパスを格納するまで、少しずつターゲットに向かって移動します。
+			while (npolys && somooth_path < MAX_SMOOTH)
+			{
+				// Find location to steer towards.
+				// ステアリングする場所を見つけます。
+				float steerPos[3];
+				unsigned char steerPosFlag;
+				dtPolyRef steerPosRef;
+
+				if (!getSteerTarget(m_navQuery, iterPos, targetPos, SLOP,
+					polys.data(), npolys, steerPos, steerPosFlag, steerPosRef))
+					break;
+
+				bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END) ? true : false;
+				bool offMeshConnection = (steerPosFlag & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ? true : false;
+
+				// Find movement delta.
+				// 動きのデルタを見つけます。
+				float delta[3], len;
+				dtVsub(delta, steerPos, iterPos);
+				len = dtMathSqrtf(dtVdot(delta, delta));
+
+				// If the steer target is end of path or off-mesh link, do not move past the location.
+				// ステアターゲットがパスの終わりまたはオフメッシュリンクの場合、その場所を通過しないでください。
+				if ((endOfPath || offMeshConnection) && len < STEP_SIZE)
+					len = 1;
+				else
+					len = STEP_SIZE / len;
+
+				float moveTgt[3];
+				dtVmad(moveTgt, iterPos, delta, len);
+
+				// 移動
+				float result[3];
+				dtPolyRef visited[16];
+				int nvisited = 0;
+				status = m_navQuery->moveAlongSurface(polys[0], iterPos, moveTgt, &m_filter,
+					result, visited, &nvisited, 16);
+				if (dtStatusFailed(status))	return status;
+
+				npolys = fixupCorridor(polys.data(), npolys, max_polygon_count, visited, nvisited);
+				npolys = fixupShortcuts(polys.data(), npolys, m_navQuery);
+
+				float h = 0;
+				status = m_navQuery->getPolyHeight(polys.front(), result, &h);
+				if (dtStatusFailed(status))	return status;
+
+				result[1] = h;
+				dtVcopy(iterPos, result);
+
+				// Handle end of path and off-mesh links when close enough.
+				// 十分に近いときにパスの終わりとオフメッシュリンクを処理します。
+				if (endOfPath && inRange(iterPos, steerPos, SLOP, 1.f))
+				{
+					// Reached end of path.
+					// パスの終わりに到達しました。
+					dtVcopy(iterPos, targetPos);
+					if (somooth_path < MAX_SMOOTH)
+					{
+						dtVcopy(result_path->at(somooth_path).data(), iterPos);
+						somooth_path++;
+					}
+					break;
+				}
+				else if (offMeshConnection && inRange(iterPos, steerPos, SLOP, 1.f))
+				{
+					// Reached off-mesh connection.
+					// オフメッシュ接続に到達しました。
+					float startPos[3], endPos[3];
+
+					// Advance the path up to and over the off-mesh connection.
+					// オフメッシュ接続までパスを進めます。
+					dtPolyRef prevRef = 0, polyRef = polys[0];
+					int npos = 0;
+					while (npos < npolys && polyRef != steerPosRef)
+					{
+						prevRef = polyRef;
+						polyRef = polys[npos];
+						npos++;
+					}
+					for (int i = npos; i < npolys; ++i)
+						polys[i - npos] = polys[i];
+					npolys -= npos;
+
+					// Handle the connection.
+					// 接続を処理します。
+					status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos);
+					if (dtStatusSucceed(status))
+					{
+						if (somooth_path < MAX_SMOOTH)
+						{
+							dtVcopy(result_path->at(somooth_path).data(), startPos);
+							somooth_path++;
+
+							// Hack to make the dotted path not visible during off-mesh connection.
+							// オフメッシュ接続中に点線のパスが表示されないようにするハック。
+							if (somooth_path & 1)
+							{
+								dtVcopy(result_path->at(somooth_path).data(), startPos);
+								somooth_path++;
+							}
+						}
+
+						// Move position at the other side of the off-mesh link.
+						// オフメッシュリンクの反対側の位置に移動します。
+						dtVcopy(iterPos, endPos);
+						float eh = 0.0f;
+						status = m_navQuery->getPolyHeight(polys[0], iterPos, &eh);
+						if (dtStatusFailed(status))	return status;
+						iterPos[1] = eh;
+					}
+				}
+
+				// Store results.
+				// 結果を保存します。
+				if (somooth_path < MAX_SMOOTH)
+				{
+					dtVcopy(result_path->at(somooth_path).data(), iterPos);
+					somooth_path++;
+				}
+			}
+
+			// 消す場合は最後から順に消すのでこのやり方で
+			result_path->resize(somooth_path);
+		}
+	}
+
+	return status;
+}
+
+dtStatus NavMeshTesterTool::FindStraightPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
+	std::vector<std::array<float, 3>>* result_straight_path, const size_t max_path_count)
+{
+	dtStatus status{ DT_SUCCESS };
+
+	// 不正なパラメータがないかをチェック
+	if (!(m_navMesh && result_straight_path && m_navQuery)) return DT_INVALID_PARAM;
+
+	dtPolyRef start_ref{}, end_ref{};
+
+	// スタート地点
+	status = m_navQuery->findNearestPoly(start_pos.data(), search_size.data(), &m_filter, &start_ref, 0);
+	if (dtStatusFailed(status))	return status;
+
+	// ゴール地点
+	status = m_navQuery->findNearestPoly(end_pos.data(), search_size.data(), &m_filter, &end_ref, 0);
+	if (dtStatusFailed(status))	return status;
+
+	int nstraight_path{};
+
+	if (start_ref && end_ref)
+	{
+		std::vector<dtPolyRef> path(max_path_count * 3);
+		int npolys{};
+
+		result_straight_path->resize(max_path_count);
+
+		m_navQuery->findPath(start_ref, end_ref, start_pos.data(), end_pos.data(), &m_filter, path.data(),
+			&npolys, static_cast<int>(max_path_count * 3));
+
+		if (npolys)
+		{
+			static std::vector<float> straight_path(max_path_count * 3, 0.f);
+			static std::vector<dtPolyRef> straight_poly(max_path_count, 0);
+			static std::vector<uint8_t> straight_flgs(max_path_count, 0);
+
+			straight_path.resize(max_path_count * 3, 0.f);
+			straight_poly.resize(max_path_count, 0);
+			straight_flgs.resize(max_path_count, 0);
+
+			// In case of partial path, make sure the end point is clamped to the last polygon.
+			// 部分的なパスの場合、終点が最後のポリゴンに固定されていることを確認します。
+			float epos[3];
+			dtVcopy(epos, end_pos.data());
+			if (path.back() != m_endRef)
+				m_navQuery->closestPointOnPoly(path.back(), end_pos.data(), epos, nullptr);
+
+			m_navQuery->findStraightPath(start_pos.data(), epos, path.data(), npolys,
+				straight_path.data(), straight_flgs.data(),
+				straight_poly.data(), &nstraight_path, static_cast<int>(max_path_count * 3), DT_STRAIGHTPATH_ALL_CROSSINGS);
+
+			for (int i = 0; i < nstraight_path; i++)
+			{
+				dtVcopy(result_straight_path->at(i).data(), &straight_path[i * 3]);
+			}
+
+			// 消す場合は最後から順に消すのでこのやり方で
+			result_straight_path->resize(nstraight_path);
+		}
+	}
+
+	return status;
+}
+
+dtStatus NavMeshTesterTool::RayCast(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos, bool* is_hit,
+	std::array<float, 3>* hit_position, float* distance, std::array<float, 3>* hit_normal, const size_t max_path_count)
+{
+	dtStatus status{ DT_SUCCESS };
+
+	// 不正なパラメータがないかをチェック
+	if (!(m_navMesh && is_hit && m_navQuery)) return DT_INVALID_PARAM;
+
+	dtPolyRef start_ref{};
+
+	// スタート地点
+	status = m_navQuery->findNearestPoly(start_pos.data(), search_size.data(), &m_filter, &start_ref, nullptr);
+	if (dtStatusFailed(status))	return status;
+
+	if (m_startRef)
+	{
+		static std::vector<dtPolyRef> polys(max_path_count);
+		int npolys{};
+		float t{};
+
+		polys.resize(max_path_count);
+
+		status = m_navQuery->raycast(start_ref, start_pos.data(), end_pos.data(), &m_filter, &t,
+			(hit_normal ? hit_normal->data() : nullptr), polys.data(),
+			&npolys, max_path_count * 3);
+		if (dtStatusFailed(status))	return status;
+
+		std::array<float, 3> hit_pos{};
+
+		if (t > 1)
+		{
+			// No hit
+			*is_hit = false;
+		}
+		else
+		{
+			// Hit
+			*is_hit = true;
+
+			dtVlerp(hit_pos.data(), start_pos.data(), end_pos.data(), t);
+
+			if (distance) *distance = t;
+		}
+		// Adjust height.
+		if (npolys > 0)
+		{
+			float h = 0;
+			status = m_navQuery->getPolyHeight(polys.back(), hit_pos.data(), &h);
+			if (dtStatusFailed(status))	return status;
+
+			hit_pos[1] = h;
+		}
+		if (hit_position)	*hit_position = hit_pos;
+	}
+
+	return status;
 }

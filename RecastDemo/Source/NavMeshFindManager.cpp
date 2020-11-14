@@ -5,6 +5,10 @@ NavMeshFindManager::NavMeshFindManager()
 	: m_sample()
 {}
 
+NavMeshFindManager::~NavMeshFindManager()
+{
+}
+
 bool NavMeshFindManager::Init(Sample* sample)
 {
 	if (m_sample != sample)

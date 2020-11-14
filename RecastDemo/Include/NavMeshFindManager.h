@@ -12,7 +12,7 @@ private:
 
 public:
 	NavMeshFindManager();
-	~NavMeshFindManager() = default;
+	~NavMeshFindManager();
 	NavMeshFindManager(const NavMeshFindManager&) = delete;
 	auto& operator=(const NavMeshFindManager&) = delete;
 	NavMeshFindManager(NavMeshFindManager&&) = delete;

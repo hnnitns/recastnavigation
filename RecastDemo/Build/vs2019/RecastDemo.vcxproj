@@ -254,6 +254,7 @@
     <ClInclude Include="..\..\Include\Filelist.h" />
     <ClInclude Include="..\..\Include\InputGeom.h" />
     <ClInclude Include="..\..\Include\MeshLoaderObj.h" />
+    <ClInclude Include="..\..\Include\NavMeshFindManager.h" />
     <ClInclude Include="..\..\Include\NavMeshPruneTool.h" />
     <ClInclude Include="..\..\Include\NavMeshTesterTool.h" />
     <ClInclude Include="..\..\Include\OffMeshConnectionTool.h" />
@@ -286,6 +287,7 @@
     <ClCompile Include="..\..\Source\InputGeom.cpp" />
     <ClCompile Include="..\..\Source\main.cpp" />
     <ClCompile Include="..\..\Source\MeshLoaderObj.cpp" />
+    <ClCompile Include="..\..\Source\NavMeshFindManager.cpp" />
     <ClCompile Include="..\..\Source\NavMeshPruneTool.cpp" />
     <ClCompile Include="..\..\Source\NavMeshTesterTool.cpp" />
     <ClCompile Include="..\..\Source\OffMeshConnectionTool.cpp" />

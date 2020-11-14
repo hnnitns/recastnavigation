@@ -117,6 +117,9 @@
     <ClInclude Include="..\..\Include\TempObstacleTool.h">
       <Filter>MyData\Include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Include\NavMeshFindManager.h">
+      <Filter>MyData\Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Contrib\fastlz\fastlz.c">
@@ -198,6 +201,9 @@
       <Filter>MyData\Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\TempObstacleTool.cpp">
+      <Filter>MyData\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\NavMeshFindManager.cpp">
       <Filter>MyData\Source</Filter>
     </ClCompile>
   </ItemGroup>

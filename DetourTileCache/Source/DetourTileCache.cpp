@@ -450,6 +450,7 @@ dtStatus dtTileCache::addBoxObstacle(const float* center, const float* halfExten
 	float sinhalf = sinf(-0.5f*yRadians);
 	ob->orientedBox.rotAux[0] = coshalf*sinhalf;
 	ob->orientedBox.rotAux[1] = coshalf*coshalf - 0.5f;
+	ob->orientedBox.y_radian = yRadians;
 
 	ObstacleRequest* req = &m_reqs[m_nreqs++];
 	memset(req, 0, sizeof(ObstacleRequest));
@@ -526,7 +527,6 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 	else if(ob.type == DT_OBSTACLE_ORIENTED_BOX)
 	{
 		auto& data{ ob.orientedBox };
-		float p[3];
 
 		// 座標を計算
 		dtVcopy(data.center, move_pos);
@@ -553,6 +553,9 @@ void dtTileCache::AdjPosBoxObstacle(float* out_pos_min, float* out_pos_max, cons
 void dtTileCache::AdjPosBoxObstacle(float* out_pos, const dtObstacleOrientedBox& box) const
 {
 	dtVcopy(out_pos, box.center);
+	// 追加座標が中心に来るようにする
+	out_pos[1] += box.halfExtents[1];
+
 	AdjPosBox(out_pos);
 }
 

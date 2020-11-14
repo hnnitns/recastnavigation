@@ -1166,7 +1166,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 	}
 
 	// Find next corner to steer to.
-	// 操縦する次のコーナーを見つけます。
+	// ステアリングする次のコーナーを見つけます。
 	for (int i = 0; i < nagents; ++i)
 	{
 		dtCrowdAgent* ag = agents[i];

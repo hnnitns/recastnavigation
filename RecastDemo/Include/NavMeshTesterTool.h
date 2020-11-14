@@ -25,6 +25,12 @@
 
 class NavMeshTesterTool : public SampleTool
 {
+private:
+	static constexpr int MAX_POLYS{ 256 };
+	static constexpr int MAX_SMOOTH{ 2048 };
+	static constexpr int MAX_RAND_POINTS{ 64 };
+	static constexpr int MAX_STEER_POINTS{ 10 };
+
 	Sample* m_sample;
 
 	dtNavMesh* m_navMesh;
@@ -50,32 +56,25 @@ class NavMeshTesterTool : public SampleTool
 
 	int m_straightPathOptions;
 
-	static const int MAX_POLYS = 256;
-	static const int MAX_SMOOTH = 2048;
-
 	dtPolyRef m_startRef;
 	dtPolyRef m_endRef;
-	dtPolyRef m_polys[MAX_POLYS];
-	dtPolyRef m_parent[MAX_POLYS];
+	std::array<dtPolyRef, MAX_POLYS> m_polys;
+	std::array<dtPolyRef, MAX_POLYS> m_parent;
 	int m_npolys;
-	float m_straightPath[MAX_POLYS * 3];
-	unsigned char m_straightPathFlags[MAX_POLYS];
-	dtPolyRef m_straightPathPolys[MAX_POLYS];
+	std::array<float, MAX_POLYS * 3> m_straightPath;
+	std::array<unsigned char, MAX_POLYS> m_straightPathFlags;
+	std::array<dtPolyRef, MAX_POLYS> m_straightPathPolys;
 	int m_nstraightPath;
-	float m_polyPickExt[3];
-	float m_smoothPath[MAX_SMOOTH * 3];
+	std::array<float, 3> m_polyPickExt;
+	std::array<float, MAX_SMOOTH * 3> m_smoothPath;
 	int m_nsmoothPath;
-	float m_queryPoly[4 * 3];
+	std::array<float, 4 * 3> m_queryPoly;
 
-	static const int MAX_RAND_POINTS = 64;
-	float m_randPoints[MAX_RAND_POINTS * 3];
+	std::array<float, MAX_RAND_POINTS * 3> m_randPoints;
 	int m_nrandPoints;
 	bool m_randPointsInCircle;
 
-	float m_spos[3];
-	float m_epos[3];
-	float m_hitPos[3];
-	float m_hitNormal[3];
+	std::array<float, 3> m_spos, m_epos, m_hitPos, m_hitNormal;
 	bool m_hitResult;
 	float m_distanceToWall;
 	float m_neighbourhoodRadius;
@@ -84,12 +83,11 @@ class NavMeshTesterTool : public SampleTool
 	bool m_eposSet;
 
 	int m_pathIterNum;
-	dtPolyRef m_pathIterPolys[MAX_POLYS];
+	std::array<dtPolyRef, MAX_POLYS> m_pathIterPolys;
 	int m_pathIterPolyCount;
-	float m_prevIterPos[3], m_iterPos[3], m_steerPos[3], m_targetPos[3];
+	std::array<float, 3> m_prevIterPos, m_iterPos, m_steerPos, m_targetPos;
 
-	static const int MAX_STEER_POINTS = 10;
-	float m_steerPoints[MAX_STEER_POINTS * 3];
+	std::array<float, MAX_STEER_POINTS * 3> m_steerPoints;
 	int m_steerPointCount;
 
 public:
@@ -114,5 +112,7 @@ public:
 	void recalc();
 	void drawAgent(const float* pos, float r, float h, float c, const unsigned int col);
 };
+
+
 
 #endif // NAVMESHTESTERTOOL_H

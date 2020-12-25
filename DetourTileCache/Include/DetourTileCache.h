@@ -10,7 +10,7 @@ typedef unsigned int dtObstacleRef;
 
 typedef unsigned int dtCompressedTileRef;
 
-constexpr int MaxObstacleNum{ 128 };
+constexpr int MaxObstacleNum{ 128 * 2 };
 
 // Flags for addTile // addTileのフラグ
 enum dtCompressedTileFlags
@@ -216,22 +216,23 @@ private:
 	void AdjPosCylinder(float* pos) const noexcept { pos[1] -= 0.5f; }
 	void AdjPosBox(float* p_min, float* p_max) const noexcept { p_min[1] -= 0.25f; p_max[1] -= 0.25f; };
 	void AdjPosBox(float* center) const noexcept { center[1] -= 0.25f; };
+	dtTileCacheObstacle* FindNextEmptyObstacle();
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	dtTileCache(const dtTileCache&) = delete;
 	dtTileCache& operator=(const dtTileCache&) = delete;
 
-	enum ObstacleRequestAction // 障害物の処理リクエストの種類
+	enum class RequestAction // 障害物の処理リクエストの種類
 	{
-		REQUEST_ADD, // 追加
-		REQUEST_REMOVE, // 削除
-		REQUEST_MOVE, // 移動
+		ADD, // 追加
+		REMOVE, // 削除
+		MOVE, // 移動
 	};
 
 	struct ObstacleRequest
 	{
-		ObstacleRequestAction action; // 処理リクエストの種類
+		RequestAction action; // 処理リクエストの種類
 		dtObstacleRef ref;            // 処理リクエストの障害物リストの添え値
 	};
 
@@ -254,11 +255,11 @@ private:
 	std::array<dtTileCacheObstacle, MaxObstacleNum> m_obstacles; // 障害物リスト
 	dtTileCacheObstacle* m_nextFreeObstacle;
 
-	static constexpr int MAX_REQUESTS = 64;
+	static constexpr int MAX_REQUESTS{ MaxObstacleNum };
 	std::array<ObstacleRequest, MAX_REQUESTS> m_reqs;
 	int m_nreqs; // 障害物の処理リクエスト数
 
-	static constexpr int MAX_UPDATE = 64;
+	static constexpr int MAX_UPDATE{ MaxObstacleNum };
 	std::array<dtCompressedTileRef, MAX_UPDATE> m_update;
 	int m_nupdate; // 障害物の更新リクエスト数
 

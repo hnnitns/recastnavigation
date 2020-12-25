@@ -105,9 +105,7 @@ const dtCompressedTile* dtTileCache::getTileByRef(dtCompressedTileRef ref) const
 }
 
 dtStatus dtTileCache::init(const dtTileCacheParams* params,
-	dtTileCacheAlloc* talloc,
-	dtTileCacheCompressor* tcomp,
-	dtTileCacheMeshProcess* tmproc)
+	dtTileCacheAlloc* talloc, dtTileCacheCompressor* tcomp, dtTileCacheMeshProcess* tmproc)
 {
 	m_talloc = talloc;
 	m_tcomp = tcomp;
@@ -357,15 +355,9 @@ dtStatus dtTileCache::addCylinderObstacle(const float* pos, const float radius, 
 	if (m_nreqs >= MAX_REQUESTS)
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 
-	dtTileCacheObstacle* ob{};
-	if (m_nextFreeObstacle)
-	{
-		ob = m_nextFreeObstacle;
-		m_nextFreeObstacle = ob->next;
-		ob->next = 0;
-	}
-	if (!ob)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+	dtTileCacheObstacle* ob{ FindNextEmptyObstacle() };
+
+	if (!ob) return DT_FAILURE | DT_OUT_OF_MEMORY;
 
 	unsigned short salt = ob->salt;
 	memset(ob, 0, sizeof(dtTileCacheObstacle));
@@ -379,7 +371,7 @@ dtStatus dtTileCache::addCylinderObstacle(const float* pos, const float radius, 
 	auto& req = m_reqs[m_nreqs++];
 
 	req = {};
-	req.action = REQUEST_ADD;
+	req.action = RequestAction::ADD;
 	req.ref = getObstacleRef(ob);
 
 	if (result)
@@ -393,15 +385,9 @@ dtStatus dtTileCache::addBoxObstacle(const float* bmin, const float* bmax, dtObs
 	if (m_nreqs >= MAX_REQUESTS)
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 
-	dtTileCacheObstacle* ob = 0;
-	if (m_nextFreeObstacle)
-	{
-		ob = m_nextFreeObstacle;
-		m_nextFreeObstacle = ob->next;
-		ob->next = 0;
-	}
-	if (!ob)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+	dtTileCacheObstacle* ob{ FindNextEmptyObstacle() };
+
+	if (!ob) return DT_FAILURE | DT_OUT_OF_MEMORY;
 
 	unsigned short salt = ob->salt;
 	memset(ob, 0, sizeof(dtTileCacheObstacle));
@@ -414,7 +400,7 @@ dtStatus dtTileCache::addBoxObstacle(const float* bmin, const float* bmax, dtObs
 	auto& req = m_reqs[m_nreqs++]; // 処理リクエストに追加
 
 	req = {};
-	req.action = REQUEST_ADD; // 処理リクエストの種類を設定
+	req.action = RequestAction::ADD; // 処理リクエストの種類を設定
 	req.ref = getObstacleRef(ob); // 処理リクエストの障害物リストの添え値を設定
 
 	if (result)
@@ -428,15 +414,9 @@ dtStatus dtTileCache::addBoxObstacle(const float* center, const float* halfExten
 	if (m_nreqs >= MAX_REQUESTS)
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 
-	dtTileCacheObstacle* ob = 0;
-	if (m_nextFreeObstacle)
-	{
-		ob = m_nextFreeObstacle;
-		m_nextFreeObstacle = ob->next;
-		ob->next = 0;
-	}
-	if (!ob)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
+	dtTileCacheObstacle* ob{ FindNextEmptyObstacle() };
+
+	if (!ob) return DT_FAILURE | DT_OUT_OF_MEMORY;
 
 	unsigned short salt = ob->salt;
 	memset(ob, 0, sizeof(dtTileCacheObstacle));
@@ -454,7 +434,7 @@ dtStatus dtTileCache::addBoxObstacle(const float* center, const float* halfExten
 
 	ObstacleRequest* req = &m_reqs[m_nreqs++];
 	memset(req, 0, sizeof(ObstacleRequest));
-	req->action = REQUEST_ADD;
+	req->action = RequestAction::ADD;
 	req->ref = getObstacleRef(ob);
 
 	if (result)
@@ -473,7 +453,7 @@ dtStatus dtTileCache::removeObstacle(const dtObstacleRef ref)
 	auto& req = m_reqs[m_nreqs++]; // 処理リクエストに追加
 
 	req = {};
-	req.action = REQUEST_REMOVE; // 処理リクエストの種類を設定
+	req.action = RequestAction::REMOVE; // 処理リクエストの種類を設定
 	req.ref = ref; // 処理リクエストの障害物リストの添え値を設定
 
 	return DT_SUCCESS;
@@ -497,7 +477,7 @@ dtStatus dtTileCache::MoveObstacle(const dtObstacleRef ref, const float* move_po
 
 	auto& req = m_reqs[m_nreqs++]; // 処理リクエストに追加
 
-	req.action = REQUEST_MOVE; // 処理リクエストの種類を設定
+	req.action = RequestAction::MOVE; // 処理リクエストの種類を設定
 	req.ref = ref; // 処理リクエストの障害物リストの添え値を設定
 
 	if (ob.type == DT_OBSTACLE_CYLINDER)
@@ -645,7 +625,7 @@ dtStatus dtTileCache::update(const float /*dt*/, class dtNavMesh* navmesh, bool*
 			// 障害物の追加
 			switch (req.action)
 			{
-				case dtTileCache::REQUEST_ADD:
+				case RequestAction::ADD:
 				{
 					// Find touched tiles.
 					// タッチされたタイルを見つけます。
@@ -671,7 +651,7 @@ dtStatus dtTileCache::update(const float /*dt*/, class dtNavMesh* navmesh, bool*
 
 					break;
 				}
-				case dtTileCache::REQUEST_REMOVE:
+				case RequestAction::REMOVE:
 				{
 					// Prepare to remove obstacle.
 					// 障害物を取り除く準備をします。
@@ -693,7 +673,7 @@ dtStatus dtTileCache::update(const float /*dt*/, class dtNavMesh* navmesh, bool*
 
 					break;
 				}
-				case dtTileCache::REQUEST_MOVE:
+				case RequestAction::MOVE:
 				{
 					/// 大きめのサイズで計算する（でないと、障害物の移動時（タイルを越した時）に取り残されてしまう。）
 					float adj_bounds_dis_rate{};
@@ -1034,13 +1014,15 @@ void dtTileCache::getObstacleBounds(const struct dtTileCacheObstacle* ob, float*
 void dtTileCache::StartMoveObstacles() noexcept
 {
 	// 初期化
-	m_update_cache.reserve(10);
+	m_update_cache.reserve(50);
 	is_update_chace = true;
 }
 
 dtStatus dtTileCache::EndMoveObstacles(dtNavMesh* navmesh)
 {
 	dtStatus status = DT_SUCCESS;
+
+	is_update_chace = false;
 
 	// 障害物の移動動作に入っていない
 	if (!is_update_chace)	return status;
@@ -1055,12 +1037,51 @@ dtStatus dtTileCache::EndMoveObstacles(dtNavMesh* navmesh)
 	{
 		status = buildNavMeshTile(cache, navmesh);
 
-		if (dtStatusFailed(status))	break;
+		if (dtStatusFailed(status))	return DT_FAILURE;
 	}
 
 	// 終了処理
 	m_update_cache.clear();
-	is_update_chace = false;
 
 	return status;
+}
+
+dtTileCacheObstacle* dtTileCache::FindNextEmptyObstacle()
+{
+	dtTileCacheObstacle* ob{};
+
+	if (m_nextFreeObstacle)
+	{
+		ob = m_nextFreeObstacle;
+		m_nextFreeObstacle = ob->next;
+		ob->next = 0;
+	}
+#if false
+	else
+	{
+		auto FindEmptyFunc{ [](dtTileCacheObstacle& ob) { return !ob.next; } };
+
+		// 空白を探す
+		auto&& itr{ Find_If(m_obstacles, FindEmptyFunc, exec::par) };
+
+		// 全てのリストが埋まっている
+		if (itr == m_obstacles.end())	return nullptr;
+
+		// 場所を決定
+		ob = &(*itr);
+		ob->next = nullptr;
+
+		// 次の空白を検索
+		auto&& next_itr{ std::find_if(exec::par,
+			m_obstacles.begin() + std::distance(m_obstacles.begin(), itr), m_obstacles.end(), FindEmptyFunc) };
+
+		// 発見
+		if (next_itr != m_obstacles.end())
+		{
+			m_nextFreeObstacle = &(*next_itr);
+			ob->next = m_nextFreeObstacle;
+		}
+	}
+#endif
+	return ob;
 }

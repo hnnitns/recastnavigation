@@ -1504,7 +1504,7 @@ void NavMeshTesterTool::drawAgent(const float* pos, float r, float h, float c, c
 }
 
 dtStatus NavMeshTesterTool::FindSmoothPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
-	std::vector<std::array<float, 3>>* result_path, const size_t max_polygon_count, const size_t max_smooth_count)
+	std::vector<std::array<float, 3>>* result_path, const size_t max_polygon_count, const size_t max_smooth_count) const
 {
 	dtStatus status{ DT_SUCCESS };
 
@@ -1559,7 +1559,7 @@ dtStatus NavMeshTesterTool::FindSmoothPath(const std::array<float, 3>& start_pos
 
 			// Move towards target a small advancement at a time until target reached or when ran out of memory to store the path.
 			//ターゲットに到達するまで、またはメモリを使い果たしてパスを格納するまで、少しずつターゲットに向かって移動します。
-			while (npolys && somooth_path < MAX_SMOOTH)
+			while (npolys && somooth_path < max_smooth_count)
 			{
 				// Find location to steer towards.
 				// ステアリングする場所を見つけます。
@@ -1615,7 +1615,7 @@ dtStatus NavMeshTesterTool::FindSmoothPath(const std::array<float, 3>& start_pos
 					// Reached end of path.
 					// パスの終わりに到達しました。
 					dtVcopy(iterPos, targetPos);
-					if (somooth_path < MAX_SMOOTH)
+					if (somooth_path < max_smooth_count)
 					{
 						dtVcopy(result_path->at(somooth_path).data(), iterPos);
 						somooth_path++;
@@ -1647,7 +1647,7 @@ dtStatus NavMeshTesterTool::FindSmoothPath(const std::array<float, 3>& start_pos
 					status = m_navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos);
 					if (dtStatusSucceed(status))
 					{
-						if (somooth_path < MAX_SMOOTH)
+						if (somooth_path < max_smooth_count)
 						{
 							dtVcopy(result_path->at(somooth_path).data(), startPos);
 							somooth_path++;
@@ -1673,7 +1673,7 @@ dtStatus NavMeshTesterTool::FindSmoothPath(const std::array<float, 3>& start_pos
 
 				// Store results.
 				// 結果を保存します。
-				if (somooth_path < MAX_SMOOTH)
+				if (somooth_path < max_smooth_count)
 				{
 					dtVcopy(result_path->at(somooth_path).data(), iterPos);
 					somooth_path++;
@@ -1689,7 +1689,7 @@ dtStatus NavMeshTesterTool::FindSmoothPath(const std::array<float, 3>& start_pos
 }
 
 dtStatus NavMeshTesterTool::FindStraightPath(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos,
-	std::vector<std::array<float, 3>>* result_straight_path, const size_t max_path_count)
+	std::vector<std::array<float, 3>>* result_straight_path, const size_t max_path_count) const
 {
 	dtStatus status{ DT_SUCCESS };
 
@@ -1753,7 +1753,7 @@ dtStatus NavMeshTesterTool::FindStraightPath(const std::array<float, 3>& start_p
 }
 
 dtStatus NavMeshTesterTool::RayCast(const std::array<float, 3>& start_pos, const std::array<float, 3>& end_pos, bool* is_hit,
-	std::array<float, 3>* hit_position, float* distance, std::array<float, 3>* hit_normal, const size_t max_path_count)
+	std::array<float, 3>* hit_position, float* distance, std::array<float, 3>* hit_normal, const size_t max_path_count) const
 {
 	dtStatus status{ DT_SUCCESS };
 

@@ -662,7 +662,7 @@ std::deque<InputGeom::LoadGeomMesh>::iterator InputGeom::EraseSelectLoadGeomMesh
 int InputGeom::addOffMeshConnection(const float* spos, const float* epos, const float rad,
 	unsigned char bidir, unsigned char area, unsigned short flags)
 {
-	if (m_offMeshConCount >= MAX_OFFMESH_CONNECTIONS) return;
+	if (m_offMeshConCount >= MAX_OFFMESH_CONNECTIONS) return -1;
 	float* v = &m_offMeshConVerts[m_offMeshConCount * 3 * 2];
 	m_offMeshConRads[m_offMeshConCount] = rad;
 	m_offMeshConDirs[m_offMeshConCount] = bidir;

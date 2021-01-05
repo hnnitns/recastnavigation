@@ -163,6 +163,9 @@ public:
 
 	void getObstacleBounds(const struct dtTileCacheObstacle* ob, float* bmin, float* bmax) const;
 
+	int GetRequestCount() const noexcept { return m_nreqs; }
+	int GetUpdateCount() const noexcept { return m_nupdate; }
+
 	void StartMoveObstacles() noexcept;
 	dtStatus EndMoveObstacles(class dtNavMesh* navmesh);
 

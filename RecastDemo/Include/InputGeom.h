@@ -259,7 +259,7 @@ public:
 	const auto& getOffMeshConnectionAreas() const noexcept { return m_offMeshConAreas; }
 	const auto& getOffMeshConnectionFlags() const noexcept { return m_offMeshConFlags; }
 	const auto& getOffMeshConnectionId() const noexcept { return m_offMeshConId; }
-	void addOffMeshConnection(const float* spos, const float* epos, const float rad,
+	int addOffMeshConnection(const float* spos, const float* epos, const float rad,
 		unsigned char bidir, unsigned char area, unsigned short flags);
 	void deleteOffMeshConnection(int i);
 	void drawOffMeshConnections(struct duDebugDraw* dd, bool hilight = false);

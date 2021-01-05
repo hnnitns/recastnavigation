@@ -258,6 +258,7 @@
     <ClInclude Include="..\..\Include\NavMeshPruneTool.h" />
     <ClInclude Include="..\..\Include\NavMeshTesterTool.h" />
     <ClInclude Include="..\..\Include\OffMeshConnectionTool.h" />
+    <ClInclude Include="..\..\Include\OffMeshLinkManager.h" />
     <ClInclude Include="..\..\Include\Other\Math.h" />
     <ClInclude Include="..\..\Include\Other\XMFLOAT_Hlper.h" />
     <ClInclude Include="..\..\Include\PerfTimer.h" />
@@ -291,6 +292,7 @@
     <ClCompile Include="..\..\Source\NavMeshPruneTool.cpp" />
     <ClCompile Include="..\..\Source\NavMeshTesterTool.cpp" />
     <ClCompile Include="..\..\Source\OffMeshConnectionTool.cpp" />
+    <ClCompile Include="..\..\Source\OffMeshLinkManager.cpp" />
     <ClCompile Include="..\..\Source\PerfTimer.cpp" />
     <ClCompile Include="..\..\Source\Sample.cpp" />
     <ClCompile Include="..\..\Source\SampleInterfaces.cpp" />

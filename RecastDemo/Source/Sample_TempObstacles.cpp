@@ -1392,6 +1392,20 @@ dtStatus Sample_TempObstacles::EndMoveObstacles()
 	return (m_tileCache->EndMoveObstacles(m_navMesh));
 }
 
+int Sample_TempObstacles::GetObstacleRequestCount() const noexcept
+{
+	if (!m_tileCache)	return -1;
+
+	return m_tileCache->GetRequestCount();
+}
+
+int Sample_TempObstacles::GetObstacleUpdateCount() const noexcept
+{
+	if (!m_tileCache)	return -1;
+
+	return m_tileCache->GetUpdateCount();
+}
+
 void Sample_TempObstacles::buildTile(const float* pos)
 {
 	if (!m_geom) return;

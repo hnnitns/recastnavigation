@@ -120,6 +120,9 @@
     <ClInclude Include="..\..\Include\NavMeshFindManager.h">
       <Filter>MyData\Include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Include\OffMeshLinkManager.h">
+      <Filter>MyData\Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Contrib\fastlz\fastlz.c">
@@ -204,6 +207,9 @@
       <Filter>MyData\Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\NavMeshFindManager.cpp">
+      <Filter>MyData\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\OffMeshLinkManager.cpp">
       <Filter>MyData\Source</Filter>
     </ClCompile>
   </ItemGroup>

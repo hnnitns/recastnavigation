@@ -96,6 +96,9 @@ public:
 	void StartMoveObstacles() noexcept;
 	dtStatus EndMoveObstacles();
 
+	int GetObstacleRequestCount() const noexcept;
+	int GetObstacleUpdateCount() const noexcept;
+
 	void buildTile(const float* pos);
 	bool removeTile(const float* pos);
 	bool buildAllTiles();

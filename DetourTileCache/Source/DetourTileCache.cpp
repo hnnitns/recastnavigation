@@ -70,6 +70,7 @@ dtTileCache::dtTileCache() :
 {
 	memset(&m_params, 0, sizeof(m_params));
 	m_reqs.fill({});
+	m_update.fill({});
 }
 
 dtTileCache::~dtTileCache()

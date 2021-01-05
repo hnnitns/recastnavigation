@@ -659,7 +659,7 @@ std::deque<InputGeom::LoadGeomMesh>::iterator InputGeom::EraseSelectLoadGeomMesh
 	return (itr);
 }
 
-void InputGeom::addOffMeshConnection(const float* spos, const float* epos, const float rad,
+int InputGeom::addOffMeshConnection(const float* spos, const float* epos, const float rad,
 	unsigned char bidir, unsigned char area, unsigned short flags)
 {
 	if (m_offMeshConCount >= MAX_OFFMESH_CONNECTIONS) return;
@@ -672,6 +672,8 @@ void InputGeom::addOffMeshConnection(const float* spos, const float* epos, const
 	rcVcopy(&v[0], spos);
 	rcVcopy(&v[3], epos);
 	m_offMeshConCount++;
+
+	return m_offMeshConCount;
 }
 
 void InputGeom::deleteOffMeshConnection(int i)

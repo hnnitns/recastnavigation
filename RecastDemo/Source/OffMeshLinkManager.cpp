@@ -3,11 +3,15 @@
 #include "DetourDebugDraw.h"
 
 OffMeshLinkManager::OffMeshLinkManager()
-	: m_sample(), m_oldFlags(), link_count()
+	: m_sample(), m_oldFlags()
 {}
 
 OffMeshLinkManager::~OffMeshLinkManager()
-{}
+{
+	if (!m_sample)	return;
+
+	m_sample->setNavMeshDrawFlags(m_oldFlags);
+}
 
 bool OffMeshLinkManager::Init(Sample * sample)
 {
@@ -60,7 +64,7 @@ bool OffMeshLinkManager::HitLinkPoint(const std::array<float, 3>& point, const i
 	auto& geom = m_sample->getInputGeom();
 
 	// 不正なインデックス
-	if (!geom || index < 0 || index >= geom->getOffMeshConnectionCount())	return;
+	if (!geom || index < 0 || index >= geom->getOffMeshConnectionCount())	return false;
 
 	const auto& verts{ geom->getOffMeshConnectionVerts() };
 
@@ -74,7 +78,7 @@ bool OffMeshLinkManager::HitLinksPoint(const std::array<float, 3>& point, int* i
 {
 	auto& geom = m_sample->getInputGeom();
 
-	if (!(geom && index))	return;
+	if (!(geom && index))	return false;
 
 	// 最も近いリンクのエンドポイントを見つける
 	float nearestDist{ (std::numeric_limits<float>::max)() };

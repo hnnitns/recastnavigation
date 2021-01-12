@@ -16,27 +16,53 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef FILELIST_H
-#define FILELIST_H
+#ifndef SLIDESHOW_H
+#define SLIDESHOW_H
 
-#include <vector>
-#include <string>
+#include "Filelist.h"
 
-struct FileList
+class SlideShow
 {
-	static const int MAX_FILES = 256;
-	
-	FileList();
-	~FileList();
-	
-	char* files[MAX_FILES];
-	int size;
+	FileList m_files;
+	char m_path[256];
+
+	struct Img
+	{
+		inline Img() : width(0), height(0), texId(0) {}
+		int width;
+		int height;
+		unsigned int texId;
+		inline void reset()
+		{
+			texId = 0;
+			width = 0;
+			height = 0;
+		}
+	};
+
+	Img m_curImg;
+	Img m_nextImg;
+
+
+	void purgeImage(Img& img);
+	bool loadImage(Img& img, const char* path);
+
+	bool m_showSlides;
+	bool m_showCurSlide;
+	float m_slideAlpha;
+	float m_masterAlpha;
+	int m_curSlide;
+	int m_nextSlide;
+
+public:
+	SlideShow();
+	~SlideShow();
+
+	bool init(const char* path);
+	void nextSlide();
+	void prevSlide();
+	void setSlide(int n);
+	void updateAndDraw(float dt, const float w, const float h, bool show);
 };
 
-// ファイルの探索を行い、fileListに更に追加
-void scanDirectoryAppend(const std::string& path, const std::string& ext, std::vector<std::string>& fileList);
-
-// ファイルの探索を行い、fileListに新規追加
-void scanDirectory(const std::string& path, const std::string& ext, std::vector<std::string>& fileList);
-
-#endif // FILELIST_H
+#endif // SLIDESHOW_H

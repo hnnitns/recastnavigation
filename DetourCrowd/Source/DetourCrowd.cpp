@@ -1017,6 +1017,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		bool replan = false;
 
 		// First check that the current location is valid.
+		//まず、現在の場所が有効であることを確認します。
 		const int idx = getAgentIndex(ag);
 		float agentPos[3];
 		dtPolyRef agentRef = ag->corridor.getFirstPoly();
@@ -1024,7 +1025,9 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		if (!m_navquery->isValidPolyRef(agentRef, &m_filters[ag->params.queryFilterType]))
 		{
 			// Current location is not valid, try to reposition.
+			// 現在の場所が無効です。再配置してみてください。
 			// TODO: this can snap agents, how to handle that?
+			// これはエージェントをスナップできますが、それをどのように処理しますか？
 			float nearest[3]{};
 			dtVcopy(nearest, agentPos);
 			agentRef = 0;
@@ -1034,6 +1037,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 			if (!agentRef)
 			{
 				// Could not find location in navmesh, set state to invalid.
+				// navmeshで場所が見つかりませんでした、状態を無効に設定しました。
 				ag->corridor.reset(0, agentPos);
 				ag->partial = false;
 				ag->boundary.reset();
@@ -1043,6 +1047,8 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 
 			// Make sure the first polygon is valid, but leave other valid
 			// polygons in the path so that replanner can adjust the path better.
+			// 最初のポリゴンが有効であることを確認しますが、他の有効なポリゴンはパスに残して、
+			// リプランナーがパスをより適切に調整できるようにします。
 			ag->corridor.fixPathStart(agentRef, agentPos);
 			//			ag->corridor.trimInvalidPath(agentRef, agentPos, m_navquery, &m_filter);
 			ag->boundary.reset();
@@ -1052,15 +1058,19 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		}
 
 		// If the agent does not have move target or is controlled by velocity, no need to recover the target nor replan.
+		// エージェントに移動ターゲットがないか、速度によって制御されている場合、
+		// ターゲットを回復したり、再計画したりする必要はありません。
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 			continue;
 
 		// Try to recover move request position.
+		// 移動要求の位置を回復しようとします。
 		if (ag->targetState != DT_CROWDAGENT_TARGET_NONE && ag->targetState != DT_CROWDAGENT_TARGET_FAILED)
 		{
 			if (!m_navquery->isValidPolyRef(ag->targetRef, &m_filters[ag->params.queryFilterType]))
 			{
 				// Current target is not valid, try to reposition.
+				// 現在のターゲットが無効です。再配置してみてください。
 				float nearest[3];
 				dtVcopy(nearest, ag->targetPos);
 				ag->targetRef = 0;
@@ -1071,6 +1081,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 			if (!ag->targetRef)
 			{
 				// Failed to reposition target, fail moverequest.
+				// ターゲットの再配置に失敗し、moverequestに失敗しました。
 				ag->corridor.reset(agentRef, agentPos);
 				ag->partial = false;
 				ag->targetState = DT_CROWDAGENT_TARGET_NONE;
@@ -1078,6 +1089,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		}
 
 		// If nearby corridor is not valid, replan.
+		// 近くの廊下が有効でない場合は、再計画します。
 		if (!ag->corridor.isValid(CHECK_LOOKAHEAD, m_navquery, &m_filters[ag->params.queryFilterType]))
 		{
 			// Fix current path.
@@ -1087,6 +1099,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		}
 
 		// If the end of the path is near and it is not the requested location, replan.
+		// パスの終わりが近く、要求された場所ではない場合は、再計画します。
 		if (ag->targetState == DT_CROWDAGENT_TARGET_VALID)
 		{
 			if (ag->targetReplanTime > TARGET_REPLAN_DELAY&&
@@ -1096,6 +1109,7 @@ void dtCrowd::checkPathValidity(dtCrowdAgent** agents, const int nagents, const 
 		}
 
 		// Try to replan path to goal.
+		// 目標へのパスを再計画してみてください。
 		if (replan)
 		{
 			if (ag->targetState != DT_CROWDAGENT_TARGET_NONE)
@@ -1238,7 +1252,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 				anim->polyRef = refs[1];
 				anim->active = true;
 				anim->t = 0.0f;
-				anim->tmax = (dtVdist2D(anim->startPos, anim->endPos) / ag->params.maxSpeed) * 0.5f;
+				anim->tmax = (dtVdist2D(anim->startPos, anim->endPos) / ag->params.maxSpeed) * 1.f;
 
 				ag->state = DT_CROWDAGENT_STATE_OFFMESH;
 				ag->ncorners = 0;

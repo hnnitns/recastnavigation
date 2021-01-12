@@ -29,6 +29,38 @@
 using std::vector;
 using std::string;
 
+static void fileListAdd(FileList& list, const char* path)
+{
+	if (list.size >= FileList::MAX_FILES)
+		return;
+	int n = strlen(path);
+	list.files[list.size] = new char[n+1];
+	strcpy(list.files[list.size], path);
+	list.size++;
+}
+
+static void fileListClear(FileList& list)
+{
+	for (int i = 0; i < list.size; ++i)
+		delete [] list.files[i];
+	list.size = 0;
+}
+
+FileList::FileList() : size(0)
+{
+	memset(files, 0, sizeof(char*)*MAX_FILES);
+}
+
+FileList::~FileList()
+{
+	fileListClear(*this);
+}
+
+static int cmp(const void* a, const void* b)
+{
+	return strcmp(*(const char**)a, *(const char**)b);
+}
+
 void scanDirectoryAppend(const string& path, const string& ext, vector<string>& filelist)
 {
 #ifdef WIN32

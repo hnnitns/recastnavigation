@@ -28,6 +28,9 @@
     <Filter Include="MyData\Include\追加ファイル">
       <UniqueIdentifier>{4c3e75fd-ba7e-4a03-8c71-247cfe2f8447}</UniqueIdentifier>
     </Filter>
+    <Filter Include="AutoOffMeshLinks">
+      <UniqueIdentifier>{77a2356e-c4bf-460f-8bf8-be8edb214c20}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Contrib\fastlz\fastlz.h">
@@ -123,6 +126,24 @@
     <ClInclude Include="..\..\Include\OffMeshLinkManager.h">
       <Filter>MyData\Include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Include\AnnotationBuilder.h">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\vecmath.h">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\SlideShow.h">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\NavWorld.h">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\BuildContours.h">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\auxdraw.h">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Contrib\fastlz\fastlz.c">
@@ -211,6 +232,24 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\OffMeshLinkManager.cpp">
       <Filter>MyData\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\AnnotationBuilder.cpp">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\vecmath.cpp">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\SlideShow.cpp">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\NavWorld.cpp">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\BuildContours.cpp">
+      <Filter>AutoOffMeshLinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\auxdraw.cpp">
+      <Filter>AutoOffMeshLinks</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -247,6 +247,9 @@
     <ClInclude Include="..\..\..\DebugUtils\Include\RecastDebugDraw.h" />
     <ClInclude Include="..\..\..\DebugUtils\Include\RecastDump.h" />
     <ClInclude Include="..\..\Contrib\fastlz\fastlz.h" />
+    <ClInclude Include="..\..\Include\AnnotationBuilder.h" />
+    <ClInclude Include="..\..\Include\auxdraw.h" />
+    <ClInclude Include="..\..\Include\BuildContours.h" />
     <ClInclude Include="..\..\Include\ChunkyTriMesh.h" />
     <ClInclude Include="..\..\Include\ConvexVolumeTool.h" />
     <ClInclude Include="..\..\Include\CrowdTool.h" />
@@ -257,6 +260,7 @@
     <ClInclude Include="..\..\Include\NavMeshFindManager.h" />
     <ClInclude Include="..\..\Include\NavMeshPruneTool.h" />
     <ClInclude Include="..\..\Include\NavMeshTesterTool.h" />
+    <ClInclude Include="..\..\Include\NavWorld.h" />
     <ClInclude Include="..\..\Include\OffMeshConnectionTool.h" />
     <ClInclude Include="..\..\Include\OffMeshLinkManager.h" />
     <ClInclude Include="..\..\Include\Other\Math.h" />
@@ -268,11 +272,13 @@
     <ClInclude Include="..\..\Include\Sample_SoloMesh.h" />
     <ClInclude Include="..\..\Include\Sample_TempObstacles.h" />
     <ClInclude Include="..\..\Include\Sample_TileMesh.h" />
+    <ClInclude Include="..\..\Include\SlideShow.h" />
     <ClInclude Include="..\..\Include\TempObstacleCreateTool.h" />
     <ClInclude Include="..\..\Include\TempObstacleTool.h" />
     <ClInclude Include="..\..\Include\ValueHistory.h" />
     <ClInclude Include="..\..\Include\imgui.h" />
     <ClInclude Include="..\..\Include\imguiRenderGL.h" />
+    <ClInclude Include="..\..\Include\vecmath.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\DebugUtils\Source\DebugDraw.cpp" />
@@ -280,6 +286,9 @@
     <ClCompile Include="..\..\..\DebugUtils\Source\RecastDebugDraw.cpp" />
     <ClCompile Include="..\..\..\DebugUtils\Source\RecastDump.cpp" />
     <ClCompile Include="..\..\Contrib\fastlz\fastlz.c" />
+    <ClCompile Include="..\..\Source\AnnotationBuilder.cpp" />
+    <ClCompile Include="..\..\Source\auxdraw.cpp" />
+    <ClCompile Include="..\..\Source\BuildContours.cpp" />
     <ClCompile Include="..\..\Source\ChunkyTriMesh.cpp" />
     <ClCompile Include="..\..\Source\ConvexVolumeTool.cpp" />
     <ClCompile Include="..\..\Source\CrowdTool.cpp" />
@@ -291,6 +300,7 @@
     <ClCompile Include="..\..\Source\NavMeshFindManager.cpp" />
     <ClCompile Include="..\..\Source\NavMeshPruneTool.cpp" />
     <ClCompile Include="..\..\Source\NavMeshTesterTool.cpp" />
+    <ClCompile Include="..\..\Source\NavWorld.cpp" />
     <ClCompile Include="..\..\Source\OffMeshConnectionTool.cpp" />
     <ClCompile Include="..\..\Source\OffMeshLinkManager.cpp" />
     <ClCompile Include="..\..\Source\PerfTimer.cpp" />
@@ -299,11 +309,13 @@
     <ClCompile Include="..\..\Source\Sample_SoloMesh.cpp" />
     <ClCompile Include="..\..\Source\Sample_TempObstacles.cpp" />
     <ClCompile Include="..\..\Source\Sample_TileMesh.cpp" />
+    <ClCompile Include="..\..\Source\SlideShow.cpp" />
     <ClCompile Include="..\..\Source\TempObstacleCreateTool.cpp" />
     <ClCompile Include="..\..\Source\TempObstacleTool.cpp" />
     <ClCompile Include="..\..\Source\ValueHistory.cpp" />
     <ClCompile Include="..\..\Source\imgui.cpp" />
     <ClCompile Include="..\..\Source\imguiRenderGL.cpp" />
+    <ClCompile Include="..\..\Source\vecmath.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

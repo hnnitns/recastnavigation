@@ -936,7 +936,8 @@ Sample_TempObstacles::Sample_TempObstacles() :
 	m_tcomp = std::make_unique<FastLZCompressor>();
 	m_tmproc = std::make_unique<MeshProcess>();
 
-	setTool(std::make_unique<TempObstacleCreateTool>());
+	//setTool(std::make_unique<TempObstacleCreateTool>());
+	setTool(std::make_unique<OffMeshConnectionTool>());
 }
 
 Sample_TempObstacles::~Sample_TempObstacles()

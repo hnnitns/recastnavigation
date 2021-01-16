@@ -19,17 +19,33 @@
 #ifndef OFFMESHCONNECTIONTOOL_H
 #define OFFMESHCONNECTIONTOOL_H
 
+#include <array>
+#include <vector>
 #include "Sample.h"
 
 // Tool to create off-mesh connection for InputGeom
 
 class OffMeshConnectionTool : public SampleTool
 {
-	Sample* m_sample;
-	float m_hitPos[3];
-	bool m_hitPosSet;
+private:
+	struct NavMeshEdge
+	{
+		using Point = std::array<float, 3>;
+
+		Point start, end;
+		std::vector<Point> points;
+	};
+
+private:
+	Sample* sample;
+	float hit_pos[3];
+	bool hit_pos_set;
 	bool m_bidir;
 	unsigned char m_oldFlags;
+
+	bool links_arrow;
+	float horizontal_distance, vertical_distance, divistion_distance;
+	std::vector<NavMeshEdge> edges;
 
 public:
 	OffMeshConnectionTool();
@@ -47,6 +63,11 @@ public:
 	virtual void handleUpdate(const float dt);
 	virtual void handleRender();
 	virtual void handleRenderOverlay(double* proj, double* model, int* view);
+
+private:
+	void AutoLinksBuild();
+	void CalcNavMeshEdges();
+	void CalcEdgeDivision();
 };
 
 #endif // OFFMESHCONNECTIONTOOL_H

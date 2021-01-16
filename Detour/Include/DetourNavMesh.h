@@ -148,12 +148,16 @@ enum dtFindPathOptions
 // Options for dtNavMeshQuery::raycast
 enum dtRaycastOptions
 {
-	DT_RAYCAST_USE_COSTS = 0x01,		//< Raycast should calculate movement cost along the ray and fill RaycastHit::cost
+	// Raycast should calculate movement cost along the ray and fill RaycastHit::cost
+	// レイキャストは、光線に沿った移動コストを計算し、RaycastHit :: costを埋める必要があります
+	DT_RAYCAST_USE_COSTS = 0x01,
 };
 
 enum dtDetailTriEdgeFlags
 {
-	DT_DETAIL_EDGE_BOUNDARY = 0x01,		///< Detail triangle edge is part of the poly boundary
+	// Detail triangle edge is part of the poly boundary
+	// 詳細三角形のエッジはポリ境界の一部です
+	DT_DETAIL_EDGE_BOUNDARY = 0x01,
 };
 
 
@@ -177,23 +181,31 @@ enum dtPolyTypes
 struct dtPoly
 {
 	// Index to first link in linked list. (Or #DT_NULL_LINK if there is no link.)
+	// リンクリストの最初のリンクへのインデックス。 （または、リンクがない場合は#DT_NULL_LINK。）
 	unsigned int firstLink;
 
 	// The indices of the polygon's vertices.
 	// The actual vertices are located in dtMeshTile::verts.
+	// ポリゴンの頂点のインデックス。
+	// 実際の頂点はdtMeshTile :: vertsにあります。
 	unsigned short verts[DT_VERTS_PER_POLYGON];
 
 	// Packed data representing neighbor polygons references and flags for each edge.
+	// 各エッジの隣接ポリゴン参照とフラグを表すパックされたデータ。
 	unsigned short neis[DT_VERTS_PER_POLYGON];
 
 	// The user defined polygon flags.
+	// ユーザー定義のポリゴンフラグ。
 	unsigned short flags;
 
 	// The number of vertices in the polygon.
+	// ポリゴン内の頂点の数。
 	unsigned char vertCount;
 
 	// The bit packed area id and polygon type.
 	// @note Use the structure's set and get methods to acess this value.
+	// ビットパックされたエリアIDとポリゴンタイプ。
+	// 構造体のセットを使用し、メソッドを取得してこの値にアクセスします。
 	unsigned char areaAndtype;
 
 	// Sets the user defined area id. [Limit: < #DT_MAX_AREAS]
@@ -376,7 +388,7 @@ struct dtMeshTile
 	/// ディテールメッシュの三角形。
 	/// See dtDetailTriEdgeFlags and dtGetDetailTriEdgeFlags.
 	/// dtDetailTriEdgeFlagsおよびdtGetDetailTriEdgeFlagsを参照してください。
-	unsigned char* detailTris;	
+	unsigned char* detailTris;
 
 	// The tile bounding volume nodes. [Size: dtMeshHeader::bvNodeCount] (Will be null if bounding volumes are disabled.)
 	// タイル境界ボリュームノード。 [サイズ：dtMeshHeader :: bvNodeCount]（バウンディングボリュームが無効になっている場合はnullになります。）
@@ -404,9 +416,12 @@ private:
 };
 
 /// Get flags for edge in detail triangle.
+/// エッジの詳細三角形のフラグを取得します。
 /// @param	triFlags[in]		The flags for the triangle (last component of detail vertices above).
+/// 三角形のフラグ（上記の詳細頂点の最後のコンポーネント）。
 /// @param	edgeIndex[in]		The index of the first vertex of the edge. For instance, if 0,
-///								returns flags for edge AB.
+/// returns flags for edge AB.
+/// エッジの最初の頂点のインデックス。たとえば、0の場合、エッジABのフラグを返します。
 inline int dtGetDetailTriEdgeFlags(unsigned char triFlags, int edgeIndex)
 {
 	return (triFlags >> (edgeIndex * 2)) & 0x3;

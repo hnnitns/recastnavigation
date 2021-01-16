@@ -45,7 +45,7 @@ namespace
 		const unsigned int col, const float linew,
 		bool inner)
 	{
-		static const float thr = 0.01f * 0.01f;
+		constexpr float thr = 0.01f * 0.01f;
 
 		dd->begin(DU_DRAW_LINES, linew);
 
@@ -65,7 +65,7 @@ namespace
 					if (p->neis[j] == 0) continue;
 					if (p->neis[j] & DT_EXT_LINK)
 					{
-						bool con = false;
+						bool con{};
 						for (unsigned int k = p->firstLink; k != DT_NULL_LINK; k = tile->links[k].next)
 						{
 							if (tile->links[k].edge == j)
@@ -92,6 +92,8 @@ namespace
 
 				// Draw detail mesh edges which align with the actual poly edge.
 				// This is really slow.
+				// 実際のポリエッジと整列する詳細メッシュエッジを描画します。
+				// これは本当に遅いです。
 				for (int k = 0; k < pd->triCount; ++k)
 				{
 					const unsigned char* t = &tile->detailTris[(pd->triBase + k) * 4];
@@ -166,9 +168,11 @@ namespace
 		dd->end();
 
 		// Draw inter poly boundaries
+		// ポリゴン間の境界を描画します
 		drawPolyBoundaries(dd, tile, duRGBA(0, 48, 64, 32), 1.5f, true);
 
 		// Draw outer poly boundaries
+		// 外側のポリゴン境界を描画します
 		drawPolyBoundaries(dd, tile, duRGBA(0, 48, 64, 220), 2.5f, false);
 
 		if (flags & DU_DRAWNAVMESH_OFFMESHCONS)

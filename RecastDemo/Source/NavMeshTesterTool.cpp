@@ -1035,7 +1035,7 @@ void NavMeshTesterTool::recalc()
 			ctx->log(Category, "m_spos: %f %f %f\n", m_spos[0], m_spos[1], m_spos[2]);
 			ctx->log(Category, "Radius: %f\n", Radius);
 			ctx->log(Category, "m_distanceToWall: %f\n", m_distanceToWall);
-			ctx->log(Category, "m_hitPos: %f %f %f\n", m_epos[0], m_epos[1], m_epos[2]);
+			ctx->log(Category, "hit_pos: %f %f %f\n", m_epos[0], m_epos[1], m_epos[2]);
 			ctx->log(Category, "m_hitNormal: %f %f %f\n", m_hitNormal[0], m_hitNormal[1], m_hitNormal[2]);
 			ctx->log(Category, "m_filter: 0x%x 0x%x\n", m_filter.getIncludeFlags(), m_filter.getExcludeFlags());
 #endif

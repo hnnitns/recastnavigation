@@ -153,6 +153,7 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 	const int maxMeshTris = world->getMaxMeshTriCount();
 
 	// Init build configuration from GUI
+	// GUIからビルド構成を初期化します
 	memset(&m_cfg, 0, sizeof(m_cfg));
 	m_cfg.cs = m_acfg.cellSize;
 	m_cfg.ch = m_acfg.cellHeight;
@@ -171,14 +172,18 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 	// Set the area where the navigation will be build.
 	// Here the bounds of the input mesh are used, but the
 	// area could be specified by an user defined box, etc.
+	// ナビゲーションが構築される領域を設定します。
+	// ここでは、入力メッシュの境界が使用されますが、領域はユーザー定義のボックスなどで指定できます。
 	rcVcopy(m_cfg.bmin, bmin);
 	rcVcopy(m_cfg.bmax, bmax);
 	rcCalcGridSize(m_cfg.bmin, m_cfg.bmax, m_cfg.cs, &m_cfg.width, &m_cfg.height);
 
 	// Reset build times gathering.
+	// ビルド時間の収集をリセットします。
 	ctx.resetTimers();
 
 	// Start the build process.
+	// ビルドプロセスを開始します。
 	ctx.startTimer(RC_TIMER_TOTAL);
 
 	ctx.log(RC_LOG_PROGRESS, "Building navigation:");
@@ -186,9 +191,11 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 
 	//
 	// Step 2. Rasterize input polygon soup.
+	// ステップ2. 入力ポリゴンスープをラスタライズします。
 	//
 
 	// Allocate voxel heightfield where we rasterize our input data to.
+	// 入力データをラスタライズするボクセルの高さフィールドを割り当てます。
 	m_solid = rcAllocHeightfield();
 	if (!m_solid)
 	{
@@ -204,6 +211,9 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 	// Allocate array that can hold triangle area types.
 	// If you have multiple meshes you need to process, allocate
 	// and array which can hold the max number of triangles you need to process.
+	// 三角形の領域タイプを保持できる配列を割り当てます。
+	// 処理する必要のあるメッシュが複数ある場合は、
+	// 処理する必要のある三角形の最大数を保持できる配列を割り当て、配列します。
 	m_triareas = new unsigned char[maxMeshTris];
 	if (!m_triareas)
 	{
@@ -214,6 +224,9 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 	// Find triangles which are walkable based on their slope and rasterize them.
 	// If your input data is multiple meshes, you can transform them here, calculate
 	// the are type for each of the meshes and rasterize them.
+	// 傾斜に基づいて歩行可能な三角形を見つけ、ラスタライズします。
+	// 入力データが複数のメッシュである場合は、ここでそれらを変換し、
+	// 各メッシュのareタイプを計算して、ラスタライズできます。
 
 	for (int i = 0; i < world->getMeshCount(); ++i)
 	{
@@ -225,11 +238,15 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 
 	//
 	// Step 3. Filter walkables surfaces.
+	// ステップ3. 歩行可能なサーフェスをフィルタリングします。
 	//
 
 	// Once all geoemtry is rasterized, we do initial pass of filtering to
 	// remove unwanted overhangs caused by the conservative rasterization
 	// as well as filter spans where the character cannot possibly stand.
+	// すべてのジオエムトリーがラスタライズされたら、フィルタリングの最初のパスを実行して、
+	// 保守的なラスタライズによって引き起こされた不要なオーバーハングと、
+	// キャラクターが立つことができない可能性のあるフィルタースパンを削除します。
 	rcFilterLowHangingWalkableObstacles(&ctx, m_cfg.walkableClimb, *m_solid);
 	rcFilterLedgeSpans(&ctx, m_cfg.walkableHeight, m_cfg.walkableClimb, *m_solid);
 	rcFilterWalkableLowHeightSpans(&ctx, m_cfg.walkableHeight, *m_solid);
@@ -248,6 +265,7 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 	}
 
 	// Erode the walkable area by agent radius.
+	// エージェントの半径で歩行可能エリアを侵食します。
 	if (!rcErodeWalkableArea(&ctx, m_cfg.walkableRadius, *m_chf))
 	{
 		ctx.log(RC_LOG_ERROR, "buildNavigation: Could not erode.");
@@ -256,6 +274,7 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 
 
 	// Create contours.
+	// 輪郭を作成します。
 	m_cset = rcAllocContourSet();
 	if (!m_cset)
 	{
@@ -269,6 +288,7 @@ bool AnnotationBuilder::build(const AnnotationBuilderConfig& acfg, class NavWorl
 	}
 
 	// Build edges.
+	// エッジを構築します。
 	m_nedges = 0;
 	for (int i = 0; i < m_cset->nconts; ++i)
 		m_nedges += m_cset->conts[i].nverts;

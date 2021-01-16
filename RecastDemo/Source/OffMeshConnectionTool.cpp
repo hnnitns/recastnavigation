@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <string>
 #include <cfloat>
+#include "AlgorithmHelper.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
 #ifdef __APPLE__
@@ -61,6 +62,7 @@ namespace
 	}
 
 	using namespace RcMath;
+	namespace exec = std::execution;
 }
 
 OffMeshConnectionTool::OffMeshConnectionTool() :
@@ -113,9 +115,9 @@ void OffMeshConnectionTool::handleMenu()
 
 	imguiValue("Auto OffMeshLink");
 
-	imguiSlider("horizontal_dis", &horizontal_distance, 0.1f, 100.f, 0.1f);
-	imguiSlider("vertical_dis", &vertical_distance, 0.1f, 100.f, 0.1f);
-	imguiSlider("divistion_dis", &divistion_distance, 0.1f, 100.f, 0.1f);
+	imguiSlider("horizontal_dis", &horizontal_distance, 0.1f, 25.f, 0.1f);
+	imguiSlider("vertical_dis", &vertical_distance, 0.1f, 25.f, 0.1f);
+	imguiSlider("divistion_dis", &divistion_distance, 0.1f, 10.f, 0.1f);
 
 	// 自動生成
 	if (imguiButton("Link Build"))
@@ -217,28 +219,49 @@ void OffMeshConnectionTool::handleRender()
 		dd.begin(DU_DRAW_LINES, 2.0f);
 		for (const auto& edge : edges)
 		{
-			constexpr UINT32 EdgeColor{ duRGBA(255, 0, 0, 200) };
 			constexpr float LineAdjY{ 2.f };
 
 			auto start{ edge.start }, end{ edge.end };
 
-			// 高くする
-			start[1] += LineAdjY;
-			end[1] += LineAdjY;
+			// 始点・終点
+			{
+				constexpr UINT32 EdgeColor{ duRGBA(255, 0, 0, 200) };
 
-			// 始点
-			dd.vertex(edge.start.data(), EdgeColor);
-			dd.vertex(start.data(), EdgeColor);
+				// 高くする
+				start[1] += LineAdjY;
+				end[1] += LineAdjY;
 
-			// 終点
-			dd.vertex(edge.end.data(), EdgeColor);
-			dd.vertex(end.data(), EdgeColor);
+				// 始点
+				dd.vertex(edge.start.data(), EdgeColor);
+				dd.vertex(start.data(), EdgeColor);
+
+				// 終点
+				dd.vertex(edge.end.data(), EdgeColor);
+				dd.vertex(end.data(), EdgeColor);
+			}
+
+			// 分割点
+			for (auto& point : edge.points)
+			{
+				constexpr float PointAdjY{ LineAdjY * 0.75f };
+				constexpr UINT32 PointColor{ duRGBA(255, 125, 125, 200) };
+
+				start = end = point;
+
+				end[1] += PointAdjY;
+
+				dd.vertex(start.data(), PointColor);
+				dd.vertex(end.data(), PointColor);
+			}
 
 			// 矢印
 			if (links_arrow)
 			{
-				constexpr float ArrowAdjY{ LineAdjY / 2.f };
-				constexpr UINT32 ArrowColor{ duRGBA(255, 255, 0, 200) };
+				constexpr float ArrowAdjY{ LineAdjY * 0.375f };
+				constexpr UINT32 ArrowColor{ duRGBA(255, 255, 0, 150) };
+
+				start = edge.start;
+				end = edge.end;
 
 				// 見やする為に少し短くする
 				auto vec{ end - start };
@@ -252,8 +275,8 @@ void OffMeshConnectionTool::handleRender()
 				end = end + (vec * -short_len);
 
 				// 高さを再調整
-				start[1] -= ArrowAdjY;
-				end[1] -= ArrowAdjY;
+				start[1] += ArrowAdjY;
+				end[1] += ArrowAdjY;
 
 				duAppendArrow(&dd,
 					start[0], start[1], start[2],
@@ -395,5 +418,20 @@ void OffMeshConnectionTool::CalcNavMeshEdges()
 
 void OffMeshConnectionTool::CalcEdgeDivision()
 {
+	For_Each(edges, [this](NavMeshEdge& edge)
+		{
+			auto vec{ edge.end - edge.start };
+			const float len{ rcVdist(edge.start, edge.end) };
 
+			rcVnormalize(&vec);
+
+			edge.points.clear();
+			edge.points.reserve(static_cast<size_t>(len / divistion_distance) + 1u);
+
+			// 分割距離分徐々に追加
+			for (float dist = divistion_distance; dist < len; dist += divistion_distance)
+			{
+				edge.points.emplace_back(edge.start + (vec * dist));
+			}
+		}, exec::par);
 }

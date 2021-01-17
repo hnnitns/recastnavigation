@@ -15,11 +15,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Recast", "Recast.vcxproj", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "..\..\..\Common\Common.vcxitems", "{CFD0D475-1344-4DE0-AEE7-4830F03555B1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExternalCommon", "..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems", "{536FC0F3-A0BE-473D-A0A1-9ADFB72ED98C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "共通プロジェクト", "共通プロジェクト", "{39CB633E-01ED-41D1-BC06-20F3B52CF05A}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{0caa0a13-f861-4c60-6169-25bc4d40e750}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{0caa0a13-f861-4c60-6169-25bc4d40e750}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{18fee2ad-04a0-0d84-ed5a-21d8d99b94d4}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{1ab411d3-863f-7f97-8f50-028cfb5adb97}*SharedItemsImports = 4
+		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{536fc0f3-a0be-473d-a0a1-9adfb72ed98c}*SharedItemsImports = 9
 		..\..\..\Common\Common.vcxitems*{a7a881ce-934a-aca4-7c05-c0f8684633f5}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{cfd0d475-1344-4de0-aee7-4830f03555b1}*SharedItemsImports = 9
 		..\..\..\Common\Common.vcxitems*{f7616a66-6317-e35b-ec0b-dd3258c0d95f}*SharedItemsImports = 4
@@ -74,6 +80,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CFD0D475-1344-4DE0-AEE7-4830F03555B1} = {39CB633E-01ED-41D1-BC06-20F3B52CF05A}
+		{536FC0F3-A0BE-473D-A0A1-9ADFB72ED98C} = {39CB633E-01ED-41D1-BC06-20F3B52CF05A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {33FE0510-93C4-46D4-BAD4-B0E08FDCDBE8}

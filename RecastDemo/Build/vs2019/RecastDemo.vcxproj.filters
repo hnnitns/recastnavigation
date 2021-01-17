@@ -25,9 +25,6 @@
     <Filter Include="MyData\Include">
       <UniqueIdentifier>{e0ade10d-c86b-4af0-bf0e-3f9a6a3b2b3c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="MyData\Include\追加ファイル">
-      <UniqueIdentifier>{4c3e75fd-ba7e-4a03-8c71-247cfe2f8447}</UniqueIdentifier>
-    </Filter>
     <Filter Include="AutoOffMeshLinks">
       <UniqueIdentifier>{77a2356e-c4bf-460f-8bf8-be8edb214c20}</UniqueIdentifier>
     </Filter>
@@ -93,9 +90,6 @@
     <ClInclude Include="..\..\Include\EditManager.h">
       <Filter>MyData\Include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Include\Random.h">
-      <Filter>MyData\Include\追加ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\DebugUtils\Include\DebugDraw.h">
       <Filter>Original\Include</Filter>
     </ClInclude>
@@ -107,12 +101,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\DebugUtils\Include\RecastDump.h">
       <Filter>Original\Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Include\Other\Math.h">
-      <Filter>MyData\Include\追加ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Include\Other\XMFLOAT_Hlper.h">
-      <Filter>MyData\Include\追加ファイル</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Include\TempObstacleCreateTool.h">
       <Filter>MyData\Include</Filter>

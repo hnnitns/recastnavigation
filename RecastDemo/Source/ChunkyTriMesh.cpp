@@ -24,7 +24,7 @@
 #include <vector>
 #include <ppl.h>
 #include <DirectXMath.h>
-#include "Other/Math.h"
+#include "OtherFiles\\Math.hpp"
 
 #include "AlgorithmHelper.h"
 

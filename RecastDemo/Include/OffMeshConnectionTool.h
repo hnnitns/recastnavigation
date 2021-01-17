@@ -21,6 +21,7 @@
 
 #include <array>
 #include <vector>
+#include <functional>
 #include "Sample.h"
 
 // Tool to create off-mesh connection for InputGeom
@@ -28,12 +29,22 @@
 class OffMeshConnectionTool : public SampleTool
 {
 private:
-	struct NavMeshEdge
-	{
-		using Point = std::array<float, 3>;
+	using Point = std::array<float, 3>;
 
-		Point start, end;
+private:
+	struct NavMeshEdge final
+	{
+		struct Link final
+		{
+			Point start{}, end{};
+		};
+
+		float horizontal_distance{}, vertical_distance{}, divistion_distance{};
+		Point start{}, end{};
+		Point orthogonal_vec{};
+
 		std::vector<Point> points;
+		std::vector<Link> links;
 	};
 
 private:
@@ -68,6 +79,8 @@ private:
 	void AutoLinksBuild();
 	void CalcNavMeshEdges();
 	void CalcEdgeDivision();
+	void CalcEndPoint();
+	void CheckDivistionPoint();
 };
 
 #endif // OFFMESHCONNECTIONTOOL_H

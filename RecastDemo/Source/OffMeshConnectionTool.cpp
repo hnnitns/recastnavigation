@@ -21,7 +21,6 @@
 #include <cstdio>
 #include <string>
 #include <cfloat>
-#include "AlgorithmHelper.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
 #ifdef __APPLE__
@@ -37,6 +36,11 @@
 #include "RecastDebugDraw.h"
 #include "DetourDebugDraw.h"
 #include "DetourNavMesh.h"
+
+#include "AlgorithmHelper.h"
+#include "OtherFiles\\XMFLOAT_Helper.hpp"
+#include "OtherFiles\\DirectXMathAlias.hpp"
+#include "OtherFiles\\XMFLOAT_Math.hpp"
 
 #ifdef WIN32
 #	define snprintf _snprintf
@@ -63,6 +67,8 @@ namespace
 
 	using namespace RcMath;
 	namespace exec = std::execution;
+
+	DIRECTX_MATH_ALIAS;
 }
 
 OffMeshConnectionTool::OffMeshConnectionTool() :
@@ -244,7 +250,7 @@ void OffMeshConnectionTool::handleRender()
 			for (auto& point : edge.points)
 			{
 				constexpr float PointAdjY{ LineAdjY * 0.75f };
-				constexpr UINT32 PointColor{ duRGBA(255, 125, 125, 200) };
+				constexpr UINT32 PointColor{ duRGBA(0, 255, 0, 200) };
 
 				start = end = point;
 
@@ -254,50 +260,68 @@ void OffMeshConnectionTool::handleRender()
 				dd.vertex(end.data(), PointColor);
 			}
 
-			// 矢印
+			// 矢印描画
 			if (links_arrow)
 			{
-				constexpr float ArrowAdjY{ LineAdjY * 0.375f };
-				constexpr UINT32 ArrowColor{ duRGBA(255, 255, 0, 150) };
+				// 始点から終点へのベクトル
+				{
+					constexpr float ArrowAdjY{ LineAdjY * 0.375f }, AdjDistance{ 1.f };
+					constexpr UINT32 ArrowColor{ duRGBA(255, 255, 0, 200) };
 
-				start = edge.start;
-				end = edge.end;
+					// 内側へずらす
+					{
+						const auto&& orth_vec{ edge.orthogonal_vec * -AdjDistance };
 
-				// 見やする為に少し短くする
-				auto vec{ end - start };
-				const float len{ rcVdist(start, end) };
-				const float short_len{ len / 15.f };
+						start = edge.start + orth_vec;
+						end = edge.end + orth_vec;
+					}
 
-				rcVnormalize(&vec);
+					// 見やする為に少し短くする
+					auto vec{ end - start };
+					const float len{ rcVdist(start, end) };
+					const float short_len{ len / 7.5f };
 
-				// 前後方向に少し位置をずらす
-				start = start + (vec * short_len);
-				end = end + (vec * -short_len);
+					rcVnormalize(&vec);
 
-				// 高さを再調整
-				start[1] += ArrowAdjY;
-				end[1] += ArrowAdjY;
+					// 前後方向に少し位置をずらす
+					start = start + (vec * short_len);
+					end = end + (vec * -short_len);
 
-				duAppendArrow(&dd,
-					start[0], start[1], start[2],
-					end[0], end[1], end[2],
-					0.0f, 0.4f, ArrowColor);
+					// 高さを再調整
+					start[1] += ArrowAdjY;
+					end[1] += ArrowAdjY;
+
+					duAppendArrow(&dd,
+						start[0], start[1], start[2],
+						end[0], end[1], end[2],
+						0.0f, 0.4f, ArrowColor);
+				}
+
+				// 直行ベクトル
+				{
+					constexpr UINT32 ArrowColor{ duRGBA(255, 0, 255, 200) };
+
+					start = edge.start;
+					end = edge.end;
+
+					auto vec{ end - start };
+					const float len{ rcVdist(start, end) };
+
+					rcVnormalize(&vec);
+
+					const auto&& middle_pos{ start + (vec * (len * 0.5f)) };
+
+					start = middle_pos;
+					end = middle_pos + (edge.orthogonal_vec * edge.horizontal_distance);
+
+					duAppendArrow(&dd,
+						start[0], start[1], start[2],
+						end[0], end[1], end[2],
+						0.0f, 0.4f, ArrowColor);
+				}
 			}
 		}
 		dd.end();
-
-		//dd.begin(DU_DRAW_LINES, 2.0f);
-		//for (const auto& edge : edges)
-		//{
-		//	constexpr UINT32 EdgeColor{ duRGBA(255, 0, 0, 200) };
-
-		//	auto start{ edge.start }, end{ edge.end };
-
-		//	start[1] += 1.f;
-		//	end[1] += 1.f;
-
-		//}
-		//dd.end();
 	}
 }
 
@@ -332,11 +356,11 @@ void OffMeshConnectionTool::AutoLinksBuild()
 	// エッジを分割
 	CalcEdgeDivision();
 
-	// エッジの有効性を確認
-
-
 	// 終点を計算
+	CalcEndPoint();
 
+	// 分割点の有効性を確認
+	CheckDivistionPoint();
 
 	// 始点・終点を決定
 
@@ -406,8 +430,13 @@ void OffMeshConnectionTool::CalcNavMeshEdges()
 						{
 							auto& edge{ edges.emplace_back() };
 
+							// エッジの始点と終点を決定
 							rcVcopy(edge.start.data(), tv[n]);
 							rcVcopy(edge.end.data(), tv[m]);
+
+							edge.horizontal_distance = horizontal_distance;
+							edge.vertical_distance = vertical_distance;
+							edge.divistion_distance = divistion_distance;
 						}
 					}
 				}
@@ -434,4 +463,26 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 				edge.points.emplace_back(edge.start + (vec * dist));
 			}
 		}, exec::par);
+}
+
+void OffMeshConnectionTool::CalcEndPoint()
+{
+	For_Each(edges, [](NavMeshEdge& edge)
+		{
+			VF3 vec3{ ToXMFLOAT(edge.end - edge.start) };
+			const VF2&& vec{ vec3.x, vec3.z }; // Y軸は無視
+			const VF2 orthogonal_vec{ VectorNormalize(VectorOrthogonal(vec)) };
+
+			edge.orthogonal_vec = { orthogonal_vec.x, 0.f, orthogonal_vec.y };
+
+			For_Each(edge.points, [](const Point& point)
+				{
+
+				}, exec::par);
+		}, exec::seq);
+}
+
+void OffMeshConnectionTool::CheckDivistionPoint()
+{
+
 }

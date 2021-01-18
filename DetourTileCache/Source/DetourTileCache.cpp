@@ -6,7 +6,7 @@
 #include "DetourMath.h"
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
-#include "AlgorithmHelper.h"
+#include "OtherFiles\\AlgorithmHelper.hpp"
 
 #include <cstring>
 #include <new>

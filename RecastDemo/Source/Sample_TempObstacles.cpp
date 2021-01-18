@@ -49,7 +49,7 @@
 #include "RecastAlloc.h"
 #include "RecastAssert.h"
 #include "fastlz.h"
-#include "AlgorithmHelper.h"
+#include "OtherFiles\\AlgorithmHelper.hpp"
 #include "TempObstacleCreateTool.h"
 
 #ifdef _DEBUG
@@ -1535,6 +1535,8 @@ bool Sample_TempObstacles::buildAllTiles()
 	cfg.detailSampleMaxError = m_cellHeight * m_detailSampleMaxError;
 	rcVcopy(cfg.bmin, bmin.data());
 	rcVcopy(cfg.bmax, bmax.data());
+
+	generation_params.emplace(cfg);
 
 	// Tile cache params.
 	// タイルキャッシュパラメータ。

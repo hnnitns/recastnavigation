@@ -23,11 +23,15 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{0caa0a13-f861-4c60-6169-25bc4d40e750}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{0caa0a13-f861-4c60-6169-25bc4d40e750}*SharedItemsImports = 4
+		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{18fee2ad-04a0-0d84-ed5a-21d8d99b94d4}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{18fee2ad-04a0-0d84-ed5a-21d8d99b94d4}*SharedItemsImports = 4
+		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{1ab411d3-863f-7f97-8f50-028cfb5adb97}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{1ab411d3-863f-7f97-8f50-028cfb5adb97}*SharedItemsImports = 4
 		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{536fc0f3-a0be-473d-a0a1-9adfb72ed98c}*SharedItemsImports = 9
+		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{a7a881ce-934a-aca4-7c05-c0f8684633f5}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{a7a881ce-934a-aca4-7c05-c0f8684633f5}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{cfd0d475-1344-4de0-aee7-4830f03555b1}*SharedItemsImports = 9
+		..\..\..\..\ProjectTKM\External library\CommonFiles\CommonProject.vcxitems*{f7616a66-6317-e35b-ec0b-dd3258c0d95f}*SharedItemsImports = 4
 		..\..\..\Common\Common.vcxitems*{f7616a66-6317-e35b-ec0b-dd3258c0d95f}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

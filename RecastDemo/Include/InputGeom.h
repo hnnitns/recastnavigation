@@ -228,6 +228,10 @@ public:
 	// src : レイの始点、dst：レイの終点
 	bool RaycastMesh(const std::array<float, 3>& ray_start, const std::array<float, 3>& ray_end,
 		RaycastMeshHitInfo* hit_info = nullptr);
+	// メッシュデータとマウスのレイとの判定
+	// src : レイの始点、dst：レイの終点
+	bool RaycastMesh(const std::array<float, 3>& ray_start, const std::array<float, 3>& ray_end,
+		RaycastMeshHitInfo* hit_info = nullptr) const;
 
 	void ClearLoadGeomMesh() noexcept { load_geom_meshes.clear(); }
 	std::deque<LoadGeomMesh>::iterator EraseSelectLoadGeomMesh() noexcept;

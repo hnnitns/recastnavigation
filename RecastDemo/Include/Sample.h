@@ -129,7 +129,7 @@ protected:
 	class dtNavMesh* m_navMesh;
 	class dtNavMeshQuery* m_navQuery;
 	class dtCrowd* m_crowd;
-
+	std::optional<rcConfig> generation_params;
 	unsigned char m_navMeshDrawFlags;
 
 	float m_cellSize;
@@ -189,13 +189,14 @@ public:
 	virtual void handleUpdate(const float dt);
 	virtual void collectSettings(struct BuildSettings& settings);
 
-	std::optional<class InputGeom>& getInputGeom() { return m_geom; }
-	class dtNavMesh* getNavMesh() { return m_navMesh; }
-	class dtNavMeshQuery* getNavMeshQuery() { return m_navQuery; }
-	class dtCrowd* getCrowd() { return m_crowd; }
-	float getAgentRadius() { return m_agentRadius; }
-	float getAgentHeight() { return m_agentHeight; }
-	float getAgentClimb() { return m_agentMaxClimb; }
+	std::optional<class InputGeom>& getInputGeom() noexcept { return m_geom; }
+	class dtNavMesh* getNavMesh() noexcept { return m_navMesh; }
+	class dtNavMeshQuery* getNavMeshQuery() noexcept { return m_navQuery; }
+	class dtCrowd* getCrowd() noexcept { return m_crowd; }
+	float getAgentRadius() const noexcept { return m_agentRadius; }
+	float getAgentHeight() const noexcept { return m_agentHeight; }
+	float getAgentClimb() const noexcept { return m_agentMaxClimb; }
+	const auto& GetGenerationParams() const noexcept { return generation_params; }
 
 	unsigned char getNavMeshDrawFlags() const { return m_navMeshDrawFlags; }
 	void setNavMeshDrawFlags(unsigned char flags) { m_navMeshDrawFlags = flags; }

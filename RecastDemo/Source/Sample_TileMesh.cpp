@@ -45,7 +45,7 @@
 #include "OffMeshConnectionTool.h"
 #include "ConvexVolumeTool.h"
 #include "CrowdTool.h"
-#include "AlgorithmHelper.h"
+#include "OtherFiles\\AlgorithmHelper.hpp"
 #include "DetourCommon.h"
 #include "fastlz.h"
 #include "DetourTileCache.h"

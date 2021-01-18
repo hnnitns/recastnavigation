@@ -500,9 +500,13 @@ public:
 	// @name Query Functions
 
 	// Calculates the tile grid location for the specified world position.
+	// 指定されたワールド位置のタイルグリッド位置を計算します。
 	//  @param[in]	pos  The world position for the query. [(x, y, z)]
+	//  クエリのワールド位置。
 	//  @param[out]	tx		The tile's x-location. (x, y)
+	//  タイルのx位置。
 	//  @param[out]	ty		The tile's y-location. (x, y)
+	//  タイルのy位置。
 	void calcTileLoc(const float* pos, int* tx, int* ty) const;
 
 	// Gets the tile at the specified grid location.

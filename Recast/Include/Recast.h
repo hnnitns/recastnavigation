@@ -1224,6 +1224,23 @@ inline constexpr float rcVdistSqr(const float* v1, const float* v2)
 	return dx * dx + dy * dy + dz * dz;
 }
 
+namespace RcMath
+{
+
+	// Returns the square of the distance between two points.
+	// 2点間の距離の2乗を返します。
+	//  @param[in]		v1	A point. [(x, y, z)]
+	//  @param[in]		v2	A point. [(x, y, z)]
+	// @return The square of the distance between the two points.
+	inline constexpr float rcVdistSqr(const std::array<float, 3>& v1, const std::array<float, 3>& v2)
+	{
+		float dx = v2[0] - v1[0];
+		float dy = v2[1] - v1[1];
+		float dz = v2[2] - v1[2];
+		return dx * dx + dy * dy + dz * dz;
+	}
+}
+
 // Normalizes the vector.
 // ベクトルを正規化します。
 //  @param[in,out]	v	The vector to normalize. [(x, y, z)]

@@ -35,7 +35,7 @@
 #include "RecastDebugDraw.h"
 #include "DetourNavMesh.h"
 #include "Sample.h"
-#include "AlgorithmHelper.h"
+#include "OtherFiles\\AlgorithmHelper.hpp"
 
 using namespace RcMath;
 namespace exec = std::execution;
@@ -597,6 +597,73 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 			const auto& verts{ load_mesh.m_mesh->getVerts() };
 
 			// メッシュデータとレイの判定
+#if false
+			std::vector<float> distance_array(ncid, -1.f);
+
+			Transform_N(cid, ncid, distance_array, [&](const int id)
+				{
+					const rcChunkyTriMeshNode& node{ load_mesh.m_chunkyMesh->nodes[id] };
+					const int* tris{ &load_mesh.m_chunkyMesh->tris[node.i * 3] };
+					const int ntris{ node.n };
+
+					float shortest{ (std::numeric_limits<float>::max)() };
+					bool hit{};
+
+					for (int j = 0; j < ntris * 3; j += 3)
+					{
+						float dis{ 1 };
+
+						// レイとポリゴンとの判定
+						if (intersectSegmentTriangle(ray_start, ray_end,
+							&verts[tris[j] * 3],
+							&verts[tris[j + 1] * 3],
+							&verts[tris[j + 2] * 3], dis))
+						{
+							// 終点の距離より短いなら
+							if (dis < shortest)
+							{
+								shortest = dis;  // 交点上の距離を代入
+							}
+
+							hit = true;
+						}
+					}
+
+					return (hit ? shortest : -1);
+				}, exec::par);
+
+			auto&& itr{ Min_Element(distance_array, exec::par) };
+
+			hit_dis = *itr;
+			is_hit = (hit_dis != -1.f);
+#elif false
+			for (int id = 0; id < ncid; id++)
+			{
+				const rcChunkyTriMeshNode& node{ load_mesh.m_chunkyMesh->nodes[id] };
+				const int* tris{ &load_mesh.m_chunkyMesh->tris[node.i * 3] };
+				const int ntris{ node.n };
+
+				for (int j = 0; j < ntris * 3; j += 3)
+				{
+					float dis{ 1 };
+
+					// レイとポリゴンとの判定
+					if (intersectSegmentTriangle(ray_start, ray_end,
+						&verts[tris[j] * 3],
+						&verts[tris[j + 1] * 3],
+						&verts[tris[j + 2] * 3], dis))
+					{
+						// 終点の距離より短いなら
+						if (dis < hit_dis)
+						{
+							hit_dis = dis;  // 交点上の距離を代入
+						}
+
+						is_hit = true;  // 当たっている
+					}
+				}
+			}
+#else
 			For_Each_N(cid, ncid, [&](const int id)
 				{
 					const rcChunkyTriMeshNode& node{ load_mesh.m_chunkyMesh->nodes[id] };
@@ -624,11 +691,169 @@ bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::ar
 						}
 					}
 				}, exec::par);
+#endif
 		}, exec::par);
 
 	if (!is_hit || !is_hit_mesh)	return false;
 
 	is_hit_mesh.load()->is_selected = true;
+
+	if (hit_info)
+	{
+		// レイのベクトルを求める
+		hit_info->vec = ray_end - ray_start;
+
+		// 実際の交点を計算
+		hit_info->pos = ray_start + (hit_info->vec * hit_dis);
+
+		// レイの始点から衝突地点までの距離を計算
+		hit_info->dis = rcVdist(ray_start, hit_info->pos);
+	}
+
+	return true;
+}
+
+// メッシュデータとマウスのレイとの判定
+// ray_start : レイの始点、dst：レイの終点
+bool InputGeom::RaycastMesh(const std::array<float, 3>& ray_start, const std::array<float, 3>& ray_end,
+	RaycastMeshHitInfo* hit_info) const
+{
+	if (load_geom_meshes.empty())	return false;
+
+	std::atomic<float> hit_dis{ 1.f }; // レイの長さを1とした時のメッシュデータとの距離上の交点
+	std::atomic_bool is_hit{ false };
+
+	For_Each(load_geom_meshes, [&](const LoadGeomMesh& load_mesh)
+		{
+			// メッシュデータの全てを囲む四角（以降スラブとする）の２交点
+			std::array<float, 2> p_min{}, q_max{};
+
+			// スラブとレイとの判定と交点を求める
+			{
+				std::array<float, 3> ray_vec{ ray_end - ray_start };
+
+				// 始点を０で終点を１とした時、スラブとの交点のレイ上の位置（最小値：最大値）
+				float btmin{}, btmax{};
+
+				// Prune is_hit ray.
+				// スラブとレイとの判定
+				if (!isectSegAABB(ray_start, ray_end, load_mesh.m_meshBMin, load_mesh.m_meshBMax, btmin, btmax))
+					return;
+
+				// スラブとレイの２交点（最大値、最小値）を求める
+				p_min[0] = ray_start[0] + (ray_vec[0]) * btmin;
+				p_min[1] = ray_start[2] + (ray_vec[2]) * btmin;
+				q_max[0] = ray_start[0] + (ray_vec[0]) * btmax;
+				q_max[1] = ray_start[2] + (ray_vec[2]) * btmax;
+			}
+
+			std::array<int, 512> cid{};
+			// 入力セグメントとオーバーラップするチャンクインデックスを返す
+			const int ncid
+			{ rcGetChunksOverlappingSegment(&(*load_mesh.m_chunkyMesh), p_min, q_max, cid.data(), 512) };
+
+			if (!ncid) return;
+
+			const auto& verts{ load_mesh.m_mesh->getVerts() };
+
+			// メッシュデータとレイの判定
+#if false
+			std::vector<float> distance_array(ncid, -1.f);
+
+			Transform_N(cid, ncid, distance_array, [&](const int id)
+				{
+					const rcChunkyTriMeshNode& node{ load_mesh.m_chunkyMesh->nodes[id] };
+					const int* tris{ &load_mesh.m_chunkyMesh->tris[node.i * 3] };
+					const int ntris{ node.n };
+
+					float shortest{ (std::numeric_limits<float>::max)() };
+					bool hit{};
+
+					for (int j = 0; j < ntris * 3; j += 3)
+					{
+						float dis{ 1 };
+
+						// レイとポリゴンとの判定
+						if (intersectSegmentTriangle(ray_start, ray_end,
+							&verts[tris[j] * 3],
+							&verts[tris[j + 1] * 3],
+							&verts[tris[j + 2] * 3], dis))
+						{
+							// 終点の距離より短いなら
+							if (dis < shortest)
+							{
+								shortest = dis;  // 交点上の距離を代入
+							}
+
+							hit = true;
+						}
+					}
+
+					return (hit ? shortest : -1);
+				}, exec::par);
+
+			auto&& itr{ Min_Element(distance_array, exec::par) };
+
+			hit_dis = *itr;
+			is_hit = (hit_dis != -1.f);
+#elif false
+			for (int id = 0; id < ncid; id++)
+			{
+				const rcChunkyTriMeshNode& node{ load_mesh.m_chunkyMesh->nodes[id] };
+				const int* tris{ &load_mesh.m_chunkyMesh->tris[node.i * 3] };
+				const int ntris{ node.n };
+
+				for (int j = 0; j < ntris * 3; j += 3)
+				{
+					float dis{ 1 };
+
+					// レイとポリゴンとの判定
+					if (intersectSegmentTriangle(ray_start, ray_end,
+						&verts[tris[j] * 3],
+						&verts[tris[j + 1] * 3],
+						&verts[tris[j + 2] * 3], dis))
+					{
+						// 終点の距離より短いなら
+						if (dis < hit_dis)
+						{
+							hit_dis = dis;  // 交点上の距離を代入
+						}
+
+						is_hit = true;  // 当たっている
+					}
+				}
+			}
+#else
+			For_Each_N(cid, ncid, [&](const int id)
+				{
+					const rcChunkyTriMeshNode& node{ load_mesh.m_chunkyMesh->nodes[id] };
+					const int* tris{ &load_mesh.m_chunkyMesh->tris[node.i * 3] };
+					const int ntris{ node.n };
+
+					for (int j = 0; j < ntris * 3; j += 3)
+					{
+						float dis{ 1 };
+
+						// レイとポリゴンとの判定
+						if (intersectSegmentTriangle(ray_start, ray_end,
+							&verts[tris[j] * 3],
+							&verts[tris[j + 1] * 3],
+							&verts[tris[j + 2] * 3], dis))
+						{
+							// 終点の距離より短いなら
+							if (dis < hit_dis)
+							{
+								hit_dis = dis;  // 交点上の距離を代入
+							}
+
+							is_hit = true;  // 当たっている
+						}
+					}
+				}, exec::par);
+#endif
+		}, exec::par);
+
+	if (!is_hit)	return false;
 
 	if (hit_info)
 	{

@@ -49,6 +49,7 @@ private:
 
 private:
 	Sample* sample;
+
 	float hit_pos[3];
 	bool hit_pos_set;
 	bool m_bidir;

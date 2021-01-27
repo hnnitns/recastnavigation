@@ -37,10 +37,10 @@ private:
 		struct Link final
 		{
 			Point start{}, end{};
-			Point nearest_pos{};
+			Point nearest_pos{}, horizontal_pos{};
 		};
 
-		float horizontal_distance{}, vertical_distance{}, divistion_distance{};
+		float horizontal_dis{}, vertical_dis{}, divistion_dis{}, link_end_error_dis{};
 		Point start{}, end{};
 		Point orthogonal_vec{};
 
@@ -56,8 +56,9 @@ private:
 	bool m_bidir;
 	unsigned char m_oldFlags;
 
-	bool links_arrow;
-	float horizontal_distance, vertical_distance, divistion_distance;
+	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point;
+	float horizontal_distance, vertical_distance, divistion_distance, link_end_error_dis,
+		max_orthognal_error_dis;
 	std::vector<NavMeshEdge> edges;
 
 public:

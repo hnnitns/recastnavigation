@@ -76,10 +76,14 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	hit_pos_set(0),
 	m_bidir(true),
 	m_oldFlags(0),
-	links_arrow(true),
+	draw_links_arrow(true),
+	draw_tentative_link(true),
+	draw_horizontal_point(true),
 	horizontal_distance(2.5f),
 	vertical_distance(7.5f),
 	divistion_distance(0.5f),
+	link_end_error_dis(0.2f),
+	max_orthognal_error_dis(0.5f),
 	hit_pos()
 {}
 
@@ -125,6 +129,8 @@ void OffMeshConnectionTool::handleMenu()
 	imguiSlider("horizontal_dis", &horizontal_distance, 0.1f, 25.f, 0.1f);
 	imguiSlider("vertical_dis", &vertical_distance, 0.1f, 25.f, 0.1f);
 	imguiSlider("divistion_dis", &divistion_distance, 0.1f, 10.f, 0.1f);
+	imguiSlider("link_end_error_dis", &link_end_error_dis, 0.1f, 5.f, 0.1f);
+	imguiSlider("max_orthognal_error_dis", &max_orthognal_error_dis, 0.1f, 5.f, 0.1f);
 
 	// 自動生成
 	if (imguiButton("Link Build"))
@@ -137,8 +143,16 @@ void OffMeshConnectionTool::handleMenu()
 	if (!edges.empty())
 	{
 		// 始点から終点への矢印
-		if (imguiCheck("Links Arrow", links_arrow))
-			links_arrow ^= true;
+		if (imguiCheck("Links Arrow", draw_links_arrow))
+			draw_links_arrow ^= true;
+
+		// 仮リンク
+		if (imguiCheck("Tentative Link", draw_tentative_link))
+			draw_tentative_link ^= true;
+
+		// 仮リンク
+		if (imguiCheck("horizontal_point", draw_horizontal_point))
+			draw_horizontal_point ^= true;
 	}
 }
 
@@ -220,6 +234,7 @@ void OffMeshConnectionTool::handleRender()
 
 	if (!edges.empty())
 	{
+		// ライン
 		dd.begin(DU_DRAW_LINES, 2.0f);
 		for (const auto& edge : edges)
 		{
@@ -258,37 +273,8 @@ void OffMeshConnectionTool::handleRender()
 				dd.vertex(end.data(), PointColor);
 			}
 
-			// Link
-			for (const auto& link : edge.links)
-			{
-				constexpr float PointAdjY{ LineAdjY * 0.75f };
-
-				// 終点
-				{
-					constexpr UINT32 PointColor{ duRGBA(0, 0, 0, 200) };
-
-					start = end = link.end;
-
-					end[1] += PointAdjY;
-
-					dd.vertex(start.data(), PointColor);
-					dd.vertex(end.data(), PointColor);
-				}
-
-				{
-					constexpr UINT32 PointColor{ duRGBA(50, 50, 255, 200) };
-
-					start = end = link.nearest_pos;
-
-					end[1] += PointAdjY + 5.f;
-
-					dd.vertex(start.data(), PointColor);
-					dd.vertex(end.data(), PointColor);
-				}
-			}
-
 			// 矢印描画
-			if (links_arrow)
+			if (draw_links_arrow)
 			{
 				// 始点から終点へのベクトル
 				{
@@ -341,7 +327,7 @@ void OffMeshConnectionTool::handleRender()
 					// 水平ベクトル
 					{
 						start = middle_pos;
-						end = middle_pos + (edge.orthogonal_vec * edge.horizontal_distance);
+						end = middle_pos + (edge.orthogonal_vec * edge.horizontal_dis);
 
 						duAppendArrow(&dd,
 							start[0], start[1], start[2],
@@ -354,7 +340,7 @@ void OffMeshConnectionTool::handleRender()
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
 						start = end;
-						end = start + (Down * edge.vertical_distance);
+						end = start + (Down * edge.vertical_dis);
 
 						duAppendArrow(&dd,
 							start[0], start[1], start[2],
@@ -362,21 +348,62 @@ void OffMeshConnectionTool::handleRender()
 							0.0f, 0.4f, ArrowColor);
 					}
 				}
+			}
 
-				// 想定リンク
+			// 仮リンク
+			if (draw_tentative_link)
+			{
+				constexpr UINT32 ArrowColor{ duRGBA(255, 255, 255, 200) };
+
+				for (const auto& link : edge.links)
 				{
-					constexpr UINT32 ArrowColor{ duRGBA(255, 255, 255, 200) };
+					start = link.start;
+					end = link.end;
 
-					for (const auto& link : edge.links)
-					{
-						start = link.start;
-						end = link.end;
+					duAppendArc(&dd,
+						start[0], start[1], start[2],
+						end[0], end[1], end[2],
+						0.25f, 0.6f, 0.6f, ArrowColor);
+				}
+			}
+		}
+		dd.end();
 
-						duAppendArc(&dd,
-							start[0], start[1], start[2],
-							end[0], end[1], end[2],
-							0.25f, 0.6f, 0.6f, ArrowColor);
-					}
+		// ポイント
+		dd.begin(DU_DRAW_POINTS, 5.f);
+		for (const auto& edge : edges)
+		{
+			auto start{ edge.start };
+
+			// Link
+			for (const auto& link : edge.links)
+			{
+				// 終点
+				{
+					constexpr UINT32 PointColor{ duRGBA(0, 0, 0, 200) };
+
+					start = link.end;
+
+					dd.vertex(start.data(), PointColor);
+				}
+
+				// ナビメッシュの最接近ポイント
+				{
+					constexpr UINT32 PointColor{ duRGBA(50, 50, 255, 200) };
+
+					start = link.nearest_pos;
+
+					dd.vertex(start.data(), PointColor);
+				}
+
+				// 水平上のポイント
+				if (draw_horizontal_point)
+				{
+					constexpr UINT32 PointColor{ duRGBA(165,42,42, 200) };
+
+					start = link.horizontal_pos;
+
+					dd.vertex(start.data(), PointColor);
 				}
 			}
 		}
@@ -492,9 +519,10 @@ void OffMeshConnectionTool::CalcNavMeshEdges()
 							rcVcopy(edge.start.data(), tv[n]);
 							rcVcopy(edge.end.data(), tv[m]);
 
-							edge.horizontal_distance = horizontal_distance;
-							edge.vertical_distance = vertical_distance;
-							edge.divistion_distance = divistion_distance;
+							edge.horizontal_dis = horizontal_distance;
+							edge.vertical_dis = vertical_distance;
+							edge.divistion_dis = divistion_distance;
+							edge.link_end_error_dis = link_end_error_dis;
 						}
 					}
 				}
@@ -525,11 +553,7 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 
 void OffMeshConnectionTool::CalcEndPoint()
 {
-	const auto* navmesh_query{ sample->getNavMeshQuery() };
-	const auto& geom{ sample->getInputGeom() };
-	const float agent_radius{ sample->getAgentRadius() };
-
-	For_Each(edges, [navmesh_query, &geom, agent_radius](NavMeshEdge& edge)
+	For_Each(edges, [this](NavMeshEdge& edge)
 		{
 			std::mutex mt;
 
@@ -544,31 +568,40 @@ void OffMeshConnectionTool::CalcEndPoint()
 
 			// 各分割点から終点を計算する
 			For_Each(edge.points,
-				[&edge, navmesh_query, &geom, agent_radius, orth_vec2d, &mt](const Point& point)
+				[&edge, orth_vec2d, &mt, this](const Point& point)
 				{
+					const auto& geom{ sample->getInputGeom() };
+					const float agent_radius{ sample->getAgentRadius() };
+					const auto* navmesh_query{ sample->getNavMeshQuery() };
+
 					InputGeom::RaycastMeshHitInfo hit_info{};
 
 					// 水平上のポイント（中継ポイント）
 					auto horizontal_point
-					{ point + (edge.orthogonal_vec * edge.horizontal_distance) };
+					{ point + (edge.orthogonal_vec * edge.horizontal_dis) };
 
 					// 水平上のポイントまでに地形が存在するか？
+#if false
+					if (geom->RaycastMesh(point, horizontal_point, &hit_info))	return;
+#else
 					if (geom->RaycastMesh(point, horizontal_point, &hit_info))
 					{
 						// 当たった座標にポイントを決定する
 						horizontal_point = hit_info.pos + (edge.orthogonal_vec * agent_radius);
 
-						const float diameter{ agent_radius * 2.f }; // 最低でもエージェントの直径は必要
+						const float diameter{ agent_radius * 2.f };
+						const float distance{ diameter + max_orthognal_error_dis }; // 最低でもエージェントの直径は必要
 
 						// 分割点に近すぎる
-						if (rcVdistSqr(horizontal_point, point) < diameter * diameter)	return;
+						if (rcVdistSqr(horizontal_point, point) <= distance * distance)	return;
 
 						const auto&& horizon_vec{ horizontal_point - point };
 						const VF2&& horizon_vec2d{ horizon_vec.front(), horizon_vec.back() };
 
 						// 分割点よりも後方に存在する（念の為）
-						if (VectorDot(orth_vec2d, horizon_vec2d) < 0.f)	return;
+						if (VectorDot(orth_vec2d, horizon_vec2d) <= 0.f)	return;
 					}
+#endif
 
 					auto inv_horizona_vec{ horizontal_point - point };
 
@@ -577,14 +610,14 @@ void OffMeshConnectionTool::CalcEndPoint()
 					constexpr Point HalfExtents{ 0.5f, 0.5f, 0.5f };
 
 					// 水平距離から分割点直下付近まで検索
-					for (float dis = 0; dis < edge.horizontal_distance - agent_radius;
+					for (float dis = 0; dis < edge.horizontal_dis - agent_radius * agent_radius;
 						dis += HalfExtents.front())
 					{
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
 						// 水平上のポイント→真下ベクトルの始点と終点
 						const auto&& start{ horizontal_point + (inv_horizona_vec * dis) },
-							&&end{ start + (Down * edge.vertical_distance) };
+							&&end{ start + (Down * edge.vertical_dis) };
 
 						// 垂直上に地形が存在しない
 						if (!geom->RaycastMesh(start, end, &hit_info))	continue;
@@ -601,6 +634,11 @@ void OffMeshConnectionTool::CalcEndPoint()
 						// ナビメッシュ状に垂直上のポイントが存在しない
 						if (dtStatusFailed(status) || ref == 0 || nearest_pos == Zero)	continue;
 
+						const float error_dis_sqr{ edge.link_end_error_dis * edge.link_end_error_dis };
+
+						// 地形のヒットポイントとナビメッシュのヒットポイントの距離が遠い
+						if (rcVdistSqr(nearest_pos, hit_info.pos) > error_dis_sqr) continue;
+
 						std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
 
 						auto& link{ edge.links.emplace_back() };
@@ -609,6 +647,7 @@ void OffMeshConnectionTool::CalcEndPoint()
 						link.start = point;
 						link.end = hit_info.pos;
 						link.nearest_pos = nearest_pos;
+						link.horizontal_pos = horizontal_point;
 
 						break; // 構築終了
 					}

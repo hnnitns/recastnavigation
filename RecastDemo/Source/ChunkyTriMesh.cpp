@@ -26,7 +26,7 @@
 #include <DirectXMath.h>
 #include "OtherFiles\\Math.hpp"
 
-#include "AlgorithmHelper.h"
+#include "OtherFiles\\AlgorithmHelper.hpp"
 
 namespace
 {

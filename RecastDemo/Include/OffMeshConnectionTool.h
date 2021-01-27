@@ -37,6 +37,7 @@ private:
 		struct Link final
 		{
 			Point start{}, end{};
+			Point nearest_pos{};
 		};
 
 		float horizontal_distance{}, vertical_distance{}, divistion_distance{};

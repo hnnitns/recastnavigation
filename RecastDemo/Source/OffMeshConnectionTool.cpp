@@ -258,18 +258,33 @@ void OffMeshConnectionTool::handleRender()
 				dd.vertex(end.data(), PointColor);
 			}
 
-			// Linkの終点
+			// Link
 			for (const auto& link : edge.links)
 			{
 				constexpr float PointAdjY{ LineAdjY * 0.75f };
-				constexpr UINT32 PointColor{ duRGBA(0, 0, 0, 200) };
 
-				start = end = link.end;
+				// 終点
+				{
+					constexpr UINT32 PointColor{ duRGBA(0, 0, 0, 200) };
 
-				end[1] += PointAdjY;
+					start = end = link.end;
 
-				dd.vertex(start.data(), PointColor);
-				dd.vertex(end.data(), PointColor);
+					end[1] += PointAdjY;
+
+					dd.vertex(start.data(), PointColor);
+					dd.vertex(end.data(), PointColor);
+				}
+
+				{
+					constexpr UINT32 PointColor{ duRGBA(50, 50, 255, 200) };
+
+					start = end = link.nearest_pos;
+
+					end[1] += PointAdjY + 5.f;
+
+					dd.vertex(start.data(), PointColor);
+					dd.vertex(end.data(), PointColor);
+				}
 			}
 
 			// 矢印描画
@@ -345,6 +360,22 @@ void OffMeshConnectionTool::handleRender()
 							start[0], start[1], start[2],
 							end[0], end[1], end[2],
 							0.0f, 0.4f, ArrowColor);
+					}
+				}
+
+				// 想定リンク
+				{
+					constexpr UINT32 ArrowColor{ duRGBA(255, 255, 255, 200) };
+
+					for (const auto& link : edge.links)
+					{
+						start = link.start;
+						end = link.end;
+
+						duAppendArc(&dd,
+							start[0], start[1], start[2],
+							end[0], end[1], end[2],
+							0.25f, 0.6f, 0.6f, ArrowColor);
 					}
 				}
 			}
@@ -543,7 +574,7 @@ void OffMeshConnectionTool::CalcEndPoint()
 
 					rcVnormalize(&inv_horizona_vec);
 
-					constexpr Point HalfExtents{ 0.1f, 0.1f, 0.1f };
+					constexpr Point HalfExtents{ 0.5f, 0.5f, 0.5f };
 
 					// 水平距離から分割点直下付近まで検索
 					for (float dis = 0; dis < edge.horizontal_distance - agent_radius;
@@ -551,6 +582,7 @@ void OffMeshConnectionTool::CalcEndPoint()
 					{
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
+						// 水平上のポイント→真下ベクトルの始点と終点
 						const auto&& start{ horizontal_point + (inv_horizona_vec * dis) },
 							&&end{ start + (Down * edge.vertical_distance) };
 
@@ -560,13 +592,14 @@ void OffMeshConnectionTool::CalcEndPoint()
 						const dtQueryFilter filter;
 						dtPolyRef ref{};
 						Point nearest_pos{};
+						constexpr Point Zero{};
 
 						// ナビメッシュとの判定
-						const auto status{ navmesh_query->findNearestPoly(horizontal_point.data(),
+						const auto status{ navmesh_query->findNearestPoly(hit_info.pos.data(),
 							HalfExtents.data(), &filter, &ref, nearest_pos.data()) };
 
 						// ナビメッシュ状に垂直上のポイントが存在しない
-						if (dtStatusFailed(status))	continue;
+						if (dtStatusFailed(status) || ref == 0 || nearest_pos == Zero)	continue;
 
 						std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
 
@@ -574,7 +607,10 @@ void OffMeshConnectionTool::CalcEndPoint()
 
 						// OffMesh Linkの始点と終点を確定
 						link.start = point;
-						link.end = nearest_pos;
+						link.end = hit_info.pos;
+						link.nearest_pos = nearest_pos;
+
+						break; // 構築終了
 					}
 				}, exec::seq);
 		}, exec::seq);

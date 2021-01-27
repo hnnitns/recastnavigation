@@ -33,7 +33,7 @@
 #include "DetourCommon.h"
 #include "DetourAssert.h"
 #include "DetourDebugDraw.h"
-#include "AlgorithmHelper.h"
+#include "OtherFiles\\AlgorithmHelper.hpp"
 
 class NavmeshFlags
 {

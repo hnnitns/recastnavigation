@@ -1372,7 +1372,7 @@ dtStatus Sample_TempObstacles::buildTileMesh(const int tx, const int ty)
 	return m_tileCache->buildNavMeshTilesAt(tx, ty, m_navMesh);
 }
 
-dtObstacleRef Sample_TempObstacles::HitTestObstacle(const float* sp, const float* sq)
+dtObstacleRef Sample_TempObstacles::HitTestObstacle(const float* sp, const float* sq) const
 {
 	if (!m_tileCache) return (std::numeric_limits<uint32_t>::max)();
 

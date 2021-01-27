@@ -27,7 +27,7 @@
 #include "Sample_SoloMesh.h"
 #include "Sample_TileMesh.h"
 #include "Sample_TempObstacles.h"
-#include "AlgorithmHelper.h"
+#include "OtherFiles\\AlgorithmHelper.hpp"
 
 #ifdef WIN32
 #	define snprintf _snprintf_s

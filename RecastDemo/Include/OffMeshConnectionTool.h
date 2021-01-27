@@ -50,11 +50,13 @@ private:
 
 private:
 	Sample* sample;
+	class Sample_TempObstacles* obstacle_sample;
 
 	float hit_pos[3];
 	bool hit_pos_set;
 	bool m_bidir;
 	unsigned char m_oldFlags;
+	float auto_build_time_ms;
 
 	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point;
 	float horizontal_distance, vertical_distance, divistion_distance, link_end_error_dis,
@@ -82,8 +84,9 @@ private:
 	void AutoLinksBuild();
 	void CalcNavMeshEdges();
 	void CalcEdgeDivision();
-	void CalcEndPoint();
-	void CheckDivistionPoint();
+	void CalcEndPointAndTentativeLink();
+	void CheckTentativeLink();
+	void BuildLink();
 };
 
 #endif // OFFMESHCONNECTIONTOOL_H

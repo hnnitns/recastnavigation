@@ -36,6 +36,7 @@
 #include "RecastDebugDraw.h"
 #include "DetourDebugDraw.h"
 #include "DetourNavMesh.h"
+#include "Sample_TempObstacles.h"
 
 #include "OtherFiles\\AlgorithmHelper.hpp"
 #include "OtherFiles\\XMFLOAT_Helper.hpp"
@@ -72,7 +73,8 @@ namespace
 }
 
 OffMeshConnectionTool::OffMeshConnectionTool() :
-	sample(0),
+	sample(nullptr),
+	obstacle_sample(nullptr),
 	hit_pos_set(0),
 	m_bidir(true),
 	m_oldFlags(0),
@@ -104,6 +106,9 @@ void OffMeshConnectionTool::init(Sample* smp)
 		this->sample = smp;
 		m_oldFlags = this->sample->getNavMeshDrawFlags();
 		this->sample->setNavMeshDrawFlags(m_oldFlags & ~DU_DRAWNAVMESH_OFFMESHCONS);
+
+		// 構築したサンプルが障害物系のものかどうかを確認
+		obstacle_sample = dynamic_cast<Sample_TempObstacles*>(sample);
 	}
 }
 
@@ -122,15 +127,15 @@ void OffMeshConnectionTool::handleMenu()
 	if (imguiCheck("Bidirectional", m_bidir))
 		m_bidir = true;
 
-	imguiSeparator();
+	imguiSeparatorLine();
 
 	imguiValue("Auto OffMeshLink");
 
 	imguiSlider("horizontal_dis", &horizontal_distance, 0.1f, 25.f, 0.1f);
 	imguiSlider("vertical_dis", &vertical_distance, 0.1f, 25.f, 0.1f);
 	imguiSlider("divistion_dis", &divistion_distance, 0.1f, 10.f, 0.1f);
-	imguiSlider("link_end_error_dis", &link_end_error_dis, 0.1f, 5.f, 0.1f);
-	imguiSlider("max_orthognal_error_dis", &max_orthognal_error_dis, 0.1f, 5.f, 0.1f);
+	imguiSlider("link_end_error", &link_end_error_dis, 0.1f, 5.f, 0.1f);
+	imguiSlider("max_orth_error", &max_orthognal_error_dis, 0.1f, 5.f, 0.1f);
 
 	// 自動生成
 	if (imguiButton("Link Build"))
@@ -153,6 +158,14 @@ void OffMeshConnectionTool::handleMenu()
 		// 仮リンク
 		if (imguiCheck("horizontal_point", draw_horizontal_point))
 			draw_horizontal_point ^= true;
+
+		std::string text{ "build_time: " };
+
+		text += std::to_string(auto_build_time_ms);
+
+		text += "ms";
+
+		imguiValue(text.data());
 	}
 }
 
@@ -436,19 +449,31 @@ void OffMeshConnectionTool::handleRenderOverlay(double* proj, double* model, int
 
 void OffMeshConnectionTool::AutoLinksBuild()
 {
+	auto* ctx{ sample->GetContext() };
+
+	// タイマー計測開始
+	ctx->resetTimers();
+	auto_build_time_ms = 0.f;
+	ctx->startTimer(RC_TIMER_TEMP);
+
 	// ナビメッシュのエッジの作成
 	CalcNavMeshEdges();
 
 	// エッジを分割
 	CalcEdgeDivision();
 
-	// 終点を計算
-	CalcEndPoint();
+	// 終点を計算し仮リンクを作成
+	CalcEndPointAndTentativeLink();
 
-	// 分割点の有効性を確認
-	CheckDivistionPoint();
+	// 決定した仮リンクに調整・修正
+	CheckTentativeLink();
 
-	// 始点・終点を決定
+	// OffMesh Linkを作成する
+	BuildLink();
+
+	// タイマー計測終了
+	ctx->stopTimer(RC_TIMER_TEMP);
+	auto_build_time_ms = ctx->getAccumulatedTime(RC_TIMER_TEMP) / 1000.f;
 }
 
 void OffMeshConnectionTool::CalcNavMeshEdges()
@@ -551,7 +576,7 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 		}, exec::par);
 }
 
-void OffMeshConnectionTool::CalcEndPoint()
+void OffMeshConnectionTool::CalcEndPointAndTentativeLink()
 {
 	For_Each(edges, [this](NavMeshEdge& edge)
 		{
@@ -651,10 +676,13 @@ void OffMeshConnectionTool::CalcEndPoint()
 
 						break; // 構築終了
 					}
-				}, exec::seq);
-		}, exec::seq);
+				}, exec::par);
+		}, exec::par);
 }
 
-void OffMeshConnectionTool::CheckDivistionPoint()
+void OffMeshConnectionTool::CheckTentativeLink()
 {
 }
+
+void OffMeshConnectionTool::BuildLink()
+{}

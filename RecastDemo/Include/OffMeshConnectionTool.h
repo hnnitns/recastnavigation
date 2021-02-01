@@ -36,8 +36,8 @@ private:
 	{
 		struct Link final
 		{
-			Point start{}, end{};
-			Point nearest_pos{}, horizontal_pos{};
+			Point start{}/*始点*/, end{}/*終点*/;
+			Point nearest_pos{}/*垂直上のポイントに最も近い点*/, horizontal_pos{}/*水平上のポイント*/;
 		};
 
 		float horizontal_dis{}, vertical_dis{}, divistion_dis{}, link_end_error_dis{};
@@ -84,7 +84,7 @@ private:
 	void AutoLinksBuild();
 	void CalcNavMeshEdges();
 	void CalcEdgeDivision();
-	void CalcEndPointAndTentativeLink();
+	void CalcTentativeLink();
 	void CheckTentativeLink();
 	void BuildLink();
 };

@@ -463,7 +463,7 @@ void OffMeshConnectionTool::AutoLinksBuild()
 	CalcEdgeDivision();
 
 	// 終点を計算し仮リンクを作成
-	CalcEndPointAndTentativeLink();
+	CalcTentativeLink();
 
 	// 決定した仮リンクに調整・修正
 	CheckTentativeLink();
@@ -576,7 +576,7 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 		}, exec::par);
 }
 
-void OffMeshConnectionTool::CalcEndPointAndTentativeLink()
+void OffMeshConnectionTool::CalcTentativeLink()
 {
 	For_Each(edges, [this](NavMeshEdge& edge)
 		{
@@ -682,6 +682,7 @@ void OffMeshConnectionTool::CalcEndPointAndTentativeLink()
 
 void OffMeshConnectionTool::CheckTentativeLink()
 {
+
 }
 
 void OffMeshConnectionTool::BuildLink()

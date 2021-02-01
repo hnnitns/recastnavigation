@@ -16,6 +16,8 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
+#define USE_AMP	true
+
 #include "MeshLoaderObj.h"
 #include <cstdio>
 #include <cstdlib>
@@ -25,9 +27,11 @@
 #include <algorithm>
 #include <DirectXMath.h>
 #include <ppl.h>
-#include "Other/XMFLOAT_Hlper.h"
-#include <amp.h>
+#include "OtherFiles\\XMFLOAT_Helper.hpp"
 #include "Recast.h"
+#if USE_AMP
+#include <amp.h>
+#endif
 
 namespace PPL = Concurrency;
 
@@ -301,6 +305,7 @@ bool rcMeshLoaderObj::load(const std::string& filename, const float defalut_load
 	return true;
 }
 
+#if USE_AMP
 class FLOAT4X4 : public DirectX::XMFLOAT4X4
 {
 public:
@@ -486,7 +491,6 @@ public:
 	_Ty _Elems[_Size];
 };
 
-#if true
 template<typename _Ty>
 auto operator*(const GpuOnlyEasyArray<_Ty, 16>& left, const GpuOnlyEasyArray<_Ty, 16>& right) __GPU
 {
@@ -511,7 +515,6 @@ auto operator*(const GpuOnlyEasyArray<_Ty, 16>& left, const GpuOnlyEasyArray<_Ty
 
 	return rv;
 }
-#endif
 
 std::vector<PPL::accelerator> findAccelerators() {
 	std::vector<PPL::accelerator> accels;
@@ -522,6 +525,8 @@ std::vector<PPL::accelerator> findAccelerators() {
 
 	return accels;
 }
+#endif
+
 void rcMeshLoaderObj::MoveVerts(
 	const std::array<float, 3>& pos, const std::array<float, 3>& rotate, const std::array<float, 3>& scale)
 {
@@ -537,7 +542,7 @@ void rcMeshLoaderObj::MoveVerts(
 	XMFLOAT4X4 w;
 	DirectX::XMStoreFloat4x4(&w, W);
 
-#if false // GPU
+#if USE_AMP && false // GPU
 	std::array<float, 16> w_arr{
 	w._11, w._12, w._13, w._14,
 	w._21, w._22, w._23, w._24,

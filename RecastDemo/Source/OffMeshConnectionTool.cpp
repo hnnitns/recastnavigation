@@ -81,11 +81,17 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	draw_links_arrow(true),
 	draw_tentative_link(true),
 	draw_horizontal_point(true),
-	horizontal_distance(2.5f),
-	vertical_distance(7.5f),
-	divistion_distance(0.5f),
+	draw_edge_point(true),
+	draw_division_point(true),
+	draw_end_point(true),
+	draw_navmesh_nearest_point(true),
+	draw_error_dis(false),
+	horizontal_dis(5.f),
+	vertical_dis(7.5f),
+	divistion_dis(0.5f),
 	link_end_error_dis(0.2f),
-	max_orthognal_error_dis(0.5f),
+	orthognal_error_dis(0.5f),
+	link_equal_error_dis(0.25f),
 	hit_pos()
 {}
 
@@ -131,11 +137,12 @@ void OffMeshConnectionTool::handleMenu()
 
 	imguiValue("Auto OffMeshLink");
 
-	imguiSlider("horizontal_dis", &horizontal_distance, 0.1f, 25.f, 0.1f);
-	imguiSlider("vertical_dis", &vertical_distance, 0.1f, 25.f, 0.1f);
-	imguiSlider("divistion_dis", &divistion_distance, 0.1f, 10.f, 0.1f);
+	imguiSlider("horizontal_dis", &horizontal_dis, 0.1f, 25.f, 0.1f);
+	imguiSlider("vertical_dis", &vertical_dis, 0.1f, 25.f, 0.1f);
+	imguiSlider("divistion_dis", &divistion_dis, 0.1f, 10.f, 0.1f);
 	imguiSlider("link_end_error", &link_end_error_dis, 0.1f, 5.f, 0.1f);
-	imguiSlider("max_orth_error", &max_orthognal_error_dis, 0.1f, 5.f, 0.1f);
+	imguiSlider("max_orth_error", &orthognal_error_dis, 0.1f, 5.f, 0.1f);
+	imguiSlider("link_equal_error_dis", &link_equal_error_dis, 0.01f, 1.f, 0.01f);
 
 	// 自動生成
 	if (imguiButton("Link Build"))
@@ -151,21 +158,44 @@ void OffMeshConnectionTool::handleMenu()
 		if (imguiCheck("Links Arrow", draw_links_arrow))
 			draw_links_arrow ^= true;
 
+		// エッジの始点終点
+		if (imguiCheck("Edge Point", draw_edge_point))
+			draw_edge_point ^= true;
+
+		// エッジの分割点
+		if (imguiCheck("Division Point", draw_division_point))
+			draw_division_point ^= true;
+
 		// 仮リンク
 		if (imguiCheck("Tentative Link", draw_tentative_link))
 			draw_tentative_link ^= true;
 
-		// 仮リンク
-		if (imguiCheck("horizontal_point", draw_horizontal_point))
+		// 水平上のポイント
+		if (imguiCheck("Horizontal Point", draw_horizontal_point))
 			draw_horizontal_point ^= true;
 
-		std::string text{ "build_time: " };
+		// 終点
+		if (imguiCheck("End Point", draw_end_point))
+			draw_end_point ^= true;
 
-		text += std::to_string(auto_build_time_ms);
+		// ナビメッシュに最も近いポイント
+		if (imguiCheck("Navmesh Nearest Point", draw_navmesh_nearest_point))
+			draw_navmesh_nearest_point ^= true;
 
-		text += "ms";
+		// 誤差範囲
+		if (imguiCheck("Error Dis", draw_error_dis))
+			draw_error_dis ^= true;
 
-		imguiValue(text.data());
+		// 生成時間
+		{
+			std::string text{ "build_time: " };
+
+			text += std::to_string(auto_build_time_ms);
+
+			text += "ms";
+
+			imguiValue(text.data());
+		}
 	}
 }
 
@@ -256,6 +286,7 @@ void OffMeshConnectionTool::handleRender()
 			auto start{ edge.start }, end{ edge.end };
 
 			// 始点・終点
+			if (draw_edge_point)
 			{
 				constexpr UINT32 EdgeColor{ duRGBA(255, 0, 0, 200) };
 
@@ -273,17 +304,20 @@ void OffMeshConnectionTool::handleRender()
 			}
 
 			// 分割点
-			for (const auto& point : edge.points)
+			if (draw_division_point)
 			{
-				constexpr float PointAdjY{ LineAdjY * 0.75f };
-				constexpr UINT32 PointColor{ duRGBA(0, 255, 0, 200) };
+				for (const auto& point : edge.points)
+				{
+					constexpr float PointAdjY{ LineAdjY * 0.75f };
+					constexpr UINT32 PointColor{ duRGBA(0, 255, 0, 200) };
 
-				start = end = point;
+					start = end = point;
 
-				end[1] += PointAdjY;
+					end[1] += PointAdjY;
 
-				dd.vertex(start.data(), PointColor);
-				dd.vertex(end.data(), PointColor);
+					dd.vertex(start.data(), PointColor);
+					dd.vertex(end.data(), PointColor);
+				}
 			}
 
 			// 矢印描画
@@ -340,7 +374,7 @@ void OffMeshConnectionTool::handleRender()
 					// 水平ベクトル
 					{
 						start = middle_pos;
-						end = middle_pos + (edge.orthogonal_vec * edge.horizontal_dis);
+						end = middle_pos + (edge.orthogonal_vec * horizontal_dis);
 
 						duAppendArrow(&dd,
 							start[0], start[1], start[2],
@@ -353,13 +387,37 @@ void OffMeshConnectionTool::handleRender()
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
 						start = end;
-						end = start + (Down * edge.vertical_dis);
+						end = start + (Down * vertical_dis);
 
 						duAppendArrow(&dd,
 							start[0], start[1], start[2],
 							end[0], end[1], end[2],
 							0.0f, 0.4f, ArrowColor);
 					}
+				}
+			}
+
+			// 許容範囲
+			if (draw_error_dis)
+			{
+				constexpr auto Color{ duRGBA(255, 255, 255, 150) };
+
+				for (auto& link : edge.links)
+				{
+					// 地形の当たり座標とナビメッシュの当たり座標間の許容範囲
+					duAppendCircle(&dd, link.nearest_pos[0], link.nearest_pos[1], link.nearest_pos[2],
+						link_end_error_dis, Color);
+
+					// 垂直ベクトルで構築不可になる許容範囲
+					duAppendCircle(&dd, link.start[0], link.start[1], link.start[2],
+						orthognal_error_dis, Color);
+
+					// 他の仮リンクとの重なりを認識する許容範囲
+					duAppendCircle(&dd, link.start[0], link.start[1] + 2.f, link.start[2],
+						link_equal_error_dis, Color);
+
+					duAppendCircle(&dd, link.end[0], link.end[1] + 2.f, link.start[2],
+						link_equal_error_dis, Color);
 				}
 			}
 
@@ -376,7 +434,7 @@ void OffMeshConnectionTool::handleRender()
 					duAppendArc(&dd,
 						start[0], start[1], start[2],
 						end[0], end[1], end[2],
-						0.25f, 0.6f, 0.6f, ArrowColor);
+						0.25f, link.is_bidir ? 0.6f : 0.f, 0.6f, ArrowColor);
 				}
 			}
 		}
@@ -392,6 +450,7 @@ void OffMeshConnectionTool::handleRender()
 			for (const auto& link : edge.links)
 			{
 				// 終点
+				if (draw_end_point)
 				{
 					constexpr UINT32 PointColor{ duRGBA(0, 0, 0, 200) };
 
@@ -401,6 +460,7 @@ void OffMeshConnectionTool::handleRender()
 				}
 
 				// ナビメッシュの最接近ポイント
+				if (draw_navmesh_nearest_point)
 				{
 					constexpr UINT32 PointColor{ duRGBA(50, 50, 255, 200) };
 
@@ -543,11 +603,6 @@ void OffMeshConnectionTool::CalcNavMeshEdges()
 							// エッジの始点と終点を決定
 							rcVcopy(edge.start.data(), tv[n]);
 							rcVcopy(edge.end.data(), tv[m]);
-
-							edge.horizontal_dis = horizontal_distance;
-							edge.vertical_dis = vertical_distance;
-							edge.divistion_dis = divistion_distance;
-							edge.link_end_error_dis = link_end_error_dis;
 						}
 					}
 				}
@@ -566,10 +621,10 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 			rcVnormalize(&vec);
 
 			edge.points.clear();
-			edge.points.reserve(static_cast<size_t>(len / divistion_distance) + 1u);
+			edge.points.reserve(static_cast<size_t>(len / divistion_dis) + 1u);
 
 			// 分割距離分徐々に追加
-			for (float dist = divistion_distance; dist < len; dist += divistion_distance)
+			for (float dist = divistion_dis; dist < len; dist += divistion_dis)
 			{
 				edge.points.emplace_back(edge.start + (vec * dist));
 			}
@@ -584,7 +639,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 			VF3 vec3{ ToXMFLOAT(edge.end - edge.start) };
 			const VF2&& vec{ vec3.x, vec3.z }; // Y軸は無視
-			const VF2 orth_vec2d{ VectorNormalize(VectorOrthogonal(vec)) }; // XZ平面上の直行ベクトル
+			const VF2 orth_vec2d{ VectorNormalize(VectorOrthogonal(vec)) }; // XZ平面上の垂直ベクトル
 
 			edge.orthogonal_vec = { orth_vec2d.x, 0.f/*Y軸は無視*/, orth_vec2d.y };
 
@@ -603,7 +658,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 					// 水平上のポイント（中継ポイント）
 					auto horizontal_point
-					{ point + (edge.orthogonal_vec * edge.horizontal_dis) };
+					{ point + (edge.orthogonal_vec * horizontal_dis) };
 
 					// 水平上のポイントまでに地形が存在するか？
 #if false
@@ -615,7 +670,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 						horizontal_point = hit_info.pos + (edge.orthogonal_vec * agent_radius);
 
 						const float diameter{ agent_radius * 2.f };
-						const float distance{ diameter + max_orthognal_error_dis }; // 最低でもエージェントの直径は必要
+						const float distance{ diameter + orthognal_error_dis }; // 最低でもエージェントの直径は必要
 
 						// 分割点に近すぎる
 						if (rcVdistSqr(horizontal_point, point) <= distance * distance)	return;
@@ -634,15 +689,15 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 					constexpr Point HalfExtents{ 0.5f, 0.5f, 0.5f };
 
-					// 水平距離から分割点直下付近まで検索
-					for (float dis = 0; dis < edge.horizontal_dis - agent_radius * agent_radius;
+					// 分割点直下付近から水平上のポイントまで検索
+					for (float dis = agent_radius * agent_radius; dis < horizontal_dis - agent_radius * agent_radius;
 						dis += HalfExtents.front())
 					{
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
-						// 水平上のポイント→真下ベクトルの始点と終点
-						const auto&& start{ horizontal_point + (inv_horizona_vec * dis) },
-							&&end{ start + (Down * edge.vertical_dis) };
+						// 直下ベクトルの始点と終点
+						const Point&& start{ point + (inv_horizona_vec * dis) },
+							&& end{ start + (Down * vertical_dis) };
 
 						// 垂直上に地形が存在しない
 						if (!geom->RaycastMesh(start, end, &hit_info))	continue;
@@ -659,20 +714,15 @@ void OffMeshConnectionTool::CalcTentativeLink()
 						// ナビメッシュ状に垂直上のポイントが存在しない
 						if (dtStatusFailed(status) || ref == 0 || nearest_pos == Zero)	continue;
 
-						const float error_dis_sqr{ edge.link_end_error_dis * edge.link_end_error_dis };
+						const float error_dis_sqr{ link_end_error_dis * link_end_error_dis };
 
 						// 地形のヒットポイントとナビメッシュのヒットポイントの距離が遠い
 						if (rcVdistSqr(nearest_pos, hit_info.pos) > error_dis_sqr) continue;
 
 						std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
 
-						auto& link{ edge.links.emplace_back() };
-
 						// OffMesh Linkの始点と終点を確定
-						link.start = point;
-						link.end = hit_info.pos;
-						link.nearest_pos = nearest_pos;
-						link.horizontal_pos = horizontal_point;
+						edge.links.emplace_back(point, hit_info.pos, nearest_pos, horizontal_point);
 
 						break; // 構築終了
 					}
@@ -682,7 +732,102 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 void OffMeshConnectionTool::CheckTentativeLink()
 {
+	// 仮リンクの被りをチェックする
+#if true
+	const size_t length{ edges.size() };
 
+	std::vector<size_t> indeces(length);
+
+	NormalAlgorithm::Iota(indeces);
+
+	For_Each(indeces, [this, length](const size_t i)
+		{
+			std::mutex mt;
+			auto& base{ edges[i] };
+
+			// 終了
+			if (i + 1u > length)	return;
+
+			std::for_each(exec::par, std::next(edges.begin(), +i + 1u), edges.end(),
+				[&base, this, &mt](NavMeshEdge& other)
+				{
+					For_Each(base.links, [this, &other, &mt](NavMeshEdge::Link& base_link)
+						{
+							// 既に削除が決定している
+							if (base_link.is_delete)	return;
+
+							const float error_sqr{ link_equal_error_dis * 2.f };
+							// 一致する他の仮リンクを検索
+							auto&& itr{ Find_If(other.links,
+								[&base_link, error_sqr](NavMeshEdge::Link& oth_link)
+								{
+									// 既に削除が決定している
+									if (oth_link.is_delete)	return false;
+
+									// 一定範囲内に始点と終点が交差している
+									return (rcVdistSqr(base_link.start, oth_link.end) <= error_sqr &&
+										rcVdistSqr(base_link.end, oth_link.start) <= error_sqr);
+								}, exec::par) };
+
+							// 発見したので削除予定に追加
+							if (itr != other.links.end())
+							{
+								std::lock_guard<std::mutex> lg{ mt };
+
+								base_link.is_delete = true; // 削除
+								itr->is_bidir = true; // 削除しない側を双方向通行に設定
+							}
+						}, exec::par);
+				});
+		}, exec::par);
+#else
+	for (size_t i = 0, length = edges.size(); i < length; i++)
+	{
+		std::mutex mt;
+		auto& base{ edges[i] };
+
+		// 終了
+		if (i + 1u > length)	break;
+
+		std::for_each(exec::par, std::next(edges.begin(), +i + 1u), edges.end(),
+			[&base, this, &mt](NavMeshEdge& other)
+			{
+				For_Each(base.links, [this, &other, &mt](NavMeshEdge::Link& base_link)
+					{
+						// 既に削除が決定している
+						if (base_link.is_delete)	return;
+
+						const float error_sqr{ link_equal_error_dis * 2.f };
+						// 一致する他の仮リンクを検索
+						auto&& itr{ Find_If(other.links,
+							[&base_link, error_sqr](NavMeshEdge::Link& oth_link)
+							{
+								// 既に削除が決定している
+								if (oth_link.is_delete)	return false;
+
+								// 一定範囲内に始点と終点が交差している
+								return (rcVdistSqr(base_link.start, oth_link.end) <= error_sqr &&
+									rcVdistSqr(base_link.end, oth_link.start) <= error_sqr);
+							}, exec::par) };
+
+						// 発見したので削除予定に追加
+						if (itr != other.links.end())
+						{
+							std::lock_guard<std::mutex> lg{ mt };
+
+							base_link.is_delete = true; // 削除
+							itr->is_bidir = true; // 削除しない側を双方向通行に設定
+						}
+					}, exec::par);
+			});
+	}
+#endif
+
+	// 余分な仮リンクを削除する
+	For_Each(edges, [](NavMeshEdge& edge)
+		{
+			Erase_Remove_If(edge.links, [](NavMeshEdge::Link& link) { return link.is_delete; }, exec::par);
+		}, exec::par);
 }
 
 void OffMeshConnectionTool::BuildLink()

@@ -240,6 +240,7 @@ bool EditManager::InputUpdate()
 	delete_mesh = false;
 	mouse_hit_middle = false;
 	mouse_state = MouseState::Free;
+	is_return = false;
 
 	// マウス
 	if (SDL_GetMouseState(0, 0) & SDL_BUTTON_LMASK)
@@ -336,6 +337,8 @@ bool EditManager::InputUpdate()
 
 							ctx.dumpLog("Build log %s:", meshName.c_str());
 						}
+
+						is_return = true;
 
 						break;
 					}
@@ -918,7 +921,7 @@ void EditManager::MeshSelect()
 		// 読み込むパスを決定
 		std::string path = meshesFolder + "/" + meshName;
 
-		if (imguiButton(("Load: "s + std::filesystem::path(path).stem().string()).c_str()))
+		if (imguiButton(("Load: "s + std::filesystem::path(path).stem().string()).c_str()) || is_return)
 		{
 			showLevels = false;
 

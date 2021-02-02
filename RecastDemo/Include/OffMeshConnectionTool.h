@@ -36,11 +36,17 @@ private:
 	{
 		struct Link final
 		{
+			Link(const Point& start, const Point& end, const Point& nearest_pos,
+				const Point& horizontal_pos)
+				: start(start), end(end), nearest_pos(nearest_pos), horizontal_pos(horizontal_pos)
+			{}
+			~Link() = default;
+
 			Point start{}/*始点*/, end{}/*終点*/;
 			Point nearest_pos{}/*垂直上のポイントに最も近い点*/, horizontal_pos{}/*水平上のポイント*/;
+			bool is_delete{}, is_bidir{};
 		};
 
-		float horizontal_dis{}, vertical_dis{}, divistion_dis{}, link_end_error_dis{};
 		Point start{}, end{};
 		Point orthogonal_vec{};
 
@@ -58,9 +64,13 @@ private:
 	unsigned char m_oldFlags;
 	float auto_build_time_ms;
 
-	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point;
-	float horizontal_distance, vertical_distance, divistion_distance, link_end_error_dis,
-		max_orthognal_error_dis;
+	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point, draw_edge_point,
+		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis;
+
+	float horizontal_dis, vertical_dis, divistion_dis,
+		link_end_error_dis/*地形の当たり座標とナビメッシュの当たり座標間の許容範囲*/,
+		orthognal_error_dis/*垂直ベクトルで構築不可になる許容範囲*/,
+		link_equal_error_dis/*他の仮リンクとの重なりを認識する許容範囲*/;
 	std::vector<NavMeshEdge> edges;
 
 public:

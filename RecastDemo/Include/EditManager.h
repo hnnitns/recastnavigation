@@ -82,6 +82,7 @@ private:
 	int mouseScroll{};          // マウスホイールの値
 	bool processHitTest{};      // マウスの処理が行われた
 	bool processHitTestShift{}; // シフトの処理が行われた
+	bool is_return{};
 
 	bool mouse_hit_middle{};
 	MouseState mouse_state;

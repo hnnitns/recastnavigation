@@ -86,12 +86,15 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	draw_end_point(true),
 	draw_navmesh_nearest_point(true),
 	draw_error_dis(false),
+	is_buildable_height_limit(true),
 	horizontal_dis(5.f),
 	vertical_dis(7.5f),
 	divistion_dis(0.5f),
 	link_end_error_dis(0.2f),
 	orthognal_error_dis(0.5f),
 	link_equal_error_dis(0.25f),
+	horizontal_height(0.5f),
+	min_buildable_height(0.5f),
 	hit_pos()
 {}
 
@@ -137,6 +140,7 @@ void OffMeshConnectionTool::handleMenu()
 
 	imguiValue("Auto OffMeshLink");
 
+	imguiSlider("horizontal_height", &horizontal_height, 0.1f, 5.f, 0.1f);
 	imguiSlider("horizontal_dis", &horizontal_dis, 0.1f, 25.f, 0.1f);
 	imguiSlider("vertical_dis", &vertical_dis, 0.1f, 25.f, 0.1f);
 	imguiSlider("divistion_dis", &divistion_dis, 0.1f, 10.f, 0.1f);
@@ -150,6 +154,17 @@ void OffMeshConnectionTool::handleMenu()
 	// 削除
 	if (imguiButton("Link Clear"))
 		edges.clear();
+
+	// 「横跳びリンク」に制限を設けるか？
+	{
+		if (imguiCheck("Buildable Height Limit", is_buildable_height_limit))
+			is_buildable_height_limit ^= true;
+
+		if (is_buildable_height_limit)
+		{
+			imguiSlider("min_buildable_height", &min_buildable_height, 0.1f, 10.f, 0.1f);
+		}
+	}
 
 	// 生成完了
 	if (!edges.empty())
@@ -311,7 +326,7 @@ void OffMeshConnectionTool::handleRender()
 					constexpr float PointAdjY{ LineAdjY * 0.75f };
 					constexpr UINT32 PointColor{ duRGBA(0, 255, 0, 200) };
 
-					start = end = point;
+					start = end = point.base_point;
 
 					end[1] += PointAdjY;
 
@@ -400,7 +415,7 @@ void OffMeshConnectionTool::handleRender()
 			// 許容範囲
 			if (draw_error_dis)
 			{
-				constexpr auto Color{ duRGBA(255, 255, 255, 150) };
+				constexpr auto Color{ duRGBA(0, 0, 0, 150) };
 
 				for (auto& link : edge.links)
 				{
@@ -409,14 +424,18 @@ void OffMeshConnectionTool::handleRender()
 						link_end_error_dis, Color);
 
 					// 垂直ベクトルで構築不可になる許容範囲
-					duAppendCircle(&dd, link.start[0], link.start[1], link.start[2],
-						orthognal_error_dis, Color);
+					{
+						start = link.start;
+						end = start + (edge.orthogonal_vec * orthognal_error_dis);
+						dd.vertex(start.data(), Color);
+						dd.vertex(end.data(), Color);
+					}
 
 					// 他の仮リンクとの重なりを認識する許容範囲
-					duAppendCircle(&dd, link.start[0], link.start[1] + 2.f, link.start[2],
+					duAppendCircle(&dd, link.start[0], link.start[1] + 0.5f, link.start[2],
 						link_equal_error_dis, Color);
 
-					duAppendCircle(&dd, link.end[0], link.end[1] + 2.f, link.start[2],
+					duAppendCircle(&dd, link.end[0], link.end[1] + 0.5f, link.start[2],
 						link_equal_error_dis, Color);
 				}
 			}
@@ -626,7 +645,12 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 			// 分割距離分徐々に追加
 			for (float dist = divistion_dis; dist < len; dist += divistion_dis)
 			{
-				edge.points.emplace_back(edge.start + (vec * dist));
+				const Point base{ edge.start + (vec * dist) };
+
+				auto& point{ edge.points.emplace_back() };
+
+				point.base_point = base;
+				point.height_point = base + Point{ 0.f, horizontal_height, 0.f };
 			}
 		}, exec::par);
 }
@@ -648,7 +672,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 			// 各分割点から終点を計算する
 			For_Each(edge.points,
-				[&edge, orth_vec2d, &mt, this](const Point& point)
+				[&edge, orth_vec2d, &mt, this](const NavMeshEdge::DivisionPoint& point)
 				{
 					const auto& geom{ sample->getInputGeom() };
 					const float agent_radius{ sample->getAgentRadius() };
@@ -657,14 +681,10 @@ void OffMeshConnectionTool::CalcTentativeLink()
 					InputGeom::RaycastMeshHitInfo hit_info{};
 
 					// 水平上のポイント（中継ポイント）
-					auto horizontal_point
-					{ point + (edge.orthogonal_vec * horizontal_dis) };
+					auto horizontal_point{ point.height_point + (edge.orthogonal_vec * horizontal_dis) };
 
 					// 水平上のポイントまでに地形が存在するか？
-#if false
-					if (geom->RaycastMesh(point, horizontal_point, &hit_info))	return;
-#else
-					if (geom->RaycastMesh(point, horizontal_point, &hit_info))
+					if (geom->RaycastMesh(point.height_point, horizontal_point, &hit_info))
 					{
 						// 当たった座標にポイントを決定する
 						horizontal_point = hit_info.pos + (edge.orthogonal_vec * agent_radius);
@@ -673,17 +693,16 @@ void OffMeshConnectionTool::CalcTentativeLink()
 						const float distance{ diameter + orthognal_error_dis }; // 最低でもエージェントの直径は必要
 
 						// 分割点に近すぎる
-						if (rcVdistSqr(horizontal_point, point) <= distance * distance)	return;
+						if (rcVdistSqr(horizontal_point, point.height_point) <= distance * distance)	return;
 
-						const auto&& horizon_vec{ horizontal_point - point };
+						const auto&& horizon_vec{ horizontal_point - point.height_point };
 						const VF2&& horizon_vec2d{ horizon_vec.front(), horizon_vec.back() };
 
 						// 分割点よりも後方に存在する（念の為）
 						if (VectorDot(orth_vec2d, horizon_vec2d) <= 0.f)	return;
 					}
-#endif
 
-					auto inv_horizona_vec{ horizontal_point - point };
+					auto inv_horizona_vec{ horizontal_point - point.height_point };
 
 					rcVnormalize(&inv_horizona_vec);
 
@@ -696,7 +715,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
 						// 直下ベクトルの始点と終点
-						const Point&& start{ point + (inv_horizona_vec * dis) },
+						const Point&& start{ point.height_point + (inv_horizona_vec * dis) },
 							&& end{ start + (Down * vertical_dis) };
 
 						// 垂直上に地形が存在しない
@@ -722,7 +741,8 @@ void OffMeshConnectionTool::CalcTentativeLink()
 						std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
 
 						// OffMesh Linkの始点と終点を確定
-						edge.links.emplace_back(point, hit_info.pos, nearest_pos, horizontal_point);
+						edge.links.emplace_back(
+							point.height_point, hit_info.pos, nearest_pos, horizontal_point);
 
 						break; // 構築終了
 					}
@@ -822,6 +842,29 @@ void OffMeshConnectionTool::CheckTentativeLink()
 			});
 	}
 #endif
+
+	// 「横跳びリンク」を削除
+	if (is_buildable_height_limit)
+	{
+		For_Each(edges, [this](NavMeshEdge& edge)
+			{
+				For_Each(edge.links, [this](NavMeshEdge::Link& link)
+					{
+						// 既に削除済み
+						if (link.is_delete)	return;
+
+						const float div_buildable_height{ min_buildable_height / 2.f };
+
+						if (Math::IsBetweenNumber(
+							link.end[1] - div_buildable_height, link.end[1] + div_buildable_height,
+							link.start[1]))
+						{
+							link.is_delete = true;
+						}
+
+					}, exec::par);
+			}, exec::par);
+	}
 
 	// 余分な仮リンクを削除する
 	For_Each(edges, [](NavMeshEdge& edge)

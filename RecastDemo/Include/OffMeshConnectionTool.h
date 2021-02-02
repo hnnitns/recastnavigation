@@ -46,11 +46,15 @@ private:
 			Point nearest_pos{}/*垂直上のポイントに最も近い点*/, horizontal_pos{}/*水平上のポイント*/;
 			bool is_delete{}, is_bidir{};
 		};
+		struct DivisionPoint final
+		{
+			Point base_point{}, height_point{};
+		};
 
 		Point start{}, end{};
 		Point orthogonal_vec{};
 
-		std::vector<Point> points;
+		std::vector<DivisionPoint> points;
 		std::vector<Link> links;
 	};
 
@@ -67,7 +71,8 @@ private:
 	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point, draw_edge_point,
 		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis;
 
-	float horizontal_dis, vertical_dis, divistion_dis,
+	bool is_buildable_height_limit;
+	float horizontal_dis, vertical_dis, divistion_dis, horizontal_height, min_buildable_height,
 		link_end_error_dis/*地形の当たり座標とナビメッシュの当たり座標間の許容範囲*/,
 		orthognal_error_dis/*垂直ベクトルで構築不可になる許容範囲*/,
 		link_equal_error_dis/*他の仮リンクとの重なりを認識する許容範囲*/;

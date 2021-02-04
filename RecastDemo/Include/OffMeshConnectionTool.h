@@ -59,7 +59,7 @@ private:
 	};
 
 private:
-	Sample* sample;
+	class Sample* sample;
 	class Sample_TempObstacles* obstacle_sample;
 
 	float hit_pos[3];
@@ -71,12 +71,24 @@ private:
 	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point, draw_edge_point,
 		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis;
 
-	bool is_buildable_height_limit;
-	float horizontal_dis, vertical_dis, divistion_dis, horizontal_height, min_buildable_height,
-		link_end_error_dis/*地形の当たり座標とナビメッシュの当たり座標間の許容範囲*/,
-		orthognal_error_dis/*垂直ベクトルで構築不可になる許容範囲*/,
-		link_equal_error_dis/*他の仮リンクとの重なりを認識する許容範囲*/;
+	bool is_buildable_height_limit; // 仮リンク間の「横跳び」を許容するか？
+	float horizontal_dis;// 構築可能な水平距離
+	float vertical_dis; // 構築可能な垂直距離
+	float divistion_dis; //分割点間の長さ
+	float climbable_height; // 分割点から構築する時の高さ（登れる高さ）
+	float	min_buildable_height; //「横跳び」を許容する時の高さ
+	float	link_end_error_dis; // 地形の当たり座標とナビメッシュの当たり座標間の許容範囲
+	float	orthognal_error_dis; // 垂直ベクトルで構築不可になる許容範囲
+	float	link_equal_error_dis; // 他の仮リンクとの重なりを認識する許容範囲
+	float	max_builable_height; // 仮リンクの構築を許容できる最大の高さ
 	std::vector<NavMeshEdge> edges;
+
+	static constexpr size_t MaxPts{ 2 };
+	std::array<float, MaxPts * 3> m_pts;
+	int m_npts;
+	std::array<int, MaxPts> m_hull;
+	int m_nhull;
+	float m_boxDescent, m_boxHeight, m_polyOffset;
 
 public:
 	OffMeshConnectionTool();

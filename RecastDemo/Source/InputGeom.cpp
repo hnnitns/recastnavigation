@@ -89,18 +89,18 @@ namespace
 		return true;
 	}
 
-char* parseRow(char* buf, char* bufEnd, char* row, int len)
-{
-	bool start = true;
-	bool done = false;
-	int n = 0;
-	while (!done && buf < bufEnd)
+	char* parseRow(char* buf, char* bufEnd, char* row, int len)
 	{
-		char c = *buf;
-		buf++;
-		// multirow
-		switch (c)
+		bool start = true;
+		bool done = false;
+		int n = 0;
+		while (!done && buf < bufEnd)
 		{
+			char c = *buf;
+			buf++;
+			// multirow
+			switch (c)
+			{
 			case '\n':
 				if (start) break;
 				done = true;
@@ -114,14 +114,14 @@ char* parseRow(char* buf, char* bufEnd, char* row, int len)
 			default:
 				start = false;
 				row[n++] = c;
-				if (n >= len-1)
+				if (n >= len - 1)
 					done = true;
 				break;
+			}
 		}
+		row[n] = '\0';
+		return buf;
 	}
-	row[n] = '\0';
-	return buf;
-}
 
 	// メッシュデータの全てを囲む四角とレイとの判定
 	bool isectSegAABB(const std::array<float, 3>& sp, const std::array<float, 3>& sq,
@@ -309,9 +309,9 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 					&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags);
 
 				m_offMeshConRads[m_offMeshConCount] = rad;
-				m_offMeshConDirs[m_offMeshConCount] = (unsigned char)bidir;
-				m_offMeshConAreas[m_offMeshConCount] = (unsigned char)area;
-				m_offMeshConFlags[m_offMeshConCount] = (unsigned short)flags;
+				m_offMeshConDirs[m_offMeshConCount] = (unsigned char) bidir;
+				m_offMeshConAreas[m_offMeshConCount] = (unsigned char) area;
+				m_offMeshConFlags[m_offMeshConCount] = (unsigned short) flags;
 				m_offMeshConCount++;
 			}
 		}
@@ -379,8 +379,6 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 						&setting_mesh.pos[0], &setting_mesh.pos[1], &setting_mesh.pos[2],
 						&setting_mesh.scale[0], &setting_mesh.scale[1], &setting_mesh.scale[2],
 						&setting_mesh.rotate[0], &setting_mesh.rotate[1], &setting_mesh.rotate[2]);
-
-
 				}
 			}
 		}

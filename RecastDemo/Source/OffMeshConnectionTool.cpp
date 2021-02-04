@@ -49,7 +49,12 @@
 
 namespace
 {
-	static inline float distancePtLine2d(const float* pt, const float* p, const float* q)
+	using namespace RcMath;
+	namespace exec = std::execution;
+
+	DIRECTX_MATH_ALIAS;
+
+	inline float distancePtLine2d(const float* pt, const float* p, const float* q)
 	{
 		float pqx = q[0] - p[0];
 		float pqz = q[2] - p[2];
@@ -66,10 +71,70 @@ namespace
 		return dx * dx + dz * dz;
 	}
 
-	using namespace RcMath;
-	namespace exec = std::execution;
+	bool isectSegAABB(const std::array<float, 3>& sp, const std::array<float, 3>& sq,
+		const std::array<float, 3>& amin, const std::array<float, 3>& amax,
+		float& tmin, float& tmax)
+	{
+		constexpr float EPS = 1e-6f;
 
-	DIRECTX_MATH_ALIAS;
+		std::array<float, 3> d{ sq - sp };
+
+		// 線上で最初のヒットを、-FLT_MAXに設定
+		tmin = 0.0;
+
+		// 光線が移動できる最大距離に設定（セグメント用）
+		tmax = 1.f;
+
+		// 3つのスラブすべて
+		for (int i = 0; i < 3; i++)
+		{
+			if (fabsf(d[i]) < EPS)
+			{
+				// 光線はスラブに平行か、原点がスラブ内にない場合はヒットなし
+				if (sp[i] < amin[i] || sp[i] > amax[i])
+					return false;
+			}
+			else
+			{
+				//スラブのニアおよびファープレーンとレイの交差t値を計算します
+				const float ood = 1.f / d[i];
+				float t1 = (amin[i] - sp[i]) * ood;
+				float t2 = (amax[i] - sp[i]) * ood;
+
+				// t1を近くの平面と交差させ、t2を遠くの平面と交差させる
+				if (t1 > t2) std::swap(t1, t2);
+				if (t1 > tmin) tmin = t1;
+				if (t2 < tmax) tmax = t2;
+
+				// スラブの交差点が無くなるとすぐに衝突なしで終了
+				if (tmin > tmax) return false;
+			}
+		}
+
+		return true;
+	}
+
+	inline constexpr bool IsPointInsideAABB(const std::array<float, 3>& point,
+		const std::array<float, 3>& box_min, const std::array<float, 3>& box_max)
+	{
+		return (point[0] <= box_max[0] && point[0] >= box_min[0]) &&
+			(point[1] <= box_max[1] && point[1] >= box_min[1]) &&
+			(point[2] <= box_max[2] && point[2] >= box_min[2]);
+	}
+
+	int pointInPoly(int nvert, const float* verts, const float* p)
+	{
+		int i, j, c = 0;
+		for (i = 0, j = nvert - 1; i < nvert; j = i++)
+		{
+			const float* vi = &verts[i * 3];
+			const float* vj = &verts[j * 3];
+			if (((vi[2] > p[2]) != (vj[2] > p[2])) &&
+				(p[0] < (vj[0] - vi[0]) * (p[2] - vi[2]) / (vj[2] - vi[2]) + vi[0]))
+				c = !c;
+		}
+		return c;
+	}
 }
 
 OffMeshConnectionTool::OffMeshConnectionTool() :
@@ -93,7 +158,7 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	link_end_error_dis(0.2f),
 	orthognal_error_dis(0.5f),
 	link_equal_error_dis(0.25f),
-	horizontal_height(0.5f),
+	climbable_height(0.5f),
 	min_buildable_height(0.5f),
 	hit_pos()
 {}
@@ -140,20 +205,13 @@ void OffMeshConnectionTool::handleMenu()
 
 	imguiValue("Auto OffMeshLink");
 
-	imguiSlider("horizontal_height", &horizontal_height, 0.1f, 5.f, 0.1f);
+	imguiSlider("climbable_height", &climbable_height, 0.1f, 7.5f, 0.1f);
 	imguiSlider("horizontal_dis", &horizontal_dis, 0.1f, 25.f, 0.1f);
 	imguiSlider("vertical_dis", &vertical_dis, 0.1f, 25.f, 0.1f);
 	imguiSlider("divistion_dis", &divistion_dis, 0.1f, 10.f, 0.1f);
 	imguiSlider("link_end_error", &link_end_error_dis, 0.1f, 5.f, 0.1f);
 	imguiSlider("max_orth_error", &orthognal_error_dis, 0.1f, 5.f, 0.1f);
 	imguiSlider("link_equal_error_dis", &link_equal_error_dis, 0.01f, 1.f, 0.01f);
-
-	// 自動生成
-	if (imguiButton("Link Build"))
-		AutoLinksBuild();
-	// 削除
-	if (imguiButton("Link Clear"))
-		edges.clear();
 
 	// 「横跳びリンク」に制限を設けるか？
 	{
@@ -165,6 +223,13 @@ void OffMeshConnectionTool::handleMenu()
 			imguiSlider("min_buildable_height", &min_buildable_height, 0.1f, 10.f, 0.1f);
 		}
 	}
+
+	// 自動生成
+	if (imguiButton("Link Build"))
+		AutoLinksBuild();
+	// 削除
+	if (imguiButton("Link Clear"))
+		edges.clear();
 
 	// 生成完了
 	if (!edges.empty())
@@ -224,47 +289,131 @@ void OffMeshConnectionTool::handleClickDown(const float* /*s*/, const float* p, 
 
 	if (shift)
 	{
-		// Delete
-		// Find nearest link end-point
-		// 最も近いリンクのエンドポイントを見つける
-		float nearestDist = (std::numeric_limits<float>::max)();
-		int nearestIndex = -1;
-
-		const auto& verts = geom->getOffMeshConnectionVerts();
-
-		for (int i = 0; i < geom->getOffMeshConnectionCount() * 2; ++i)
+		// ConvexVolume
 		{
-			float d = rcVdistSqr(p, &verts[i * 3]);
+			// Delete
+			int nearestIndex = -1;
+			const auto& vols = geom->getConvexVolumes();
 
-			if (d < nearestDist)
+			for (int i = 0; i < geom->getConvexVolumeCount(); ++i)
 			{
-				nearestDist = d;
-				nearestIndex = i / 2; // Each link has two vertices. // 各リンクには2つの頂点があります。
+				if (pointInPoly(vols.at(i).nverts, vols.at(i).verts.data(), p) &&
+					p[1] >= vols.at(i).hmin && p[1] <= vols.at(i).hmax)
+				{
+					nearestIndex = i;
+				}
+			}
+
+			// If end point close enough, delete it.
+			// エンドポイントが十分に近い場合は、削除します。
+			if (nearestIndex != -1)
+			{
+				geom->deleteConvexVolume(nearestIndex);
 			}
 		}
 
-		// If end point close enough, delete it.
-		// エンドポイントが十分に近い場合は、削除します。
-		if (nearestIndex != -1 &&
-			sqrtf(nearestDist) < sample->getAgentRadius())
+		// OffMeshConnection
 		{
-			geom->deleteOffMeshConnection(nearestIndex);
+			// Delete
+			// Find nearest link end-point
+			// 最も近いリンクのエンドポイントを見つける
+			float nearestDist = (std::numeric_limits<float>::max)();
+			int nearestIndex = -1;
+
+			const auto& verts = geom->getOffMeshConnectionVerts();
+
+			for (int i = 0; i < geom->getOffMeshConnectionCount() * 2; ++i)
+			{
+				float d = rcVdistSqr(p, &verts[i * 3]);
+
+				if (d < nearestDist)
+				{
+					nearestDist = d;
+					nearestIndex = i / 2; // Each link has two vertices. // 各リンクには2つの頂点があります。
+				}
+			}
+
+			// If end point close enough, delete it.
+			// エンドポイントが十分に近い場合は、削除します。
+			if (nearestIndex != -1 &&
+				sqrtf(nearestDist) < sample->getAgentRadius())
+			{
+				geom->deleteOffMeshConnection(nearestIndex);
+			}
 		}
 	}
 	else
 	{
-		// Create
-		if (!hit_pos_set)
+		// ConvexVolume
 		{
-			rcVcopy(hit_pos, p);
-			hit_pos_set = true;
+			// Create
+			// If clicked on that last pt, create the shape.
+			// 最後のptをクリックすると、形状が作成されます。
+			if (m_npts && rcVdistSqr(p, &m_pts[(m_npts - 1) * 3]) < rcSqr(0.2f))
+			{
+				if (m_nhull > 2)
+				{
+					// Create shape.
+					// 形状を作成します。
+					decltype(m_pts) verts{};
+					for (int i = 0; i < m_nhull; ++i)
+						rcVcopy(&verts[i * 3], &m_pts[m_hull[i] * 3]);
+
+					float minh = (std::numeric_limits<float>::max)(), maxh = 0;
+					for (int i = 0; i < m_nhull; ++i)
+						minh = rcMin(minh, verts[i * 3 + 1]);
+					minh -= m_boxDescent;
+					maxh = minh + m_boxHeight;
+
+					if (m_polyOffset > 0.01f)
+					{
+						float offset[MaxPts * 2 * 3];
+						int noffset = rcOffsetPoly(verts.data(), m_nhull, m_polyOffset, offset, MaxPts * 2);
+						//if (noffset > 0)
+						//	geom->addConvexVolume(offset, noffset, minh, maxh, (unsigned char) m_areaType);
+					}
+					else
+					{
+						//geom->addConvexVolume(verts.data(), m_nhull, minh, maxh, (unsigned char) m_areaType);
+					}
+				}
+
+				m_npts = 0;
+				m_nhull = 0;
+			}
+			else
+			{
+				// Add new point
+				// 新しいポイントを追加します
+				if (m_npts < MaxPts)
+				{
+					rcVcopy(&m_pts[m_npts * 3], p);
+					m_npts++;
+					// Update hull.
+					// ハルを更新します。
+					//if (m_npts >= 2)
+					//	m_nhull = convexhull(m_pts.data(), m_npts, m_hull.data());
+					//else
+					//	m_nhull = 0;
+				}
+			}
 		}
-		else
+
+		// OffMeshConnection
 		{
-			constexpr unsigned char area = SAMPLE_POLYAREA_JUMP;
-			constexpr unsigned short flags = SAMPLE_POLYFLAGS_JUMP;
-			geom->addOffMeshConnection(hit_pos, p, sample->getAgentRadius(), m_bidir ? 1 : 0, area, flags);
-			hit_pos_set = false;
+			// Create
+			if (!hit_pos_set)
+			{
+				rcVcopy(hit_pos, p);
+				hit_pos_set = true;
+			}
+			else
+			{
+				constexpr unsigned char area = SAMPLE_POLYAREA_JUMP;
+				constexpr unsigned short flags = SAMPLE_POLYFLAGS_JUMP;
+				geom->addOffMeshConnection(hit_pos, p, sample->getAgentRadius(), m_bidir ? 1 : 0, area, flags);
+				hit_pos_set = false;
+			}
 		}
 	}
 }
@@ -374,8 +523,6 @@ void OffMeshConnectionTool::handleRender()
 
 				// 水平・垂直ベクトル
 				{
-					constexpr UINT32 ArrowColor{ duRGBA(255, 0, 255, 200) };
-
 					start = edge.start;
 					end = edge.end;
 
@@ -384,12 +531,15 @@ void OffMeshConnectionTool::handleRender()
 
 					rcVnormalize(&vec);
 
-					const auto&& middle_pos{ start + (vec * (len * 0.5f)) };
+					const auto&& middle_pos{ start + (vec * (len * 0.5f)) },
+						&&horizontal_pos{ middle_pos + (edge.orthogonal_vec * horizontal_dis) };
 
-					// 水平ベクトル
+					// 垂直ベクトル
 					{
+						constexpr UINT32 ArrowColor{ duRGBA(255, 0, 255, 200) };
+
 						start = middle_pos;
-						end = middle_pos + (edge.orthogonal_vec * horizontal_dis);
+						end = horizontal_pos;
 
 						duAppendArrow(&dd,
 							start[0], start[1], start[2],
@@ -397,12 +547,27 @@ void OffMeshConnectionTool::handleRender()
 							0.0f, 0.4f, ArrowColor);
 					}
 
-					// 垂直ベクトル
+					// 直下ベクトル
 					{
+						constexpr UINT32 ArrowColor{ duRGBA(255, 0, 100, 200) };
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
-						start = end;
+						start = horizontal_pos;
 						end = start + (Down * vertical_dis);
+
+						duAppendArrow(&dd,
+							start[0], start[1], start[2],
+							end[0], end[1], end[2],
+							0.0f, 0.4f, ArrowColor);
+					}
+
+					// 直上ベクトル
+					{
+						constexpr UINT32 ArrowColor{ duRGBA(100, 0, 255, 200) };
+						constexpr Point Up{ 0.f, 1.f, 0.f };
+
+						start = horizontal_pos;
+						end = start + (Up * climbable_height);
 
 						duAppendArrow(&dd,
 							start[0], start[1], start[2],
@@ -453,7 +618,7 @@ void OffMeshConnectionTool::handleRender()
 					duAppendArc(&dd,
 						start[0], start[1], start[2],
 						end[0], end[1], end[2],
-						0.25f, link.is_bidir ? 0.6f : 0.f, 0.6f, ArrowColor);
+						0.35f, link.is_bidir ? 0.6f : 0.f, 0.6f, ArrowColor);
 				}
 			}
 		}
@@ -636,6 +801,7 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 		{
 			auto vec{ edge.end - edge.start };
 			const float len{ rcVdist(edge.start, edge.end) };
+			const float agent_height{ sample->getAgentHeight() };
 
 			rcVnormalize(&vec);
 
@@ -650,7 +816,7 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 				auto& point{ edge.points.emplace_back() };
 
 				point.base_point = base;
-				point.height_point = base + Point{ 0.f, horizontal_height, 0.f };
+				point.height_point = base + Point{ 0.f, climbable_height, 0.f };
 			}
 		}, exec::par);
 }
@@ -684,7 +850,8 @@ void OffMeshConnectionTool::CalcTentativeLink()
 					auto horizontal_point{ point.height_point + (edge.orthogonal_vec * horizontal_dis) };
 
 					// 水平上のポイントまでに地形が存在するか？
-					if (geom->RaycastMesh(point.height_point, horizontal_point, &hit_info))
+					if (geom->RaycastMesh(point.height_point, horizontal_point, &hit_info) ||
+						geom->RaycastMesh(horizontal_point, point.height_point, &hit_info))
 					{
 						// 当たった座標にポイントを決定する
 						horizontal_point = hit_info.pos + (edge.orthogonal_vec * agent_radius);
@@ -716,7 +883,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 						// 直下ベクトルの始点と終点
 						const Point&& start{ point.height_point + (inv_horizona_vec * dis) },
-							&& end{ start + (Down * vertical_dis) };
+							&& end{ start + (Down * (vertical_dis + climbable_height)) };
 
 						// 垂直上に地形が存在しない
 						if (!geom->RaycastMesh(start, end, &hit_info))	continue;
@@ -742,7 +909,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 						// OffMesh Linkの始点と終点を確定
 						edge.links.emplace_back(
-							point.height_point, hit_info.pos, nearest_pos, horizontal_point);
+							point.base_point, hit_info.pos, nearest_pos, horizontal_point);
 
 						break; // 構築終了
 					}
@@ -753,7 +920,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 void OffMeshConnectionTool::CheckTentativeLink()
 {
 	// 仮リンクの被りをチェックする
-#if true
+#if true // 全てマルチスレッド化
 	const size_t length{ edges.size() };
 
 	std::vector<size_t> indeces(length);
@@ -800,7 +967,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 						}, exec::par);
 				});
 		}, exec::par);
-#else
+#else // 一部だけ逐次ループ
 	for (size_t i = 0, length = edges.size(); i < length; i++)
 	{
 		std::mutex mt;
@@ -843,16 +1010,16 @@ void OffMeshConnectionTool::CheckTentativeLink()
 	}
 #endif
 
-	// 「横跳びリンク」を削除
-	if (is_buildable_height_limit)
-	{
-		For_Each(edges, [this](NavMeshEdge& edge)
-			{
-				For_Each(edge.links, [this](NavMeshEdge::Link& link)
-					{
-						// 既に削除済み
-						if (link.is_delete)	return;
+	For_Each(edges, [this](NavMeshEdge& edge)
+		{
+			For_Each(edge.links, [this](NavMeshEdge::Link& link)
+				{
+					// 既に削除済み
+					if (link.is_delete)	return;
 
+					// 「横跳びリンク」を削除
+					if (is_buildable_height_limit)
+					{
 						const float div_buildable_height{ min_buildable_height / 2.f };
 
 						if (Math::IsBetweenNumber(
@@ -861,10 +1028,26 @@ void OffMeshConnectionTool::CheckTentativeLink()
 						{
 							link.is_delete = true;
 						}
+					}
 
-					}, exec::par);
-			}, exec::par);
-	}
+					//// 仮リンク間の障害物をチェックする
+					//{
+					//	const auto& geom{ sample->getInputGeom() };
+					//	const float agent_height{ sample->getAgentHeight() };
+
+					//	InputGeom::RaycastMeshHitInfo hit_info{};
+
+					//	Point start{}, end{};
+
+					//	// 斜めに例を飛ばすなどがある
+					//	if (geom->RaycastMesh(start, end, &hit_info))
+					//	{
+					//		link.is_delete = true;
+					//	}
+					//}
+
+				}, exec::par);
+		}, exec::par);
 
 	// 余分な仮リンクを削除する
 	For_Each(edges, [](NavMeshEdge& edge)

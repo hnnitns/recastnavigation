@@ -132,7 +132,7 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	horizontal_dis(5.f), vertical_dis(7.5f), divistion_dis(0.5f), link_end_error_dis(0.2f),
 	orthognal_error_dis(0.5f), link_equal_error_dis(0.25f), climbable_height(0.5f),
 	min_buildable_height(0.5f), hit_pos(), box_descent(0.25f), box_height(5.f), is_not_build_area(),
-	draw_all(true)
+	draw_all(true), max_start_link_error(0.2), max_end_link_error(0.2f)
 {}
 
 OffMeshConnectionTool::~OffMeshConnectionTool()
@@ -184,6 +184,8 @@ void OffMeshConnectionTool::handleMenu()
 	imguiSlider("link_end_error", &link_end_error_dis, 0.1f, 5.f, 0.1f);
 	imguiSlider("max_orth_error", &orthognal_error_dis, 0.1f, 5.f, 0.1f);
 	imguiSlider("link_equal_error_dis", &link_equal_error_dis, 0.01f, 1.f, 0.01f);
+	imguiSlider("max_start_link_error", &max_start_link_error, 0.1f, 1.f, 0.1f);
+	imguiSlider("max_end_link_error", &max_end_link_error, 0.1f, 1.f, 0.1f);
 
 	// 「横跳びリンク」に制限を設けるか？
 	{
@@ -220,12 +222,12 @@ void OffMeshConnectionTool::handleMenu()
 		}
 	}
 
+	if (imguiCheck("All Draw", draw_all))
+		draw_all ^= true;
+
 	// 生成完了
 	if (!edges.empty())
 	{
-		if (imguiCheck("All Draw", draw_all))
-			draw_all ^= true;
-
 		if (draw_all)
 		{
 			// 始点から終点への矢印
@@ -988,9 +990,29 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 					exec::par))	continue;
 
 				auto& point{ edge.points.emplace_back() };
+				const auto& geom{ sample->getInputGeom() };
 
 				point.base_point = base;
 				point.height_point = base + Point{ 0.f, climbable_height, 0.f };
+
+				InputGeom::RaycastMeshHitInfo hit_info_top{}, hit_info_bottom{};
+
+				const bool hit_mesh_top
+				{ geom->RaycastMesh(point.height_point, point.base_point, &hit_info_top) },
+					hit_mesh_bottom{ geom->RaycastMesh(point.base_point, point.height_point, &hit_info_bottom) };
+
+				constexpr float AdjYDis{ 0.25f };
+
+				if (hit_mesh_bottom)
+				{
+					point.height_point = hit_info_bottom.pos;
+					point.height_point[1] -= AdjYDis;
+				}
+				else if (hit_mesh_top)
+				{
+					point.height_point = hit_info_top.pos;
+					point.height_point[1] -= AdjYDis;
+				}
 			}
 		}, exec::par);
 }
@@ -1056,46 +1078,64 @@ void OffMeshConnectionTool::CalcTentativeLink()
 					for (float dis = agent_radius * agent_radius;
 						dis < horizontal_dis - agent_radius * agent_radius; dis += HalfExtents.front())
 					{
-						constexpr Point Down{ 0.f, -1.f, 0.f };
+						// 地形との判定
+						{
+							constexpr Point Down{ 0.f, -1.f, 0.f };
 
-						// 直下ベクトルの始点と終点
-						const Point&& start{ point.height_point + (inv_horizona_vec * dis) },
-							&& end{ start + (Down * (vertical_dis + climbable_height)) };
+							// 直下ベクトルの始点と終点
+							const Point&& start{ point.height_point + (inv_horizona_vec * dis) },
+								&& end{ start + (Down * (vertical_dis + climbable_height)) };
 
-						// 垂直上に地形が存在しない
-						if (!geom->RaycastMesh(start, end, &hit_info))	continue;
+							// 垂直上に地形が存在しない
+							if (!geom->RaycastMesh(start, end, &hit_info))	continue;
+						}
 
-						const dtQueryFilter filter;
-						dtPolyRef ref{};
 						Point nearest_pos{};
-						constexpr Point Zero{};
 
 						// ナビメッシュとの判定
-						const auto status{ navmesh_query->findNearestPoly(hit_info.pos.data(),
-							HalfExtents.data(), &filter, &ref, nearest_pos.data()) };
-
-						// ナビメッシュ状に垂直上のポイントが存在しない
-						if (dtStatusFailed(status) || ref == 0 || nearest_pos == Zero)	continue;
-
-						const float error_dis_sqr{ link_end_error_dis * link_end_error_dis };
-
-						// 地形のヒットポイントとナビメッシュのヒットポイントの距離が遠い
-						if (rcVdistSqr(nearest_pos, hit_info.pos) > error_dis_sqr) continue;
-
-						auto NotBuildAreaFunc{ [&hit_info](const NotBuildArea& area)
 						{
-							return (area.is_built &&
-								IsPointInsideAABB(hit_info.pos, area.aabb_min, area.aabb_max));
-						} };
+							const dtQueryFilter filter;
+							dtPolyRef ref{};
+							constexpr Point Zero{};
 
-						// 自動構築不可エリアにヒットポイントが存在する
-						if (Any_Of(not_build_areas, NotBuildAreaFunc, exec::par))	continue;
+							// ナビメッシュとの判定
+							const auto status{ navmesh_query->findNearestPoly(hit_info.pos.data(),
+								HalfExtents.data(), &filter, &ref, nearest_pos.data()) };
 
-						std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
+							// ナビメッシュ状に垂直上のポイントが存在しない
+							if (dtStatusFailed(status) || ref == 0 || nearest_pos == Zero)	continue;
+						}
 
-						// OffMesh Linkの始点と終点を確定
-						edge.links.emplace_back(
-							point.base_point, hit_info.pos, nearest_pos, horizontal_point);
+						// ヒットポイントを修正
+						{
+							const float error_dis_sqr{ link_end_error_dis * link_end_error_dis };
+
+							// 地形のヒットポイントとナビメッシュのヒットポイントの距離が遠い
+							if (rcVdistSqr(nearest_pos, hit_info.pos) > error_dis_sqr) continue;
+						}
+
+						// 自動構築不可エリアとの判定
+						{
+							auto NotBuildAreaFunc{ [&hit_info](const NotBuildArea& area)
+							{
+								return (area.is_built &&
+									IsPointInsideAABB(hit_info.pos, area.aabb_min, area.aabb_max));
+							} };
+
+							// 自動構築不可エリアにヒットポイントが存在する
+							if (Any_Of(not_build_areas, NotBuildAreaFunc, exec::par))	continue;
+						}
+
+						// 仮リンクを構築する
+						{
+							std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
+
+							const Point&& start{ point.base_point + (edge.orthogonal_vec * -max_start_link_error) },
+								&& end{ hit_info.pos + (edge.orthogonal_vec * max_end_link_error) };
+
+							// OffMesh Linkの始点と終点を確定
+							edge.links.emplace_back(start, end, nearest_pos, horizontal_point);
+						}
 
 						break; // 構築終了
 					}

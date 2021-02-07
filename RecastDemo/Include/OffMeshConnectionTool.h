@@ -82,15 +82,17 @@ private:
 		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis, draw_all;
 
 	bool is_buildable_height_limit; // 仮リンク間の「横跳び」を許容するか？
-	float horizontal_dis;// 構築可能な水平距離
-	float vertical_dis; // 構築可能な垂直距離
-	float divistion_dis; //分割点間の長さ
-	float climbable_height; // 分割点から構築する時の高さ（登れる高さ）
-	float	min_buildable_height; //「横跳び」を許容する時の高さ
-	float	link_end_error_dis; // 地形の当たり座標とナビメッシュの当たり座標間の許容範囲
-	float	orthognal_error_dis; // 垂直ベクトルで構築不可になる許容範囲
-	float	link_equal_error_dis; // 他の仮リンクとの重なりを認識する許容範囲
-	float	max_builable_height; // 仮リンクの構築を許容できる最大の高さ
+	float horizontal_dis;           // 構築可能な水平距離
+	float vertical_dis;             // 構築可能な垂直距離
+	float divistion_dis;            // 分割点間の長さ
+	float climbable_height;         // 分割点から構築する時の高さ（登れる高さ）
+	float	min_buildable_height;     //「横跳び」を許容する時の高さ
+	float	link_end_error_dis;       // 地形の当たり座標とナビメッシュの当たり座標間の許容範囲
+	float	orthognal_error_dis;      // 垂直ベクトルで構築不可になる許容範囲
+	float	link_equal_error_dis;     // 他の仮リンクとの重なりを認識する許容範囲
+	float	max_builable_height;      // 仮リンクの構築を許容できる最大の高さ
+	float max_start_link_error;     // 始点をエッジからどれだけ離すか
+	float max_end_link_error;       // 終点をエッジからどれだけ離すか
 	std::vector<NavMeshEdge> edges;
 
 	std::vector<NotBuildArea> not_build_areas;

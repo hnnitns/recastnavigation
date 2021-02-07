@@ -131,7 +131,8 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	draw_navmesh_nearest_point(true), draw_error_dis(false), is_buildable_height_limit(true),
 	horizontal_dis(5.f), vertical_dis(7.5f), divistion_dis(0.5f), link_end_error_dis(0.2f),
 	orthognal_error_dis(0.5f), link_equal_error_dis(0.25f), climbable_height(0.5f),
-	min_buildable_height(0.5f), hit_pos(), box_descent(0.f), box_height(5.f), is_not_build_area()
+	min_buildable_height(0.5f), hit_pos(), box_descent(0.25f), box_height(5.f), is_not_build_area(),
+	draw_all(true)
 {}
 
 OffMeshConnectionTool::~OffMeshConnectionTool()
@@ -179,7 +180,7 @@ void OffMeshConnectionTool::handleMenu()
 	imguiSlider("climbable_height", &climbable_height, 0.1f, 7.5f, 0.1f);
 	imguiSlider("horizontal_dis", &horizontal_dis, 0.1f, 25.f, 0.1f);
 	imguiSlider("vertical_dis", &vertical_dis, 0.1f, 25.f, 0.1f);
-	imguiSlider("divistion_dis", &divistion_dis, 0.1f, 10.f, 0.1f);
+	imguiSlider("divistion_dis", &divistion_dis, sample->getAgentRadius(), 5.f, 0.1f);
 	imguiSlider("link_end_error", &link_end_error_dis, 0.1f, 5.f, 0.1f);
 	imguiSlider("max_orth_error", &orthognal_error_dis, 0.1f, 5.f, 0.1f);
 	imguiSlider("link_equal_error_dis", &link_equal_error_dis, 0.01f, 1.f, 0.01f);
@@ -210,7 +211,7 @@ void OffMeshConnectionTool::handleMenu()
 		if (is_not_build_area)
 		{
 			imguiSlider("box_descent", &box_descent, 0.1f, 10.f, 0.1f);
-			imguiSlider("box_height", &link_equal_error_dis, 0.1f, 10.f, 0.1f);
+			imguiSlider("box_height", &box_height, 0.1f, 10.f, 0.1f);
 
 			if (imguiButton("All Clear"))
 			{
@@ -222,37 +223,43 @@ void OffMeshConnectionTool::handleMenu()
 	// 生成完了
 	if (!edges.empty())
 	{
-		// 始点から終点への矢印
-		if (imguiCheck("Links Arrow", draw_links_arrow))
-			draw_links_arrow ^= true;
+		if (imguiCheck("All Draw", draw_all))
+			draw_all ^= true;
 
-		// エッジの始点終点
-		if (imguiCheck("Edge Point", draw_edge_point))
-			draw_edge_point ^= true;
+		if (draw_all)
+		{
+			// 始点から終点への矢印
+			if (imguiCheck("Links Arrow", draw_links_arrow))
+				draw_links_arrow ^= true;
 
-		// エッジの分割点
-		if (imguiCheck("Division Point", draw_division_point))
-			draw_division_point ^= true;
+			// エッジの始点終点
+			if (imguiCheck("Edge Point", draw_edge_point))
+				draw_edge_point ^= true;
 
-		// 仮リンク
-		if (imguiCheck("Tentative Link", draw_tentative_link))
-			draw_tentative_link ^= true;
+			// エッジの分割点
+			if (imguiCheck("Division Point", draw_division_point))
+				draw_division_point ^= true;
 
-		// 水平上のポイント
-		if (imguiCheck("Horizontal Point", draw_horizontal_point))
-			draw_horizontal_point ^= true;
+			// 仮リンク
+			if (imguiCheck("Tentative Link", draw_tentative_link))
+				draw_tentative_link ^= true;
 
-		// 終点
-		if (imguiCheck("End Point", draw_end_point))
-			draw_end_point ^= true;
+			// 水平上のポイント
+			if (imguiCheck("Horizontal Point", draw_horizontal_point))
+				draw_horizontal_point ^= true;
 
-		// ナビメッシュに最も近いポイント
-		if (imguiCheck("Navmesh Nearest Point", draw_navmesh_nearest_point))
-			draw_navmesh_nearest_point ^= true;
+			// 終点
+			if (imguiCheck("End Point", draw_end_point))
+				draw_end_point ^= true;
 
-		// 誤差範囲
-		if (imguiCheck("Error Dis", draw_error_dis))
-			draw_error_dis ^= true;
+			// ナビメッシュに最も近いポイント
+			if (imguiCheck("Navmesh Nearest Point", draw_navmesh_nearest_point))
+				draw_navmesh_nearest_point ^= true;
+
+			// 誤差範囲
+			if (imguiCheck("Error Dis", draw_error_dis))
+				draw_error_dis ^= true;
+		}
 
 		{
 			std::string text{ "build_time: " };
@@ -282,7 +289,6 @@ void OffMeshConnectionTool::handleMenu()
 			}
 		}
 	}
-
 }
 
 void OffMeshConnectionTool::handleClickDown(const float* s, const float* p, bool shift)
@@ -359,62 +365,68 @@ void OffMeshConnectionTool::handleClickDown(const float* s, const float* p, bool
 			// 追加する
 			if (not_build_areas.empty())	not_build_areas.emplace_back();
 
-			if (auto& area{ not_build_areas.back() };
-				area.nhit_points == NotBuildArea::MaxHitPoint)
+			auto&& itr{ Find_If(not_build_areas,
+				[](NotBuildArea& area) { return !area.is_built; }, exec::par) };
+
+			if (itr != not_build_areas.end())
 			{
-				// 最後のポイントをクリックすると、形状が確定する
-				if (rcVdistSqr(p, area.hit_points[area.nhit_points - 1].data()) < rcSqr(0.2f))
+				if (auto& area{ *itr };
+					area.nhit_points == NotBuildArea::MaxHitPoint - 1)
 				{
-					not_build_areas.emplace_back();
-					area.is_built = true;
+					// 最後のポイントをクリックすると、形状が確定する
+					if (rcVdistSqr(p, area.hit_points[area.nhit_points].data()) < rcSqr(0.2f))
+					{
+						not_build_areas.emplace_back();
+						area.is_built = true;
+					}
+					else
+					{
+						// 既存ポイントを更新
+						rcVcopy(area.hit_points.back().data(), p);
+
+						// 最大・最小値を取得
+						{
+							const auto& hit_points{ area.hit_points };
+
+							for (size_t i = 0; i < area.aabb_max.size(); i++)
+							{
+								area.aabb_max[i] = rcMax(hit_points.front()[i], hit_points.back()[i]);
+								area.aabb_min[i] = rcMin(hit_points.front()[i], hit_points.back()[i]);
+							}
+
+							area.aabb_max[1] += box_height;
+							area.aabb_min[1] -= box_descent;
+						}
+
+						// 各頂点を計算
+						{
+							auto& vertex{ area.aabb_vertex };
+							const Point& min{ area.aabb_min }, max{ area.aabb_max };
+							const VF3&& min_vs{ min.front(), min[1], min.back() },
+								max_vs{ max.front(), max[1], max.back() };
+
+							// 下部
+							vertex[0] = area.aabb_min;                    // 左下
+							vertex[1] = { min_vs.x, min_vs.y, max_vs.z }; // 左上
+							vertex[2] = { max_vs.x, min_vs.y, max_vs.z }; // 右上
+							vertex[3] = { max_vs.x, min_vs.y, min_vs.z }; // 右下
+
+							// 上部
+							vertex[4] = { min_vs.x, max_vs.y, min_vs.z }; // 左下
+							vertex[5] = { min_vs.x, max_vs.y, max_vs.z }; // 左上
+							vertex[6] = area.aabb_max;                    // 右上
+							vertex[7] = { max_vs.x, max_vs.y, min_vs.z }; // 右下
+						}
+					}
 				}
 				else
 				{
-					// 既存ポイントを更新
-					rcVcopy(area.hit_points.back().data(), p);
+					// 新しいポイントを追加
+					rcVcopy(area.hit_points[area.nhit_points].data(), p);
 
-					// 最大・最小値を取得
-					{
-						const auto& hit_points{ area.hit_points };
-
-						for (size_t i = 0; i < area.aabb_max.size(); i++)
-						{
-							area.aabb_max[i] = rcMax(hit_points.front()[i], hit_points.back()[i]);
-							area.aabb_min[i] = rcMin(hit_points.front()[i], hit_points.back()[i]);
-						}
-
-						area.aabb_max[1] += box_height;
-						area.aabb_min[1] -= box_descent;
-					}
-
-					// 各頂点を計算
-					{
-						auto& vertex{ area.aabb_vertex };
-						const Point& min{ area.aabb_min }, max{ area.aabb_max };
-						const VF3&& min_vs{ min.front(), min[1], min.back() },
-							max_vs{ max.front(), max[1], max.back() };
-
-						// 下部
-						vertex[0] = area.aabb_min;                    // 左下
-						vertex[1] = { min_vs.x, min_vs.y, max_vs.z }; // 左上
-						vertex[2] = { max_vs.x, min_vs.y, max_vs.z }; // 右上
-						vertex[3] = { max_vs.x, min_vs.y, min_vs.z }; // 右下
-
-						// 上部
-						vertex[4] = { min_vs.x, max_vs.y, min_vs.z }; // 左下
-						vertex[5] = { min_vs.x, max_vs.y, max_vs.z }; // 左上
-						vertex[6] = area.aabb_max;                    // 右上
-						vertex[7] = { max_vs.x, max_vs.y, min_vs.z }; // 右下
-					}
+					if (area.nhit_points < NotBuildArea::MaxHitPoint - 1)
+						area.nhit_points++;
 				}
-			}
-			else
-			{
-				// 新しいポイントを追加
-				rcVcopy(area.hit_points[area.nhit_points].data(), p);
-
-				if (area.nhit_points < NotBuildArea::MaxHitPoint)
-					area.nhit_points++;
 			}
 		}
 		// OffMeshConnection
@@ -461,7 +473,7 @@ void OffMeshConnectionTool::handleRender()
 		geom->drawOffMeshConnections(&dd, true);
 
 	// オフメッシュリンクの自動生成関係
-	if (!edges.empty())
+	if (!edges.empty() && draw_all)
 	{
 		// ライン
 		dd.begin(DU_DRAW_LINES, 2.0f);
@@ -690,116 +702,137 @@ void OffMeshConnectionTool::handleRender()
 	}
 
 	// 構築不可エリア
-	for (auto& area : not_build_areas)
 	{
-		if (area.nhit_points == 0)	continue;
-
-		dd.begin(DU_DRAW_POINTS, 4.0f);
-		for (int i = 0; i < area.hit_points.size(); ++i)
+		// 設定中
+		for (auto& area : not_build_areas)
 		{
-			const Point& point{ area.hit_points[i] };
-			unsigned int col = duRGBA(255, 255, 255, 255);
+			if (area.is_built)	continue;
 
-			if (i == NotBuildArea::MaxHitPoint - 1 && !area.is_built)
-				col = duRGBA(240, 32, 16, 255);
+			if (area.nhit_points > 0)
+			{
+				dd.begin(DU_DRAW_POINTS, 4.0f);
+				for (int i = 0; i < area.hit_points.size(); ++i)
+				{
+					const Point& point{ area.hit_points[i] };
+					unsigned int col = duRGBA(255, 255, 255, 255);
 
-			dd.vertex(point.front(), point[1] + 0.1f, point.back(), col);
+					if (i == NotBuildArea::MaxHitPoint - 1 && !area.is_built)
+						col = duRGBA(240, 32, 16, 255);
+
+					dd.vertex(point.front(), point[1] + 0.1f, point.back(), col);
+				}
+				dd.end();
+
+				if (area.nhit_points == NotBuildArea::MaxHitPoint - 1)
+				{
+					dd.begin(DU_DRAW_LINES, 2.0f);
+
+					static constexpr UINT32 Color{ duRGBA(255, 255, 255, 64) };
+					const auto& vertex{ area.aabb_vertex };
+
+					auto VertexFunc
+					{ [&dd](const Point& point) { dd.vertex(point.front(), point[1], point.back(), Color); } };
+
+					// X
+					VertexFunc(vertex[0]); VertexFunc(vertex[3]);
+					VertexFunc(vertex[1]); VertexFunc(vertex[2]);
+					VertexFunc(vertex[4]); VertexFunc(vertex[7]);
+					VertexFunc(vertex[5]); VertexFunc(vertex[6]);
+
+					// Y
+					VertexFunc(vertex[0]); VertexFunc(vertex[4]);
+					VertexFunc(vertex[1]); VertexFunc(vertex[5]);
+					VertexFunc(vertex[2]); VertexFunc(vertex[6]);
+					VertexFunc(vertex[3]); VertexFunc(vertex[7]);
+
+					// Z
+					VertexFunc(vertex[0]); VertexFunc(vertex[1]);
+					VertexFunc(vertex[3]); VertexFunc(vertex[2]);
+					VertexFunc(vertex[4]); VertexFunc(vertex[5]);
+					VertexFunc(vertex[7]); VertexFunc(vertex[6]);
+
+					dd.end();
+				}
+			}
 		}
-		dd.end();
 
-		if (area.nhit_points == NotBuildArea::MaxHitPoint)
+		// 設定完了
+		for (auto& area : not_build_areas)
 		{
-			dd.begin(DU_DRAW_LINES, 2.0f);
+			if (!area.is_built)	continue;
 
-			static constexpr UINT32 Color{ duRGBA(255, 255, 255, 64) };
+			constexpr UINT32 BaseColor{ duRGBA(255, 50, 50, 150) };
 			const auto& vertex{ area.aabb_vertex };
 
-			auto VertexFunc
-			{ [&dd](const Point& point) { dd.vertex(point.front(), point[1], point.back(), Color); } };
+			auto VertexFunc{ [&dd](const Point& point, const UINT32 color)
+				{ dd.vertex(point.front(), point[1], point.back(), color); } };
 
-			// X
-			VertexFunc(vertex[0]); VertexFunc(vertex[3]);
-			VertexFunc(vertex[1]); VertexFunc(vertex[2]);
-			VertexFunc(vertex[4]); VertexFunc(vertex[7]);
-			VertexFunc(vertex[5]); VertexFunc(vertex[6]);
+			dd.begin(DU_DRAW_TRIS);
+			{
+				constexpr UINT32 col{ duTransCol(BaseColor, 32) };
 
-			// Y
-			VertexFunc(vertex[0]); VertexFunc(vertex[4]);
-			VertexFunc(vertex[1]); VertexFunc(vertex[5]);
-			VertexFunc(vertex[2]); VertexFunc(vertex[6]);
-			VertexFunc(vertex[3]); VertexFunc(vertex[7]);
+				// 下部
+				VertexFunc(vertex[2], col); VertexFunc(vertex[1], col); VertexFunc(vertex[0], col);
+				VertexFunc(vertex[0], col); VertexFunc(vertex[3], col); VertexFunc(vertex[2], col);
 
-			// Z
-			VertexFunc(vertex[0]); VertexFunc(vertex[1]);
-			VertexFunc(vertex[3]); VertexFunc(vertex[2]);
-			VertexFunc(vertex[4]); VertexFunc(vertex[5]);
-			VertexFunc(vertex[7]); VertexFunc(vertex[6]);
+				// 上部
+				VertexFunc(vertex[4], col); VertexFunc(vertex[5], col); VertexFunc(vertex[6], col);
+				VertexFunc(vertex[6], col); VertexFunc(vertex[7], col); VertexFunc(vertex[4], col);
 
+				// 左部
+				VertexFunc(vertex[1], col); VertexFunc(vertex[5], col); VertexFunc(vertex[4], col);
+				VertexFunc(vertex[4], col); VertexFunc(vertex[0], col); VertexFunc(vertex[1], col);
+
+				// 右部
+				VertexFunc(vertex[2], col); VertexFunc(vertex[3], col); VertexFunc(vertex[7], col);
+				VertexFunc(vertex[7], col); VertexFunc(vertex[6], col); VertexFunc(vertex[2], col);
+
+				// 前部
+				VertexFunc(vertex[0], col); VertexFunc(vertex[4], col); VertexFunc(vertex[7], col);
+				VertexFunc(vertex[7], col); VertexFunc(vertex[3], col); VertexFunc(vertex[0], col);
+
+				// 後部
+				VertexFunc(vertex[1], col); VertexFunc(vertex[2], col); VertexFunc(vertex[6], col);
+				VertexFunc(vertex[6], col); VertexFunc(vertex[5], col); VertexFunc(vertex[1], col);
+			}
+			dd.end();
+
+			dd.begin(DU_DRAW_LINES, 2.0f);
+			{
+				constexpr UINT32 col{ duTransCol(BaseColor, 200) };
+
+				// X
+				VertexFunc(vertex[0], col); VertexFunc(vertex[3], col);
+				VertexFunc(vertex[1], col); VertexFunc(vertex[2], col);
+				VertexFunc(vertex[4], col); VertexFunc(vertex[7], col);
+				VertexFunc(vertex[5], col); VertexFunc(vertex[6], col);
+
+				// Y
+				VertexFunc(vertex[0], col); VertexFunc(vertex[4], col);
+				VertexFunc(vertex[1], col); VertexFunc(vertex[5], col);
+				VertexFunc(vertex[2], col); VertexFunc(vertex[6], col);
+				VertexFunc(vertex[3], col); VertexFunc(vertex[7], col);
+
+				// Z
+				VertexFunc(vertex[0], col); VertexFunc(vertex[1], col);
+				VertexFunc(vertex[3], col); VertexFunc(vertex[2], col);
+				VertexFunc(vertex[4], col); VertexFunc(vertex[5], col);
+				VertexFunc(vertex[7], col); VertexFunc(vertex[6], col);
+			}
+			dd.end();
+
+			dd.begin(DU_DRAW_POINTS, 3.0f);
+			{
+				constexpr UINT32 col{ duTransCol(BaseColor, 220) };
+
+				for (auto& vtx : vertex)
+				{
+					VertexFunc(vtx, col);
+				}
+			}
 			dd.end();
 		}
 	}
-
-#if false
-	dd.begin(DU_DRAW_TRIS);
-
-	for (int i = 0; i < m_volumeCount; ++i)
-	{
-		const ConvexVolume* vol = &m_volumes[i];
-		unsigned int col = duTransCol(dd.areaToCol(vol->area), 32);
-		for (int j = 0, k = vol->nverts - 1; j < vol->nverts; k = j++)
-		{
-			const float* va = &vol->verts[k * 3];
-			const float* vb = &vol->verts[j * 3];
-
-			dd.vertex(vol->verts[0], vol->hmax, vol->verts[2], col);
-			dd.vertex(vb[0], vol->hmax, vb[2], col);
-			dd.vertex(va[0], vol->hmax, va[2], col);
-
-			dd.vertex(va[0], vol->hmin, va[2], duDarkenCol(col));
-			dd.vertex(va[0], vol->hmax, va[2], col);
-			dd.vertex(vb[0], vol->hmax, vb[2], col);
-
-			dd.vertex(va[0], vol->hmin, va[2], duDarkenCol(col));
-			dd.vertex(vb[0], vol->hmax, vb[2], col);
-			dd.vertex(vb[0], vol->hmin, vb[2], duDarkenCol(col));
-		}
-	}
-
-	dd.end();
-
-	dd.begin(DU_DRAW_LINES, 2.0f);
-	for (int i = 0; i < m_volumeCount; ++i)
-	{
-		const ConvexVolume* vol = &m_volumes[i];
-		unsigned int col = duTransCol(dd.areaToCol(vol->area), 220);
-		for (int j = 0, k = vol->nverts - 1; j < vol->nverts; k = j++)
-		{
-			const float* va = &vol->verts[k * 3];
-			const float* vb = &vol->verts[j * 3];
-			dd.vertex(va[0], vol->hmin, va[2], duDarkenCol(col));
-			dd.vertex(vb[0], vol->hmin, vb[2], duDarkenCol(col));
-			dd.vertex(va[0], vol->hmax, va[2], col);
-			dd.vertex(vb[0], vol->hmax, vb[2], col);
-			dd.vertex(va[0], vol->hmin, va[2], duDarkenCol(col));
-			dd.vertex(va[0], vol->hmax, va[2], col);
-		}
-	}
-	dd.end();
-
-	dd.begin(DU_DRAW_POINTS, 3.0f);
-	for (int i = 0; i < m_volumeCount; ++i)
-	{
-		const ConvexVolume* vol = &m_volumes[i];
-		unsigned int col = duDarkenCol(duTransCol(dd.areaToCol(vol->area), 220));
-		for (int j = 0; j < vol->nverts; ++j)
-		{
-			dd.vertex(vol->verts[j * 3 + 0], vol->verts[j * 3 + 1] + 0.1f, vol->verts[j * 3 + 2], col);
-			dd.vertex(vol->verts[j * 3 + 0], vol->hmin, vol->verts[j * 3 + 2], col);
-			dd.vertex(vol->verts[j * 3 + 0], vol->hmax, vol->verts[j * 3 + 2], col);
-		}
-	}
-	dd.end();
-#endif
 
 	dd.depthMask(true);
 }
@@ -951,7 +984,8 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 
 				// 自動構築不可エリアに分割点が存在する
 				if (Any_Of(not_build_areas, [&base](const NotBuildArea& area)
-					{ return IsPointInsideAABB(base, area.aabb_min, area.aabb_max); }, exec::par))	continue;
+					{ return area.is_built && IsPointInsideAABB(base, area.aabb_min, area.aabb_max); },
+					exec::par))	continue;
 
 				auto& point{ edge.points.emplace_back() };
 
@@ -989,9 +1023,12 @@ void OffMeshConnectionTool::CalcTentativeLink()
 					// 水平上のポイント（中継ポイント）
 					auto horizontal_point{ point.height_point + (edge.orthogonal_vec * horizontal_dis) };
 
+					const bool hit_mesh
+					{ geom->RaycastMesh(point.height_point, horizontal_point, &hit_info) ||
+						geom->RaycastMesh(horizontal_point, point.height_point, &hit_info) };
+
 					// 水平上のポイントまでに地形が存在するか？
-					if (geom->RaycastMesh(point.height_point, horizontal_point, &hit_info) ||
-						geom->RaycastMesh(horizontal_point, point.height_point, &hit_info))
+					if (hit_mesh)
 					{
 						// 当たった座標にポイントを決定する
 						horizontal_point = hit_info.pos + (edge.orthogonal_vec * agent_radius);
@@ -1016,8 +1053,8 @@ void OffMeshConnectionTool::CalcTentativeLink()
 					constexpr Point HalfExtents{ 0.5f, 0.5f, 0.5f };
 
 					// 分割点直下付近から水平上のポイントまで検索
-					for (float dis = agent_radius * agent_radius; dis < horizontal_dis - agent_radius * agent_radius;
-						dis += HalfExtents.front())
+					for (float dis = agent_radius * agent_radius;
+						dis < horizontal_dis - agent_radius * agent_radius; dis += HalfExtents.front())
 					{
 						constexpr Point Down{ 0.f, -1.f, 0.f };
 
@@ -1044,6 +1081,15 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 						// 地形のヒットポイントとナビメッシュのヒットポイントの距離が遠い
 						if (rcVdistSqr(nearest_pos, hit_info.pos) > error_dis_sqr) continue;
+
+						auto NotBuildAreaFunc{ [&hit_info](const NotBuildArea& area)
+						{
+							return (area.is_built &&
+								IsPointInsideAABB(hit_info.pos, area.aabb_min, area.aabb_max));
+						} };
+
+						// 自動構築不可エリアにヒットポイントが存在する
+						if (Any_Of(not_build_areas, NotBuildAreaFunc, exec::par))	continue;
 
 						std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
 
@@ -1170,21 +1216,6 @@ void OffMeshConnectionTool::CheckTentativeLink()
 						}
 					}
 
-					//// 仮リンク間の障害物をチェックする
-					//{
-					//	const auto& geom{ sample->getInputGeom() };
-					//	const float agent_height{ sample->getAgentHeight() };
-
-					//	InputGeom::RaycastMeshHitInfo hit_info{};
-
-					//	Point start{}, end{};
-
-					//	// 斜めに例を飛ばすなどがある
-					//	if (geom->RaycastMesh(start, end, &hit_info))
-					//	{
-					//		link.is_delete = true;
-					//	}
-					//}
 				}, exec::par);
 		}, exec::par);
 
@@ -1196,4 +1227,24 @@ void OffMeshConnectionTool::CheckTentativeLink()
 }
 
 void OffMeshConnectionTool::BuildLink()
-{}
+{
+	auto& geom{ sample->getInputGeom() };
+
+	if (!geom)	return;
+
+	// 以前に自動構築されたリンクを全削除する
+	geom->ClearAutoBuildOffMeshConnection();
+
+	for (const auto& edge : edges)
+	{
+		for (const auto& link : edge.links)
+		{
+			constexpr unsigned char area = SAMPLE_POLYAREA_JUMP;
+			constexpr unsigned short flags = SAMPLE_POLYFLAGS_JUMP;
+
+			// 実際に追加する
+			geom->addOffMeshConnection(
+				link.start.data(), link.end.data(), sample->getAgentRadius(), link.is_bidir, area, flags);
+		}
+	}
+}

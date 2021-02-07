@@ -79,7 +79,7 @@ private:
 	float auto_build_time_ms;
 
 	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point, draw_edge_point,
-		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis;
+		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis, draw_all;
 
 	bool is_buildable_height_limit; // 仮リンク間の「横跳び」を許容するか？
 	float horizontal_dis;// 構築可能な水平距離

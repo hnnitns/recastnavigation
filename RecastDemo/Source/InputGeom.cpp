@@ -302,16 +302,17 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 			if (m_offMeshConCount < MAX_OFFMESH_CONNECTIONS)
 			{
 				float* v = &m_offMeshConVerts[m_offMeshConCount * 3 * 2];
-				int bidir{}, area{}, flags{};
+				int bidir{}, area{}, flags{}, is_auto{};
 				float rad{};
 
-				sscanf_s(row.data() + 1, "%f %f %f  %f %f %f %f %d %d %d",
-					&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags);
+				sscanf_s(row.data() + 1, "%f %f %f  %f %f %f %f %d %d %d %d",
+					&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags, &is_auto);
 
 				m_offMeshConRads[m_offMeshConCount] = rad;
 				m_offMeshConDirs[m_offMeshConCount] = (unsigned char) bidir;
 				m_offMeshConAreas[m_offMeshConCount] = (unsigned char) area;
 				m_offMeshConFlags[m_offMeshConCount] = (unsigned short) flags;
+				off_mesh_con_auto[m_offMeshConCount] = (bool) is_auto;
 				m_offMeshConCount++;
 			}
 		}
@@ -526,9 +527,10 @@ bool InputGeom::SaveGeomSet(const BuildSettings* settings)
 		const int bidir = m_offMeshConDirs[i];
 		const int area = m_offMeshConAreas[i];
 		const int flags = m_offMeshConFlags[i];
+		const int is_auto = off_mesh_con_auto[i];
 
-		fprintf_s(fp, "c %f %f %f  %f %f %f  %f %d %d %d\n",
-			v[0], v[1], v[2], v[3], v[4], v[5], rad, bidir, area, flags);
+		fprintf_s(fp, "c %f %f %f  %f %f %f  %f %d %d %d %d\n",
+			v[0], v[1], v[2], v[3], v[4], v[5], rad, bidir, area, flags, is_auto);
 	}
 
 	// Convex volumes
@@ -883,7 +885,7 @@ std::deque<InputGeom::LoadGeomMesh>::iterator InputGeom::EraseSelectLoadGeomMesh
 }
 
 int InputGeom::addOffMeshConnection(const float* spos, const float* epos, const float rad,
-	unsigned char bidir, unsigned char area, unsigned short flags)
+	unsigned char bidir, unsigned char area, unsigned short flags, const bool is_auto_build)
 {
 	if (m_offMeshConCount >= MAX_OFFMESH_CONNECTIONS) return -1;
 	float* v = &m_offMeshConVerts[m_offMeshConCount * 3 * 2];
@@ -892,6 +894,7 @@ int InputGeom::addOffMeshConnection(const float* spos, const float* epos, const 
 	m_offMeshConAreas[m_offMeshConCount] = area;
 	m_offMeshConFlags[m_offMeshConCount] = flags;
 	m_offMeshConId[m_offMeshConCount] = 1000 + m_offMeshConCount;
+	off_mesh_con_auto[m_offMeshConCount] = is_auto_build;
 	rcVcopy(&v[0], spos);
 	rcVcopy(&v[3], epos);
 	m_offMeshConCount++;
@@ -913,6 +916,25 @@ void InputGeom::deleteOffMeshConnection(int i)
 	m_offMeshConDirs[i] = m_offMeshConDirs[m_offMeshConCount];
 	m_offMeshConAreas[i] = m_offMeshConAreas[m_offMeshConCount];
 	m_offMeshConFlags[i] = m_offMeshConFlags[m_offMeshConCount];
+	off_mesh_con_auto[i] = false;
+}
+
+void InputGeom::ClearOffMeshConnection()
+{
+	for (size_t i = 0; i < m_offMeshConCount; i++)
+	{
+		deleteOffMeshConnection(i);
+	}
+}
+
+void InputGeom::ClearAutoBuildOffMeshConnection()
+{
+	for (size_t i = 0; i < m_offMeshConCount; i++)
+	{
+		if (off_mesh_con_auto[i])	continue;
+
+		deleteOffMeshConnection(i);
+	}
 }
 
 void InputGeom::drawOffMeshConnections(duDebugDraw* dd, bool hilight)

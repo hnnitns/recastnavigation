@@ -24,6 +24,7 @@
 #include "Recast.h"
 #include <optional>
 #include <deque>
+#include <vector>
 
 constexpr int MAX_CONVEXVOL_PTS = 12;
 
@@ -194,7 +195,7 @@ private:
 
 	// @name Off-Mesh connections. // オフメッシュ接続。
 	//@{
-	static constexpr int MAX_OFFMESH_CONNECTIONS{ 256 };
+	static constexpr int MAX_OFFMESH_CONNECTIONS{ 32767 };
 
 	std::array<float, MAX_OFFMESH_CONNECTIONS * 3 * 2> m_offMeshConVerts{};
 	std::array<float, MAX_OFFMESH_CONNECTIONS> m_offMeshConRads{};
@@ -202,6 +203,7 @@ private:
 	std::array<uint8_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConAreas{};
 	std::array<uint16_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConFlags{};
 	std::array<uint32_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConId{};
+	std::array<bool, MAX_OFFMESH_CONNECTIONS> off_mesh_con_auto{};
 	int m_offMeshConCount;
 	//@}
 
@@ -264,8 +266,10 @@ public:
 	const auto& getOffMeshConnectionFlags() const noexcept { return m_offMeshConFlags; }
 	const auto& getOffMeshConnectionId() const noexcept { return m_offMeshConId; }
 	int addOffMeshConnection(const float* spos, const float* epos, const float rad,
-		unsigned char bidir, unsigned char area, unsigned short flags);
+		unsigned char bidir, unsigned char area, unsigned short flags, const bool is_auto_build = false);
 	void deleteOffMeshConnection(int i);
+	void ClearOffMeshConnection();
+	void ClearAutoBuildOffMeshConnection();
 	void drawOffMeshConnections(struct duDebugDraw* dd, bool hilight = false);
 	//@}
 

@@ -974,7 +974,6 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 	dd->depthMask(false);
 
 	dd->begin(DU_DRAW_TRIS);
-
 	for (int i = 0; i < m_volumeCount; ++i)
 	{
 		const ConvexVolume* vol = &m_volumes[i];
@@ -997,7 +996,6 @@ void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)
 			dd->vertex(vb[0], vol->hmin, vb[2], duDarkenCol(col));
 		}
 	}
-
 	dd->end();
 
 	dd->begin(DU_DRAW_LINES, 2.0f);

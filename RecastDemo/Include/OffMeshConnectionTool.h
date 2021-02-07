@@ -57,12 +57,22 @@ private:
 		std::vector<DivisionPoint> points;
 		std::vector<Link> links;
 	};
+	struct NotBuildArea final
+	{
+		static constexpr size_t MaxHitPoint{ 2u };
+
+		std::array<Point, 2> hit_points{};
+		int nhit_points{};
+		bool is_built{};
+		std::array<Point, 8> aabb_vertex{};
+		Point aabb_max{}, aabb_min{};
+	};
 
 private:
 	class Sample* sample;
 	class Sample_TempObstacles* obstacle_sample;
 
-	float hit_pos[3];
+	std::array<float, 3> hit_pos;
 	bool hit_pos_set;
 	bool m_bidir;
 	unsigned char m_oldFlags;
@@ -83,12 +93,10 @@ private:
 	float	max_builable_height; // ‰¼ƒŠƒ“ƒN‚Ì\’z‚ğ‹–—e‚Å‚«‚éÅ‘å‚Ì‚‚³
 	std::vector<NavMeshEdge> edges;
 
-	static constexpr size_t MaxPts{ 2 };
-	std::array<float, MaxPts * 3> m_pts;
-	int m_npts;
-	std::array<int, MaxPts> m_hull;
-	int m_nhull;
-	float m_boxDescent, m_boxHeight, m_polyOffset;
+	std::vector<NotBuildArea> not_build_areas;
+	float box_descent; // ” ‚Ì‰º•”‚Ì‚‚³
+	float box_height;  // ” ‚Ìã•”‚Ì‚‚³
+	bool is_not_build_area;
 
 public:
 	OffMeshConnectionTool();

@@ -997,12 +997,14 @@ void OffMeshConnectionTool::CalcEdgeDivision()
 
 				InputGeom::RaycastMeshHitInfo hit_info_top{}, hit_info_bottom{};
 
+				// 高さの調整をする際にレイで確認する
 				const bool hit_mesh_top
 				{ geom->RaycastMesh(point.height_point, point.base_point, &hit_info_top) },
 					hit_mesh_bottom{ geom->RaycastMesh(point.base_point, point.height_point, &hit_info_bottom) };
 
 				constexpr float AdjYDis{ 0.25f };
 
+				// ヒットポイントに位置を調整する
 				if (hit_mesh_bottom)
 				{
 					point.height_point = hit_info_bottom.pos;

@@ -132,7 +132,7 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	horizontal_dis(5.f), vertical_dis(7.5f), divistion_dis(0.5f), link_end_error_dis(0.2f),
 	orthognal_error_dis(0.5f), link_equal_error_dis(0.25f), climbable_height(0.5f),
 	min_buildable_height(0.5f), hit_pos(), box_descent(0.25f), box_height(5.f), is_not_build_area(),
-	draw_all(true), max_start_link_error(0.2), max_end_link_error(0.2f)
+	draw_all(true), max_start_link_error(0.2f), max_end_link_error(0.2f), box_nonbuild_dis(1.2f)
 {}
 
 OffMeshConnectionTool::~OffMeshConnectionTool()
@@ -177,7 +177,7 @@ void OffMeshConnectionTool::handleMenu()
 
 	imguiValue("Auto OffMeshLink");
 
-	imguiSlider("climbable_height", &climbable_height, 0.1f, 7.5f, 0.1f);
+	imguiSlider("climbable_height", &climbable_height, 0.1f, 10.f, 0.1f);
 	imguiSlider("horizontal_dis", &horizontal_dis, 0.1f, 25.f, 0.1f);
 	imguiSlider("vertical_dis", &vertical_dis, 0.1f, 25.f, 0.1f);
 	imguiSlider("divistion_dis", &divistion_dis, sample->getAgentRadius(), 5.f, 0.1f);
@@ -198,9 +198,13 @@ void OffMeshConnectionTool::handleMenu()
 		}
 	}
 
-	// 自動生成
-	if (imguiButton("Link Build"))
-		AutoLinksBuild();
+	// 仮リンクの自動生成
+	if (imguiButton("Tentative Link Build"))
+		AutoTentativeLinksBuild();
+
+	if (!edges.empty() && imguiButton("Link Build"))
+		BuildLink();
+
 	// 削除
 	if (imguiButton("Link Clear"))
 		edges.clear();
@@ -214,6 +218,7 @@ void OffMeshConnectionTool::handleMenu()
 		{
 			imguiSlider("box_descent", &box_descent, 0.1f, 10.f, 0.1f);
 			imguiSlider("box_height", &box_height, 0.1f, 10.f, 0.1f);
+			imguiSlider("box_nonbuild_dis", &box_nonbuild_dis, 0.1f, 5.f, 0.1f);
 
 			if (imguiButton("All Clear"))
 			{
@@ -282,8 +287,14 @@ void OffMeshConnectionTool::handleMenu()
 
 			// 自動生成されたリンクの総数
 			{
-				const size_t accumulate{ NormalAlgorithm::Accumulate(edges, 0u,
-					[](const size_t i, const NavMeshEdge& edge) { return i + edge.links.size(); }) };
+				static size_t temp{};
+				size_t accumulate{};
+
+				if (temp != accumulate)
+				{
+					accumulate = NormalAlgorithm::Accumulate(edges, 0u,
+						[](const size_t i, const NavMeshEdge& edge) { return i + edge.links.size(); });
+				}
 
 				text = "auto Link size: ";
 				text += std::to_string(accumulate);
@@ -378,8 +389,8 @@ void OffMeshConnectionTool::handleClickDown(const float* s, const float* p, bool
 					// 最後のポイントをクリックすると、形状が確定する
 					if (rcVdistSqr(p, area.hit_points[area.nhit_points].data()) < rcSqr(0.2f))
 					{
-						not_build_areas.emplace_back();
-						area.is_built = true;
+						area.is_built = true; // 構築済み
+						not_build_areas.emplace_back(); // 次のエリアを追加
 					}
 					else
 					{
@@ -398,6 +409,11 @@ void OffMeshConnectionTool::handleClickDown(const float* s, const float* p, bool
 
 							area.aabb_max[1] += box_height;
 							area.aabb_min[1] -= box_descent;
+
+							const Point dis{ box_nonbuild_dis, 0.f, box_nonbuild_dis };
+
+							area.nonbuild_area_max = area.aabb_max + dis;
+							area.nonbuild_area_min = area.aabb_min - dis;
 						}
 
 						// 各頂点を計算
@@ -713,12 +729,12 @@ void OffMeshConnectionTool::handleRender()
 			if (area.nhit_points > 0)
 			{
 				dd.begin(DU_DRAW_POINTS, 4.0f);
-				for (int i = 0; i < area.hit_points.size(); ++i)
+				for (size_t i = 0; i < area.hit_points.size(); ++i)
 				{
 					const Point& point{ area.hit_points[i] };
 					unsigned int col = duRGBA(255, 255, 255, 255);
 
-					if (i == NotBuildArea::MaxHitPoint - 1 && !area.is_built)
+					if (i == NotBuildArea::MaxHitPoint - 1u && !area.is_built)
 						col = duRGBA(240, 32, 16, 255);
 
 					dd.vertex(point.front(), point[1] + 0.1f, point.back(), col);
@@ -767,7 +783,7 @@ void OffMeshConnectionTool::handleRender()
 			const auto& vertex{ area.aabb_vertex };
 
 			auto VertexFunc{ [&dd](const Point& point, const UINT32 color)
-				{ dd.vertex(point.front(), point[1], point.back(), color); } };
+				{ dd.vertex(point.data(), color); } };
 
 			dd.begin(DU_DRAW_TRIS);
 			{
@@ -801,25 +817,45 @@ void OffMeshConnectionTool::handleRender()
 
 			dd.begin(DU_DRAW_LINES, 2.0f);
 			{
-				constexpr UINT32 col{ duTransCol(BaseColor, 200) };
+				// 簡易ワイヤーフレーム
+				{
+					constexpr UINT32 col{ duTransCol(BaseColor, 200) };
 
-				// X
-				VertexFunc(vertex[0], col); VertexFunc(vertex[3], col);
-				VertexFunc(vertex[1], col); VertexFunc(vertex[2], col);
-				VertexFunc(vertex[4], col); VertexFunc(vertex[7], col);
-				VertexFunc(vertex[5], col); VertexFunc(vertex[6], col);
+					// X
+					VertexFunc(vertex[0], col); VertexFunc(vertex[3], col);
+					VertexFunc(vertex[1], col); VertexFunc(vertex[2], col);
+					VertexFunc(vertex[4], col); VertexFunc(vertex[7], col);
+					VertexFunc(vertex[5], col); VertexFunc(vertex[6], col);
 
-				// Y
-				VertexFunc(vertex[0], col); VertexFunc(vertex[4], col);
-				VertexFunc(vertex[1], col); VertexFunc(vertex[5], col);
-				VertexFunc(vertex[2], col); VertexFunc(vertex[6], col);
-				VertexFunc(vertex[3], col); VertexFunc(vertex[7], col);
+					// Y
+					VertexFunc(vertex[0], col); VertexFunc(vertex[4], col);
+					VertexFunc(vertex[1], col); VertexFunc(vertex[5], col);
+					VertexFunc(vertex[2], col); VertexFunc(vertex[6], col);
+					VertexFunc(vertex[3], col); VertexFunc(vertex[7], col);
 
-				// Z
-				VertexFunc(vertex[0], col); VertexFunc(vertex[1], col);
-				VertexFunc(vertex[3], col); VertexFunc(vertex[2], col);
-				VertexFunc(vertex[4], col); VertexFunc(vertex[5], col);
-				VertexFunc(vertex[7], col); VertexFunc(vertex[6], col);
+					// Z
+					VertexFunc(vertex[0], col); VertexFunc(vertex[1], col);
+					VertexFunc(vertex[3], col); VertexFunc(vertex[2], col);
+					VertexFunc(vertex[4], col); VertexFunc(vertex[5], col);
+					VertexFunc(vertex[7], col); VertexFunc(vertex[6], col);
+				}
+
+				// 構築不可エリア
+				{
+					constexpr UINT32 col{ duRGBA(50, 50, 50, 150) };
+
+					const Point& max{ area.nonbuild_area_max }, min{ area.nonbuild_area_min };
+					const float pos_y{ (min[1] + max[1]) / 2.f };
+					const Point&& l_top{ min.front(), pos_y, max.back() },
+						l_bottom{ min.front(), pos_y, min.back() },
+						r_top{ max.front(), pos_y, max.back() },
+						r_bottom{ max.front(), pos_y, min.back() };
+
+					VertexFunc(l_bottom, col); VertexFunc(l_top, col);    // 左
+					VertexFunc(l_top, col); VertexFunc(r_top, col);       // 上
+					VertexFunc(r_top, col); VertexFunc(r_bottom, col);    // 右
+					VertexFunc(r_bottom, col); VertexFunc(l_bottom, col); // 下
+				}
 			}
 			dd.end();
 
@@ -862,7 +898,7 @@ void OffMeshConnectionTool::handleRenderOverlay(double* proj, double* model, int
 	}
 }
 
-void OffMeshConnectionTool::AutoLinksBuild()
+void OffMeshConnectionTool::AutoTentativeLinksBuild()
 {
 	auto* ctx{ sample->GetContext() };
 
@@ -882,9 +918,6 @@ void OffMeshConnectionTool::AutoLinksBuild()
 
 	// 決定した仮リンクに調整・修正
 	CheckTentativeLink();
-
-	// OffMesh Linkを作成する
-	BuildLink();
 
 	// タイマー計測終了
 	ctx->stopTimer(RC_TIMER_TEMP);
@@ -1092,6 +1125,19 @@ void OffMeshConnectionTool::CalcTentativeLink()
 							if (!geom->RaycastMesh(start, end, &hit_info))	continue;
 						}
 
+						// 自動構築不可エリアとの判定
+						{
+							auto NotBuildAreaFunc{ [&hit_info](const NotBuildArea& area)
+							{
+									// 構築されていて、ヒットポイントがエリア外に存在
+									return (area.is_built && IsPointInsideAABB(
+										hit_info.pos, area.nonbuild_area_min, area.nonbuild_area_max));
+								} };
+
+							// 自動構築不可エリアにヒットポイントが存在する
+							if (Any_Of(not_build_areas, NotBuildAreaFunc, exec::par))	continue;
+						}
+
 						Point nearest_pos{};
 
 						// ナビメッシュとの判定
@@ -1114,18 +1160,6 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 							// 地形のヒットポイントとナビメッシュのヒットポイントの距離が遠い
 							if (rcVdistSqr(nearest_pos, hit_info.pos) > error_dis_sqr) continue;
-						}
-
-						// 自動構築不可エリアとの判定
-						{
-							auto NotBuildAreaFunc{ [&hit_info](const NotBuildArea& area)
-							{
-								return (area.is_built &&
-									IsPointInsideAABB(hit_info.pos, area.aabb_min, area.aabb_max));
-							} };
-
-							// 自動構築不可エリアにヒットポイントが存在する
-							if (Any_Of(not_build_areas, NotBuildAreaFunc, exec::par))	continue;
 						}
 
 						// 仮リンクを構築する
@@ -1163,7 +1197,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 			// 終了
 			if (i + 1u > length)	return;
 
-			std::for_each(exec::par, std::next(edges.begin(), +i + 1u), edges.end(),
+			std::for_each(exec::par, std::next(edges.begin(), i + 1u), edges.end(),
 				[&base, this, &mt](NavMeshEdge& other)
 				{
 					For_Each(base.links, [this, &other, &mt](NavMeshEdge::Link& base_link)
@@ -1187,7 +1221,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 							// 発見したので削除予定に追加
 							if (itr != other.links.end())
 							{
-								std::lock_guard<std::mutex> lg{ mt };
+								std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
 
 								base_link.is_delete = true; // 削除
 								itr->is_bidir = true; // 削除しない側を双方向通行に設定
@@ -1204,7 +1238,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 		// 終了
 		if (i + 1u > length)	break;
 
-		std::for_each(exec::par, std::next(edges.begin(), +i + 1u), edges.end(),
+		std::for_each(exec::par, std::next(edges.begin(), i + 1u), edges.end(),
 			[&base, this, &mt](NavMeshEdge& other)
 			{
 				For_Each(base.links, [this, &other, &mt](NavMeshEdge::Link& base_link)
@@ -1257,7 +1291,6 @@ void OffMeshConnectionTool::CheckTentativeLink()
 							link.is_delete = true;
 						}
 					}
-
 				}, exec::par);
 		}, exec::par);
 

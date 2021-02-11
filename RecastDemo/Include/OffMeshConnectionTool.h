@@ -65,7 +65,7 @@ private:
 		int nhit_points{};
 		bool is_built{};
 		std::array<Point, 8> aabb_vertex{};
-		Point aabb_max{}, aabb_min{};
+		Point aabb_max{}, aabb_min{}, nonbuild_area_max{}, nonbuild_area_min{};
 	};
 
 private:
@@ -98,6 +98,7 @@ private:
 	std::vector<NotBuildArea> not_build_areas;
 	float box_descent; // ” ‚Ì‰º•”‚Ì‚‚³
 	float box_height;  // ” ‚Ìã•”‚Ì‚‚³
+	float box_nonbuild_dis; // ” ‚©‚ç\’z•s‰Â‚Ì’·‚³
 	bool is_not_build_area;
 
 public:
@@ -118,7 +119,7 @@ public:
 	virtual void handleRenderOverlay(double* proj, double* model, int* view);
 
 private:
-	void AutoLinksBuild();
+	void AutoTentativeLinksBuild();
 	void CalcNavMeshEdges();
 	void CalcEdgeDivision();
 	void CalcTentativeLink();

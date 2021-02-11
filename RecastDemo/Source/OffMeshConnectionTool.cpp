@@ -1279,8 +1279,19 @@ void OffMeshConnectionTool::CheckTentativeLink()
 					// 既に削除済み
 					if (link.is_delete)	return;
 
+					// TempObstacleを貫通しているリンクを削除
+					if (obstacle_sample)
+					{
+						const auto
+							&&ref1{ obstacle_sample->HitTestObstacle(link.start.data(), link.end.data()) },
+							&&ref2{ obstacle_sample->HitTestObstacle(link.end.data(), link.start.data()) };
+
+						// 下から上方向だと反応しないので、念の為双方向で確認している
+						if (ref1 + ref2 != 0) link.is_delete = true;
+					}
+
 					// 「横跳びリンク」を削除
-					if (is_buildable_height_limit)
+					if (is_buildable_height_limit && !link.is_delete)
 					{
 						const float div_buildable_height{ min_buildable_height / 2.f };
 

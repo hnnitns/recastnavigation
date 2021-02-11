@@ -1374,7 +1374,7 @@ dtStatus Sample_TempObstacles::buildTileMesh(const int tx, const int ty)
 
 dtObstacleRef Sample_TempObstacles::HitTestObstacle(const float* sp, const float* sq) const
 {
-	if (!m_tileCache) return (std::numeric_limits<uint32_t>::max)();
+	if (!m_tileCache) return 0;
 
 	return hitTestObstacle(m_tileCache, sp, sq);
 }

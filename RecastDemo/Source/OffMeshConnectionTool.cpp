@@ -132,7 +132,8 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	horizontal_dis(5.f), vertical_dis(7.5f), divistion_dis(0.5f), link_end_error_dis(0.2f),
 	orthognal_error_dis(0.5f), link_equal_error_dis(0.25f), climbable_height(0.5f),
 	min_buildable_height(0.5f), hit_pos(), box_descent(0.25f), box_height(5.f), is_not_build_area(),
-	draw_all(true), max_start_link_error(0.2f), max_end_link_error(0.2f), box_nonbuild_dis(1.2f)
+	draw_all(true), max_start_link_error(0.2f), max_end_link_error(0.2f), box_nonbuild_dis(1.2f),
+	limit_link_angle(90.f)
 {}
 
 OffMeshConnectionTool::~OffMeshConnectionTool()
@@ -186,6 +187,9 @@ void OffMeshConnectionTool::handleMenu()
 	imguiSlider("link_equal_error_dis", &link_equal_error_dis, 0.01f, 1.f, 0.01f);
 	imguiSlider("max_start_link_error", &max_start_link_error, 0.1f, 1.f, 0.1f);
 	imguiSlider("max_end_link_error", &max_end_link_error, 0.1f, 1.f, 0.1f);
+	limit_link_angle = Math::ToDegree(limit_link_angle);
+	imguiSlider("limit_link_angle", &limit_link_angle, 0.f, 90.f, 0.1f); // 90°より上は絶対にアリエナイ
+	limit_link_angle = Math::ToRadian(limit_link_angle);
 
 	// 「横跳びリンク」に制限を設けるか？
 	{
@@ -1272,38 +1276,47 @@ void OffMeshConnectionTool::CheckTentativeLink()
 	}
 #endif
 
-	For_Each(edges, [this](NavMeshEdge& edge)
-		{
-			For_Each(edge.links, [this](NavMeshEdge::Link& link)
+	auto CheckFunc{ [this](NavMeshEdge::Link& link)
+	{
+			if (link.is_delete)	return; // 既に削除済み
+
+			// TempObstacleを貫通しているリンクを削除
+			if (obstacle_sample)
+			{
+				const auto&& ref1{ obstacle_sample->HitTestObstacle(link.start.data(), link.end.data()) },
+					&& ref2{ obstacle_sample->HitTestObstacle(link.end.data(), link.start.data()) };
+
+				// 下から上方向だと反応しないので、念の為双方向で確認している
+				if (ref1 + ref2 != 0) link.is_delete = true;
+			}
+
+			if (link.is_delete)	return; // 既に削除済み
+
+			// 「横跳びリンク」を削除
+			if (is_buildable_height_limit)
+			{
+				const float div_buildable_height{ min_buildable_height / 2.f };
+
+				if (Math::IsBetweenNumber(
+					link.end[1] - div_buildable_height, link.end[1] + div_buildable_height,
+					link.start[1]))
 				{
-					// 既に削除済み
-					if (link.is_delete)	return;
+					link.is_delete = true;
+				}
+			}
 
-					// TempObstacleを貫通しているリンクを削除
-					if (obstacle_sample)
-					{
-						const auto
-							&&ref1{ obstacle_sample->HitTestObstacle(link.start.data(), link.end.data()) },
-							&&ref2{ obstacle_sample->HitTestObstacle(link.end.data(), link.start.data()) };
+			if (link.is_delete)	return; // 既に削除済み
 
-						// 下から上方向だと反応しないので、念の為双方向で確認している
-						if (ref1 + ref2 != 0) link.is_delete = true;
-					}
+			// リンクの始点・終点のナビメッシュエッジの角度に制限を設ける
+			if (!Math::AdjEqual(limit_link_angle, 0.f)) // 0°は全て削除してしまうので無視する
+			{
 
-					// 「横跳びリンク」を削除
-					if (is_buildable_height_limit && !link.is_delete)
-					{
-						const float div_buildable_height{ min_buildable_height / 2.f };
+			}
+		} };
 
-						if (Math::IsBetweenNumber(
-							link.end[1] - div_buildable_height, link.end[1] + div_buildable_height,
-							link.start[1]))
-						{
-							link.is_delete = true;
-						}
-					}
-				}, exec::par);
-		}, exec::par);
+	// 全ループ
+	For_Each(edges, [&CheckFunc](NavMeshEdge& edge)
+		{ For_Each(edge.links, CheckFunc, exec::par); }, exec::par);
 
 	// 余分な仮リンクを削除する
 	For_Each(edges, [](NavMeshEdge& edge)

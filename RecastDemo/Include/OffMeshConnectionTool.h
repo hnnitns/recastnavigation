@@ -93,6 +93,7 @@ private:
 	float	max_builable_height;      // 仮リンクの構築を許容できる最大の高さ
 	float max_start_link_error;     // 始点をエッジからどれだけ離すか
 	float max_end_link_error;       // 終点をエッジからどれだけ離すか
+	float limit_link_angle;         // リンクの始点・終点のナビメッシュエッジの制限角度
 	std::vector<NavMeshEdge> edges;
 
 	std::vector<NotBuildArea> not_build_areas;

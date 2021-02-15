@@ -42,6 +42,7 @@
 #include "OtherFiles\\XMFLOAT_Helper.hpp"
 #include "OtherFiles\\DirectXMathAlias.hpp"
 #include "OtherFiles\\XMFLOAT_Math.hpp"
+#include "OtherFiles\\Array_Hlper.hpp"
 
 #ifdef WIN32
 #	define snprintf _snprintf
@@ -129,11 +130,7 @@ OffMeshConnectionTool::OffMeshConnectionTool() :
 	draw_links_arrow(true), draw_tentative_link(true), draw_horizontal_point(true),
 	draw_edge_point(true), draw_division_point(true), draw_end_point(true),
 	draw_navmesh_nearest_point(true), draw_error_dis(false), is_buildable_height_limit(true),
-	horizontal_dis(5.f), vertical_dis(7.5f), divistion_dis(0.5f), link_end_error_dis(0.2f),
-	orthognal_error_dis(0.5f), link_equal_error_dis(0.25f), climbable_height(0.5f),
-	min_buildable_height(0.5f), hit_pos(), box_descent(0.25f), box_height(5.f), is_not_build_area(),
-	draw_all(true), max_start_link_error(0.2f), max_end_link_error(0.2f), box_nonbuild_dis(1.2f),
-	limit_link_angle(90.f)
+	hit_pos(), draw_all(true)
 {}
 
 OffMeshConnectionTool::~OffMeshConnectionTool()
@@ -190,6 +187,9 @@ void OffMeshConnectionTool::handleMenu()
 	limit_link_angle = Math::ToDegree(limit_link_angle);
 	imguiSlider("limit_link_angle", &limit_link_angle, 0.f, 90.f, 0.1f); // 90°より上は絶対にアリエナイ
 	limit_link_angle = Math::ToRadian(limit_link_angle);
+	imguiSlider("max_link_end_edge_dis", &max_link_end_edge_dis, 0.1f, 1.f, 0.1f);
+
+	imguiValue("        ");
 
 	// 「横跳びリンク」に制限を設けるか？
 	{
@@ -202,6 +202,8 @@ void OffMeshConnectionTool::handleMenu()
 		}
 	}
 
+	imguiValue("        ");
+
 	// 仮リンクの自動生成
 	if (imguiButton("Tentative Link Build"))
 		AutoTentativeLinksBuild();
@@ -209,16 +211,21 @@ void OffMeshConnectionTool::handleMenu()
 	if (!edges.empty() && imguiButton("Link Build"))
 		BuildLink();
 
+	if (imguiButton("ClearBuiltAutoLink"))
+		ClearBuiltAutoLink();
+
 	// 削除
 	if (imguiButton("Link Clear"))
 		edges.clear();
 
+	imguiValue("        ");
+
 	// 自動構築不可エリア設定
 	{
-		if (imguiCheck("Not Build Area", is_not_build_area))
-			is_not_build_area ^= true;
+		if (imguiCheck("Not Build Area", is_non_build_area))
+			is_non_build_area ^= true;
 
-		if (is_not_build_area)
+		if (is_non_build_area)
 		{
 			imguiSlider("box_descent", &box_descent, 0.1f, 10.f, 0.1f);
 			imguiSlider("box_height", &box_height, 0.1f, 10.f, 0.1f);
@@ -230,6 +237,8 @@ void OffMeshConnectionTool::handleMenu()
 			}
 		}
 	}
+
+	imguiValue("        ");
 
 	if (imguiCheck("All Draw", draw_all))
 		draw_all ^= true;
@@ -272,6 +281,8 @@ void OffMeshConnectionTool::handleMenu()
 				draw_error_dis ^= true;
 		}
 
+		imguiValue("        ");
+
 		{
 			std::string text{ "build_time: " };
 
@@ -291,7 +302,7 @@ void OffMeshConnectionTool::handleMenu()
 
 			// 自動生成されたリンクの総数
 			{
-				static size_t temp{};
+				static size_t temp{ (std::numeric_limits<size_t>::max)() };
 				size_t accumulate{};
 
 				if (temp != accumulate)
@@ -319,7 +330,7 @@ void OffMeshConnectionTool::handleClickDown(const float* s, const float* p, bool
 	if (shift)
 	{
 		// 構築不可エリア
-		if (is_not_build_area)
+		if (is_non_build_area)
 		{
 			// Delete
 			int nearestIndex{ -1 };
@@ -377,7 +388,7 @@ void OffMeshConnectionTool::handleClickDown(const float* s, const float* p, bool
 	else
 	{
 		// 構築不可エリア
-		if (is_not_build_area)
+		if (is_non_build_area)
 		{
 			// 追加する
 			if (not_build_areas.empty())	not_build_areas.emplace_back();
@@ -677,6 +688,21 @@ void OffMeshConnectionTool::handleRender()
 						0.35f, link.is_bidir ? 0.6f : 0.f, 0.6f, ArrowColor);
 				}
 			}
+
+			for (const auto& link : edge.links)
+			{
+				if (!link.end_edge)	continue;
+
+				if (link.end_edge_dist <= max_link_end_edge_dis)	continue;
+
+				constexpr UINT32 Color{ duRGBAf(0.5f, 0.5f, 0.5f, 0.8f) };
+
+				const auto* end_edge{ link.end_edge };
+				const Point&& middle_pos{ MiddlePoint(end_edge->start, end_edge->end) };
+
+				duAppendArrow(&dd, link.end.front(), link.end[1], link.end.back(),
+					middle_pos.front(), middle_pos[1], middle_pos.back(), 0.4f, 0.4f, Color);
+			}
 		}
 		dd.end();
 
@@ -882,23 +908,60 @@ void OffMeshConnectionTool::handleRender()
 void OffMeshConnectionTool::handleRenderOverlay(double* proj, double* model, int* view)
 {
 	GLdouble x, y, z;
-
-	// Draw start and end point labels
-	if (hit_pos_set && gluProject((GLdouble) hit_pos[0], (GLdouble) hit_pos[1], (GLdouble) hit_pos[2],
-		model, proj, view, &x, &y, &z))
-	{
-		imguiDrawText((int) x, (int) (y - 25), IMGUI_ALIGN_CENTER, "Start", imguiRGBA(0, 0, 0, 220));
-	}
-
-	// Tool help
 	const int h = view[3];
-	if (!hit_pos_set)
+
+	if (!is_non_build_area)
 	{
-		imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Create new connection.  SHIFT+LMB: Delete existing connection, click close to start or end point.", imguiRGBA(255, 255, 255, 192));
+		// Draw start and end point labels
+		if (hit_pos_set && gluProject((GLdouble) hit_pos[0], (GLdouble) hit_pos[1], (GLdouble) hit_pos[2],
+			model, proj, view, &x, &y, &z))
+		{
+			imguiDrawText((int) x, (int) (y - 25), IMGUI_ALIGN_CENTER, "Start", imguiRGBA(0, 0, 0, 220));
+		}
+
+		// Tool help
+		if (!hit_pos_set)
+		{
+			imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Create new connection.  SHIFT+LMB: Delete existing connection, click close to start or end point.", imguiRGBA(255, 255, 255, 192));
+		}
+		else
+		{
+			imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Set connection end point and finish.", imguiRGBA(255, 255, 255, 192));
+		}
 	}
 	else
 	{
-		imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Set connection end point and finish.", imguiRGBA(255, 255, 255, 192));
+		if (not_build_areas.empty() || not_build_areas.back().nhit_points == 0)
+		{
+			imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "LMB: Create new shape.  SHIFT+LMB: Delete existing shape (click inside a shape).", imguiRGBA(255, 255, 255, 192));
+		}
+		else
+		{
+			imguiDrawText(280, h - 40, IMGUI_ALIGN_LEFT, "Click LMB to add end points. Click on the red point to finish the shape.", imguiRGBA(255, 255, 255, 192));
+		}
+	}
+
+	for (auto& edge : edges)
+	{
+		for (auto& link : edge.links)
+		{
+			if (!link.end_edge)	continue;
+
+			if (link.end_edge_dist <= max_link_end_edge_dis)	continue;
+
+			if (gluProject((GLdouble) link.end[0], (GLdouble) link.end[1], (GLdouble) link.end[2],
+				model, proj, view, &x, &y, &z))
+			{
+				std::string str;
+
+				str += "dist: ";
+				str += std::to_string(link.end_edge_dist);
+				str += ", angle: ";
+				str += std::to_string(link.end_edge_angle);
+
+				imguiDrawText(x, y, IMGUI_ALIGN_LEFT, str.data(), imguiRGBA(255, 255, 255, 255));
+			}
+		}
 	}
 }
 
@@ -1142,7 +1205,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 							if (Any_Of(not_build_areas, NotBuildAreaFunc, exec::par))	continue;
 						}
 
-						Point nearest_pos{};
+						Point navmesh_pos{};
 
 						// ナビメッシュとの判定
 						{
@@ -1152,10 +1215,10 @@ void OffMeshConnectionTool::CalcTentativeLink()
 
 							// ナビメッシュとの判定
 							const auto status{ navmesh_query->findNearestPoly(hit_info.pos.data(),
-								HalfExtents.data(), &filter, &ref, nearest_pos.data()) };
+								HalfExtents.data(), &filter, &ref, navmesh_pos.data()) };
 
 							// ナビメッシュ状に垂直上のポイントが存在しない
-							if (dtStatusFailed(status) || ref == 0 || nearest_pos == Zero)	continue;
+							if (dtStatusFailed(status) || ref == 0 || navmesh_pos == Zero)	continue;
 						}
 
 						// ヒットポイントを修正
@@ -1163,7 +1226,7 @@ void OffMeshConnectionTool::CalcTentativeLink()
 							const float error_dis_sqr{ link_end_error_dis * link_end_error_dis };
 
 							// 地形のヒットポイントとナビメッシュのヒットポイントの距離が遠い
-							if (rcVdistSqr(nearest_pos, hit_info.pos) > error_dis_sqr) continue;
+							if (rcVdistSqr(navmesh_pos, hit_info.pos) > error_dis_sqr) continue;
 						}
 
 						// 仮リンクを構築する
@@ -1171,10 +1234,15 @@ void OffMeshConnectionTool::CalcTentativeLink()
 							std::lock_guard<std::mutex> lg{ mt }; // 競合阻止
 
 							const Point&& start{ point.base_point + (edge.orthogonal_vec * -max_start_link_error) },
-								&& end{ hit_info.pos + (edge.orthogonal_vec * max_end_link_error) };
+								& end{ hit_info.pos };
 
 							// OffMesh Linkの始点と終点を確定
-							edge.links.emplace_back(start, end, nearest_pos, horizontal_point);
+							auto& link{ edge.links.emplace_back() };
+
+							link.start = start;
+							link.end = navmesh_pos;
+							link.nearest_pos = end;
+							link.horizontal_pos = horizontal_point;
 						}
 
 						break; // 構築終了
@@ -1270,15 +1338,68 @@ void OffMeshConnectionTool::CheckTentativeLink()
 
 							base_link.is_delete = true; // 削除
 							itr->is_bidir = true; // 削除しない側を双方向通行に設定
-						}
+							}
 					}, exec::par);
 			});
 	}
 #endif
 
-	auto CheckFunc{ [this](NavMeshEdge::Link& link)
+	auto CheckEdgeFunc{ [this](NavMeshEdge& edge)
 	{
+		For_Each(edge.links,  [this, &edge](NavMeshEdge::Link& link)
+		{
 			if (link.is_delete)	return; // 既に削除済み
+
+			// 双方向通行の時だけ少し終点をナビメッシュ側にずらす
+			{
+				using DivPoint = NavMeshEdge::DivisionPoint;
+
+				auto FindShortestPoint{ [&link](const DivPoint& l_point, const DivPoint& r_point)
+				{
+					return (rcVdistSqr(link.end, l_point.base_point) <
+						rcVdistSqr(link.end, r_point.base_point));
+				} };
+
+				auto FindShortestEdge{ [&link]	(const NavMeshEdge& left, const NavMeshEdge& right)
+				{
+					// 大体でOK
+					const float left_dist{ rcVdistSqr(link.end, MiddlePoint(left.start, left.end)) },
+						right_dist{ rcVdistSqr(link.end, MiddlePoint(right.start, right.end)) };
+
+					return (left_dist < right_dist);
+				} };
+
+				auto&& itr{ Min_Element(edges, FindShortestEdge, exec::par) };
+
+				if (itr != edges.end())
+				{
+					//link.end_edge = ToArray(MiddlePoint(ToXMFLOAT(itr->start), ToXMFLOAT(itr->end)));
+					link.end_edge = &*itr;
+
+					auto&& point_itr{ Min_Element(itr->points, FindShortestPoint, exec::par) };
+
+					if (point_itr == itr->points.end())
+					{
+						link.end_edge = nullptr;
+					}
+					else
+					{
+						// リンクの終点と終点に最も近いエッジ間の最短距離
+						const float dist{ rcVdist(point_itr->base_point, link.end) };
+
+						const VF3&& vec1{ ToXMFLOAT(edge.orthogonal_vec) }, && vec2{ ToXMFLOAT(itr->orthogonal_vec) };
+						const float between_angle{ AngleBetweenVectors(vec1, vec2) }; // ベクトル間の角度
+
+						link.end_edge_dist = dist;
+						link.end_edge_angle = between_angle;
+
+						if (dist < max_link_end_edge_dis)
+							link.end += (itr->orthogonal_vec * -max_end_link_error);
+						//else
+						//	link.end_edge = nullptr;
+					}
+				}
+			}
 
 			// TempObstacleを貫通しているリンクを削除
 			if (obstacle_sample)
@@ -1310,13 +1431,23 @@ void OffMeshConnectionTool::CheckTentativeLink()
 			// リンクの始点・終点のナビメッシュエッジの角度に制限を設ける
 			if (!Math::AdjEqual(limit_link_angle, 0.f)) // 0°は全て削除してしまうので無視する
 			{
+				if (link.end_edge_dist < max_link_end_edge_dis)
+				{
+					constexpr float Pai{ Math::PAI<float> };
 
+					// 始点・終点のナビエッジが指定値以上向かい合っていない
+					if (::fabsf(link.end_edge_angle) < Pai - limit_link_angle ||
+						::fabsf(link.end_edge_angle) > Pai + limit_link_angle)
+					{
+						link.is_delete = true;
+					}
+				}
 			}
-		} };
+		}, exec::par);
+	} };
 
 	// 全ループ
-	For_Each(edges, [&CheckFunc](NavMeshEdge& edge)
-		{ For_Each(edge.links, CheckFunc, exec::par); }, exec::par);
+	For_Each(edges, CheckEdgeFunc, exec::par);
 
 	// 余分な仮リンクを削除する
 	For_Each(edges, [](NavMeshEdge& edge)
@@ -1346,4 +1477,14 @@ void OffMeshConnectionTool::BuildLink()
 				link.start.data(), link.end.data(), sample->getAgentRadius(), link.is_bidir, area, flags);
 		}
 	}
+}
+
+void OffMeshConnectionTool::ClearBuiltAutoLink()
+{
+	auto& geom{ sample->getInputGeom() };
+
+	if (!geom)	return;
+
+	// 以前に自動構築されたリンクを全削除する
+	geom->ClearAutoBuildOffMeshConnection();
 }

@@ -44,7 +44,7 @@ private:
 			Point nearest_pos{}/*垂直上のポイントに最も近い点*/, horizontal_pos{}/*水平上のポイント*/;
 			bool is_delete{}, is_bidir{};
 			float end_edge_dist{}, end_edge_angle{};
-			NavMeshEdge* end_edge{};
+			NavMeshEdge* end_edge{}, * base_edge{};
 		};
 		struct DivisionPoint final
 		{

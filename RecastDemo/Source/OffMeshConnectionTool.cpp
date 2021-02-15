@@ -1357,8 +1357,6 @@ void OffMeshConnectionTool::CheckTentativeLink()
 
 			// 双方向通行の時だけ少し終点をナビメッシュ側にずらす
 			{
-				using DivPoint = NavMeshEdge::DivisionPoint;
-
 				auto ShortDistanceFunc{ [](const Point& line_point1, const Point& line_point2,
 					const Point& point)
 				{

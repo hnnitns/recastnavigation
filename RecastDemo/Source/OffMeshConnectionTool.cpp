@@ -187,9 +187,13 @@ void OffMeshConnectionTool::handleMenu()
 	limit_link_angle = Math::ToDegree(limit_link_angle);
 	imguiSlider("limit_link_angle", &limit_link_angle, 0.f, 90.f, 0.1f); // 90°より上は絶対にアリエナイ
 	limit_link_angle = Math::ToRadian(limit_link_angle);
-	imguiSlider("max_link_end_edge_dis", &max_link_end_edge_dis, 0.1f, 1.f, 0.1f);
+	imguiSlider("max_end_edge_dis", &max_link_end_edge_dis, 0.1f, 1.f, 0.1f);
 
 	imguiValue("        ");
+
+	// 終了地点付近にナビメッシュエッジが存在しなくても、双方向通行にするか？
+	if (imguiCheck("non_start_bidirectional", is_non_navedge_bidirectional))
+		is_non_navedge_bidirectional ^= true;
 
 	// 「横跳びリンク」に制限を設けるか？
 	{
@@ -689,7 +693,7 @@ void OffMeshConnectionTool::handleRender()
 				}
 			}
 
-#if false
+#if true
 			for (const auto& link : edge.links)
 			{
 				if (!link.end_edge)	continue;
@@ -1243,8 +1247,17 @@ void OffMeshConnectionTool::CalcTentativeLink()
 							// OffMesh Linkの始点と終点を確定
 							auto& link{ edge.links.emplace_back() };
 
-							link.start = start;
-							link.end = navmesh_pos;
+							// 必ず高い方を開始地点にする
+							if (navmesh_pos[1] <= start[1])
+							{
+								link.start = start;
+								link.end = navmesh_pos;
+							}
+							else
+							{
+								link.start = navmesh_pos;
+								link.end = start;
+							}
 							link.nearest_pos = end;
 							link.horizontal_pos = horizontal_point;
 							link.base_edge = &edge;
@@ -1365,14 +1378,14 @@ void OffMeshConnectionTool::CheckTentativeLink()
 						  return sqrtf(powf(vec.front(), 2.f) + powf(vec[1], 2.f) + powf(vec.back(), 2.f));
 						} };
 
-					Point AB = line_point2 - line_point1;
-					Point AC = point - line_point1;
+					const Point&& ab{ line_point2 - line_point1 };
+					const Point&& ac{ point - line_point1 };
 					Point cross{};
-					rcVcross(&cross, AB, AC);
+					rcVcross(&cross, ab, ac);
 
 					float area = MagnitudeFunc(cross);
-					float CD = area / MagnitudeFunc(AB);
-					return CD;
+					float cd = area / MagnitudeFunc(ab);
+					return cd;
 				} };
 
 				auto FindShortestEdgeFunc{ [&link, &ShortDistanceFunc]
@@ -1391,19 +1404,22 @@ void OffMeshConnectionTool::CheckTentativeLink()
 
 					if (itr != edges.end())
 					{
-						link.end_edge = &*itr;
-
 						// リンクの終点と終点に最も近いエッジ間の最短距離
-						const float dist{ ShortDistanceFunc(itr->start, itr->end, link.end) };
-
-						const VF3&& vec1{ ToXMFLOAT(edge.orthogonal_vec) },&& vec2{ ToXMFLOAT(itr->orthogonal_vec) };
+						const float dist1{ ShortDistanceFunc(itr->start, itr->end, link.end) };
+						const float dist2{ rcVdistSqr(MiddlePoint(itr->start, itr->end), link.end) };
+						const VF3&& vec1{ ToXMFLOAT(edge.orthogonal_vec) },
+							&& vec2{ ToXMFLOAT(itr->orthogonal_vec) };
 						const float between_angle{ AngleBetweenVectors(vec1, vec2) }; // ベクトル間の角度
 
-						link.end_edge_dist = dist;
+						link.end_edge_dist = dist1;
 						link.end_edge_angle = between_angle;
 
-						if (dist < max_link_end_edge_dis)
+						// 終点付近にナビメッシュエッジが存在する（たまにおかしい距離判定が出させるため）
+						if (dist1 < max_link_end_edge_dis && dist2 < rcVdistSqr(itr->start, itr->end))
+						{
+							link.end_edge = &*itr;
 							link.end += (itr->orthogonal_vec * -max_end_link_error);
+						}
 					}
 				}
 
@@ -1437,14 +1453,33 @@ void OffMeshConnectionTool::CheckTentativeLink()
 			// リンクの始点・終点のナビメッシュエッジの角度に制限を設ける
 			if (!Math::AdjEqual(limit_link_angle, 0.f)) // 0°は全て削除してしまうので無視する
 			{
-				if (link.end_edge_dist < max_link_end_edge_dis)
-				{
-					constexpr float Pai{ Math::PAI<float> };
+				constexpr float Pai{ Math::PAI<float> };
 
+				// 終点付近にナビメッシュエッジが存在する
 					// 始点・終点のナビエッジが指定値以上向かい合っていない
-					if (::fabsf(link.end_edge_angle) < Pai - limit_link_angle)
+				if ((link.end_edge) && (::fabsf(link.end_edge_angle) < Pai - limit_link_angle))
+				{
+					link.is_delete = true;
+				}
+			}
+
+			if (link.is_delete)	return; // 既に削除済み
+
+			// 双方向通行にならない問題の解決
+			if (!link.is_bidir) // 既に双方向通行なら無視
+			{
+				const Point& start{ link.start }, end{ link.end };
+				const float dist_y{ ::fabsf(start[1] - end[1]) };
+
+				// 最大の登れる高さ以下で「横跳び」よりも高い
+				if (dist_y <= climbable_height && dist_y > min_buildable_height)
+				{
+					link.is_bidir = true; // とりあえず双方向通行に
+
+					// 終了地点付近にナビメッシュエッジが存在しなくても、双方向通行にするか？
+					if (is_non_navedge_bidirectional &&	link.end_edge)
 					{
-						link.is_delete = true;
+						link.is_bidir = true;
 					}
 				}
 			}
@@ -1478,8 +1513,8 @@ void OffMeshConnectionTool::BuildLink()
 			constexpr unsigned short flags = SAMPLE_POLYFLAGS_JUMP;
 
 			// 実際に追加する
-			geom->addOffMeshConnection(
-				link.start.data(), link.end.data(), sample->getAgentRadius(), link.is_bidir, area, flags);
+			geom->addOffMeshConnection(link.start.data(), link.end.data(), sample->getAgentRadius(),
+				link.is_bidir, area, flags, true);
 		}
 	}
 }

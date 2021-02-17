@@ -270,6 +270,12 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 	m_offMeshConCount = 0;
 	m_volumeCount = 0;
 	load_geom_meshes.clear();
+	m_offMeshConRads.clear();
+	m_offMeshConDirs.clear();
+	m_offMeshConAreas.clear();
+	m_offMeshConFlags.clear();
+	off_mesh_con_auto.clear();
+	m_volumes.clear();
 
 	char* src = buf.data();
 	char* srcEnd = buf.data() + bufSize;
@@ -308,11 +314,11 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 				sscanf_s(row.data() + 1, "%f %f %f  %f %f %f %f %d %d %d %d",
 					&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &rad, &bidir, &area, &flags, &is_auto);
 
-				m_offMeshConRads[m_offMeshConCount] = rad;
-				m_offMeshConDirs[m_offMeshConCount] = (unsigned char) bidir;
-				m_offMeshConAreas[m_offMeshConCount] = (unsigned char) area;
-				m_offMeshConFlags[m_offMeshConCount] = (unsigned short) flags;
-				off_mesh_con_auto[m_offMeshConCount] = (bool) is_auto;
+				m_offMeshConRads.emplace_back(rad);
+				m_offMeshConDirs.emplace_back((unsigned char) bidir);
+				m_offMeshConAreas.emplace_back((unsigned char) area);
+				m_offMeshConFlags.emplace_back((unsigned short) flags);
+				off_mesh_con_auto.emplace_back((bool) is_auto);
 				m_offMeshConCount++;
 			}
 		}
@@ -321,14 +327,16 @@ bool InputGeom::LoadGeomSet(rcContext* ctx, const std::string& filepath)
 			// Convex volumes
 			if (m_volumeCount < MAX_VOLUMES)
 			{
-				ConvexVolume* vol = &m_volumes[m_volumeCount++];
-				sscanf_s(row.data() + 1, "%d %d %f %f", &vol->nverts, &vol->area, &vol->hmin, &vol->hmax);
+				ConvexVolume& vol = m_volumes.emplace_back();
+				m_volumeCount++;
 
-				for (int i = 0; i < vol->nverts; ++i)
+				sscanf_s(row.data() + 1, "%d %d %f %f", &vol.nverts, &vol.area, &vol.hmin, &vol.hmax);
+
+				for (int i = 0; i < vol.nverts; ++i)
 				{
 					row[0] = '\0';
 					src = parseRow(src, srcEnd, row.data(), sizeof(row) / sizeof(char));
-					sscanf_s(row.data(), "%f %f %f", &vol->verts[i * 3 + 0], &vol->verts[i * 3 + 1], &vol->verts[i * 3 + 2]);
+					sscanf_s(row.data(), "%f %f %f", &vol.verts[i * 3 + 0], &vol.verts[i * 3 + 1], &vol.verts[i * 3 + 2]);
 				}
 			}
 		}
@@ -888,15 +896,19 @@ int InputGeom::addOffMeshConnection(const float* spos, const float* epos, const 
 	unsigned char bidir, unsigned char area, unsigned short flags, const bool is_auto_build)
 {
 	if (m_offMeshConCount >= MAX_OFFMESH_CONNECTIONS) return -1;
+
+	m_offMeshConVerts.resize((m_offMeshConCount + 1) * 3 * 2);
+	m_offMeshConRads.emplace_back(rad);
+	m_offMeshConDirs.emplace_back(bidir);
+	m_offMeshConAreas.emplace_back(area);
+	m_offMeshConFlags.emplace_back(flags);
+	m_offMeshConId.emplace_back(1000 + m_offMeshConCount);
+	off_mesh_con_auto.emplace_back(is_auto_build);
+
 	float* v = &m_offMeshConVerts[m_offMeshConCount * 3 * 2];
-	m_offMeshConRads[m_offMeshConCount] = rad;
-	m_offMeshConDirs[m_offMeshConCount] = bidir;
-	m_offMeshConAreas[m_offMeshConCount] = area;
-	m_offMeshConFlags[m_offMeshConCount] = flags;
-	m_offMeshConId[m_offMeshConCount] = 1000 + m_offMeshConCount;
-	off_mesh_con_auto[m_offMeshConCount] = is_auto_build;
 	rcVcopy(&v[0], spos);
 	rcVcopy(&v[3], epos);
+
 	m_offMeshConCount++;
 
 	return m_offMeshConCount;
@@ -912,11 +924,20 @@ void InputGeom::deleteOffMeshConnection(int i)
 	rcVcopy(&dst[0], &src[0]);
 	rcVcopy(&dst[3], &src[3]);
 
+	// 「消したいリンク」に「一番最後のリンク」をコピーする
 	m_offMeshConRads[i] = m_offMeshConRads[m_offMeshConCount];
 	m_offMeshConDirs[i] = m_offMeshConDirs[m_offMeshConCount];
 	m_offMeshConAreas[i] = m_offMeshConAreas[m_offMeshConCount];
 	m_offMeshConFlags[i] = m_offMeshConFlags[m_offMeshConCount];
-	off_mesh_con_auto[i] = false;
+	off_mesh_con_auto[i] = off_mesh_con_auto[m_offMeshConCount];
+
+	// 情報を削除
+	m_offMeshConVerts.resize(m_offMeshConCount * 3 * 2);
+	m_offMeshConRads.pop_back();
+	m_offMeshConDirs.pop_back();
+	m_offMeshConAreas.pop_back();
+	m_offMeshConFlags.pop_back();
+	off_mesh_con_auto.pop_back();
 }
 
 void InputGeom::ClearOffMeshConnection()
@@ -929,10 +950,14 @@ void InputGeom::ClearOffMeshConnection()
 
 void InputGeom::ClearAutoBuildOffMeshConnection()
 {
-	for (size_t i = 0; i < m_offMeshConCount; i++)
+	for (size_t i = 0; i < m_offMeshConCount;)
 	{
-		if (off_mesh_con_auto[i])	continue;
-
+		// 削除するところに、最後尾の要素をコピーするのでこうなる
+		if (!off_mesh_con_auto[i])
+		{
+			i++;
+			continue;
+		}
 		deleteOffMeshConnection(i);
 	}
 }
@@ -974,21 +999,28 @@ void InputGeom::addConvexVolume(const float* verts, const int nverts,
 {
 	if (m_volumeCount >= MAX_VOLUMES) return;
 
-	ConvexVolume* vol = &m_volumes[m_volumeCount++];
+	ConvexVolume& vol = m_volumes.emplace_back();
 
-	memset(vol, 0, sizeof(ConvexVolume));
-	memcpy(&vol->verts, verts, sizeof(float) * 3 * nverts);
+	memset(&vol, 0, sizeof(ConvexVolume));
+	memcpy(&vol.verts, verts, sizeof(float) * 3 * nverts);
 
-	vol->hmin = minh;
-	vol->hmax = maxh;
-	vol->nverts = nverts;
-	vol->area = area;
+	vol.hmin = minh;
+	vol.hmax = maxh;
+	vol.nverts = nverts;
+	vol.area = area;
+
+	m_volumeCount++;
 }
 
 void InputGeom::deleteConvexVolume(int i)
 {
 	m_volumeCount--;
+
+	// 「消したいボリューム」に「一番最後のボリューム」をコピーする
 	m_volumes[i] = m_volumes[m_volumeCount];
+
+	// 情報を削除
+	m_volumes.pop_back();
 }
 
 void InputGeom::drawConvexVolumes(struct duDebugDraw* dd, bool /*hilight*/)

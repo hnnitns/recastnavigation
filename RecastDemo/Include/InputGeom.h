@@ -123,14 +123,7 @@ public:
 
 		LoadGeomMesh(const LoadGeomMesh& _rt) noexcept
 		{
-			m_chunkyMesh = (_rt.m_chunkyMesh);
-			pos = _rt.pos;
-			scale = _rt.scale;
-			rotate = _rt.rotate;
-			m_mesh = (_rt.m_mesh);
-			m_meshBMin = (_rt.m_meshBMin);
-			m_meshBMax = (_rt.m_meshBMax);
-			is_selected = (_rt.is_selected);
+			this->operator=(_rt);
 		}
 		LoadGeomMesh& operator=(const LoadGeomMesh& _rt) noexcept
 		{
@@ -151,16 +144,7 @@ public:
 
 		LoadGeomMesh(LoadGeomMesh&& _rt) noexcept
 		{
-			using std::move;
-
-			m_chunkyMesh = move(_rt.m_chunkyMesh);
-			m_mesh = move(_rt.m_mesh);
-			m_meshBMin = move(_rt.m_meshBMin);
-			m_meshBMax = move(_rt.m_meshBMax);
-			is_selected = (_rt.is_selected);
-			pos = move(_rt.pos);
-			scale = move(_rt.scale);
-			rotate = move(_rt.rotate);
+			this->operator=(std::move(_rt));
 		}
 		LoadGeomMesh& operator=(LoadGeomMesh&& _rt) noexcept
 		{
@@ -195,22 +179,22 @@ private:
 
 	// @name Off-Mesh connections. // オフメッシュ接続。
 	//@{
-	static constexpr int MAX_OFFMESH_CONNECTIONS{ 32767 };
+	static constexpr int MAX_OFFMESH_CONNECTIONS{ 10000 };
 
-	std::array<float, MAX_OFFMESH_CONNECTIONS * 3 * 2> m_offMeshConVerts{};
-	std::array<float, MAX_OFFMESH_CONNECTIONS> m_offMeshConRads{};
-	std::array<uint8_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConDirs{};
-	std::array<uint8_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConAreas{};
-	std::array<uint16_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConFlags{};
-	std::array<uint32_t, MAX_OFFMESH_CONNECTIONS> m_offMeshConId{};
-	std::array<bool, MAX_OFFMESH_CONNECTIONS> off_mesh_con_auto{};
+	std::vector<float> m_offMeshConVerts; // X-Y-Z * 2(start-end)
+	std::vector<float> m_offMeshConRads;
+	std::vector<uint8_t> m_offMeshConDirs;
+	std::vector<uint8_t> m_offMeshConAreas;
+	std::vector<uint16_t> m_offMeshConFlags;
+	std::vector<uint32_t> m_offMeshConId;
+	std::deque<bool> off_mesh_con_auto;
 	int m_offMeshConCount;
 	//@}
 
 	// @name Convex Volumes. // 凸ボリューム。
 	//@{
 	static constexpr int MAX_VOLUMES = 256;
-	std::array<ConvexVolume, MAX_VOLUMES> m_volumes{};
+	std::vector<ConvexVolume> m_volumes{};
 	int m_volumeCount;
 	//@}
 

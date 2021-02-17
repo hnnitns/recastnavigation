@@ -81,7 +81,11 @@ private:
 	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point, draw_edge_point,
 		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis, draw_all;
 
-	bool is_buildable_height_limit{};    // 仮リンク間の「横跳び」を許容するか？
+	// 仮リンク間の「横跳び」を許容するか？
+	bool is_buildable_height_limit{};
+	// 終了地点付近にナビメッシュエッジが存在しなくても、双方向通行にするか？
+	bool is_non_navedge_bidirectional{ true };
+
 	float horizontal_dis{ 5.f };         // 構築可能な水平距離
 	float vertical_dis{ 7.5f };          // 構築可能な垂直距離
 	float divistion_dis{ 1.2f };         // 分割点間の長さ

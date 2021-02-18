@@ -693,12 +693,10 @@ void OffMeshConnectionTool::handleRender()
 				}
 			}
 
-#if true
+#if false
 			for (const auto& link : edge.links)
 			{
 				if (!link.end_edge)	continue;
-
-				if (link.end_edge_dist > max_link_end_edge_dis)	continue;
 
 				constexpr UINT32 Color{ duRGBAf(0.5f, 0.5f, 0.5f, 0.8f) };
 
@@ -947,14 +945,14 @@ void OffMeshConnectionTool::handleRenderOverlay(double* proj, double* model, int
 		}
 	}
 
-#if true
+#if false
 	for (auto& edge : edges)
 	{
 		for (auto& link : edge.links)
 		{
-			if (!link.end_edge)	continue;
+			//if (!link.end_edge)	continue;
 
-			if (link.end_edge_dist > max_link_end_edge_dis)	continue;
+			//if (link.end_edge_dist > max_link_end_edge_dis)	continue;
 
 			if (gluProject((GLdouble) link.end[0], (GLdouble) link.end[1], (GLdouble) link.end[2],
 				model, proj, view, &x, &y, &z))
@@ -966,7 +964,7 @@ void OffMeshConnectionTool::handleRenderOverlay(double* proj, double* model, int
 				str += ", angle: ";
 				str += std::to_string(Math::ToDegree(link.end_edge_angle));
 
-				imguiDrawText(x, y, IMGUI_ALIGN_LEFT, str.data(), imguiRGBA(255, 255, 255, 255));
+				imguiDrawText((int)x, (int)y, IMGUI_ALIGN_LEFT, str.data(), imguiRGBA(255, 255, 255, 255));
 			}
 		}
 	}
@@ -1248,16 +1246,16 @@ void OffMeshConnectionTool::CalcTentativeLink()
 							auto& link{ edge.links.emplace_back() };
 
 							// 必ず高い方を開始地点にする
-							if (navmesh_pos[1] <= start[1])
+							//if (navmesh_pos[1] <= start[1])
 							{
 								link.start = start;
 								link.end = navmesh_pos;
 							}
-							else
-							{
-								link.start = navmesh_pos;
-								link.end = start;
-							}
+							//else
+							//{
+							//	link.start = navmesh_pos;
+							//	link.end = start;
+							//}
 							link.nearest_pos = end;
 							link.horizontal_pos = horizontal_point;
 							link.base_edge = &edge;
@@ -1370,7 +1368,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 
 			// 双方向通行の時だけ少し終点をナビメッシュ側にずらす
 			{
-				auto ShortDistanceFunc{ [](const Point& line_point1, const Point& line_point2,
+				auto ShortDistFunc{ [](const Point& line_point1, const Point& line_point2,
 					const Point& point)
 				{
 						auto MagnitudeFunc{ [](const Point& vec)
@@ -1387,41 +1385,64 @@ void OffMeshConnectionTool::CheckTentativeLink()
 					float cd = area / MagnitudeFunc(ab);
 					return cd;
 				} };
-
-				auto FindShortestEdgeFunc{ [&link, &ShortDistanceFunc]
-				(const NavMeshEdge& left, const NavMeshEdge& right)
+				auto FindShortDistFunc{ [&ShortDistFunc](const Point& lt, const Point& rt, const Point& base)
+					{
+						return (std::min)(ShortDistFunc(lt, rt, base), ShortDistFunc(rt, lt, base));
+					} };
+				auto FindShortestEdgeFunc{ [&link, &FindShortDistFunc]
+				(const NavMeshEdge& lt, const NavMeshEdge& rt)
 				{
-						float left_dist{}, right_dist{};
-						const Point& point{ link.end };
+						const Point& end{ link.end };
+						const Point&& lt_middle{ MiddlePoint(lt.start, lt.end) },
+							rt_middle{ MiddlePoint(rt.start, rt.end) };
 
-						left_dist = ShortDistanceFunc(left.start, left.end, point);
-						right_dist = ShortDistanceFunc(right.start, right.end, point);
+#if false
+						float left_dist{ FindShortDistFunc(lt.start, lt.end, end) },
+							right_dist{ FindShortDistFunc(rt.start, rt.end, end) };
 
+						if (const float dist{ rcVdist(lt_middle, end) };
+							left_dist > dist)	left_dist = dist;
+
+						if (const float dist{ rcVdist(rt_middle, end) };
+							right_dist > dist)	right_dist = dist;
+#else
+						const float left_dist{ (rcVdistSqr(lt_middle, end)) };
+						const float right_dist{ (rcVdistSqr(rt_middle, end)) };
+#endif
 						return (left_dist < right_dist);
 				} };
 
-					auto&& itr{ Min_Element(edges, FindShortestEdgeFunc, exec::par) };
+				auto&& itr{ Min_Element(edges, FindShortestEdgeFunc, exec::par) };
 
-					if (itr != edges.end())
+				if (itr != edges.end())
+				{
+					Point& end{ link.end };
+
+					// リンクの終点と終点に最も近いエッジ間の最短距離
+					const float dist1{ FindShortDistFunc(itr->start, itr->end, end) };
+					const float dist2{ rcVdistSqr(MiddlePoint(itr->start, itr->end), end) };
+					const VF2&& vec1{ ToXZ_PlaneXMFLOAT2(edge.orthogonal_vec) },
+						&& vec2{ ToXZ_PlaneXMFLOAT2(itr->orthogonal_vec) };
+					const float between_angle{ AngleBetweenVectors(vec1, vec2) }; // ベクトル間の角度
+
+					link.end_edge_dist = dist1;
+					link.end_edge_angle = between_angle;
+
+					// 終点付近にナビメッシュエッジが存在する
+					if (dist1 < max_link_end_edge_dis /*&& dist2 < rcVdistSqr(itr->start, itr->end) * 2.f*/)
 					{
-						// リンクの終点と終点に最も近いエッジ間の最短距離
-						const float dist1{ ShortDistanceFunc(itr->start, itr->end, link.end) };
-						const float dist2{ rcVdistSqr(MiddlePoint(itr->start, itr->end), link.end) };
-						const VF3&& vec1{ ToXMFLOAT(edge.orthogonal_vec) },
-							&& vec2{ ToXMFLOAT(itr->orthogonal_vec) };
-						const float between_angle{ AngleBetweenVectors(vec1, vec2) }; // ベクトル間の角度
-
-						link.end_edge_dist = dist1;
-						link.end_edge_angle = between_angle;
-
-						// 終点付近にナビメッシュエッジが存在する（たまにおかしい距離判定が出させるため）
-						if (dist1 < max_link_end_edge_dis && dist2 < rcVdistSqr(itr->start, itr->end))
-						{
-							link.end_edge = &*itr;
-							link.end += (itr->orthogonal_vec * -max_end_link_error);
-						}
+						link.end_edge = &*itr;
+						// 近くのナビメッシュエッジの垂直ベクトルの逆方向に少しだけずらす
+						link.end += (itr->orthogonal_vec * -max_end_link_error);
+					}
+					// 終点付近にナビメッシュエッジが存在しない
+					else
+					{
+						// 始点の付近のナビメッシュエッジの垂直ベクトルに少しだけずらす
+						link.end += (link.base_edge->orthogonal_vec * max_end_link_error);
 					}
 				}
+			}
 
 			// TempObstacleを貫通しているリンクを削除
 			if (obstacle_sample)

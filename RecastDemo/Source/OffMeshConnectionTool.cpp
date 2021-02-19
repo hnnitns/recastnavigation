@@ -1371,10 +1371,10 @@ void OffMeshConnectionTool::CheckTentativeLink()
 				auto ShortDistFunc{ [](const Point& line_point1, const Point& line_point2,
 					const Point& point)
 				{
-						auto MagnitudeFunc{ [](const Point& vec)
-						{
-						  return sqrtf(powf(vec.front(), 2.f) + powf(vec[1], 2.f) + powf(vec.back(), 2.f));
-						} };
+					auto MagnitudeFunc{ [](const Point& vec)
+					{
+					  return sqrtf(powf(vec.front(), 2.f) + powf(vec[1], 2.f) + powf(vec.back(), 2.f));
+					} };
 
 					const Point&& ab{ line_point2 - line_point1 };
 					const Point&& ac{ point - line_point1 };
@@ -1406,8 +1406,10 @@ void OffMeshConnectionTool::CheckTentativeLink()
 						if (const float dist{ rcVdist(rt_middle, end) };
 							right_dist > dist)	right_dist = dist;
 #else
-						const float left_dist{ (rcVdistSqr(lt_middle, end)) };
-						const float right_dist{ (rcVdistSqr(rt_middle, end)) };
+						const float left_dist{ (std::min)(
+							{ rcVdistSqr(lt_middle, end), rcVdistSqr(lt.start, end), rcVdistSqr(lt.end, end) }) };
+						const float right_dist{ (std::min)(
+							{ rcVdistSqr(rt_middle, end), rcVdistSqr(rt.start, end), rcVdistSqr(rt.end, end) }) };
 #endif
 						return (left_dist < right_dist);
 				} };
@@ -1487,7 +1489,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 			if (link.is_delete)	return; // 既に削除済み
 
 			// 双方向通行にならない問題の解決
-			if (!link.is_bidir) // 既に双方向通行なら無視
+			if (!link.is_bidir && is_non_navedge_bidirectional) // 既に双方向通行なら無視
 			{
 				const Point& start{ link.start }, end{ link.end };
 				const float dist_y{ ::fabsf(start[1] - end[1]) };
@@ -1495,13 +1497,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 				// 最大の登れる高さ以下で「横跳び」よりも高い
 				if (dist_y <= climbable_height && dist_y > min_buildable_height)
 				{
-					link.is_bidir = true; // とりあえず双方向通行に
-
-					// 終了地点付近にナビメッシュエッジが存在しなくても、双方向通行にするか？
-					if (is_non_navedge_bidirectional &&	link.end_edge)
-					{
-						link.is_bidir = true;
-					}
+					link.is_bidir = true;
 				}
 			}
 		}, exec::par);

@@ -555,6 +555,11 @@ void imguiValue(const char* text)
 	addGfxCmdText(x + w - BUTTON_HEIGHT / 2, y + BUTTON_HEIGHT / 2 - TEXT_HEIGHT / 2, IMGUI_ALIGN_RIGHT, text, imguiRGBA(255, 255, 255, 200));
 }
 
+void imguiSpace()
+{
+	imguiValue("                 ");
+}
+
 bool imguiSlider(const char* text, float* val, float vmin, float vmax, float vinc, bool enabled)
 {
 	g_state.widgetId++;

@@ -69,17 +69,17 @@ private:
 	};
 
 private:
-	class Sample* sample;
-	class Sample_TempObstacles* obstacle_sample;
+	class Sample* sample{};
+	class Sample_TempObstacles* obstacle_sample{};
 
-	std::array<float, 3> hit_pos;
-	bool hit_pos_set;
+	std::array<float, 3> hit_pos{};
+	bool hit_pos_set{};
 	bool m_bidir;
-	unsigned char m_oldFlags;
-	float auto_build_time_ms;
+	unsigned char m_oldFlags{};
+	float auto_build_time_ms{};
 
 	bool draw_links_arrow, draw_tentative_link, draw_horizontal_point, draw_edge_point,
-		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis, draw_all;
+		draw_division_point, draw_end_point, draw_navmesh_nearest_point, draw_error_dis{}, draw_all;
 
 	// 仮リンク間の「横跳び」を許容するか？
 	bool is_buildable_height_limit{};
@@ -130,6 +130,8 @@ private:
 	void CalcTentativeLink();
 	void CheckTentativeLink();
 	void BuildLink();
+	void ReBuildNavMeshLink();
+
 	void ClearBuiltAutoLink();
 };
 

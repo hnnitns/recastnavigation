@@ -126,11 +126,9 @@ namespace
 }
 
 OffMeshConnectionTool::OffMeshConnectionTool() :
-	sample(nullptr), obstacle_sample(nullptr), hit_pos_set(0), m_bidir(true), m_oldFlags(0),
-	draw_links_arrow(true), draw_tentative_link(true), draw_horizontal_point(true),
+	m_bidir(true), draw_links_arrow(true), draw_tentative_link(true), draw_horizontal_point(true),
 	draw_edge_point(true), draw_division_point(true), draw_end_point(true),
-	draw_navmesh_nearest_point(true), draw_error_dis(false), is_buildable_height_limit(true),
-	hit_pos(), draw_all(true)
+	draw_navmesh_nearest_point(true), is_buildable_height_limit(true), draw_all(true)
 {}
 
 OffMeshConnectionTool::~OffMeshConnectionTool()
@@ -189,7 +187,7 @@ void OffMeshConnectionTool::handleMenu()
 	limit_link_angle = Math::ToRadian(limit_link_angle);
 	imguiSlider("max_end_edge_dis", &max_link_end_edge_dis, 0.1f, 1.f, 0.1f);
 
-	imguiValue("        ");
+	imguiSpace();
 
 	// 終了地点付近にナビメッシュエッジが存在しなくても、双方向通行にするか？
 	if (imguiCheck("non_start_bidirectional", is_non_navedge_bidirectional))
@@ -206,7 +204,7 @@ void OffMeshConnectionTool::handleMenu()
 		}
 	}
 
-	imguiValue("        ");
+	imguiSpace();
 
 	// 仮リンクの自動生成
 	if (imguiButton("Tentative Link Build"))
@@ -222,7 +220,7 @@ void OffMeshConnectionTool::handleMenu()
 	if (imguiButton("Link Clear"))
 		edges.clear();
 
-	imguiValue("        ");
+	imguiSpace();
 
 	// 自動構築不可エリア設定
 	{
@@ -242,7 +240,7 @@ void OffMeshConnectionTool::handleMenu()
 		}
 	}
 
-	imguiValue("        ");
+	imguiSpace();
 
 	if (imguiCheck("All Draw", draw_all))
 		draw_all ^= true;
@@ -285,7 +283,7 @@ void OffMeshConnectionTool::handleMenu()
 				draw_error_dis ^= true;
 		}
 
-		imguiValue("        ");
+		imguiSpace();
 
 		{
 			std::string text{ "build_time: " };
@@ -1534,6 +1532,11 @@ void OffMeshConnectionTool::BuildLink()
 				link.is_bidir, area, flags, true);
 		}
 	}
+}
+
+void OffMeshConnectionTool::ReBuildNavMeshLink()
+{
+
 }
 
 void OffMeshConnectionTool::ClearBuiltAutoLink()

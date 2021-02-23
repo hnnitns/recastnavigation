@@ -126,9 +126,9 @@ class Sample
 {
 protected:
 	std::optional<class InputGeom> m_geom;
-	class dtNavMesh* m_navMesh;
-	class dtNavMeshQuery* m_navQuery;
-	class dtCrowd* m_crowd;
+	class dtNavMesh* m_navMesh{};
+	class dtNavMeshQuery* m_navQuery{};
+	class dtCrowd* m_crowd{};
 	std::optional<rcConfig> generation_params;
 	unsigned char m_navMeshDrawFlags;
 
@@ -154,7 +154,7 @@ protected:
 	std::unique_ptr<SampleTool> m_tool;
 	std::array<std::shared_ptr<SampleToolState>, MAX_TOOLS> m_toolStates;
 
-	BuildContext* m_ctx;
+	BuildContext* m_ctx{};
 
 	SampleDebugDraw m_dd;
 
@@ -211,6 +211,7 @@ public:
 	void handleCommonSettings(); // ã§í ÇÃê›íË(Imguiè„Ç≈ÇÃïœçX)
 
 	auto& GetTool() noexcept { return m_tool; }
+	float GetCellSize() const noexcept { return m_cellSize; }
 
 private:
 	// Explicitly disabled copy constructor and copy assignment operator.

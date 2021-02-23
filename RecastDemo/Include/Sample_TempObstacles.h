@@ -29,22 +29,22 @@
 class Sample_TempObstacles : public Sample
 {
 protected:
-	bool m_keepInterResults;
+	bool m_keepInterResults{};
 
 	std::unique_ptr<struct LinearAllocator> m_talloc;
 	std::unique_ptr<struct FastLZCompressor> m_tcomp;
 	std::unique_ptr<struct MeshProcess> m_tmproc;
 
-	class dtTileCache* m_tileCache;
+	class dtTileCache* m_tileCache{};
 
-	float m_cacheBuildTimeMs;
-	int m_cacheCompressedSize;
-	int m_cacheRawSize;
-	int m_cacheLayerCount;
-	unsigned int m_cacheBuildMemUsage;
+	float m_cacheBuildTimeMs{};
+	int m_cacheCompressedSize{};
+	int m_cacheRawSize{};
+	int m_cacheLayerCount{};
+	unsigned int m_cacheBuildMemUsage{};
 	int m_maxTiles;
-	int m_maxPolysPerTile;
-	float m_tileSize;
+	int m_maxPolysPerTile{};
+	float m_tileSize{};
 
 	enum DrawMode
 	{
@@ -74,7 +74,7 @@ public:
 	bool handleBuild() override;
 	void handleUpdate(const float dt) override;
 
-	void getTilePos(const float* pos, int& tx, int& ty);
+	void getTilePos(const float* pos, int* tx, int* ty);
 
 	void renderCachedTile(const int tx, const int ty, const int type);
 	void renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view);

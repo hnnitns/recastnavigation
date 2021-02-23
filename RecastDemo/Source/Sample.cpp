@@ -58,9 +58,8 @@ unsigned int SampleDebugDraw::areaToCol(unsigned int area)
 }
 
 Sample::Sample() :
-	m_navMesh(), m_navQuery(), m_crowd(),
 	m_navMeshDrawFlags(DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST),
-	m_filterLowHangingObstacles(true), m_filterLedgeSpans(true), m_filterWalkableLowHeightSpans(true), m_ctx()
+	m_filterLowHangingObstacles(true), m_filterLedgeSpans(true), m_filterWalkableLowHeightSpans(true)
 {
 	resetCommonSettings();
 	m_navQuery = dtAllocNavMeshQuery();

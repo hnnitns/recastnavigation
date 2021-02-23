@@ -221,7 +221,7 @@ namespace
 				model, proj, view, &x, &y, &z))
 			{
 				int tx = 0, ty = 0;
-				m_sample->getTilePos(m_hitPos, tx, ty);
+				m_sample->getTilePos(m_hitPos, &tx, &ty);
 				char text[32];
 				snprintf(text, 32, "(%d,%d)", tx, ty);
 				imguiDrawText((int)x, (int)y - 25, IMGUI_ALIGN_CENTER, text, imguiRGBA(0, 0, 0, 220));
@@ -310,7 +310,7 @@ namespace
 				glLineWidth(1.f);
 
 				int tx = 0, ty = 0;
-				m_sample->getTilePos(m_hitPos, tx, ty);
+				m_sample->getTilePos(m_hitPos, &tx, &ty);
 				m_sample->renderCachedTile(tx, ty, m_drawType);
 			}
 		}
@@ -322,7 +322,7 @@ namespace
 				if (m_sample)
 				{
 					int tx = 0, ty = 0;
-					m_sample->getTilePos(m_hitPos, tx, ty);
+					m_sample->getTilePos(m_hitPos, &tx, &ty);
 					m_sample->renderCachedTileOverlay(tx, ty, proj, model, view);
 				}
 			}
@@ -926,9 +926,7 @@ void Sample_TempObstacles::CleanUp()
 }
 
 Sample_TempObstacles::Sample_TempObstacles() :
-	m_keepInterResults(false), m_tileCache(0), m_cacheBuildTimeMs(0), m_cacheCompressedSize(0), m_cacheRawSize(0),
-	m_cacheLayerCount(0), m_cacheBuildMemUsage(0), m_drawMode(DRAWMODE_NAVMESH), m_maxTiles(0), m_maxPolysPerTile(0),
-	m_tileSize(48)
+	m_drawMode(DRAWMODE_NAVMESH), m_tileSize(48)
 {
 	resetCommonSettings();
 
@@ -1464,7 +1462,7 @@ void Sample_TempObstacles::buildTile(const float* pos)
 
 	int x, y;
 
-	getTilePos(pos, x, y);
+	getTilePos(pos, &x, &y);
 
 	// Remove any previous data (navmesh owns and deletes the data).
 	// 以前のデータを削除します（navmeshはデータを所有および削除します）。
@@ -1483,7 +1481,7 @@ bool Sample_TempObstacles::removeTile(const float* pos)
 	if (!(m_geom && m_navMesh)) return false;
 
 	int x, y;
-	getTilePos(pos, x, y);
+	getTilePos(pos, &x, &y);
 
 	dtStatus state1 = m_navMesh->removeTile(m_navMesh->getTileRefAt(x, y, 0), 0, 0);
 	dtStatus state2 = m_tileCache->removeTile(m_tileCache->getTileRefAt(x, y), 0, 0);
@@ -1715,15 +1713,15 @@ void Sample_TempObstacles::handleUpdate(const float dt)
 	m_tileCache->update(dt, m_navMesh);
 }
 
-void Sample_TempObstacles::getTilePos(const float* pos, int& tx, int& ty)
+void Sample_TempObstacles::getTilePos(const float* pos, int* tx, int* ty)
 {
-	if (!m_geom) return;
+	if (!(m_geom && tx && ty)) return;
 
 	const auto& bmin = m_geom->getNavMeshBoundsMin();
 	const float ts = m_tileSize * m_cellSize;
 
-	tx = (int)((pos[0] - bmin[0]) / ts);
-	ty = (int)((pos[2] - bmin[2]) / ts);
+	*tx = (int)((pos[0] - bmin[0]) / ts);
+	*ty = (int)((pos[2] - bmin[2]) / ts);
 }
 
 namespace

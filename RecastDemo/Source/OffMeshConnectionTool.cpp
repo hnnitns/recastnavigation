@@ -218,7 +218,10 @@ void OffMeshConnectionTool::handleMenu()
 
 	// íœ
 	if (imguiButton("Link Clear"))
+	{
+		ClearBuiltAutoLink();
 		edges.clear();
+	}
 
 	imguiSpace();
 

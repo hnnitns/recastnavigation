@@ -1405,10 +1405,9 @@ int Sample_TempObstacles::GetObstacleUpdateCount() const noexcept
 	return m_tileCache->GetUpdateCount();
 }
 
-void Sample_TempObstacles::buildTile(const float* pos)
+dtStatus Sample_TempObstacles::buildTile(const float* pos)
 {
-	if (!m_geom) return;
-	if (!m_navMesh) return;
+	if (!(m_geom && m_navMesh)) return DT_INVALID_PARAM;
 
 	// Init cache // ƒLƒƒƒbƒVƒ…‚Ì‰Šú‰»
 	const auto& bmin = m_geom->getNavMeshBoundsMin();
@@ -1471,9 +1470,11 @@ void Sample_TempObstacles::buildTile(const float* pos)
 
 	buildTileMeshLayer(x, y, cfg, tcparams);
 
-	buildTileMesh(x, y);
+	const dtStatus status{ buildTileMesh(x, y) };
 
 	m_ctx->dumpLog("Build Tile (%d,%d):", x, y);
+
+	return status;
 }
 
 bool Sample_TempObstacles::removeTile(const float* pos)

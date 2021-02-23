@@ -730,10 +730,12 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 	for (int i = 0; i < m_maxAgents; ++i)
 	{
 		dtCrowdAgent* ag = &m_agents[i];
-		if (!(ag->active && ag->is_run))
-			continue;
-		if (ag->state == DT_CROWDAGENT_STATE_INVALID)
-			continue;
+
+		// エージェント設定されていない
+		if (!(ag->active && ag->is_run)) continue;
+		// 有効状態でない
+		if (ag->state == DT_CROWDAGENT_STATE_INVALID)	continue;
+		// 目的地が存在しない・ベクトル移動になっている
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 			continue;
 
@@ -1233,7 +1235,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)
 			continue;
 
-		// Check
+		// Check 確認
 		const float triggerRadius = ag->params.radius * 2.25f;
 		if (overOffmeshConnection(ag, triggerRadius))
 		{
@@ -1250,7 +1252,7 @@ void dtCrowd::update(const float dt, dtCrowdAgentDebugInfo* debug)
 			{
 				dtVcopy(anim->initPos, ag->npos);
 				anim->polyRef = refs[1];
-				anim->active = true;
+				anim->active = true; // offmesh状に存在する
 				anim->t = 0.0f;
 				anim->tmax = (dtVdist2D(anim->startPos, anim->endPos) / ag->params.maxSpeed) * 1.f;
 

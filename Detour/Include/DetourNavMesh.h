@@ -231,16 +231,30 @@ struct dtPolyDetail
 };
 
 // Defines a link between polygons.
+// ポリゴン間のリンクを定義します。
 // @note This structure is rarely if ever used by the end user.
+// この構造がエンドユーザーによって使用されることはめったにありません。
 // @see dtMeshTile
 struct dtLink
 {
-	dtPolyRef ref;					//< Neighbour reference. (The neighbor that is linked to.)
-	unsigned int next;				//< Index of the next link.
-	unsigned char edge;				//< Index of the polygon edge that owns this link.
-	unsigned char side;				//< If a boundary link, defines on which side the link is.
-	unsigned char bmin;				//< If a boundary link, defines the minimum sub-edge area.
-	unsigned char bmax;				//< If a boundary link, defines the maximum sub-edge area.
+	//< Neighbour reference. (The neighbor that is linked to.)
+	//< ネイバーリファレンス。 （リンクされているネイバー。）
+	dtPolyRef ref;
+	//< Index of the next link.
+	//< 次のリンクのインデックス。
+	unsigned int next;
+	//< Index of the polygon edge that owns this link.
+	//< このリンクを所有するポリゴンエッジのインデックス。
+	unsigned char edge;
+	//< If a boundary link, defines on which side the link is.
+	//< 境界リンクの場合、リンクがどちら側にあるかを定義します。
+	unsigned char side;
+	//< If a boundary link, defines the minimum sub-edge area.
+	//< 境界リンクの場合、最小サブエッジ領域を定義します。
+	unsigned char bmin;
+	//< If a boundary link, defines the maximum sub-edge area.
+	//< 境界リンクの場合、最大サブエッジ領域を定義します。
+	unsigned char bmax;
 };
 
 // Bounding volume node.
@@ -757,13 +771,17 @@ private:
 		dtPolyRef* con, float* conarea, int maxcon) const;
 
 	// Builds internal polygons links for a tile.
+	// タイルの内部ポリゴンリンクを作成します。
 	void connectIntLinks(dtMeshTile* tile);
 	// Builds internal polygons links for a tile.
+	// タイルの内部ポリゴンリンクを作成します。
 	void baseOffMeshLinks(dtMeshTile* tile);
 
 	// Builds external polygon links for a tile.
+	// タイルの外部ポリゴンリンクを作成します。
 	void connectExtLinks(dtMeshTile* tile, dtMeshTile* target, int side);
 	// Builds external polygon links for a tile.
+	// タイルの外部ポリゴンリンクを作成します。
 	void connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int side);
 
 	// Removes external links at specified side.

@@ -1174,8 +1174,7 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 			// deal explicitly with crossing tile boundaries
 			// 交差するタイル境界を明示的に処理する
 			unsigned char crossSide = 0;
-			if (bestTile->links[i].side != 0xff)
-				crossSide = bestTile->links[i].side >> 1;
+			if (bestTile->links[i].side != 0xff) crossSide = bestTile->links[i].side >> 1;
 
 			// ノードを取得する
 			dtNode* neighbourNode{ m_nodePool->getNode(neighbourRef, crossSide) };
@@ -1828,7 +1827,8 @@ dtStatus dtNavMeshQuery::finalizeSlicedFindPathPartial(const dtPolyRef* existing
 			prev = node;
 
 			// keep track of whether parent is not adjacent (i.e. due to raycast shortcut) and store it in the reversed path's node
-			// 親が隣接していないかどうか（つまり、レイキャストのショートカットが原因であるかどうか）を追跡し、反転したパスのノードに保存します
+			// 親が隣接していないかどうか（つまり、レイキャストのショートカットが原因であるかどうか）を追跡し、
+			// 反転したパスのノードに保存します
 			int nextRay = node->flags & DT_NODE_PARENT_DETACHED;
 			node->flags = (node->flags & ~DT_NODE_PARENT_DETACHED) | prevRay;
 			prevRay = nextRay;
@@ -2486,11 +2486,13 @@ dtStatus dtNavMeshQuery::getPortalPoints(dtPolyRef from, dtPolyRef to, float* le
 }
 
 // Returns portal points between two polygons.
+// 2つのポリゴン間のポータルポイントを返します。
 dtStatus dtNavMeshQuery::getPortalPoints(dtPolyRef from, const dtPoly* fromPoly, const dtMeshTile* fromTile,
 	dtPolyRef to, const dtPoly* toPoly, const dtMeshTile* toTile,
 	float* left, float* right) const
 {
 	// Find the link that points to the 'to' polygon.
+	// 'to'ポリゴンを指すリンクを見つけます。
 	const dtLink* link = 0;
 	for (unsigned int i = fromPoly->firstLink; i != DT_NULL_LINK; i = fromTile->links[i].next)
 	{
@@ -2504,9 +2506,11 @@ dtStatus dtNavMeshQuery::getPortalPoints(dtPolyRef from, const dtPoly* fromPoly,
 		return DT_FAILURE | DT_INVALID_PARAM;
 
 	// Handle off-mesh connections.
+	// オフメッシュ接続を処理します。
 	if (fromPoly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
 	{
 		// Find link that points to first vertex.
+		// 最初の頂点を指すリンクを見つけます。
 		for (unsigned int i = fromPoly->firstLink; i != DT_NULL_LINK; i = fromTile->links[i].next)
 		{
 			if (fromTile->links[i].ref == to)
@@ -2723,6 +2727,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 	hit->pathCost = 0;
 
 	// Validate input
+	// 入力を検証する
 	if (!m_nav->isValidPolyRef(startRef) ||
 		!startPos || !dtVisfinite(startPos) ||
 		!endPos || !dtVisfinite(endPos) ||
@@ -2747,6 +2752,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 	dtPolyRef curRef;
 
 	// The API input has been checked already, skip checking internal data.
+	// API入力はすでにチェックされています。内部データのチェックはスキップしてください。
 	curRef = startRef;
 	tile = 0;
 	poly = 0;
@@ -2759,8 +2765,10 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 	while (curRef)
 	{
 		// Cast ray against current polygon.
+		// 現在のポリゴンに対して光線をキャストします。
 
 		// Collect vertices.
+		// 頂点を収集する.
 		int nv = 0;
 		for (int i = 0; i < (int)poly->vertCount; ++i)
 		{
@@ -2772,36 +2780,38 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 		int segMin, segMax;
 		if (!dtIntersectSegmentPoly2D(startPos, endPos, verts, nv, tmin, tmax, segMin, segMax))
 		{
-			// Could not hit the polygon, keep the old t and report hit.
+			// ポリゴンをヒットできませんでした。古いtを保持し、ヒットを報告します。
 			hit->pathCount = n;
 			return status;
 		}
 
 		hit->hitEdgeIndex = segMax;
 
-		// Keep track of furthest t so far.
+		// これまでの最も遠いtを追跡します。
 		if (tmax > hit->t)
 			hit->t = tmax;
 
-		// Store visited polygons.
+		// 訪問したポリゴンを保存します。
 		if (n < hit->maxPath)
 			hit->path[n++] = curRef;
 		else
 			status |= DT_BUFFER_TOO_SMALL;
 
-		// Ray end is completely inside the polygon.
+		// レイエンドは完全にポリゴンの内側にあります。
 		if (segMax == -1)
 		{
 			hit->t = FLT_MAX;
 			hit->pathCount = n;
 
 			// add the cost
+			// コストを追加
 			if (options & DT_RAYCAST_USE_COSTS)
 				hit->pathCost += filter->getCost(curPos, endPos, prevRef, prevTile, prevPoly, curRef, tile, poly, curRef, tile, poly);
 			return status;
 		}
 
 		// Follow neighbours.
+		// 隣人に従ってください。
 		dtPolyRef nextRef = 0;
 
 		for (unsigned int i = poly->firstLink; i != DT_NULL_LINK; i = tile->links[i].next)
@@ -2809,23 +2819,28 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			const dtLink* link = &tile->links[i];
 
 			// Find link which contains this edge.
+			// このエッジを含むリンクを見つけます。
 			if ((int)link->edge != segMax)
 				continue;
 
 			// Get pointer to the next polygon.
+			// 次のポリゴンへのポインタを取得します。
 			nextTile = 0;
 			nextPoly = 0;
 			m_nav->getTileAndPolyByRefUnsafe(link->ref, &nextTile, &nextPoly);
 
 			// Skip off-mesh connections.
+			// オフメッシュ接続をスキップします。
 			if (nextPoly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
 				continue;
 
 			// Skip links based on filter.
+			// フィルタに基づいてリンクをスキップします。
 			if (!filter->passFilter(link->ref, nextTile, nextPoly))
 				continue;
 
 			// If the link is internal, just return the ref.
+			// リンクが内部の場合は、参照を返すだけです。
 			if (link->side == 0xff)
 			{
 				nextRef = link->ref;
@@ -2833,8 +2848,10 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			}
 
 			// If the link is at tile boundary,
+			// リンクがタイル境界にある場合、
 
 			// Check if the link spans the whole edge, and accept.
+			// リンクがエッジ全体にまたがっているかどうかを確認し、受け入れます。
 			if (link->bmin == 0 && link->bmax == 255)
 			{
 				nextRef = link->ref;
@@ -2842,21 +2859,25 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			}
 
 			// Check for partial edge links.
+			// 部分的なエッジリンクを確認します。
 			const int v0 = poly->verts[link->edge];
 			const int v1 = poly->verts[(link->edge + 1) % poly->vertCount];
 			const float* left = &tile->verts[v0 * 3];
 			const float* right = &tile->verts[v1 * 3];
 
 			// Check that the intersection lies inside the link portal.
+			// 交差点がリンクポータル内にあることを確認してください。
 			if (link->side == 0 || link->side == 4)
 			{
 				// Calculate link size.
+				// リンクサイズを計算します。
 				const float s = 1.f / 255.0f;
 				float lmin = left[2] + (right[2] - left[2]) * (link->bmin * s);
 				float lmax = left[2] + (right[2] - left[2]) * (link->bmax * s);
 				if (lmin > lmax) dtSwap(lmin, lmax);
 
 				// Find Z intersection.
+				// Z交差点を見つけます。
 				float z = startPos[2] + (endPos[2] - startPos[2]) * tmax;
 				if (z >= lmin && z <= lmax)
 				{
@@ -2867,12 +2888,14 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			else if (link->side == 2 || link->side == 6)
 			{
 				// Calculate link size.
+				// リンクサイズを計算します。
 				const float s = 1.f / 255.0f;
 				float lmin = left[0] + (right[0] - left[0]) * (link->bmin * s);
 				float lmax = left[0] + (right[0] - left[0]) * (link->bmax * s);
 				if (lmin > lmax) dtSwap(lmin, lmax);
 
 				// Find X intersection.
+				// X交差を見つけます。
 				float x = startPos[0] + (endPos[0] - startPos[0]) * tmax;
 				if (x >= lmin && x <= lmax)
 				{
@@ -2887,6 +2910,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 		{
 			// compute the intersection point at the furthest end of the polygon
 			// and correct the height (since the raycast moves in 2d)
+			// ポリゴンの最も遠い端の交点を計算し、高さを修正します（レイキャストは2Dで移動するため）
 			dtVcopy(lastPos, curPos);
 			dtVmad(curPos, startPos, dir, hit->t);
 			float* e1 = &verts[segMax * 3];
@@ -2903,8 +2927,10 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 		if (!nextRef)
 		{
 			// No neighbour, we hit a wall.
+			// 隣人はいません、私たちは壁にぶつかりました。
 
 			// Calculate hit normal.
+			// ヒット法線を計算します。
 			const int a = segMax;
 			const int b = segMax + 1 < nv ? segMax + 1 : 0;
 			const float* va = &verts[a * 3];
@@ -2921,6 +2947,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 		}
 
 		// No hit, advance to neighbour polygon.
+		// ヒットなし、隣接するポリゴンに進みます。
 		prevRef = curRef;
 		curRef = nextRef;
 		prevTile = tile;
@@ -2998,7 +3025,7 @@ dtStatus dtNavMeshQuery::findPolysAroundCircle(dtPolyRef startRef, const float* 
 	{
 		return DT_FAILURE | DT_INVALID_PARAM;
 	}
-	
+
 	m_nodePool->clear();
 	m_openList->clear();
 
@@ -3180,7 +3207,7 @@ dtStatus dtNavMeshQuery::findPolysAroundShape(dtPolyRef startRef, const float* v
 	{
 		return DT_FAILURE | DT_INVALID_PARAM;
 	}
-	
+
 	// Validate input
 	// 入力を検証します
 	if (!startRef || !m_nav->isValidPolyRef(startRef))
@@ -3617,7 +3644,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 
 	if (!segmentCount)
 		return DT_FAILURE | DT_INVALID_PARAM;
-	
+
 	*segmentCount = 0;
 
 	const dtMeshTile* tile = 0;
@@ -3627,7 +3654,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 
 	if (!filter || !segmentVerts || maxSegments < 0)
 		return DT_FAILURE | DT_INVALID_PARAM;
-	
+
 	int n = 0;
 	constexpr int MAX_INTERVAL = 16;
 	dtSegInterval ints[MAX_INTERVAL];
@@ -3792,7 +3819,7 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	{
 		return DT_FAILURE | DT_INVALID_PARAM;
 	}
-	
+
 	m_nodePool->clear();
 	m_openList->clear();
 
@@ -3808,7 +3835,7 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	float radiusSqr = dtSqr(maxRadius);
 
 	dtStatus status = DT_SUCCESS;
-	
+
 	while (!m_openList->empty())
 	{
 		dtNode* bestNode = m_openList->pop();
@@ -3957,7 +3984,7 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 	// Calc hit normal.
 	dtVsub(hitNormal, centerPos, hitPos);
 	dtVnormalize(hitNormal);
-	
+
 	*hitDist = dtMathSqrtf(radiusSqr);
 
 	return status;

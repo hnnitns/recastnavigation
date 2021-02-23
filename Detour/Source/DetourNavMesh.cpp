@@ -465,6 +465,8 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 
 	// Connect off-mesh links.
 	// We are interested on links which land from target tile to this tile.
+	// オフメッシュリンクを接続します。
+	// ターゲットタイルからこのタイルに到達するリンクに関心があります。
 	const unsigned char oppositeSide = (side == -1) ? 0xff : (unsigned char)dtOppositeTile(side);
 
 	for (int i = 0; i < target->header->offMeshConCount; ++i)
@@ -475,25 +477,30 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 
 		dtPoly* targetPoly = &target->polys[targetCon->poly];
 		// Skip off-mesh connections which start location could not be connected at all.
+		// 開始位置がまったく接続できなかったオフメッシュ接続をスキップします。
 		if (targetPoly->firstLink == DT_NULL_LINK)
 			continue;
 
 		const float halfExtents[3] = { targetCon->rad, target->header->walkableClimb, targetCon->rad };
 
 		// Find polygon to connect to.
+		// 接続するポリゴンを見つけます。
 		const float* p = &targetCon->pos[3];
 		float nearestPt[3];
 		dtPolyRef ref = findNearestPolyInTile(tile, p, halfExtents, nearestPt);
 		if (!ref)
 			continue;
 		// findNearestPoly may return too optimistic results, further check to make sure.
+		// Nearest Polyが楽観的すぎる結果を返す可能性があることを確認し、さらに確認してください。
 		if (dtSqr(nearestPt[0] - p[0]) + dtSqr(nearestPt[2] - p[2]) > dtSqr(targetCon->rad))
 			continue;
 		// Make sure the location is on current mesh.
+		// 場所が現在のメッシュ上にあることを確認してください。
 		float* v = &target->verts[targetPoly->verts[1] * 3];
 		dtVcopy(v, nearestPt);
 
 		// Link off-mesh connection to target poly.
+		// オフメッシュ接続をターゲットポリゴンにリンクします。
 		unsigned int idx = allocLink(target);
 		if (idx != DT_NULL_LINK)
 		{
@@ -503,11 +510,13 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 			link->side = oppositeSide;
 			link->bmin = link->bmax = 0;
 			// Add to linked list.
+			// リンクリストに追加します。
 			link->next = targetPoly->firstLink;
 			targetPoly->firstLink = idx;
 		}
 
 		// Link target poly to off-mesh connection.
+		// ターゲットポリゴンをオフメッシュ接続にリンクします。
 		if (targetCon->flags & DT_OFFMESH_CON_BIDIR)
 		{
 			unsigned int tidx = allocLink(tile);
@@ -521,6 +530,7 @@ void dtNavMesh::connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int
 				link->side = (unsigned char)(side == -1 ? 0xff : side);
 				link->bmin = link->bmax = 0;
 				// Add to linked list.
+				// リンクリストに追加します。
 				link->next = landPoly->firstLink;
 				landPoly->firstLink = tidx;
 			}
@@ -542,11 +552,13 @@ void dtNavMesh::connectIntLinks(dtMeshTile* tile)
 		if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
 			continue;
 
-		// Build edge links backwards so that the links will be
-		// in the linked list from lowest index to highest.
+		// Build edge links backwards so that the links will be in the linked list from lowest index to highest.
+		// リンクが最低のインデックスから最高のインデックスまでリンクリストに含まれるように、
+		// エッジリンクを逆方向に構築します。
 		for (int j = poly->vertCount - 1; j >= 0; --j)
 		{
 			// Skip hard and non-internal edges.
+			// ハードエッジと非内部エッジをスキップします。
 			if (poly->neis[j] == 0 || (poly->neis[j] & DT_EXT_LINK)) continue;
 
 			unsigned int idx = allocLink(tile);
@@ -558,6 +570,7 @@ void dtNavMesh::connectIntLinks(dtMeshTile* tile)
 				link->side = 0xff;
 				link->bmin = link->bmax = 0;
 				// Add to linked list.
+				// リンクリストに追加します。
 				link->next = poly->firstLink;
 				poly->firstLink = idx;
 			}
@@ -572,6 +585,7 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 	dtPolyRef base = getPolyRefBase(tile);
 
 	// Base off-mesh connection start points.
+	// ベースオフメッシュ接続の開始点。
 	for (int i = 0; i < tile->header->offMeshConCount; ++i)
 	{
 		dtOffMeshConnection* con = &tile->offMeshCons[i];
@@ -580,18 +594,24 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 		const float halfExtents[3] = { con->rad, tile->header->walkableClimb, con->rad };
 
 		// Find polygon to connect to.
+		// 接続するポリゴンを見つけます。
 		const float* p = &con->pos[0]; // First vertex
 		float nearestPt[3];
 		dtPolyRef ref = findNearestPolyInTile(tile, p, halfExtents, nearestPt);
+
 		if (!ref) continue;
+
 		// findNearestPoly may return too optimistic results, further check to make sure.
+		// Nearest Polyが楽観的すぎる結果を返す可能性があることを確認し、さらに確認してください。
 		if (dtSqr(nearestPt[0] - p[0]) + dtSqr(nearestPt[2] - p[2]) > dtSqr(con->rad))
 			continue;
 		// Make sure the location is on current mesh.
+		// 場所が現在のメッシュ上にあることを確認してください。
 		float* v = &tile->verts[poly->verts[0] * 3];
 		dtVcopy(v, nearestPt);
 
 		// Link off-mesh connection to target poly.
+		// オフメッシュ接続をターゲットポリゴンにリンクします。
 		unsigned int idx = allocLink(tile);
 		if (idx != DT_NULL_LINK)
 		{
@@ -601,11 +621,13 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 			link->side = 0xff;
 			link->bmin = link->bmax = 0;
 			// Add to linked list.
+			// リンクリストに追加します。
 			link->next = poly->firstLink;
 			poly->firstLink = idx;
 		}
 
 		// Start end-point is always connect back to off-mesh connection.
+		// 開始エンドポイントは、常にオフメッシュ接続に接続し直します。
 		unsigned int tidx = allocLink(tile);
 		if (tidx != DT_NULL_LINK)
 		{
@@ -617,6 +639,7 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 			link->side = 0xff;
 			link->bmin = link->bmax = 0;
 			// Add to linked list.
+			// リンクリストに追加します。
 			link->next = landPoly->firstLink;
 			landPoly->firstLink = tidx;
 		}
@@ -1494,11 +1517,15 @@ dtStatus dtNavMesh::restoreTileState(dtMeshTile* tile, const unsigned char* data
 
 /// @par
 ///
-/// Off-mesh connections are stored in the navigation mesh as special 2-vertex 
-/// polygons with a single edge. At least one of the vertices is expected to be 
-/// inside a normal polygon. So an off-mesh connection is "entered" from a 
-/// normal polygon at one of its endpoints. This is the polygon identified by 
+/// Off-mesh connections are stored in the navigation mesh as special 2-vertex
+/// polygons with a single edge. At least one of the vertices is expected to be
+/// inside a normal polygon. So an off-mesh connection is "entered" from a
+/// normal polygon at one of its endpoints. This is the polygon identified by
 /// the prevRef parameter.
+/// オフメッシュ接続は、単一のエッジを持つ特別な2頂点ポリゴンとしてナビゲーションメッシュに格納されます。
+/// 少なくとも1つの頂点が通常のポリゴンの内側にあると予想されます。
+/// したがって、オフメッシュ接続は、その端点の1つで通常のポリゴンから「入力」されます。
+/// これはprevRefパラメータで識別されるポリゴンです。
 dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyRef polyRef, float* startPos, float* endPos) const
 {
 	unsigned int salt, it, ip;
@@ -1507,6 +1534,7 @@ dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyR
 		return DT_FAILURE;
 
 	// Get current polygon
+	// 現在のポリゴンを取得
 	decodePolyId(polyRef, salt, it, ip);
 	if (it >= (unsigned int)m_maxTiles) return DT_FAILURE | DT_INVALID_PARAM;
 	if (m_tiles[it].salt != salt || m_tiles[it].header == 0) return DT_FAILURE | DT_INVALID_PARAM;
@@ -1515,13 +1543,16 @@ dtStatus dtNavMesh::getOffMeshConnectionPolyEndPoints(dtPolyRef prevRef, dtPolyR
 	const dtPoly* poly = &tile->polys[ip];
 
 	// Make sure that the current poly is indeed off-mesh link.
+	// 現在のポリゴンが実際にオフメッシュリンクであることを確認してください。
 	if (poly->getType() != DT_POLYTYPE_OFFMESH_CONNECTION)
 		return DT_FAILURE;
 
 	// Figure out which way to hand out the vertices.
+	// 頂点を配る方法を見つけます。
 	int idx0 = 0, idx1 = 1;
 
 	// Find link that points to first vertex.
+	// 最初の頂点を指すリンクを見つけます。
 	for (unsigned int i = poly->firstLink; i != DT_NULL_LINK; i = tile->links[i].next)
 	{
 		if (tile->links[i].edge == 0)

@@ -100,7 +100,7 @@ public:
 	int GetObstacleRequestCount() const noexcept;
 	int GetObstacleUpdateCount() const noexcept;
 
-	void buildTile(const float* pos);
+	dtStatus buildTile(const float* pos);
 	bool removeTile(const float* pos);
 	bool buildAllTiles();
 	void removeAllTiles();

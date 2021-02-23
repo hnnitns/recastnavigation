@@ -913,6 +913,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	if (!bc.lmesh->npolys)
 	{
 		// Remove existing tile.
+		// Šù‘¶‚Ìƒ^ƒCƒ‹‚ðíœ‚µ‚Ü‚·B
 		navmesh->removeTile(navmesh->getTileRefAt(tile->header->tx, tile->header->ty, tile->header->tlayer), 0, 0);
 		return DT_SUCCESS;
 	}

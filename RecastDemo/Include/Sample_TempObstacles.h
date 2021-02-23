@@ -74,7 +74,8 @@ public:
 	bool handleBuild() override;
 	void handleUpdate(const float dt) override;
 
-	void getTilePos(const float* pos, int* tx, int* ty);
+	void getTilePos(const float* pos, int* tx, int* ty) const;
+	dtTileRef GetTileRef(const float* pos);
 
 	void renderCachedTile(const int tx, const int ty, const int type);
 	void renderCachedTileOverlay(const int tx, const int ty, double* proj, double* model, int* view);

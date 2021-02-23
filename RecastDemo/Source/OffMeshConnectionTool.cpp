@@ -211,7 +211,7 @@ void OffMeshConnectionTool::handleMenu()
 		AutoTentativeLinksBuild();
 
 	if (!edges.empty() && imguiButton("Link Build"))
-		BuildLink();
+		ReBuildNavMeshLink();
 
 	if (imguiButton("ClearBuiltAutoLink"))
 		ClearBuiltAutoLink();
@@ -304,17 +304,8 @@ void OffMeshConnectionTool::handleMenu()
 
 			// 自動生成されたリンクの総数
 			{
-				static size_t temp{ (std::numeric_limits<size_t>::max)() };
-				size_t accumulate{};
-
-				if (temp != accumulate)
-				{
-					accumulate = NormalAlgorithm::Accumulate(edges, 0u,
-						[](const size_t i, const NavMeshEdge& edge) { return i + edge.links.size(); });
-				}
-
 				text = "auto Link size: ";
-				text += std::to_string(accumulate);
+				text += std::to_string(edge_link_accumulate);
 				imguiValue(text.data());
 			}
 		}
@@ -962,7 +953,7 @@ void OffMeshConnectionTool::handleRenderOverlay(double* proj, double* model, int
 				str += ", angle: ";
 				str += std::to_string(Math::ToDegree(link.end_edge_angle));
 
-				imguiDrawText((int)x, (int)y, IMGUI_ALIGN_LEFT, str.data(), imguiRGBA(255, 255, 255, 255));
+				imguiDrawText((int) x, (int) y, IMGUI_ALIGN_LEFT, str.data(), imguiRGBA(255, 255, 255, 255));
 			}
 		}
 	}
@@ -989,6 +980,9 @@ void OffMeshConnectionTool::AutoTentativeLinksBuild()
 
 	// 決定した仮リンクに調整・修正
 	CheckTentativeLink();
+
+	edge_link_accumulate = NormalAlgorithm::Accumulate(edges, 0u,
+		[](const size_t i, const NavMeshEdge& edge) { return i + edge.links.size(); });
 
 	// タイマー計測終了
 	ctx->stopTimer(RC_TIMER_TEMP);
@@ -1385,7 +1379,7 @@ void OffMeshConnectionTool::CheckTentativeLink()
 				} };
 				auto FindShortDistFunc{ [&ShortDistFunc](const Point& lt, const Point& rt, const Point& base)
 					{
-						return (std::min)(ShortDistFunc(lt, rt, base), ShortDistFunc(rt, lt, base));
+						return (std::min) (ShortDistFunc(lt, rt, base), ShortDistFunc(rt, lt, base));
 					} };
 				auto FindShortestEdgeFunc{ [&link, &FindShortDistFunc]
 				(const NavMeshEdge& lt, const NavMeshEdge& rt)
@@ -1404,9 +1398,9 @@ void OffMeshConnectionTool::CheckTentativeLink()
 						if (const float dist{ rcVdist(rt_middle, end) };
 							right_dist > dist)	right_dist = dist;
 #else
-						const float left_dist{ (std::min)(
+						const float left_dist{ (std::min) (
 							{ rcVdistSqr(lt_middle, end), rcVdistSqr(lt.start, end), rcVdistSqr(lt.end, end) }) };
-						const float right_dist{ (std::min)(
+						const float right_dist{ (std::min) (
 							{ rcVdistSqr(rt_middle, end), rcVdistSqr(rt.start, end), rcVdistSqr(rt.end, end) }) };
 #endif
 						return (left_dist < right_dist);
@@ -1536,7 +1530,73 @@ void OffMeshConnectionTool::BuildLink()
 
 void OffMeshConnectionTool::ReBuildNavMeshLink()
 {
+	using Link = NavMeshEdge::Link;
 
+	if (!obstacle_sample || edge_link_accumulate == 0)	return;
+
+	BuildLink();
+
+	// タイル情報
+	struct TileInfo final
+	{
+		Point pos{};
+		dtTileRef tile_ref{};
+	};
+
+	std::vector<TileInfo> tile_infos(edge_link_accumulate * 2);
+
+	// 各リンクのタイル情報を取得
+	{
+		auto&& itr{ tile_infos.begin() };
+
+		for (const auto& edge : edges)
+		{
+			auto GetTileInfoFunc{ [this](const Point& pos)
+			{
+				TileInfo info;
+
+				// タイル情報を取得
+				info.tile_ref = obstacle_sample->GetTileRef(pos.data());
+				// 座標を保存
+				info.pos = pos;
+
+				return info;
+			} };
+			const size_t count{ edge.links.size() };
+
+			// 始点
+			std::transform(exec::par, edge.links.begin(), edge.links.end(), itr,
+				[&GetTileInfoFunc] (const Link& link) { return GetTileInfoFunc(link.start); });
+
+			itr += count;
+
+			// 終点
+			std::transform(exec::par, edge.links.begin(), edge.links.end(), itr,
+				[&GetTileInfoFunc](const Link& link) { return GetTileInfoFunc(link.end); });
+
+			itr += count;
+		}
+	}
+
+	// 重複削除の為に並び替える
+	Sort(tile_infos, [](const TileInfo& left, const TileInfo& right)
+		{ return (left.tile_ref < right.tile_ref); }, exec::par);
+
+	// 重複を検出
+	auto&& itr{ Unique(tile_infos, [](const TileInfo& left, const TileInfo& right)
+		{ return (left.tile_ref == right.tile_ref); }, exec::par) };
+
+	// 実際に削除
+	tile_infos.erase(itr, tile_infos.end());
+
+	// ナビメッシュが存在しない場所
+	if (tile_infos.empty())	return;
+
+	for (const auto& info : tile_infos)
+	{
+		// その地点のタイルを再構築する
+		obstacle_sample->buildTile(info.pos.data());
+	}
 }
 
 void OffMeshConnectionTool::ClearBuiltAutoLink()

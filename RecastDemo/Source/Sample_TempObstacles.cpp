@@ -1713,7 +1713,7 @@ void Sample_TempObstacles::handleUpdate(const float dt)
 	m_tileCache->update(dt, m_navMesh);
 }
 
-void Sample_TempObstacles::getTilePos(const float* pos, int* tx, int* ty)
+void Sample_TempObstacles::getTilePos(const float* pos, int* tx, int* ty) const
 {
 	if (!(m_geom && tx && ty)) return;
 
@@ -1722,6 +1722,15 @@ void Sample_TempObstacles::getTilePos(const float* pos, int* tx, int* ty)
 
 	*tx = (int)((pos[0] - bmin[0]) / ts);
 	*ty = (int)((pos[2] - bmin[2]) / ts);
+}
+
+dtTileRef Sample_TempObstacles::GetTileRef(const float* pos)
+{
+	int tx{}, ty{};
+
+	getTilePos(pos, &tx, &ty);
+
+	return m_navMesh->getTileRefAt(tx, ty, 0);
 }
 
 namespace

@@ -98,6 +98,7 @@ private:
 	float max_end_link_error{ 0.2f };    // 終点をエッジからどれだけ離すか
 	float limit_link_angle{ M_PI_4 };    // リンクの始点・終点のナビメッシュエッジの制限角度
 	float max_link_end_edge_dis{ 0.5f }; // リンクの終点が最も近いエッジだと判断出来る最大距離
+	size_t edge_link_accumulate{}; // 総リンク数
 	std::vector<NavMeshEdge> edges;
 
 	std::vector<NotBuildArea> not_build_areas;

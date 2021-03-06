@@ -16,7 +16,7 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#define USE_AMP	true
+#define USE_AMP	false
 
 #include "MeshLoaderObj.h"
 #include <cstdio>
@@ -111,23 +111,23 @@ namespace
 			// multirow
 			switch (c)
 			{
-				case '\\':
-					break;
-				case '\n':
-					if (start) break;
+			case '\\':
+				break;
+			case '\n':
+				if (start) break;
+				done = true;
+				break;
+			case '\r':
+				break;
+			case '\t':
+			case ' ':
+				if (start) break;
+			default:
+				start = false;
+				row[n++] = c;
+				if (n >= len - 1)
 					done = true;
-					break;
-				case '\r':
-					break;
-				case '\t':
-				case ' ':
-					if (start) break;
-				default:
-					start = false;
-					row[n++] = c;
-					if (n >= len - 1)
-						done = true;
-					break;
+				break;
 			}
 		}
 		row[n] = '\0';
@@ -239,7 +239,7 @@ bool rcMeshLoaderObj::load(const std::string& filename, const float defalut_load
 		if (row[0] == 'v' && row[1] != 'n' && row[1] != 't')
 		{
 			// Vertex pos
-			[[maybe_unused]]int temp{ sscanf_s(row + 1, "%f %f %f", &x, &y, &z) };
+			[[maybe_unused]] int temp{ sscanf_s(row + 1, "%f %f %f", &x, &y, &z) };
 			addVertex(x, y, z, vcap);
 		}
 
@@ -331,7 +331,8 @@ public:
 		_41 = f4x4._41; _42 = f4x4._42; _43 = f4x4._43; _44 = f4x4._44;
 	}
 
-	FLOAT4X4 operator*(const FLOAT4X4& m) const {
+	FLOAT4X4 operator*(const FLOAT4X4& m) const
+	{
 		float x = _11;
 		float y = _12;
 		float z = _13;
@@ -516,12 +517,13 @@ auto operator*(const GpuOnlyEasyArray<_Ty, 16>& left, const GpuOnlyEasyArray<_Ty
 	return rv;
 }
 
-std::vector<PPL::accelerator> findAccelerators() {
+std::vector<PPL::accelerator> findAccelerators()
+{
 	std::vector<PPL::accelerator> accels;
 	accels = PPL::accelerator::get_all();
 
 	//emulatorのアクセラレータを削除します
-	accels.erase(std::remove_if(accels.begin(), accels.end(), [](PPL::accelerator& accel) {return accel.get_is_emulated(); }), accels.end());
+	accels.erase(std::remove_if(accels.begin(), accels.end(), [](PPL::accelerator& accel) { return accel.get_is_emulated(); }), accels.end());
 
 	return accels;
 }
@@ -533,16 +535,16 @@ void rcMeshLoaderObj::MoveVerts(
 	using namespace DirectX;
 	using Math::ToRadian;
 
-	const XMMATRIX S = XMMatrixScaling(scale[0], scale[1], scale[2]);
-	const XMMATRIX R = XMMatrixRotationRollPitchYaw(ToRadian(rotate[0]), ToRadian(rotate[1]), ToRadian(rotate[2]));
-	const XMMATRIX T = XMMatrixTranslation(pos[0], pos[1], pos[2]);
+	const XMMATRIX&& S = XMMatrixScaling(scale[0], scale[1], scale[2]);
+	const XMMATRIX&& R = XMMatrixRotationRollPitchYaw(ToRadian(rotate[0]), ToRadian(rotate[1]), ToRadian(rotate[2]));
+	const XMMATRIX&& T = XMMatrixTranslation(pos[0], pos[1], pos[2]);
 
 	// ワールド変換行列
-	XMMATRIX W = S * R * T;
-	XMFLOAT4X4 w;
+	XMMATRIX&& W{ S * R * T };
+	XMFLOAT4X4 w{};
 	DirectX::XMStoreFloat4x4(&w, W);
 
-#if USE_AMP && false // GPU
+#if USE_AMP // GPU
 	std::array<float, 16> w_arr{
 	w._11, w._12, w._13, w._14,
 	w._21, w._22, w._23, w._24,
@@ -553,13 +555,13 @@ void rcMeshLoaderObj::MoveVerts(
 		origin_verts(m_origine_verts.size(), m_origine_verts.data()),
 		world_mat(w_arr.size(), w_arr.data());
 
-	PPL::parallel_for_each(arr_view_origin.get_extent(), [=](PPL::index<1> idx) restrict(amp)
+	PPL::parallel_for_each(arr_view_origin.get_extent(), [=](PPL::index<1> idx) __GPU
 		{
 			GpuOnlyEasyArray<float, 16> pos
 			{
 				1.f, 0.f, 0.f, 0.f,
-				1.f, 0.f, 0.f, 0.f,
-				1.f, 0.f, 0.f, 0.f,
+				0.f, 1.f, 0.f, 0.f,
+				0.f, 0.f, 1.f, 0.f,
 				origin_verts[idx + 0], origin_verts[idx + 1], origin_verts[idx + 2], 1.f
 			};
 			GpuOnlyEasyArray<float, 16> world;
@@ -575,32 +577,12 @@ void rcMeshLoaderObj::MoveVerts(
 			arr_view_origin[idx + 1] = result[13];
 			arr_view_origin[idx + 2] = result[14];
 		});
-
-	//for (size_t i = 0; i < 4; i++)
-	//{
-	//	for (size_t j = 0; j < 4; j++)
-	//	{
-	//		to_gpu_arr[j * 4 + i] = mat[i].m128_f32[j];
-	//	}
-	//}
-#elif false
-	auto&& ac = findAccelerators();
-
-	std::array<float, 16> a;
-
-	a.fill(16.f);
-
-	PPL::array_view<float, 1> av{ int(a.size()), reinterpret_cast<float*>(&a[0]) };
-
-	PPL::parallel_for_each(av.get_extent(), [=](PPL::index<1> idx) restrict(amp)
+#else // CPU
+#if true
+	PPL::parallel_for(0, m_vertCount, 1, [&](const int i)
 		{
-			av[idx] = 10;
-		});
-
-#elif true // CPU
-	PPL::parallel_for(0, m_vertCount * 3, 3, [&](const int i)
-		{
-			const auto Pos = XMMatrixTranslation(m_origine_verts[i + 0], m_origine_verts[i + 1], m_origine_verts[i + 2]);
+			const auto&& Pos
+			{ XMMatrixTranslation(m_origine_verts[i + 0], m_origine_verts[i + 1], m_origine_verts[i + 2]) };
 
 			const auto result{ Pos * W };
 			auto& vs_pos{ result.r[3].m128_f32 };
@@ -609,5 +591,22 @@ void rcMeshLoaderObj::MoveVerts(
 			m_verts[i + 1] = vs_pos[1];
 			m_verts[i + 2] = vs_pos[2];
 		});
+#else
+	PPL::parallel_for(0, m_vertCount * 3, 3, [&](const int i)
+		{
+			for (int j = i; j < i + 3; j++)
+			{
+				const auto&& Pos
+				{ XMMatrixTranslation(m_origine_verts[j + 0], m_origine_verts[j + 1], m_origine_verts[j + 2]) };
+
+				const auto result{ Pos * W };
+				auto& vs_pos{ result.r[3].m128_f32 };
+
+				m_verts[j + 0] = vs_pos[0];
+				m_verts[j + 1] = vs_pos[1];
+				m_verts[j + 2] = vs_pos[2];
+			}
+		});
+#endif
 #endif
 }

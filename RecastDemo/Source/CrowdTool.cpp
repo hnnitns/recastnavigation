@@ -1296,3 +1296,12 @@ std::array<float, 3> CrowdManager::GetAgentVelocity(const int index) const noexc
 
 	return rv;
 }
+
+CrowdAgentState CrowdManager::GetState(const int index) const noexcept
+{
+	auto* agent{ m_state->GetAgent(index) };
+
+	if (!agent)	DT_CROWDAGENT_STATE_INVALID;
+
+	return (agent->state);
+}

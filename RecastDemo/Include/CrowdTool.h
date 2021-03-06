@@ -148,16 +148,18 @@ public:
 	_NODISCARD bool IsAllRunning() const noexcept { return m_state->IsAllRunning(); }
 	// 群衆全体の動きを設定する
 	void SetAllRunning(const bool is_run) noexcept { m_state->SetAllRunning(is_run); }
-	// 群衆の一部が動いているかどうか
+	// エージェントが動いているかどうか
 	_NODISCARD bool IsRunning(const int index) noexcept { return m_state->IsRunning(index); }
-	// 群衆の一部の動きを設定する
+	// エージェントの動きを設定する
 	void SetRunning(const int index, const bool is_run) const noexcept { m_state->SetRunning(index, is_run); }
-	// 群衆の一部の座標の再設定
+	// エージェントの座標の再設定
 	void SetAgentRePosition(const int index, const std::array<float, 3>& agent_pos) noexcept;
-	// 群衆の一部の座標の取得
+	// エージェントの座標の取得
 	_NODISCARD std::array<float, 3> GetAgentPosition(const int index) const noexcept;
-	// 群衆の一部の速度の取得
+	// エージェントの速度の取得
 	_NODISCARD std::array<float, 3> GetAgentVelocity(const int index) const noexcept;
+	// エージェントの状態を取得
+	_NODISCARD CrowdAgentState GetState(const int index) const noexcept;
 };
 
 class CrowdTool : public SampleTool

@@ -501,7 +501,7 @@ const dtObstacleAvoidanceParams* dtCrowd::getObstacleAvoidanceParams(const int i
 const dtCrowdAgent* dtCrowd::getAgentAt(const int idx) const
 {
 	if (idx < 0 || idx >= m_maxAgents)
-		return 0;
+		return nullptr;
 	return &m_agents[idx];
 }
 

@@ -1303,5 +1303,5 @@ CrowdAgentState CrowdManager::GetState(const int index) const noexcept
 
 	if (!agent)	DT_CROWDAGENT_STATE_INVALID;
 
-	return (agent->state);
+	return static_cast<CrowdAgentState>(agent->state);
 }

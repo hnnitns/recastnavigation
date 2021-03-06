@@ -55,3 +55,19 @@ struct AddAgentStruct
 	float collision_range{ 12.f }; // ステアリング動作と見なされる前に衝突要素がどれだけ近くなければならないか
 	float path_optimization_range{ 30.f }; // パスの可視化の最適化範囲
 };
+
+// The type of navigation mesh polygon the agent is currently traversing.
+// エージェントが現在通過しているナビゲーションメッシュポリゴンのタイプ。
+// @ingroup crowd
+enum CrowdAgentState
+{
+	// The agent is not in a valid state.
+	// エージェントは有効な状態ではありません。
+	DT_CROWDAGENT_STATE_INVALID,
+	// The agent is traversing a normal navigation mesh polygon.
+	// エージェントは通常のナビゲーションメッシュポリゴンを通過します。
+	DT_CROWDAGENT_STATE_WALKING,
+	// The agent is traversing an off-mesh connection.
+	// エージェントはオフメッシュ接続を通過します。
+	DT_CROWDAGENT_STATE_OFFMESH,
+};

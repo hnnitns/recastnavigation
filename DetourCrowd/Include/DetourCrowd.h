@@ -27,6 +27,7 @@
 #include "DetourPathCorridor.h"
 #include "DetourProximityGrid.h"
 #include "DetourPathQueue.h"
+#include "Common.h"
 
 // The maximum number of neighbors that a crowd agent can take into account for steering decisions.
 // クラウドエージェントがステアリング決定のために考慮できる付近のエージェントの最大数。
@@ -64,22 +65,6 @@ struct dtCrowdNeighbour
 {
 	int idx;		// The index of the neighbor in the crowd. // 群衆の中の隣のインデックス。
 	float dist;		// The distance between the current agent and the neighbor. // 現在のエージェントと隣人の間の距離。
-};
-
-// The type of navigation mesh polygon the agent is currently traversing.
-// エージェントが現在通過しているナビゲーションメッシュポリゴンのタイプ。
-// @ingroup crowd
-enum CrowdAgentState
-{
-	// The agent is not in a valid state.
-	// エージェントは有効な状態ではありません。
-	DT_CROWDAGENT_STATE_INVALID,
-	// The agent is traversing a normal navigation mesh polygon.
-	// エージェントは通常のナビゲーションメッシュポリゴンを通過します。
-	DT_CROWDAGENT_STATE_WALKING,
-	// The agent is traversing an off-mesh connection.
-	// エージェントはオフメッシュ接続を通過します。
-	DT_CROWDAGENT_STATE_OFFMESH,
 };
 
 // Configuration parameters for a crowd agent.
